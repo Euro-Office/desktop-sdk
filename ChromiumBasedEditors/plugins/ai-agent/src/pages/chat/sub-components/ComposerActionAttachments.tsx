@@ -131,9 +131,16 @@ const ComposerActionAttachment = () => {
 
   const items: DropDownItemProps[] = [
     { text: t("AddLocalFile"), onClick: () => selectLocalFile() },
-    { text: "", onClick: () => {}, isSeparator: true },
-    { text: t("RecentFiles"), onClick: () => {}, subMenu: recentFiles },
   ];
+
+  if (recentFiles.length > 0) {
+    items.push({ text: "", onClick: () => {}, isSeparator: true });
+    items.push({
+      text: t("RecentFiles"),
+      onClick: () => {},
+      subMenu: recentFiles,
+    });
+  }
 
   return (
     <DropdownMenu trigger={trigger} items={items} onOpenChange={onOpenChange} />
