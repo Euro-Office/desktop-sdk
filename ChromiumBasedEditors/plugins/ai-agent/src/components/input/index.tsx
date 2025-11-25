@@ -54,6 +54,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             border: isError ? "1px solid var(--input-error-color)" : "",
           }}
           value={props.value}
+          spellCheck={false}
           {...props}
         ></input>
         {props.type === "search" && props.value && (
