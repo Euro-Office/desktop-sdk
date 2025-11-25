@@ -31,6 +31,7 @@ const DropDownItem = ({
 }: DropDownItemProps) => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
   const [submenuSide, setSubmenuSide] = useState<"left" | "right">("right");
+  const [submenuOffset, setSubmenuOffset] = useState(12);
 
   const itemRef = useRef<HTMLDivElement | null>(null);
   const submenuRef = useRef<HTMLDivElement | null>(null);
@@ -97,7 +98,7 @@ const DropDownItem = ({
       const spaceOnRight = viewportWidth - itemRect.right;
 
       // Assume submenu width is around 300px (max-w-[300px]) + 4px offset
-      const estimatedSubmenuWidth = 304;
+      const estimatedSubmenuWidth = 154;
 
       // Open on left if there's not enough space on right but enough on left
       let side: "left" | "right" = "right";
@@ -106,20 +107,7 @@ const DropDownItem = ({
       }
 
       setSubmenuSide(side);
-
-      if (side === "left")
-        // Apply positioning after a short delay to ensure the submenu is rendered
-        setTimeout(() => {
-          if (submenuRef.current) {
-            submenuRef.current.style.position = "fixed";
-
-            if (side === "left") {
-              submenuRef.current.style.left = "unset";
-              submenuRef.current.style.bottom = "-19px";
-              submenuRef.current.style.right = `121px`;
-            }
-          }
-        }, 0);
+      setSubmenuOffset(side === "left" ? itemRect.width - 24 : 12);
     }
 
     setIsSubMenuOpen(true);
@@ -173,7 +161,7 @@ const DropDownItem = ({
           items={subMenu}
           side={submenuSide}
           align="start"
-          sideOffset={4}
+          sideOffset={submenuOffset}
           open={isSubMenuOpen}
           contentClassName="mt-[-15px] max-w-[300px]"
           containerRef={itemRef.current}
