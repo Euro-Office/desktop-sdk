@@ -1,15 +1,14 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-
-import en from "./translations/en.json";
-import ru from "./translations/ru.json";
 import cs from "./translations/cs.json";
 import de from "./translations/de.json";
+import en from "./translations/en.json";
 import es from "./translations/es.json";
 import fr from "./translations/fr.json";
 import it from "./translations/it.json";
 import pl from "./translations/pl.json";
 import ptBr from "./translations/pt-br.json";
+import ru from "./translations/ru.json";
 import sk from "./translations/sk.json";
 
 i18n

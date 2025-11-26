@@ -1,24 +1,21 @@
-import {
-  Ollama,
-  type ListResponse,
-  type Message,
-  type Tool,
-} from "ollama/browser";
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import cloneDeep from "lodash.clonedeep";
-
+import {
+  type ListResponse,
+  type Message,
+  Ollama,
+  type Tool,
+} from "ollama/browser";
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
-
 import type { BaseProvider } from "../base";
-
+import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
+import type { SettingsProvider, TData, TErrorData } from "../settings";
+import { handleToolCall } from "./handlers";
 import {
   convertMessagesToModelFormat,
   convertToolsToModelFormat,
   convertToolsToString,
 } from "./utils";
-import { handleToolCall } from "./handlers";
-import type { SettingsProvider, TData, TErrorData } from "../settings";
-import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
 
 class OllamaProvider
   implements BaseProvider<Tool, Message, Ollama>, SettingsProvider
@@ -35,8 +32,6 @@ class OllamaProvider
   client?: Ollama;
 
   messageStopped: boolean = false;
-
-  constructor() {}
 
   setProvider = (provider: TProvider) => {
     this.provider = provider;

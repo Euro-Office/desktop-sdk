@@ -1,16 +1,12 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
+import { ComboBox } from "@/components/combo-box";
+import type { TProvider } from "@/lib/types";
+import { provider } from "@/providers";
+import useMessageStore from "@/store/useMessageStore";
 import useModelsStore from "@/store/useModelsStore";
 import useProviders from "@/store/useProviders";
-import useMessageStore from "@/store/useMessageStore";
 import useServersStore from "@/store/useServersStore";
-
-import type { TProvider } from "@/lib/types";
-
-import { provider } from "@/providers";
-
-import { ComboBox } from "@/components/combo-box";
 
 const SelectModel = () => {
   const { currentModel, selectModel } = useModelsStore();
@@ -59,7 +55,9 @@ const SelectModel = () => {
     .map((p) => ({
       text: p.name,
       id: p.name,
-      onClick: () => {},
+      onClick: () => {
+        // ignore
+      },
       subMenu:
         providersModels.get(p.name)?.map((model) => ({
           text: model.name,

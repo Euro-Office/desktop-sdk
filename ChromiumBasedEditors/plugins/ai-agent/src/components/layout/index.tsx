@@ -1,10 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import useRouter from "@/store/useRouter";
-
-import { Navigation } from "./sub-components/Header";
 import { ChatList } from "./sub-components/ChatList";
+import { Navigation } from "./sub-components/Header";
 
 const getSystemTheme = (system: "dark" | "light") => {
   if (system === "dark") {

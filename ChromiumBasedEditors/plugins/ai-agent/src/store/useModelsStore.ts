@@ -1,7 +1,6 @@
 import { create } from "zustand";
-
-import type { Model } from "@/lib/types";
 import { CURRENT_MODEL_KEY } from "@/lib/constants";
+import type { Model } from "@/lib/types";
 import { provider } from "@/providers";
 
 type UseModelsStoreProps = {

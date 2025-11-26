@@ -1,12 +1,12 @@
-import type { TProcess, TMCPItem } from "@/lib/types";
+import type { TMCPItem, TProcess } from "@/lib/types";
 
 const getParams = (config: Record<string, unknown>) => {
   let command = "";
   const env: Record<string, string> = {};
   let args = "";
 
-  Object.entries(config).map(([key, value]) => {
-    if (key == "env") {
+  Object.entries(config).forEach(([key, value]) => {
+    if (key === "env") {
       Object.entries(value as Record<string, string>).forEach(([k, v]) => {
         env[k] = v;
       });
@@ -16,12 +16,12 @@ const getParams = (config: Record<string, unknown>) => {
       command = value as string;
     }
 
-    if (key == "args") {
+    if (key === "args") {
       args = (value as string[]).join(" ");
     }
   });
 
-  const commandLine = command + " " + args;
+  const commandLine = `${command} ${args}`;
 
   return { commandLine, env };
 };
@@ -52,7 +52,7 @@ class CustomServers {
       if (
         correctJson.jsonrpc === "2.0" &&
         correctJson.id &&
-        correctJson.id.includes("init-" + type)
+        correctJson.id.includes(`init-${type}`)
       ) {
         this.initedCustomServers[type] = true;
         this.stopedCustomServers = this.stopedCustomServers.filter(
@@ -63,7 +63,7 @@ class CustomServers {
       if (
         correctJson.jsonrpc === "2.0" &&
         correctJson.id &&
-        correctJson.id.includes("tools-" + type)
+        correctJson.id.includes(`tools-${type}`)
       ) {
         this.tools[type] = correctJson.result.tools;
         window.dispatchEvent(new CustomEvent("tools-changed"));
@@ -327,10 +327,7 @@ class CustomServers {
               const response = JSON.parse(message);
 
               // Check if this is our tool call response
-              if (
-                response.id &&
-                response.id.startsWith(`call-${serverType}-${toolName}`)
-              ) {
+              if (response.id?.startsWith(`call-${serverType}-${toolName}`)) {
                 // Restore original handler
                 process.onprocess = originalOnProcess;
                 clearTimeout(timeout);

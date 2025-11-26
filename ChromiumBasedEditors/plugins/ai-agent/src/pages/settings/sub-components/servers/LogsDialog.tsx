@@ -1,10 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import useServersStore from "@/store/useServersStore";
-
-import { Dialog, DialogContent } from "@/components/dialog";
 import { Button } from "@/components/button";
+import { Dialog, DialogContent } from "@/components/dialog";
+import useServersStore from "@/store/useServersStore";
 
 type LogsDialogProps = {
   type: string;
@@ -40,7 +38,7 @@ const LogsDialog = ({ type, open, onClose }: LogsDialogProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open}>
       <DialogContent
         header={`${type} ${t("logs").toLowerCase()}`}
         onClose={onClose}

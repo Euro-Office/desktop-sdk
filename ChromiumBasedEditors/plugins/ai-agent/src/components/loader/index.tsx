@@ -16,8 +16,6 @@ const Loader = ({ className, size = 16 }: LoaderProps) => {
         width: `${size}px`,
         height: `${size}px`,
       }}
-      role="status"
-      aria-label="loading"
     />
   );
 };

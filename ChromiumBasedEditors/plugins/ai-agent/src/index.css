@@ -3,11 +3,9 @@
 
 @import "./styles/themes.css";
 
-
 :root {
   font-family: Arial, "Segoe UI", system-ui, Avenir, Helvetica, sans-serif;
 }
-
 
 *::-webkit-scrollbar-track {
   background-color: var(--background-normal-element) !important;

@@ -1,21 +1,18 @@
-import { useEffect, useState, useCallback } from "react";
 import type { ToolCallMessagePartComponent } from "@assistant-ui/react";
-import { ReactSVG } from "react-svg";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import ToolCalledIconUrl from "@/assets/tool.called.svg?url";
-import CodeIconUrl from "@/assets/code.svg?url";
+import { ReactSVG } from "react-svg";
 import ArrowBottomIconUrl from "@/assets/arrow.bottom.svg?url";
 import ArrowRightIconUrl from "@/assets/arrow.right.svg?url";
 import CopyIconUrl from "@/assets/btn-copy.svg?url";
-import CheckedIconUrl from "@/assets/checked.svg?url";
-import SearchIconUrl from "@/assets/btn-web-search.svg?url";
 import ExternalIconUrl from "@/assets/btn-external.svg?url";
-
+import SearchIconUrl from "@/assets/btn-web-search.svg?url";
+import CheckedIconUrl from "@/assets/checked.svg?url";
+import CodeIconUrl from "@/assets/code.svg?url";
+import ToolCalledIconUrl from "@/assets/tool.called.svg?url";
 import server from "@/servers";
-
-import { Loader } from "../loader";
 import { IconButton } from "../icon-button";
+import { Loader } from "../loader";
 
 export const ToolFallback: ToolCallMessagePartComponent = ({
   toolName,
@@ -44,7 +41,7 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
   }, [isResultCopied]);
 
   const type = server.getServerType(toolName);
-  const name = toolName.replace(type + "_", "");
+  const name = toolName.replace(`${type}_`, "");
 
   const isLoading = result === undefined;
 
@@ -66,8 +63,8 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
       ? isWebSearch
         ? JSON.parse(argsTextFinal).query
         : isWebCrawling
-        ? JSON.parse(argsTextFinal).urls[0]
-        : ""
+          ? JSON.parse(argsTextFinal).urls[0]
+          : ""
       : "";
   } catch {
     //ignore
@@ -138,8 +135,8 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
             {isWebSearch
               ? webSearchName
               : isWebCrawling
-              ? `${name} | ${webSearchName}`
-              : name}
+                ? `${name} | ${webSearchName}`
+                : name}
           </span>
         </span>
         {isWebCrawling ? (
@@ -210,10 +207,10 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
                                 publishedDate?: string;
                                 author?: string;
                               },
-                              index: number
+                              _index: number
                             ) => (
                               <div
-                                key={index}
+                                key={item.id}
                                 className="group h-[36px] px-[8px] rounded-[4px] flex flex-row items-center justify-between cursor-pointer hover:bg-[var(--drop-down-menu-item-hover-color)] transition-colors"
                                 onClick={() => window.open(item.url, "_blank")}
                               >

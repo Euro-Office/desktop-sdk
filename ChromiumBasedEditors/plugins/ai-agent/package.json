@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "dev:local": "node scripts/dev.js",
-    "build": "vite build && node scripts/build.js",
-    "build:local": "vite build && node scripts/build.js && node scripts/move.js",
-    "lint": "eslint .",
+    "build": "biome check --error-on-warnings ./src && tsc --noEmit && vite build && node scripts/build.js",
+    "build:local": "biome check --error-on-warnings ./src && tsc --noEmit && vite build && node scripts/build.js && node scripts/move.js",
+    "lint": "biome lint ./src",
+    "format": "biome format --write ./src",
+    "check": "biome check --write ./src",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -50,20 +52,15 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
-    "@eslint/js": "^9.33.0",
+    "@biomejs/biome": "2.3.7",
     "@types/codemirror": "^5.60.16",
     "@types/lodash.clonedeep": "^4.5.9",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
-    "eslint": "^9.33.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^16.3.0",
     "path": "^0.12.7",
     "tw-animate-css": "^1.3.6",
     "typescript": "~5.8.3",
-    "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2",
     "vite-plugin-svgr": "^4.5.0"
   }

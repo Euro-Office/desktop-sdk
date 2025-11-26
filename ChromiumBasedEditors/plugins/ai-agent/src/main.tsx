@@ -1,6 +1,5 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-
 import App from "./App.tsx";
 import "./index.css";
 
@@ -13,7 +12,7 @@ const initializeApp = () => {
     const iframe = window.parent.document.querySelector(
       'iframe[name="system_asc.{9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}"]'
     ) as HTMLIFrameElement;
-    if (iframe && iframe.contentDocument) {
+    if (iframe?.contentDocument) {
       rootElement = iframe.contentDocument.getElementById("root");
     }
   }

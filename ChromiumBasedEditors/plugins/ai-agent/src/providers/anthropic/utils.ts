@@ -8,7 +8,6 @@ import type {
   CompleteAttachment,
   ThreadMessageLike,
 } from "@assistant-ui/react";
-
 import type { TMCPItem } from "@/lib/types";
 
 export const convertImageAttachmentsToContent = (
@@ -148,13 +147,13 @@ export const convertMessagesToModelFormat = (
               toolsResults.push({
                 type: "tool_result",
                 content: part.result,
-                tool_use_id: part.toolCallId!,
+                tool_use_id: part.toolCallId,
               });
             }
 
             content.push({
               type: "tool_use",
-              id: part.toolCallId!,
+              id: part.toolCallId,
               name: part.toolName,
               input: part.args || {},
             });

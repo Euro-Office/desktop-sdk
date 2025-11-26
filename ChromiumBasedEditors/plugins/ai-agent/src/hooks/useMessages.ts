@@ -1,22 +1,19 @@
-import { useEffect, useRef } from "react";
-
 import type {
   AppendMessage,
   FileMessagePart,
   ThreadMessageLike,
 } from "@assistant-ui/react";
-
+import { useEffect, useRef } from "react";
+import { createMessage, updateMessage } from "@/database/messages";
+import { getThread } from "@/database/metadata";
 import { provider, type SendMessageReturnType } from "@/providers";
 import server from "@/servers";
-import { createMessage, updateMessage } from "@/database/messages";
-
-import useMessageStore from "@/store/useMessageStore";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
-import useThreadsStore from "@/store/useThreadsStore";
-import useServersStore from "@/store/useServersStore";
-import useProviders from "@/store/useProviders";
+import useMessageStore from "@/store/useMessageStore";
 import useModelsStore from "@/store/useModelsStore";
-import { getThread } from "@/database/metadata";
+import useProviders from "@/store/useProviders";
+import useServersStore from "@/store/useServersStore";
+import useThreadsStore from "@/store/useThreadsStore";
 
 type UseMessagesProps = {
   isReady: boolean;
@@ -76,7 +73,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     const toolName = toolCall.toolName;
 
     const type = server.getServerType(toolName);
-    const name = toolName.replace(type + "_", "");
+    const name = toolName.replace(`${type}_`, "");
 
     if (allowAlways) {
       setAllowAlways(true, type, name);
@@ -127,7 +124,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     const toolName = toolCall.toolName;
 
     const type = server.getServerType(toolName);
-    const name = toolName.replace(type + "_", "");
+    const name = toolName.replace(`${type}_`, "");
 
     if (checkAllowAlways(type, name) || accept || deny) {
       const result = deny
@@ -172,7 +169,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     messageUIDProp?: string
   ) => {
     setIsStreamRunning(true);
-    let initedMessage = afterToolCall ? true : false;
+    let initedMessage = !!afterToolCall;
     const messageUID =
       afterToolCall && messageUIDProp ? messageUIDProp : crypto.randomUUID();
 
@@ -272,13 +269,13 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
           typeof msg.content === "string"
             ? msg.content
             : msg.content[0].type === "text"
-            ? msg.content[0].text
-            : "";
+              ? msg.content[0].text
+              : "";
 
         textForTitle += "\n\n";
       }
 
-      textForTitle += "\n\n" + message.content[0].text;
+      textForTitle += `\n\n${message.content[0].text}`;
 
       provider.createChatName(textForTitle).then(async (title) => {
         if (!title) return;

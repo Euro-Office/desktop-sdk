@@ -1,5 +1,4 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-
 import { chatDB } from "./index";
 
 interface Message {
@@ -76,7 +75,7 @@ export const readMessageById = async (
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
       const result = request.result;
-      
+
       // Verify the message belongs to the specified thread
       if (result && result.threadId === threadId) {
         resolve(result.message);

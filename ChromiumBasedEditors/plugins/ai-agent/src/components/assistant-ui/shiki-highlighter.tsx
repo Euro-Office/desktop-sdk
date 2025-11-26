@@ -1,11 +1,11 @@
 "use client";
 
-import { type FC } from "react";
+import type { SyntaxHighlighterProps as AUIProps } from "@assistant-ui/react-markdown";
+import type { FC } from "react";
 import ShikiHighlighter, {
   type ShikiHighlighterProps,
   useShikiHighlighter,
 } from "react-shiki";
-import type { SyntaxHighlighterProps as AUIProps } from "@assistant-ui/react-markdown";
 import { cn } from "@/lib/utils";
 
 import "./styles.css";

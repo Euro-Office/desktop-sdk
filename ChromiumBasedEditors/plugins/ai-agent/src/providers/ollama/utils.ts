@@ -1,6 +1,5 @@
-import type { Message, Tool } from "ollama/browser";
 import type { ThreadMessageLike } from "@assistant-ui/react";
-
+import type { Message, Tool } from "ollama/browser";
 import type { TMCPItem } from "@/lib/types";
 
 export const START_TOOL_TAG = "<TOOL_CALL>";
@@ -86,7 +85,7 @@ export const convertMessagesToModelFormat = (
       const content: Message["content"] =
         typeof message.content === "string"
           ? message.content
-          : message.content.find((part) => part.type === "text")?.text ?? "";
+          : (message.content.find((part) => part.type === "text")?.text ?? "");
 
       convertedMessages.push({
         role: "user",
@@ -112,6 +111,8 @@ export const convertMessagesToModelFormat = (
 
                 return `${START_TOOL_TAG}${part.argsText}${END_TOOL_TAG}`;
               }
+
+              return "";
             })
             .join("")
         : "";

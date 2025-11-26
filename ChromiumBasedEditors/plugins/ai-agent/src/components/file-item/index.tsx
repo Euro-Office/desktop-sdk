@@ -1,5 +1,10 @@
 import { ReactSVG } from "react-svg";
-
+import BtnCloseIconUrl from "@/assets/btn-close.small.svg?url";
+import DocumentsIconUrl from "@/assets/formats/24/documents.svg?url";
+import PdfIconUrl from "@/assets/formats/24/pdf.svg?url";
+import PresentationsIconUrl from "@/assets/formats/24/presentations.svg?url";
+import SpreadsheetsIconUrl from "@/assets/formats/24/spreadsheets.svg?url";
+import UnknownFormatIconUrl from "@/assets/formats/24/unknown-format.svg?url";
 import type { TAttachmentFile } from "@/lib/types";
 import {
   cn,
@@ -8,16 +13,7 @@ import {
   isPresentation,
   isSpreadsheet,
 } from "@/lib/utils";
-
 import useAttachmentsStore from "@/store/useAttachmentsStore";
-
-import BtnCloseIconUrl from "@/assets/btn-close.small.svg?url";
-import DocumentsIconUrl from "@/assets/formats/24/documents.svg?url";
-import PdfIconUrl from "@/assets/formats/24/pdf.svg?url";
-import SpreadsheetsIconUrl from "@/assets/formats/24/spreadsheets.svg?url";
-import PresentationsIconUrl from "@/assets/formats/24/presentations.svg?url";
-import UnknownFormatIconUrl from "@/assets/formats/24/unknown-format.svg?url";
-
 import { IconButton } from "../icon-button";
 
 type FileItemProps = {
@@ -33,8 +29,8 @@ const FileItem = ({ file, withoutClose }: FileItemProps) => {
   };
 
   const name = file.path.includes("\\")
-    ? file.path.split("\\").pop() ?? ""
-    : file.path.split("/").pop() ?? "";
+    ? (file.path.split("\\").pop() ?? "")
+    : (file.path.split("/").pop() ?? "");
   const extension = name.split(".").pop() ?? "";
   const nameWithoutExtension = name.replace(`.${extension}`, "");
 
@@ -46,12 +42,12 @@ const FileItem = ({ file, withoutClose }: FileItemProps) => {
   const icon = isPDFFile
     ? PdfIconUrl
     : isDocumentFile
-    ? DocumentsIconUrl
-    : isSpreadsheetFile
-    ? SpreadsheetsIconUrl
-    : isPresentationFile
-    ? PresentationsIconUrl
-    : UnknownFormatIconUrl;
+      ? DocumentsIconUrl
+      : isSpreadsheetFile
+        ? SpreadsheetsIconUrl
+        : isPresentationFile
+          ? PresentationsIconUrl
+          : UnknownFormatIconUrl;
 
   return (
     <div

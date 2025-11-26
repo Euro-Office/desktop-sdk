@@ -1,6 +1,5 @@
-import React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-
+import type React from "react";
 import { cn } from "@/lib/utils";
 
 const DialogTitle = ({

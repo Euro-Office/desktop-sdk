@@ -1,15 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import useServersStore from "@/store/useServersStore";
-
-import client from "@/servers";
-
 import {
   MAX_TOOL_COUNT,
   MAX_TOOL_COUNT_WITH_WEB_SEARCH,
 } from "@/lib/constants";
-
+import client from "@/servers";
+import useServersStore from "@/store/useServersStore";
 import AvailableToolsItem from "./AvailableToolsItem";
 
 const AvailableTools = () => {

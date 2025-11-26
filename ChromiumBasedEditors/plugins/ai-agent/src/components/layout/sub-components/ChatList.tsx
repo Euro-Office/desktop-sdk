@@ -1,17 +1,13 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import OpenChatListUrl from "@/assets/btn-list-search.svg?url";
 import ArrowLeftUrl from "@/assets/btn-previtem.svg?url";
 import SearchUrl from "@/assets/search.svg?url";
-
-import useThreadsStore from "@/store/useThreadsStore";
-import useRouter from "@/store/useRouter";
-
 import { IconButton } from "@/components/icon-button";
 import { Input } from "@/components/input";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
-
+import useRouter from "@/store/useRouter";
+import useThreadsStore from "@/store/useThreadsStore";
 import { ChatListItem } from "./ChatListItem";
 
 const ChatList = () => {

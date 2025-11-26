@@ -1,16 +1,12 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-
 import type { Model, ProviderType, TMCPItem, TProvider } from "@/lib/types";
-
-import type { TData } from "./settings";
-
-import { anthropicProvider, AnthropicProvider } from "./anthropic";
-import { ollamaProvider, OllamaProvider } from "./ollama";
-import { openaiProvider, OpenAIProvider } from "./openai";
-import { togetherProvider, TogetherProvider } from "./together";
-import { openrouterProvider, OpenRouterProvider } from "./openrouter";
-
+import { type AnthropicProvider, anthropicProvider } from "./anthropic";
+import { type OllamaProvider, ollamaProvider } from "./ollama";
+import { type OpenAIProvider, openaiProvider } from "./openai";
+import { type OpenRouterProvider, openrouterProvider } from "./openrouter";
 import { SYSTEM_PROMPT } from "./Providers.utils";
+import type { TData } from "./settings";
+import { type TogetherProvider, togetherProvider } from "./together";
 
 export type SendMessageReturnType = AsyncGenerator<
   | ThreadMessageLike

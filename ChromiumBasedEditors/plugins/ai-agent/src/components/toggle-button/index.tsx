@@ -1,7 +1,5 @@
 import * as Switch from "@radix-ui/react-switch";
-
 import { cn } from "@/lib/utils";
-
 import type { ToggleButtonProps } from "./ToggleButton.types";
 
 const ToggleButton = ({

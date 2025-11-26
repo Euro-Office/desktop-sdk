@@ -2,10 +2,9 @@
 
 import "@assistant-ui/react-markdown/styles/dot.css";
 
+import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import { memo } from "react";
 import remarkGfm from "remark-gfm";
-import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
-
 import defaultComponents from "./Markdown.utils";
 
 const MarkdownTextImpl = () => {

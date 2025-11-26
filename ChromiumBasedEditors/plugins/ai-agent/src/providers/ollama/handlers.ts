@@ -1,5 +1,5 @@
 import type { ToolCallMessagePart } from "@assistant-ui/react";
-import { START_TOOL_TAG, END_TOOL_TAG } from "./utils";
+import { END_TOOL_TAG, START_TOOL_TAG } from "./utils";
 
 export const handleToolCall = (content: string) => {
   let isTool = false;

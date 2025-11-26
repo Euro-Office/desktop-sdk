@@ -1,5 +1,4 @@
 import { create } from "zustand";
-
 import type { TAttachmentFile } from "@/lib/types";
 
 type UseAttachmentsStoreProps = {

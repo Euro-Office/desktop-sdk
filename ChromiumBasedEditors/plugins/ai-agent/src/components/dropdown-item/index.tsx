@@ -1,17 +1,13 @@
-import { useRef, useState } from "react";
 import { Item } from "@radix-ui/react-dropdown-menu";
-
-import { cn } from "@/lib/utils";
-
+import { useRef, useState } from "react";
 import ArrowRightIconUrl from "@/assets/arrow.right.svg?url";
 import CheckedIconUrl from "@/assets/checked.svg?url";
-
+import { cn } from "@/lib/utils";
 import { DropdownMenu } from "../dropdown";
 import { IconButton } from "../icon-button";
-import { Tooltip, TooltipTrigger, TooltipContent } from "../tooltip";
-
-import type { DropDownItemProps } from "./DropDownItem.types";
 import { ToggleButton } from "../toggle-button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../tooltip";
+import type { DropDownItemProps } from "./DropDownItem.types";
 
 const DropDownItem = ({
   text,
@@ -136,7 +132,7 @@ const DropDownItem = ({
         {icon && typeof icon === "string" ? (
           <IconButton iconName={icon} size={iconSize} disableHover />
         ) : (
-          icon ?? null
+          (icon ?? null)
         )}
         <span
           className={cn(

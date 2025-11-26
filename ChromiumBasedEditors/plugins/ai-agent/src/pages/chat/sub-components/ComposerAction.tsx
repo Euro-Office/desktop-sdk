@@ -1,7 +1,7 @@
-import { ServersSettings } from "./ComposerActionServers";
 import { ComposerActionAttachment } from "./ComposerActionAttachments";
 import { SelectModel } from "./ComposerActionSelectModel";
 import { ComposerActionSend } from "./ComposerActionSend";
+import { ServersSettings } from "./ComposerActionServers";
 
 const ComposerAction = () => {
   return (

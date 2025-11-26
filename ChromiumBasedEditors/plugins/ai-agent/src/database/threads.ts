@@ -1,5 +1,4 @@
 import type { Thread } from "@/lib/types";
-
 import { chatDB } from "./index";
 import { deleteMessagesInThread } from "./messages";
 

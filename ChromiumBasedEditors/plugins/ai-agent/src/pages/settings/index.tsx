@@ -1,17 +1,13 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import useProviders from "@/store/useProviders";
-
 import { RadioButton } from "@/components/radio-button";
 import { Tabs } from "@/components/tabs";
-
-import { Providers } from "./sub-components/providers";
-import { Wallet } from "./sub-components/wallet";
-import { Servers } from "./sub-components/servers";
-import { WebSearch } from "./sub-components/web-search";
-
 import config from "@/config.json";
+import useProviders from "@/store/useProviders";
+import { Providers } from "./sub-components/providers";
+import { Servers } from "./sub-components/servers";
+import { Wallet } from "./sub-components/wallet";
+import { WebSearch } from "./sub-components/web-search";
 
 const showWallet = config.showWallet;
 
@@ -80,36 +76,34 @@ const Settings = () => {
   );
 
   return (
-    <>
-      <div className="flex justify-center">
-        <div className="flex flex-col gap-[16px] box-border max-w-[640px] w-[640px] mx-[32px] mt-[32px]">
-          <h1 className="select-none font-bold text-[20px] leading-[28px] text-[var(--settings-header-color)]">
-            {t("Settings")}
-          </h1>
-          <Tabs
-            items={[
-              {
-                value: "ai-settings",
-                label: t("Connection"),
-                content: aiSettingsTab,
-              },
-              {
-                value: "mcp-servers",
-                label: t("MCPServers"),
-                content: <Servers />,
-                disabled: !providers.length,
-              },
-              {
-                value: "web-search",
-                label: t("WebSearch"),
-                content: <WebSearch />,
-                disabled: !providers.length,
-              },
-            ]}
-          />
-        </div>
+    <div className="flex justify-center">
+      <div className="flex flex-col gap-[16px] box-border max-w-[640px] w-[640px] mx-[32px] mt-[32px]">
+        <h1 className="select-none font-bold text-[20px] leading-[28px] text-[var(--settings-header-color)]">
+          {t("Settings")}
+        </h1>
+        <Tabs
+          items={[
+            {
+              value: "ai-settings",
+              label: t("Connection"),
+              content: aiSettingsTab,
+            },
+            {
+              value: "mcp-servers",
+              label: t("MCPServers"),
+              content: <Servers />,
+              disabled: !providers.length,
+            },
+            {
+              value: "web-search",
+              label: t("WebSearch"),
+              content: <WebSearch />,
+              disabled: !providers.length,
+            },
+          ]}
+        />
       </div>
-    </>
+    </div>
   );
 };
 

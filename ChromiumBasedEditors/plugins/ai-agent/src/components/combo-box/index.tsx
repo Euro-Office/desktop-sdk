@@ -1,10 +1,7 @@
 import React from "react";
 import { ReactSVG } from "react-svg";
-
-import { cn } from "@/lib/utils";
-
 import ArrowBottomSvgUrl from "@/assets/arrow.bottom.svg?url";
-
+import { cn } from "@/lib/utils";
 import { DropdownMenu } from "../dropdown";
 import type { DropDownItemProps } from "../dropdown-item/DropDownItem.types";
 
@@ -49,8 +46,8 @@ const ComboBox = ({
             isOpen
               ? "border bg-[var(--input-background-color)] border-[var(--input-active-border-color)]"
               : withoutBg
-              ? "hover:bg-[var(--input-hover-background-color)] hover:border-[var(--input-hover-border-color)]"
-              : "border bg-[var(--input-background-color)] border-[var(--input-border-color)] hover:bg-[var(--input-hover-background-color)] hover:border-[var(--input-hover-border-color)]",
+                ? "hover:bg-[var(--input-hover-background-color)] hover:border-[var(--input-hover-border-color)]"
+                : "border bg-[var(--input-background-color)] border-[var(--input-border-color)] hover:bg-[var(--input-hover-background-color)] hover:border-[var(--input-hover-border-color)]",
             className,
             items.length === 0
               ? "cursor-not-allowed pointer-events-none opacity-50"

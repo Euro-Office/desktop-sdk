@@ -1,25 +1,21 @@
-import Together from "together-ai";
-
-import cloneDeep from "lodash.clonedeep";
-import type { ModelListResponse, Tools } from "together-ai/resources";
 import type { ThreadMessageLike } from "@assistant-ui/react";
+import cloneDeep from "lodash.clonedeep";
+import Together from "together-ai";
+import type { ModelListResponse, Tools } from "together-ai/resources";
 import type {
   ChatCompletionSystemMessageParam,
   CompletionCreateParams,
 } from "together-ai/resources/chat/completions";
-
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
-
 import type { BaseProvider } from "../base";
-import type { SettingsProvider, TData, TErrorData } from "../settings";
-
-import {
-  type TogetherMessageParam,
-  convertToolsToModelFormat,
-  convertMessagesToModelFormat,
-} from "./utils";
-import { handleTextMessage, handleToolCall } from "./handlers";
 import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
+import type { SettingsProvider, TData, TErrorData } from "../settings";
+import { handleTextMessage, handleToolCall } from "./handlers";
+import {
+  convertMessagesToModelFormat,
+  convertToolsToModelFormat,
+  type TogetherMessageParam,
+} from "./utils";
 
 class TogetherProvider
   implements
@@ -38,8 +34,6 @@ class TogetherProvider
   client?: Together;
 
   stopStream = false;
-
-  constructor() {}
 
   setProvider = (provider: TProvider) => {
     this.provider = provider;
@@ -206,13 +200,11 @@ class TogetherProvider
             isEnd: true,
             responseMessage,
           };
-          continue;
         } else if (stop) {
           yield {
             isEnd: true,
             responseMessage,
           };
-          continue;
         } else {
           yield responseMessage;
         }
@@ -250,7 +242,7 @@ class TogetherProvider
     const toolResult: CompletionCreateParams.ChatCompletionToolMessageParam = {
       role: "tool",
       content: result.result || "",
-      tool_call_id: result.toolCallId!,
+      tool_call_id: result.toolCallId ?? "",
     };
 
     this.prevMessages.push(toolResult);

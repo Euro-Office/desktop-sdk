@@ -1,10 +1,9 @@
 import { create } from "zustand";
-
-import type { TProvider, Model } from "@/lib/types";
 import {
-  PROVIDERS_LOCAL_STORAGE_KEY,
   CURRENT_PROVIDER_KEY,
+  PROVIDERS_LOCAL_STORAGE_KEY,
 } from "@/lib/constants";
+import type { Model, TProvider } from "@/lib/types";
 import { provider } from "@/providers";
 import type { TErrorData } from "@/providers/settings";
 

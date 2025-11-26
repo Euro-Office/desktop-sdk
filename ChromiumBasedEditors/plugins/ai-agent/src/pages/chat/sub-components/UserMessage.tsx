@@ -1,11 +1,8 @@
 import { MessagePrimitive, useMessage } from "@assistant-ui/react";
-
 import { motion } from "framer-motion";
-
-import type { TAttachmentFile } from "@/lib/types";
 import { FileItem } from "@/components/file-item";
-
 import { MarkdownText } from "@/components/markdown";
+import type { TAttachmentFile } from "@/lib/types";
 
 export const UserMessage = () => {
   const message = useMessage();

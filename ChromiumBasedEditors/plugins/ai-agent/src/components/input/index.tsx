@@ -1,8 +1,6 @@
 import React, { useCallback } from "react";
 import { ReactSVG } from "react-svg";
-
 import ClearSearchIconUrl from "@/assets/clear.search.svg?url";
-
 import { cn } from "@/lib/utils";
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {

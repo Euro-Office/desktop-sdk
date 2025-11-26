@@ -1,8 +1,6 @@
 import { useCallback } from "react";
 import { ReactSVG } from "react-svg";
-
 import { cn } from "@/lib/utils";
-
 import type { IconButtonProps } from "./IconButton.types";
 
 const IconButton = ({

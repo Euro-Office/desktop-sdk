@@ -1,22 +1,18 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ReactSVG } from "react-svg";
-
 import AttachmentIconUrl from "@/assets/attachment.svg?url";
 import DocumentsIconSvg from "@/assets/formats/24/documents.svg?url";
-import SpreadsheetsIconSvg from "@/assets/formats/24/spreadsheets.svg?url";
 import PdfIconSvg from "@/assets/formats/24/pdf.svg?url";
 import PresentationsIconSvg from "@/assets/formats/24/presentations.svg?url";
+import SpreadsheetsIconSvg from "@/assets/formats/24/spreadsheets.svg?url";
 import UnknownFormatIconSvg from "@/assets/formats/24/unknown-format.svg?url";
-
-import useAttachmentsStore from "@/store/useAttachmentsStore";
-
-import { isDocument, isPdf, isPresentation, isSpreadsheet } from "@/lib/utils";
-
-import { IconButton } from "@/components/icon-button";
 import { DropdownMenu } from "@/components/dropdown";
 import type { DropDownItemProps } from "@/components/dropdown-item/DropDownItem.types";
+import { IconButton } from "@/components/icon-button";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import { isDocument, isPdf, isPresentation, isSpreadsheet } from "@/lib/utils";
+import useAttachmentsStore from "@/store/useAttachmentsStore";
 
 const ComposerActionAttachment = () => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -105,8 +101,8 @@ const ComposerActionAttachment = () => {
 
       return {
         text: file.path.includes("\\")
-          ? file.path.split("\\").pop() ?? ""
-          : file.path.split("/").pop() ?? "",
+          ? (file.path.split("\\").pop() ?? "")
+          : (file.path.split("/").pop() ?? ""),
         key: file.path,
         id: file.path,
         icon: icon ? <ReactSVG src={icon} /> : null,
@@ -134,10 +130,18 @@ const ComposerActionAttachment = () => {
   ];
 
   if (recentFiles.length > 0) {
-    items.push({ text: "", onClick: () => {}, isSeparator: true });
+    items.push({
+      text: "",
+      onClick: () => {
+        // ignore
+      },
+      isSeparator: true,
+    });
     items.push({
       text: t("RecentFiles"),
-      onClick: () => {},
+      onClick: () => {
+        // ignore
+      },
       subMenu: recentFiles,
     });
   }

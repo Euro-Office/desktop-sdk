@@ -1,5 +1,4 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-
 import type { TMCPItem, TProvider } from "@/lib/types";
 
 export interface BaseProvider<TOOL, MESSAGE, CLIENT> {

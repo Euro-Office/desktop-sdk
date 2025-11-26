@@ -1,12 +1,9 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import { Dialog, DialogContent } from "@/components/dialog";
 import { Button } from "@/components/button";
-
-import useProviders from "@/store/useProviders";
-
+import { Dialog, DialogContent } from "@/components/dialog";
 import type { ProviderType, TProvider } from "@/lib/types";
+import useProviders from "@/store/useProviders";
 
 type DeleteProviderDialogProps = {
   name: string;

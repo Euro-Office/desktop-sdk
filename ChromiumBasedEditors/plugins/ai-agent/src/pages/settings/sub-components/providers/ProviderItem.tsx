@@ -1,21 +1,16 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import MoreIconSvgUrl from "@/assets/more.svg?url";
-import RemoveIconSvgUrl from "@/assets/btn-remove.svg?url";
 import EditIconSvgUrl from "@/assets/btn-edit.svg?url";
+import RemoveIconSvgUrl from "@/assets/btn-remove.svg?url";
+import MoreIconSvgUrl from "@/assets/more.svg?url";
 import StatusErrorIconUrl from "@/assets/status.error.svg?url";
-
-import type { TProvider } from "@/lib/types";
-
-import { IconButton } from "@/components/icon-button";
 import { DropdownMenu } from "@/components/dropdown";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/tooltip";
-
+import { IconButton } from "@/components/icon-button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
+import type { TProvider } from "@/lib/types";
 import useProviders from "@/store/useProviders";
-
-import { EditProviderDialog } from "./EditProviderDialog";
 import { DeleteProviderDialog } from "./DeleteProviderDialog";
+import { EditProviderDialog } from "./EditProviderDialog";
 
 type ProviderItemProps = {
   provider: TProvider;
@@ -38,7 +33,7 @@ const ProviderItem = ({ provider }: ProviderItemProps) => {
 
   const { t } = useTranslation();
 
-  const hasModels = providersModels.get(provider.name)?.length ?? 0 > 0;
+  const hasModels = !!providersModels.get(provider.name)?.length;
 
   return (
     <>
@@ -100,7 +95,13 @@ const ProviderItem = ({ provider }: ProviderItemProps) => {
                 text: t("Edit"),
                 onClick: () => setEditProviderVisible(true),
               },
-              { text: "", onClick: () => {}, isSeparator: true },
+              {
+                text: "",
+                onClick: () => {
+                  // ignore
+                },
+                isSeparator: true,
+              },
               {
                 icon: (
                   <IconButton

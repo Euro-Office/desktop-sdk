@@ -1,14 +1,11 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import SearchIconUrl from "@/assets/btn-web-search.svg?url";
 import ToolsIconUrl from "@/assets/tools.svg?url";
-
-import useServersStore from "@/store/useServersStore";
-
-import { IconButton } from "@/components/icon-button";
 import { DropdownMenu } from "@/components/dropdown";
+import { IconButton } from "@/components/icon-button";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import useServersStore from "@/store/useServersStore";
 
 const ServersSettings = () => {
   const { servers, changeToolStatus, webSearchEnabled, getWebSearchEnabled } =
@@ -31,7 +28,9 @@ const ServersSettings = () => {
     () => [
       {
         text: t("WebSearch"),
-        onClick: () => {},
+        onClick: () => {
+          // ignore
+        },
         icon: <IconButton iconName={SearchIconUrl} size={24} disableHover />,
         withToggle: true,
         toggleChecked: getWebSearchEnabled() ? webSearchEnabled : false,
@@ -46,20 +45,36 @@ const ServersSettings = () => {
           window.dispatchEvent(new CustomEvent("tools-changed"));
         },
       },
-      { text: "", onClick: () => {}, isSeparator: true },
+      {
+        text: "",
+        onClick: () => {
+          // ignore
+        },
+        isSeparator: true,
+      },
       ...Object.entries(servers)
         .map(([type, tools]) => {
           if (type === "web-search")
-            return { text: type, onClick: () => {}, subMenu: [] };
+            return {
+              text: type,
+              onClick: () => {
+                // ignore
+              },
+              subMenu: [],
+            };
 
           const isAllEnabled = tools.some((tool) => tool.enabled);
           return {
             text: type,
-            onClick: () => {},
+            onClick: () => {
+              // ignore
+            },
             subMenu: [
               {
                 text: "All tools",
-                onClick: () => {},
+                onClick: () => {
+                  // ignore
+                },
                 withToggle: true,
                 toggleChecked: isAllEnabled,
                 onToggleChange: () => {
@@ -74,11 +89,19 @@ const ServersSettings = () => {
                   }
                 },
               },
-              { text: "", onClick: () => {}, isSeparator: true },
+              {
+                text: "",
+                onClick: () => {
+                  // ignore
+                },
+                isSeparator: true,
+              },
               ...tools.map((tool) => {
                 return {
                   text: tool.name,
-                  onClick: () => {},
+                  onClick: () => {
+                    // ignore
+                  },
                   withToggle: true,
                   toggleChecked: tool.enabled,
                   onToggleChange: (checked: boolean) => {

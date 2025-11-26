@@ -1,3 +1,5 @@
+import type { ThreadMessageLike } from "@assistant-ui/react";
+import cloneDeep from "lodash.clonedeep";
 import OpenAI from "openai";
 import type {
   ChatCompletionChunk,
@@ -6,21 +8,16 @@ import type {
   ChatCompletionTool,
   ChatCompletionToolMessageParam,
 } from "openai/resources/chat/completions";
-import cloneDeep from "lodash.clonedeep";
 import type { Model as OpenAIModel } from "openai/resources/models";
-import type { ThreadMessageLike } from "@assistant-ui/react";
-
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
-
 import type { BaseProvider } from "../base";
-import type { SettingsProvider, TData, TErrorData } from "../settings";
-
-import {
-  convertToolsToModelFormat,
-  convertMessagesToModelFormat,
-} from "./utils";
-import { handleTextMessage, handleToolCall } from "./handlers";
 import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
+import type { SettingsProvider, TData, TErrorData } from "../settings";
+import { handleTextMessage, handleToolCall } from "./handlers";
+import {
+  convertMessagesToModelFormat,
+  convertToolsToModelFormat,
+} from "./utils";
 
 class OpenRouterProvider
   implements
@@ -39,8 +36,6 @@ class OpenRouterProvider
   client?: OpenAI;
 
   stopStream = false;
-
-  constructor() {}
 
   setProvider = (provider: TProvider) => {
     this.provider = provider;
@@ -212,7 +207,6 @@ class OpenRouterProvider
             isEnd: true,
             responseMessage,
           };
-          continue;
         } else {
           yield responseMessage;
         }
@@ -250,7 +244,7 @@ class OpenRouterProvider
     const toolResult: ChatCompletionToolMessageParam = {
       role: "tool",
       content: result.result,
-      tool_call_id: result.toolCallId!,
+      tool_call_id: result.toolCallId ?? new Date().toISOString(),
     };
 
     this.prevMessages.push(toolResult);
@@ -341,24 +335,24 @@ class OpenRouterProvider
           model.id === "openai/gpt-5.1"
             ? "GPT-5.1"
             : model.id === "anthropic/claude-haiku-4.5"
-            ? "Claude Haiku 4.5"
-            : model.id === "anthropic/claude-sonnet-4.5"
-            ? "Claude Sonnet 4.5"
-            : model.id === "anthropic/claude-opus-4.1"
-            ? "Claude Opus 4.1"
-            : model.id === "x-ai/grok-4"
-            ? "Grok 4"
-            : model.id === "google/gemini-2.5-flash"
-            ? "Gemini 2.5 Flash"
-            : model.id === "google/gemini-2.5-pro"
-            ? "Gemini 2.5 Pro"
-            : model.id === "qwen/qwen3-235b-a22b-2507"
-            ? "Qwen3"
-            : model.id === "deepseek/deepseek-v3.1-terminus"
-            ? "DeepSeek V3.1 Terminus"
-            : model.id === "qwen/qwen3-max"
-            ? "Qwen3 Max"
-            : model.id.toUpperCase(),
+              ? "Claude Haiku 4.5"
+              : model.id === "anthropic/claude-sonnet-4.5"
+                ? "Claude Sonnet 4.5"
+                : model.id === "anthropic/claude-opus-4.1"
+                  ? "Claude Opus 4.1"
+                  : model.id === "x-ai/grok-4"
+                    ? "Grok 4"
+                    : model.id === "google/gemini-2.5-flash"
+                      ? "Gemini 2.5 Flash"
+                      : model.id === "google/gemini-2.5-pro"
+                        ? "Gemini 2.5 Pro"
+                        : model.id === "qwen/qwen3-235b-a22b-2507"
+                          ? "Qwen3"
+                          : model.id === "deepseek/deepseek-v3.1-terminus"
+                            ? "DeepSeek V3.1 Terminus"
+                            : model.id === "qwen/qwen3-max"
+                              ? "Qwen3 Max"
+                              : model.id.toUpperCase(),
         provider: "openrouter" as const,
       }));
   };

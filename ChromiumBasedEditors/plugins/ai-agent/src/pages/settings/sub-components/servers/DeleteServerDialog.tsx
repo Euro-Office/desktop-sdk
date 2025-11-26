@@ -1,9 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import { Dialog, DialogContent } from "@/components/dialog";
 import { Button } from "@/components/button";
-
+import { Dialog, DialogContent } from "@/components/dialog";
 import useServersStore from "@/store/useServersStore";
 
 type DeleteServerDialogProps = {

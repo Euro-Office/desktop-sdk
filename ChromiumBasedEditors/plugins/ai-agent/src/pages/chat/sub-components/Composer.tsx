@@ -1,11 +1,9 @@
 import { ComposerPrimitive } from "@assistant-ui/react";
 import { useTranslation } from "react-i18next";
-
 import { FileItem } from "@/components/file-item";
-import useProviders from "@/store/useProviders";
-import useModelsStore from "@/store/useModelsStore";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
-
+import useModelsStore from "@/store/useModelsStore";
+import useProviders from "@/store/useProviders";
 import { ComposerAction } from "./ComposerAction";
 
 const Composer = () => {

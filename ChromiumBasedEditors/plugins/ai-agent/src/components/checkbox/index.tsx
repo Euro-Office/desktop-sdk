@@ -1,6 +1,6 @@
-import React, { useCallback } from "react";
+import type React from "react";
+import { useCallback } from "react";
 import { ReactSVG } from "react-svg";
-
 import CheckedIconUrl from "@/assets/checked.svg?url";
 import { cn } from "@/lib/utils";
 

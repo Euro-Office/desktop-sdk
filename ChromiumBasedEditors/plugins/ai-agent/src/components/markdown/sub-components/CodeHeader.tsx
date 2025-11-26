@@ -1,12 +1,9 @@
 import type { CodeHeaderProps } from "@assistant-ui/react-markdown";
 import { useTranslation } from "react-i18next";
-
 import BtnCopyIconUrl from "@/assets/btn-copy.svg?url";
 import BtnCheckIconUrl from "@/assets/checked.svg?url";
-
-import { TooltipIconButton } from "../../tooltip-icon-button";
 import { IconButton } from "../../icon-button";
-
+import { TooltipIconButton } from "../../tooltip-icon-button";
 import useCopyToClipboard from "../hooks/useCopyToClipboard";
 
 const CodeHeader = ({ language, code }: CodeHeaderProps) => {

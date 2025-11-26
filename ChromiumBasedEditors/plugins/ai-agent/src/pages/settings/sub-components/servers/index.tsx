@@ -1,10 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import { Button } from "@/components/button";
-
-import ConfigDialog from "./ConfigDialog";
 import AvailableTools from "./AvailableTools";
+import ConfigDialog from "./ConfigDialog";
 
 const Servers = () => {
   const { t } = useTranslation();

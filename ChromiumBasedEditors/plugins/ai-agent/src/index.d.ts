@@ -1,7 +1,5 @@
 import type { TProcess } from "./lib/types";
 
-export {};
-
 declare global {
   interface Window {
     AscSimpleRequest: {

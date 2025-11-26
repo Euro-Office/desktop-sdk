@@ -1,22 +1,18 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import { Dialog, DialogContent } from "@/components/dialog";
-import { ComboBox } from "@/components/combo-box";
 import { Button } from "@/components/button";
+import { ComboBox } from "@/components/combo-box";
+import { Dialog, DialogContent } from "@/components/dialog";
 import { FieldContainer } from "@/components/field-container";
-
-import { provider } from "@/providers";
-
-import useProviders from "@/store/useProviders";
-
-import {
-  dialogMainContainerStyles,
-  dialogContentContainerStyles,
-  dialogButtonContainerStyles,
-} from "./Providers.styles";
 import { Input } from "@/components/input";
 import { Loader } from "@/components/loader";
+import { provider } from "@/providers";
+import useProviders from "@/store/useProviders";
+import {
+  dialogButtonContainerStyles,
+  dialogContentContainerStyles,
+  dialogMainContainerStyles,
+} from "./Providers.styles";
 
 type AddProviderDialogProps = {
   onClose: VoidFunction;

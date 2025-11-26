@@ -1,13 +1,11 @@
 import "@assistant-ui/react-markdown/styles/dot.css";
-import { SyntaxHighlighter } from "@/components/assistant-ui/shiki-highlighter";
 
 import {
   unstable_memoizeMarkdownComponents as memoizeMarkdownComponents,
   useIsMarkdownCodeBlock,
 } from "@assistant-ui/react-markdown";
-
+import { SyntaxHighlighter } from "@/components/assistant-ui/shiki-highlighter";
 import { cn } from "../../lib/utils";
-
 import CodeHeader from "./sub-components/CodeHeader";
 
 const defaultComponents = memoizeMarkdownComponents({

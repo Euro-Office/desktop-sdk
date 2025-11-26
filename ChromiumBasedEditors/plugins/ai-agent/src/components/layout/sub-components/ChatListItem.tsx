@@ -1,20 +1,15 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ReactSVG } from "react-svg";
-
-import MoreIconSvgUrl from "@/assets/more.svg?url";
 import RemoveIconSvgUrl from "@/assets/btn-remove.svg?url";
 import RenameIconSvgUrl from "@/assets/btn-rename.svg?url";
 import DownloadIconSvgUrl from "@/assets/btn-save.svg?url";
-
-import type { Page } from "@/store/useRouter";
-
-import type { Thread } from "@/lib/types";
-
+import MoreIconSvgUrl from "@/assets/more.svg?url";
 import { DropdownMenu } from "@/components/dropdown";
 import { IconButton } from "@/components/icon-button";
 import { Input } from "@/components/input";
-
+import type { Thread } from "@/lib/types";
+import type { Page } from "@/store/useRouter";
 import { DeleteChatDialog } from "./DeleteChatDialog";
 
 type ChatListItemProps = {

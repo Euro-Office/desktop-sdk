@@ -1,11 +1,8 @@
 "use client";
 
 import { forwardRef } from "react";
-
 import { cn } from "../../lib/utils";
-
 import { Tooltip, TooltipContent, TooltipTrigger } from "../tooltip";
-
 import type { TooltipIconButtonProps } from "./TooltipIconButton.types";
 
 export const TooltipIconButton = forwardRef<

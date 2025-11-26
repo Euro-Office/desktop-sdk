@@ -1,27 +1,21 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-
-import useServersStore from "@/store/useServersStore";
-
-import client from "@/servers";
-
-import { IconButton } from "@/components/icon-button";
-import { DropdownMenu } from "@/components/dropdown";
-import { Loader } from "@/components/loader";
-import { ToggleButton } from "@/components/toggle-button";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/tooltip";
-
 import ArrowBottomIconSvgUrl from "@/assets/arrow.right.svg?url";
-import MoreIconSvgUrl from "@/assets/more.svg?url";
+import NavigationIconSvgUrl from "@/assets/btn-menu-navigation.svg?url";
 import RemoveIconSvgUrl from "@/assets/btn-remove.svg?url";
 import ResetIconSvgUrl from "@/assets/btn-reset.svg?url";
-import NavigationIconSvgUrl from "@/assets/btn-menu-navigation.svg?url";
+import MoreIconSvgUrl from "@/assets/more.svg?url";
 import StatusErrorIconUrl from "@/assets/status.error.svg?url";
-
+import { DropdownMenu } from "@/components/dropdown";
+import { IconButton } from "@/components/icon-button";
+import { Loader } from "@/components/loader";
+import { ToggleButton } from "@/components/toggle-button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import type { TMCPItem } from "@/lib/types";
-
-import LogsDialog from "./LogsDialog";
+import client from "@/servers";
+import useServersStore from "@/store/useServersStore";
 import DeleteServerDialog from "./DeleteServerDialog";
+import LogsDialog from "./LogsDialog";
 
 type AvailableToolsItemProps = {
   name: string;
@@ -50,23 +44,23 @@ const AvailableToolsItem = ({
 
   const { changeToolStatus } = useServersStore();
 
-  const onEnableAllTools = () => {
+  const onEnableAllTools = useCallback(() => {
     mcpItems
       .filter((tool) => !tool.enabled)
       .forEach((tool) => {
         changeToolStatus(name, tool.name, true);
       });
-  };
+  }, [mcpItems, name, changeToolStatus]);
 
-  const onDisableAllTools = () => {
+  const onDisableAllTools = useCallback(() => {
     mcpItems
       .filter((tool) => tool.enabled)
       .forEach((tool) => {
         changeToolStatus(name, tool.name, false);
       });
-  };
+  }, [mcpItems, name, changeToolStatus]);
 
-  const openLogs = () => setOpenLogsDialog(true);
+  const openLogs = useCallback(() => setOpenLogsDialog(true), []);
 
   React.useEffect(() => {
     if (isLoading) setOpened(false);
@@ -81,6 +75,87 @@ const AvailableToolsItem = ({
   }, [name]);
 
   const isLoadingAction = isStoped ? false : isLoading;
+
+  const dropdownItems = useMemo(() => {
+    const items = [];
+
+    if (mcpItems.length > 0) {
+      items.push(
+        {
+          text: t("EnableAllTools"),
+          onClick: onEnableAllTools,
+          withSpace: !isSystem,
+        },
+        {
+          text: t("DisableAllTools"),
+          onClick: onDisableAllTools,
+          withSpace: !isSystem,
+        }
+      );
+      if (!isSystem) {
+        items.push({
+          text: "",
+          onClick: () => {
+            /* ignore */
+          },
+          isSeparator: true,
+        });
+      }
+    }
+
+    if (!isSystem) {
+      items.push(
+        {
+          icon: (
+            <IconButton
+              iconName={ResetIconSvgUrl}
+              size={20}
+              disableHover
+              isStroke
+            />
+          ),
+          text: t("Restart"),
+          onClick: () => client.restartCustomServer(name),
+        },
+        {
+          icon: (
+            <IconButton
+              iconName={NavigationIconSvgUrl}
+              size={20}
+              disableHover
+              isStroke
+            />
+          ),
+          text: t("Logs"),
+          onClick: openLogs,
+        },
+        {
+          text: "",
+          onClick: () => {
+            /* ignore */
+          },
+          isSeparator: true,
+        },
+        {
+          icon: (
+            <IconButton iconName={RemoveIconSvgUrl} size={20} disableHover />
+          ),
+          text: t("Delete"),
+          onClick: () => setDeleteDialogOpen(true),
+        }
+      );
+    }
+
+    return items;
+  }, [
+    mcpItems.length,
+    isSystem,
+    name,
+    t,
+    onEnableAllTools,
+    onDisableAllTools,
+    openLogs,
+  ]);
 
   return (
     <div className="flex flex-col">
@@ -143,69 +218,7 @@ const AvailableToolsItem = ({
                   insideElement
                 />
               }
-              items={[
-                ...(mcpItems.length === 0
-                  ? []
-                  : [
-                      {
-                        text: t("EnableAllTools"),
-                        onClick: onEnableAllTools,
-                        withSpace: !isSystem,
-                      },
-                      {
-                        text: t("DisableAllTools"),
-                        onClick: onDisableAllTools,
-                        withSpace: !isSystem,
-                      },
-                      ...(!isSystem
-                        ? [{ text: "", onClick: () => {}, isSeparator: true }]
-                        : []),
-                    ]),
-                ...(isSystem
-                  ? []
-                  : [
-                      {
-                        icon: (
-                          <IconButton
-                            iconName={ResetIconSvgUrl}
-                            size={20}
-                            disableHover
-                            isStroke
-                          />
-                        ),
-                        text: t("Restart"),
-                        onClick: () => {
-                          client.restartCustomServer(name);
-                        },
-                      },
-                      {
-                        icon: (
-                          <IconButton
-                            iconName={NavigationIconSvgUrl}
-                            size={20}
-                            disableHover
-                            isStroke
-                          />
-                        ),
-                        text: t("Logs"),
-                        onClick: openLogs,
-                      },
-                      { text: "", onClick: () => {}, isSeparator: true },
-                      {
-                        icon: (
-                          <IconButton
-                            iconName={RemoveIconSvgUrl}
-                            size={20}
-                            disableHover
-                          />
-                        ),
-                        text: t("Delete"),
-                        onClick: () => {
-                          setDeleteDialogOpen(true);
-                        },
-                      },
-                    ]),
-              ]}
+              items={dropdownItems}
               side="right"
               align="start"
               sideOffset={0}
@@ -218,7 +231,7 @@ const AvailableToolsItem = ({
         <div className="flex flex-col gap-[12px] mt-[4px]">
           {mcpItems.map((tool) => {
             const description = isSystem
-              ? tool.description?.split(". ")[0] + "."
+              ? `${tool.description?.split(". ")[0]}.`
               : tool.description;
             return (
               <div

@@ -1,9 +1,6 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-
 import { cn } from "@/lib/utils";
-
 import { DropDownItem } from "../dropdown-item";
-
 import type { DropdownMenuProps } from "./DropDown.types";
 
 const DropdownMenuComponent = ({

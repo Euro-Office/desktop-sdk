@@ -1,13 +1,10 @@
 import { useTranslation } from "react-i18next";
-
 import BtnSettingsUrl from "@/assets/btn-settings.svg?url";
 import BtnAddUrl from "@/assets/btn-zoomup.svg?url";
-
-import useRouter from "@/store/useRouter";
-import useThreadsStore from "@/store/useThreadsStore";
-
 import { IconButton } from "@/components/icon-button";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import useRouter from "@/store/useRouter";
+import useThreadsStore from "@/store/useThreadsStore";
 
 const Navigation = () => {
   const { t } = useTranslation();

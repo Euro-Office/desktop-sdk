@@ -1,28 +1,24 @@
-import type { ThreadMessageLike } from "@assistant-ui/react";
 import Anthropic from "@anthropic-ai/sdk";
 import type {
   MessageParam,
   ToolResultBlockParam,
   ToolUnion,
 } from "@anthropic-ai/sdk/resources/messages";
+import type { ThreadMessageLike } from "@assistant-ui/react";
 import cloneDeep from "lodash.clonedeep";
-
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
-
 import type { BaseProvider } from "../base";
-import type { SettingsProvider, TData, TErrorData } from "../settings";
-
 import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
-
-import {
-  convertMessagesToModelFormat,
-  convertToolsToModelFormat,
-} from "./utils";
+import type { SettingsProvider, TData, TErrorData } from "../settings";
 import {
   handleContentBlockDelta,
   handleContentBlockStart,
   handleMessageStart,
 } from "./handlers";
+import {
+  convertMessagesToModelFormat,
+  convertToolsToModelFormat,
+} from "./utils";
 
 class AnthropicProvider
   implements BaseProvider<ToolUnion, MessageParam, Anthropic>, SettingsProvider
@@ -39,8 +35,6 @@ class AnthropicProvider
   prevMessages: MessageParam[] = [];
   tools: ToolUnion[] = [];
   client?: Anthropic;
-
-  constructor() {}
 
   setProvider = (provider: TProvider) => {
     this.provider = provider;

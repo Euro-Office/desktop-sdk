@@ -1,7 +1,6 @@
-import type { CompletionCreateParams } from "together-ai/resources/chat/completions";
-import type { Tools } from "together-ai/resources";
 import type { ThreadMessageLike } from "@assistant-ui/react";
-
+import type { Tools } from "together-ai/resources";
+import type { CompletionCreateParams } from "together-ai/resources/chat/completions";
 import type { TMCPItem } from "@/lib/types";
 
 export type TogetherMessageParam = CompletionCreateParams["messages"][number];
@@ -85,12 +84,12 @@ export const convertMessagesToModelFormat = (
               toolsResults.push({
                 role: "tool",
                 content: part.result,
-                tool_call_id: part.toolCallId!,
+                tool_call_id: part.toolCallId ?? new Date().toISOString(),
               });
             }
 
             toolsCalls.push({
-              id: part.toolCallId!,
+              id: part.toolCallId ?? new Date().toISOString(),
               index: idx++,
               type: "function",
               function: { arguments: part.argsText ?? "", name: part.toolName },

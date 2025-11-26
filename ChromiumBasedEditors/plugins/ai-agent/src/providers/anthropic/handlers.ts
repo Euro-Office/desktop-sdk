@@ -1,7 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type {
-  ThreadMessageLike,
   TextMessagePart,
+  ThreadMessageLike,
   ToolCallMessagePart,
 } from "@assistant-ui/react";
 

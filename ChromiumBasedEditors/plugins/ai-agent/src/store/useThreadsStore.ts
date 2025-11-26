@@ -1,13 +1,12 @@
 import { create } from "zustand";
-
+import { readMessages } from "@/database/messages";
 import {
-  readAllThreads,
   createThread,
+  deleteThread,
+  readAllThreads,
   touchThread,
   updateThread,
-  deleteThread,
 } from "@/database/threads";
-import { readMessages } from "@/database/messages";
 import type { Thread } from "@/lib/types";
 import { convertMessagesToMd, removeSpecialCharacter } from "@/lib/utils";
 

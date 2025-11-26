@@ -1,7 +1,7 @@
 {
   "AIAgent": "Agente de IA",
   "AIAgentSettings": "Configuración del agente de IA",
-  "Settings": "Configuración", 
+  "Settings": "Configuración",
   "ConnectAIModel": "Conecte un modelo de IA para empezar",
   "ConnectAIModelDescription": "Aún no hay ningún modelo de IA conectado. Conecte un modelo para empezar a interactuar con él aquí mismo, en la interfaz.",
   "ConnectAIModelBtn": "Conectar un modelo de IA",

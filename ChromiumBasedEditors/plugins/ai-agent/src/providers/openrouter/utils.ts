@@ -1,13 +1,12 @@
+import type { ThreadMessageLike } from "@assistant-ui/react";
 import type {
+  ChatCompletionAssistantMessageParam,
+  ChatCompletionContentPart,
+  ChatCompletionMessageFunctionToolCall,
   ChatCompletionMessageParam,
   ChatCompletionTool,
   ChatCompletionToolMessageParam,
-  ChatCompletionMessageFunctionToolCall,
-  ChatCompletionAssistantMessageParam,
-  ChatCompletionContentPart,
 } from "openai/resources/chat/completions";
-import type { ThreadMessageLike } from "@assistant-ui/react";
-
 import type { TMCPItem } from "@/lib/types";
 
 export const convertToolsToModelFormat = (
@@ -93,12 +92,12 @@ export const convertMessagesToModelFormat = (
               toolsResults.push({
                 role: "tool",
                 content: part.result,
-                tool_call_id: part.toolCallId!,
+                tool_call_id: part.toolCallId ?? new Date().toISOString(),
               });
             }
 
             toolsCalls.push({
-              id: part.toolCallId!,
+              id: part.toolCallId ?? new Date().toISOString(),
               type: "function",
               function: { arguments: part.argsText ?? "", name: part.toolName },
             });

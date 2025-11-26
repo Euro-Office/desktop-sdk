@@ -1,15 +1,10 @@
 import React from "react";
-
 import { useTranslation } from "react-i18next";
-
-import useProviders from "@/store/useProviders";
-
-import { cn } from "@/lib/utils";
-
 import { Button } from "@/components/button";
-
-import { ProviderItem } from "./ProviderItem";
+import { cn } from "@/lib/utils";
+import useProviders from "@/store/useProviders";
 import { AddProviderDialog } from "./AddProviderDialog";
+import { ProviderItem } from "./ProviderItem";
 
 type ProvidersProps = {
   isActive: boolean;
