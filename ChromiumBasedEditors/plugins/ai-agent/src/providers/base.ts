@@ -1,48 +1,106 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-import type { TMCPItem, TProvider } from "@/lib/types";
+import type { Model, TMCPItem, TProvider } from "@/lib/types";
 
-export interface BaseProvider<TOOL, MESSAGE, CLIENT> {
-  client?: CLIENT;
-  tools: TOOL[];
-  prevMessages: MESSAGE[];
+export type TData = {
+  url: string;
+  apiKey?: string;
+};
 
-  provider?: TProvider;
+export type TErrorData = {
+  field: "key" | "url" | "name";
+  message: string;
+};
 
-  modelKey: string;
-  systemPrompt: string;
+/**
+ * Abstract base class for all AI providers.
+ * Implements common properties and methods shared across providers.
+ *
+ * Generic types:
+ * - TOOL: Provider-specific tool format (e.g., ToolUnion for Anthropic)
+ * - MESSAGE: Provider-specific message format (e.g., MessageParam for Anthropic)
+ * - CLIENT: Provider-specific SDK client (e.g., Anthropic, OpenAI)
+ */
+export abstract class AbstractBaseProvider<TOOL, MESSAGE, CLIENT> {
+  // Common properties
+  modelKey = "";
+  systemPrompt = "";
   apiKey?: string;
   url?: string;
+  provider?: TProvider;
 
-  setProvider(provider: TProvider): void;
+  // Provider-specific properties (typed by generics)
+  client?: CLIENT;
+  tools: TOOL[] = [];
+  prevMessages: MESSAGE[] = [];
 
-  setModelKey(modelKey: string): void;
+  // Stop flag for interrupting streams
+  protected stopFlag = false;
 
-  setSystemPrompt(systemPrompt: string): void;
+  // ============================================
+  // Common methods (identical across providers)
+  // ============================================
 
-  setAPIKey?(apiKey: string): void;
+  setModelKey = (modelKey: string): void => {
+    this.modelKey = modelKey;
+  };
 
-  setURL?(url: string): void;
+  setSystemPrompt = (systemPrompt: string): void => {
+    this.systemPrompt = systemPrompt;
+  };
 
-  setPrevMessages(prevMessages: ThreadMessageLike[]): void;
+  stopMessage = (): void => {
+    this.stopFlag = true;
+  };
 
-  setTools(tools: TMCPItem[]): void;
+  setApiKey = (apiKey: string): void => {
+    this.apiKey = apiKey;
 
-  createChatName(message: string): Promise<string>;
+    const client = this.client as Record<string, unknown> | undefined;
+    if (client && "apiKey" in client) {
+      client.apiKey = apiKey;
+    }
+  };
 
-  sendMessage(
+  setUrl = (url: string): void => {
+    this.url = url;
+
+    const client = this.client as Record<string, unknown> | undefined;
+    if (client && "baseURL" in client) {
+      client.baseURL = url;
+    }
+  };
+
+  // ============================================
+  // Abstract methods (must be implemented by subclasses)
+  // ============================================
+
+  abstract setProvider(provider: TProvider): void;
+
+  abstract setPrevMessages(prevMessages: ThreadMessageLike[]): void;
+
+  abstract setTools(tools: TMCPItem[]): void;
+
+  abstract createChatName(message: string): Promise<string>;
+
+  abstract sendMessage(
     messages: ThreadMessageLike[],
-    afterToolCall?: boolean
+    afterToolCall?: boolean,
+    message?: ThreadMessageLike
   ): AsyncGenerator<
     ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
   >;
 
-  sendMessageAfterToolCall(
+  abstract sendMessageAfterToolCall(
     message: ThreadMessageLike
-  ):
-    | AsyncGenerator<
-        ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
-      >
-    | ThreadMessageLike;
+  ): AsyncGenerator<
+    ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
+  >;
 
-  stopMessage(): void;
+  abstract getName(): string;
+
+  abstract getBaseUrl(): string;
+
+  abstract checkProvider(data: TData): Promise<boolean | TErrorData>;
+
+  abstract getProviderModels(data: TData): Promise<Model[]>;
 }

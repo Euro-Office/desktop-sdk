@@ -1,13 +1,13 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { Model, ProviderType, TMCPItem, TProvider } from "@/lib/types";
-import { SYSTEM_PROMPT } from "./Providers.utils";
+import type { TData } from "./base";
+import { SYSTEM_PROMPT } from "./prompts";
 import {
   type BaseProvider,
   getProvider,
   getSupportedProviderTypes,
   providerRegistry,
 } from "./registry";
-import type { TData } from "./settings";
 
 export type SendMessageReturnType = AsyncGenerator<
   | ThreadMessageLike
@@ -109,9 +109,11 @@ class Provider {
 
   getProviderInfo = (type: ProviderType) => {
     const p = getProvider(type);
+
     if (!p) {
       return { name: "", baseUrl: "" };
     }
+
     return {
       type,
       name: p.getName(),
@@ -121,7 +123,9 @@ class Provider {
 
   checkNewProvider = (type: ProviderType, data: TData) => {
     const p = getProvider(type);
+
     if (!p) return false;
+
     return p.checkProvider(data);
   };
 

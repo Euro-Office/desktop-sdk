@@ -7,32 +7,18 @@ import {
   type Tool,
 } from "ollama/browser";
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
-import type { BaseProvider } from "../base";
-import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
-import type { SettingsProvider, TData, TErrorData } from "../settings";
+import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
+import { ProviderErrors } from "../errors";
+import { CREATE_TITLE_SYSTEM_PROMPT } from "../prompts";
 import { handleToolCall } from "./handlers";
+import { ollamaInfo } from "./info";
 import {
   convertMessagesToModelFormat,
   convertToolsToModelFormat,
   convertToolsToString,
 } from "./utils";
 
-class OllamaProvider
-  implements BaseProvider<Tool, Message, Ollama>, SettingsProvider
-{
-  modelKey: string = "";
-  systemPrompt: string = "";
-
-  apiKey?: string;
-  url?: string;
-  provider?: TProvider;
-
-  prevMessages: Message[] = [];
-  tools: Tool[] = [];
-  client?: Ollama;
-
-  messageStopped: boolean = false;
-
+class OllamaProvider extends AbstractBaseProvider<Tool, Message, Ollama> {
   setProvider = (provider: TProvider) => {
     this.provider = provider;
 
@@ -40,24 +26,8 @@ class OllamaProvider
       host: provider.baseUrl,
     });
 
-    if (provider.key) this.setAPIKey(provider.key);
-    if (provider.baseUrl) this.setURL(provider.baseUrl);
-  };
-
-  setModelKey = (modelKey: string) => {
-    this.modelKey = modelKey;
-  };
-
-  setSystemPrompt = (systemPrompt: string) => {
-    this.systemPrompt = systemPrompt;
-  };
-
-  setAPIKey = (apiKey: string) => {
-    this.apiKey = apiKey;
-  };
-
-  setURL = (url: string) => {
-    this.url = url;
+    if (provider.key) this.setApiKey(provider.key);
+    if (provider.baseUrl) this.setUrl(provider.baseUrl);
   };
 
   setPrevMessages = (prevMessages: ThreadMessageLike[]) => {
@@ -181,8 +151,8 @@ class OllamaProvider
           };
         }
 
-        if (this.messageStopped) {
-          this.messageStopped = false;
+        if (this.stopFlag) {
+          this.stopFlag = false;
 
           this.prevMessages.push({
             role: "assistant",
@@ -242,20 +212,12 @@ class OllamaProvider
     return message;
   }
 
-  stopMessage = () => {
-    if (!this.client) return;
-
-    this.messageStopped = true;
-
-    // this.client.abort();
-  };
-
   getName = () => {
-    return "Ollama";
+    return ollamaInfo.name;
   };
 
   getBaseUrl = () => {
-    return "http://localhost:11434";
+    return ollamaInfo.baseUrl;
   };
 
   checkProvider = async (data: TData): Promise<boolean | TErrorData> => {
@@ -265,15 +227,9 @@ class OllamaProvider
 
     try {
       await checkClient.list();
-
       return true;
-    } catch (error) {
-      console.log(error);
-
-      return {
-        field: "url",
-        message: "Invalid URL",
-      };
+    } catch {
+      return ProviderErrors.invalidUrl();
     }
   };
 
@@ -286,7 +242,7 @@ class OllamaProvider
 
     return response.models.map((model) => ({
       id: model.model,
-      name: model.name,
+      name: ollamaInfo.modelNames[model.model] || model.name,
       provider: "ollama" as const,
     }));
   };

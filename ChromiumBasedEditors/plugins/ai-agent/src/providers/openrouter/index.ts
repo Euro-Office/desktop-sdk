@@ -10,33 +10,21 @@ import type {
 } from "openai/resources/chat/completions";
 import type { Model as OpenAIModel } from "openai/resources/models";
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
-import type { BaseProvider } from "../base";
-import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
-import type { SettingsProvider, TData, TErrorData } from "../settings";
+import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
+import { ProviderErrors } from "../errors";
+import { CREATE_TITLE_SYSTEM_PROMPT } from "../prompts";
 import { handleTextMessage, handleToolCall } from "./handlers";
+import { openrouterInfo } from "./info";
 import {
   convertMessagesToModelFormat,
   convertToolsToModelFormat,
 } from "./utils";
 
-class OpenRouterProvider
-  implements
-    BaseProvider<ChatCompletionTool, ChatCompletionMessageParam, OpenAI>,
-    SettingsProvider
-{
-  modelKey: string = "";
-  systemPrompt: string = "";
-
-  apiKey?: string;
-  url?: string;
-  provider?: TProvider;
-
-  prevMessages: ChatCompletionMessageParam[] = [];
-  tools: ChatCompletionTool[] = [];
-  client?: OpenAI;
-
-  stopStream = false;
-
+class OpenRouterProvider extends AbstractBaseProvider<
+  ChatCompletionTool,
+  ChatCompletionMessageParam,
+  OpenAI
+> {
   setProvider = (provider: TProvider) => {
     this.provider = provider;
 
@@ -48,24 +36,6 @@ class OpenRouterProvider
 
     if (provider.key) this.setApiKey(provider.key);
     if (provider.baseUrl) this.setUrl(provider.baseUrl);
-  };
-
-  setModelKey = (modelKey: string) => {
-    this.modelKey = modelKey;
-  };
-
-  setSystemPrompt = (systemPrompt: string) => {
-    this.systemPrompt = systemPrompt;
-  };
-
-  setApiKey = (apiKey: string) => {
-    this.apiKey = apiKey;
-    if (this.client) this.client.apiKey = apiKey;
-  };
-
-  setUrl = (url: string) => {
-    this.url = url;
-    if (this.client) this.client.baseURL = url;
   };
 
   setPrevMessages = (prevMessages: ThreadMessageLike[]) => {
@@ -185,14 +155,14 @@ class OpenRouterProvider
           }
         });
 
-        if (this.stopStream) {
+        if (this.stopFlag) {
           const providerMsg = convertMessagesToModelFormat([responseMessage]);
 
           this.prevMessages.push(...providerMsg);
 
           stream.controller.abort();
 
-          this.stopStream = false;
+          this.stopFlag = false;
 
           yield {
             isEnd: true,
@@ -254,16 +224,12 @@ class OpenRouterProvider
     return message;
   }
 
-  stopMessage = () => {
-    this.stopStream = true;
-  };
-
   getName = () => {
-    return "OpenRouter";
+    return openrouterInfo.name;
   };
 
   getBaseUrl = () => {
-    return "https://openrouter.ai/api/v1";
+    return openrouterInfo.baseUrl;
   };
 
   checkProvider = async (data: TData): Promise<boolean | TErrorData> => {
@@ -276,32 +242,19 @@ class OpenRouterProvider
 
       if (!response.ok) {
         if (!data.apiKey) {
-          return {
-            field: "key",
-            message: "Empty key",
-          };
+          return ProviderErrors.emptyKey();
         }
 
-        if (response.status === 401 || data.apiKey) {
-          return {
-            field: "key",
-            message: "Invalid API Key",
-          };
+        if (response.status === 401) {
+          return ProviderErrors.invalidKey();
         }
 
-        return {
-          field: "url",
-          message: "Invalid URL",
-        };
+        return ProviderErrors.invalidUrl();
       }
 
       return true;
-    } catch (error) {
-      console.log(error);
-      return {
-        field: "url",
-        message: "Failed to connect",
-      };
+    } catch {
+      return ProviderErrors.connectionFailed();
     }
   };
 
@@ -315,44 +268,10 @@ class OpenRouterProvider
     const response: OpenAIModel[] = (await newClient.models.list()).data;
 
     return response
-      .filter(
-        (model) =>
-          model.id === "openai/gpt-5.1" ||
-          model.id === "anthropic/claude-haiku-4.5" ||
-          model.id === "anthropic/claude-sonnet-4.5" ||
-          model.id === "anthropic/claude-opus-4.1" ||
-          model.id === "x-ai/grok-4" ||
-          // model.id === "google/gemini-2.5-flash" ||
-          // model.id === "google/gemini-2.5-pro" ||
-          // model.id === "deepseek/deepseek-chat-v3.1" ||
-          model.id === "qwen/qwen3-235b-a22b-2507" ||
-          model.id === "deepseek/deepseek-v3.1-terminus" ||
-          model.id === "qwen/qwen3-max"
-      )
+      .filter((model) => openrouterInfo.modelFilters.includes(model.id))
       .map((model) => ({
         id: model.id,
-        name:
-          model.id === "openai/gpt-5.1"
-            ? "GPT-5.1"
-            : model.id === "anthropic/claude-haiku-4.5"
-              ? "Claude Haiku 4.5"
-              : model.id === "anthropic/claude-sonnet-4.5"
-                ? "Claude Sonnet 4.5"
-                : model.id === "anthropic/claude-opus-4.1"
-                  ? "Claude Opus 4.1"
-                  : model.id === "x-ai/grok-4"
-                    ? "Grok 4"
-                    : model.id === "google/gemini-2.5-flash"
-                      ? "Gemini 2.5 Flash"
-                      : model.id === "google/gemini-2.5-pro"
-                        ? "Gemini 2.5 Pro"
-                        : model.id === "qwen/qwen3-235b-a22b-2507"
-                          ? "Qwen3"
-                          : model.id === "deepseek/deepseek-v3.1-terminus"
-                            ? "DeepSeek V3.1 Terminus"
-                            : model.id === "qwen/qwen3-max"
-                              ? "Qwen3 Max"
-                              : model.id.toUpperCase(),
+        name: openrouterInfo.modelNames[model.id] || model.id.toUpperCase(),
         provider: "openrouter" as const,
       }));
   };

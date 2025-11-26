@@ -7,34 +7,22 @@ import type {
   CompletionCreateParams,
 } from "together-ai/resources/chat/completions";
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
-import type { BaseProvider } from "../base";
-import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
-import type { SettingsProvider, TData, TErrorData } from "../settings";
+import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
+import { getErrorStatus, ProviderErrors } from "../errors";
+import { CREATE_TITLE_SYSTEM_PROMPT } from "../prompts";
 import { handleTextMessage, handleToolCall } from "./handlers";
+import { togetherInfo } from "./info";
 import {
   convertMessagesToModelFormat,
   convertToolsToModelFormat,
   type TogetherMessageParam,
 } from "./utils";
 
-class TogetherProvider
-  implements
-    BaseProvider<Tools, TogetherMessageParam, Together>,
-    SettingsProvider
-{
-  modelKey: string = "";
-  systemPrompt: string = "";
-
-  apiKey?: string;
-  url?: string;
-  provider?: TProvider;
-
-  prevMessages: TogetherMessageParam[] = [];
-  tools: Tools[] = [];
-  client?: Together;
-
-  stopStream = false;
-
+class TogetherProvider extends AbstractBaseProvider<
+  Tools,
+  TogetherMessageParam,
+  Together
+> {
   setProvider = (provider: TProvider) => {
     this.provider = provider;
 
@@ -45,24 +33,6 @@ class TogetherProvider
 
     if (provider.key) this.setApiKey(provider.key);
     if (provider.baseUrl) this.setUrl(provider.baseUrl);
-  };
-
-  setModelKey = (modelKey: string) => {
-    this.modelKey = modelKey;
-  };
-
-  setSystemPrompt = (systemPrompt: string) => {
-    this.systemPrompt = systemPrompt;
-  };
-
-  setApiKey = (apiKey: string) => {
-    this.apiKey = apiKey;
-    if (this.client) this.client.apiKey = apiKey;
-  };
-
-  setUrl = (url: string) => {
-    this.url = url;
-    if (this.client) this.client.baseURL = url;
   };
 
   setPrevMessages = (prevMessages: ThreadMessageLike[]) => {
@@ -180,7 +150,7 @@ class TogetherProvider
           }
         });
 
-        if (this.stopStream) {
+        if (this.stopFlag) {
           // Only push to prevMessages if there's actual content
           const hasContent =
             typeof responseMessage.content === "string"
@@ -194,7 +164,7 @@ class TogetherProvider
 
           stream.controller.abort();
 
-          this.stopStream = false;
+          this.stopFlag = false;
 
           yield {
             isEnd: true,
@@ -252,16 +222,12 @@ class TogetherProvider
     return message;
   }
 
-  stopMessage = () => {
-    this.stopStream = true;
-  };
-
   getName = () => {
-    return "TogetherAI";
+    return togetherInfo.name;
   };
 
   getBaseUrl = () => {
-    return "https://api.together.xyz/v1";
+    return togetherInfo.baseUrl;
   };
 
   checkProvider = async (data: TData): Promise<boolean | TErrorData> => {
@@ -275,28 +241,14 @@ class TogetherProvider
 
       return true;
     } catch (error) {
-      console.log(error);
-      const errorObj = error as { code: string; status: number };
-
-      if (errorObj.status === 401 || data.apiKey) {
-        return {
-          field: "key",
-          message: "Invalid API Key",
-        };
+      if (getErrorStatus(error) === 401) {
+        return ProviderErrors.invalidKey();
       }
-    }
 
-    if (data.apiKey) {
-      return {
-        field: "key",
-        message: "Invalid API key",
-      };
+      return data.apiKey
+        ? ProviderErrors.invalidKey()
+        : ProviderErrors.emptyKey();
     }
-
-    return {
-      field: "key",
-      message: "Empty key",
-    };
   };
 
   getProviderModels = async (data: TData): Promise<Model[]> => {
@@ -310,14 +262,11 @@ class TogetherProvider
     );
 
     return response
-      .filter(
-        (m) =>
-          m.id === "Qwen/Qwen3-235B-A22B-fp8-tput" ||
-          m.id === "deepseek-ai/DeepSeek-V3.1"
-      )
+      .filter((m) => togetherInfo.modelFilters.includes(m.id))
       .map((model) => ({
         id: model.id,
-        name: model.display_name ?? model.id,
+        name:
+          togetherInfo.modelNames[model.id] || model.display_name || model.id,
         provider: "together" as const,
       }));
   };

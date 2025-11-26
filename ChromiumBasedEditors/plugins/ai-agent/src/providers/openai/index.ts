@@ -10,33 +10,21 @@ import type {
 } from "openai/resources/chat/completions";
 import type { Model as OpenAIModel } from "openai/resources/models";
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
-import type { BaseProvider } from "../base";
-import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
-import type { SettingsProvider, TData, TErrorData } from "../settings";
+import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
+import { getErrorCode, ProviderErrors } from "../errors";
+import { CREATE_TITLE_SYSTEM_PROMPT } from "../prompts";
 import { handleTextMessage, handleToolCall } from "./handlers";
+import { openaiInfo } from "./info";
 import {
   convertMessagesToModelFormat,
   convertToolsToModelFormat,
 } from "./utils";
 
-class OpenAIProvider
-  implements
-    BaseProvider<ChatCompletionTool, ChatCompletionMessageParam, OpenAI>,
-    SettingsProvider
-{
-  modelKey: string = "";
-  systemPrompt: string = "";
-
-  apiKey?: string;
-  url?: string;
-  provider?: TProvider;
-
-  prevMessages: ChatCompletionMessageParam[] = [];
-  tools: ChatCompletionTool[] = [];
-  client?: OpenAI;
-
-  stopStream = false;
-
+class OpenAIProvider extends AbstractBaseProvider<
+  ChatCompletionTool,
+  ChatCompletionMessageParam,
+  OpenAI
+> {
   setProvider = (provider: TProvider) => {
     this.provider = provider;
 
@@ -48,24 +36,6 @@ class OpenAIProvider
 
     if (provider.key) this.setApiKey(provider.key);
     if (provider.baseUrl) this.setUrl(provider.baseUrl);
-  };
-
-  setModelKey = (modelKey: string) => {
-    this.modelKey = modelKey;
-  };
-
-  setSystemPrompt = (systemPrompt: string) => {
-    this.systemPrompt = systemPrompt;
-  };
-
-  setApiKey = (apiKey: string) => {
-    this.apiKey = apiKey;
-    if (this.client) this.client.apiKey = apiKey;
-  };
-
-  setUrl = (url: string) => {
-    this.url = url;
-    if (this.client) this.client.baseURL = url;
   };
 
   setPrevMessages = (prevMessages: ThreadMessageLike[]) => {
@@ -184,14 +154,14 @@ class OpenAIProvider
           }
         });
 
-        if (this.stopStream) {
+        if (this.stopFlag) {
           const providerMsg = convertMessagesToModelFormat([responseMessage]);
 
           this.prevMessages.push(...providerMsg);
 
           stream.controller.abort();
 
-          this.stopStream = false;
+          this.stopFlag = false;
 
           yield {
             isEnd: true,
@@ -253,16 +223,12 @@ class OpenAIProvider
     return message;
   }
 
-  stopMessage = () => {
-    this.stopStream = true;
-  };
-
   getName = () => {
-    return "OpenAI";
+    return openaiInfo.name;
   };
 
   getBaseUrl = () => {
-    return "https://api.openai.com/v1";
+    return openaiInfo.baseUrl;
   };
 
   checkProvider = async (data: TData): Promise<boolean | TErrorData> => {
@@ -277,28 +243,14 @@ class OpenAIProvider
 
       return true;
     } catch (error) {
-      console.log(JSON.stringify(error));
-      const errorObj = error as { code: string };
-
-      if (errorObj.code === "invalid_api_key") {
-        return {
-          field: "key",
-          message: "Invalid API Key",
-        };
+      if (getErrorCode(error) === "invalid_api_key") {
+        return ProviderErrors.invalidKey();
       }
-    }
 
-    if (data.apiKey) {
-      return {
-        field: "key",
-        message: "Invalid API key",
-      };
+      return data.apiKey
+        ? ProviderErrors.invalidKey()
+        : ProviderErrors.emptyKey();
     }
-
-    return {
-      field: "key",
-      message: "Empty key",
-    };
   };
 
   getProviderModels = async (data: TData): Promise<Model[]> => {
@@ -311,18 +263,10 @@ class OpenAIProvider
     const response: OpenAIModel[] = (await newClient.models.list()).data;
 
     return response
-      .filter(
-        (model) =>
-          model.id === "gpt-4.1" ||
-          model.id === "gpt-5" ||
-          model.id === "gpt-5.1-2025-11-13"
-      )
+      .filter((model) => openaiInfo.modelFilters.includes(model.id))
       .map((model) => ({
         id: model.id,
-        name:
-          model.id === "gpt-5.1-2025-11-13"
-            ? "GPT-5.1"
-            : model.id.toUpperCase(),
+        name: openaiInfo.modelNames[model.id] || model.id.toUpperCase(),
         provider: "openai" as const,
       }))
       .reverse();

@@ -61,27 +61,27 @@
 
 ### P0 - Reduce Provider Duplication
 
-- [ ] Create `src/providers/AbstractBaseProvider.ts` class
-- [ ] Move common methods to abstract class:
-  - [ ] `setProvider()`
-  - [ ] `setModelKey()`
-  - [ ] `setSystemPrompt()`
-  - [ ] `setApiKey()` / `setUrl()`
-  - [ ] `setPrevMessages()`
-  - [ ] `setTools()`
-  - [ ] `stopMessage()`
+- [x] Create `src/providers/AbstractBaseProvider.ts` class
+- [x] Move common methods to abstract class:
+  - [x] `setProvider()`
+  - [x] `setModelKey()`
+  - [x] `setSystemPrompt()`
+  - [x] `setApiKey()` / `setUrl()`
+  - [x] `setPrevMessages()`
+  - [x] `setTools()`
+  - [x] `stopMessage()`
 - [ ] Create shared error response structure for `sendMessage()`
-- [ ] Refactor `AnthropicProvider` to extend abstract class
-- [ ] Refactor `OpenAIProvider` to extend abstract class
-- [ ] Refactor `TogetherProvider` to extend abstract class
-- [ ] Refactor `OllamaProvider` to extend abstract class
-- [ ] Refactor `OpenRouterProvider` to extend abstract class
+- [x] Refactor `AnthropicProvider` to extend abstract class
+- [x] Refactor `OpenAIProvider` to extend abstract class
+- [x] Refactor `TogetherProvider` to extend abstract class
+- [x] Refactor `OllamaProvider` to extend abstract class
+- [x] Refactor `OpenRouterProvider` to extend abstract class
 
 ### P0 - Unified Error Handling
 
-- [ ] Create `src/providers/errors.ts` with `ProviderError` class
-- [ ] Implement error factory for consistent transformation
-- [ ] Update all `checkProvider()` methods to use unified errors
+- [x] Create `src/providers/errors.ts` with `ProviderErrors` factory
+- [x] Implement error factory for consistent transformation
+- [x] Update all `checkProvider()` methods to use unified errors
 
 ---
 

@@ -7,35 +7,25 @@ import type {
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import cloneDeep from "lodash.clonedeep";
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
-import type { BaseProvider } from "../base";
-import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
-import type { SettingsProvider, TData, TErrorData } from "../settings";
+import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
+import { extractErrorMessage, getErrorStatus, ProviderErrors } from "../errors";
+import { CREATE_TITLE_SYSTEM_PROMPT } from "../prompts";
 import {
   handleContentBlockDelta,
   handleContentBlockStart,
   handleMessageStart,
 } from "./handlers";
+import { anthropicInfo } from "./info";
 import {
   convertMessagesToModelFormat,
   convertToolsToModelFormat,
 } from "./utils";
 
-class AnthropicProvider
-  implements BaseProvider<ToolUnion, MessageParam, Anthropic>, SettingsProvider
-{
-  modelKey: string = "claude-3-7-sonnet-latest";
-  systemPrompt: string = "";
-
-  apiKey?: string;
-  url?: string;
-  provider?: TProvider;
-
-  messageStopped: boolean = false;
-
-  prevMessages: MessageParam[] = [];
-  tools: ToolUnion[] = [];
-  client?: Anthropic;
-
+class AnthropicProvider extends AbstractBaseProvider<
+  ToolUnion,
+  MessageParam,
+  Anthropic
+> {
   setProvider = (provider: TProvider) => {
     this.provider = provider;
 
@@ -47,24 +37,6 @@ class AnthropicProvider
 
     if (provider.key) this.setApiKey(provider.key);
     if (provider.baseUrl) this.setUrl(provider.baseUrl);
-  };
-
-  setModelKey = (modelKey: string) => {
-    this.modelKey = modelKey;
-  };
-
-  setSystemPrompt = (systemPrompt: string) => {
-    this.systemPrompt = systemPrompt;
-  };
-
-  setApiKey = (apiKey: string) => {
-    this.apiKey = apiKey;
-    if (this.client) this.client.apiKey = apiKey;
-  };
-
-  setUrl = (url: string) => {
-    this.url = url;
-    if (this.client) this.client.baseURL = url;
   };
 
   setPrevMessages = (prevMessages: ThreadMessageLike[]) => {
@@ -183,8 +155,8 @@ class AnthropicProvider
           continue;
         }
 
-        if (this.messageStopped) {
-          this.messageStopped = false;
+        if (this.stopFlag) {
+          this.stopFlag = false;
 
           const providerMsg = convertMessagesToModelFormat([responseMessage]);
 
@@ -244,16 +216,12 @@ class AnthropicProvider
     return message;
   }
 
-  stopMessage = () => {
-    this.messageStopped = true;
-  };
-
   getBaseUrl = (): string => {
-    return "https://api.anthropic.com";
+    return anthropicInfo.baseUrl;
   };
 
   getName = (): string => {
-    return "Anthropic";
+    return anthropicInfo.name;
   };
 
   checkProvider = async (data: TData): Promise<boolean | TErrorData> => {
@@ -265,48 +233,21 @@ class AnthropicProvider
 
     try {
       await checkClient.models.list();
-
       return true;
     } catch (error) {
-      console.log(JSON.stringify(error));
-      if (typeof error === "object" && error) {
-        if ("status" in error && error.status === 401) {
-          const errorMessage =
-            "error" in error &&
-            typeof error.error === "object" &&
-            error.error &&
-            "error" in error.error &&
-            typeof error.error.error === "object" &&
-            error.error.error &&
-            "message" in error.error.error
-              ? error.error.error.message
-              : "Invalid API key";
+      const status = getErrorStatus(error);
 
-          return {
-            field: "key",
-            message: errorMessage as string,
-          };
-        }
-
-        if ("status" in error && error.status === 404) {
-          return {
-            field: "url",
-            message: "Invalid URL",
-          };
-        }
+      if (status === 401) {
+        return ProviderErrors.invalidKey(extractErrorMessage(error));
       }
 
-      if (data.apiKey) {
-        return {
-          field: "key",
-          message: "Invalid API key",
-        };
+      if (status === 404) {
+        return ProviderErrors.invalidUrl();
       }
 
-      return {
-        field: "key",
-        message: "Empty key",
-      };
+      return data.apiKey
+        ? ProviderErrors.invalidKey()
+        : ProviderErrors.emptyKey();
     }
   };
 
@@ -323,15 +264,12 @@ class AnthropicProvider
       const body = modelsRes.data;
 
       return body
-        .filter(
-          (model) =>
-            model.id.includes("claude-haiku-4-5") ||
-            model.id.includes("claude-sonnet-4-5") ||
-            model.id.includes("claude-opus-4-1")
+        .filter((model) =>
+          anthropicInfo.modelFilters.some((filter) => model.id.includes(filter))
         )
         .map((model) => ({
           id: model.id,
-          name: model.display_name,
+          name: anthropicInfo.modelNames[model.id] || model.display_name,
           provider: "anthropic" as const,
         }));
     } catch (error) {
