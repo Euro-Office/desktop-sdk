@@ -30,7 +30,7 @@ class CustomServers {
   customServers: Record<string, Record<string, unknown>>;
   startedCustomServers: Record<string, string>;
   initedCustomServers: Record<string, boolean>;
-  stopedCustomServers: string[];
+  stoppedCustomServers: string[];
   customServersProcesses: Record<string, TProcess>;
   customServersLogs: Record<string, string[]>;
   tools: Record<string, TMCPItem[]>;
@@ -42,7 +42,7 @@ class CustomServers {
     this.customServersProcesses = {};
     this.customServersLogs = {};
     this.tools = {};
-    this.stopedCustomServers = [];
+    this.stoppedCustomServers = [];
   }
 
   onProcess = (type: string, t: number, message: string) => {
@@ -55,7 +55,7 @@ class CustomServers {
         correctJson.id.includes(`init-${type}`)
       ) {
         this.initedCustomServers[type] = true;
-        this.stopedCustomServers = this.stopedCustomServers.filter(
+        this.stoppedCustomServers = this.stoppedCustomServers.filter(
           (s) => s !== type
         );
       }
@@ -89,7 +89,7 @@ class CustomServers {
         this.customServersLogs[type].push(
           `${new Date().toLocaleString()}: [stop] ${message}\n`
         );
-        this.stopedCustomServers.push(type);
+        this.stoppedCustomServers.push(type);
         break;
       }
       default:

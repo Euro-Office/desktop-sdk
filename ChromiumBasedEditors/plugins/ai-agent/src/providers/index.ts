@@ -1,12 +1,13 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { Model, ProviderType, TMCPItem, TProvider } from "@/lib/types";
-import { type AnthropicProvider, anthropicProvider } from "./anthropic";
-import { type OllamaProvider, ollamaProvider } from "./ollama";
-import { type OpenAIProvider, openaiProvider } from "./openai";
-import { type OpenRouterProvider, openrouterProvider } from "./openrouter";
 import { SYSTEM_PROMPT } from "./Providers.utils";
+import {
+  type BaseProvider,
+  getProvider,
+  getSupportedProviderTypes,
+  providerRegistry,
+} from "./registry";
 import type { TData } from "./settings";
-import { type TogetherProvider, togetherProvider } from "./together";
 
 export type SendMessageReturnType = AsyncGenerator<
   | ThreadMessageLike
@@ -17,28 +18,9 @@ export type SendMessageReturnType = AsyncGenerator<
 >;
 
 class Provider {
-  currentProvider?:
-    | AnthropicProvider
-    | OllamaProvider
-    | OpenAIProvider
-    | TogetherProvider
-    | OpenRouterProvider;
+  currentProvider?: BaseProvider;
   currentProviderInfo?: TProvider;
   currentProviderType?: ProviderType;
-
-  anthropicProvider: AnthropicProvider;
-  ollamaProvider: OllamaProvider;
-  openaiProvider: OpenAIProvider;
-  togetherProvider: TogetherProvider;
-  openrouterProvider: OpenRouterProvider;
-
-  constructor() {
-    this.anthropicProvider = anthropicProvider;
-    this.ollamaProvider = ollamaProvider;
-    this.openaiProvider = openaiProvider;
-    this.togetherProvider = togetherProvider;
-    this.openrouterProvider = openrouterProvider;
-  }
 
   setCurrentProvider = (provider?: TProvider) => {
     if (!provider) {
@@ -49,37 +31,8 @@ class Provider {
     }
 
     this.currentProviderInfo = provider;
-
-    switch (provider.type) {
-      case "anthropic":
-        this.currentProvider = anthropicProvider;
-        this.currentProviderType = "anthropic";
-        break;
-
-      case "ollama":
-        this.currentProvider = ollamaProvider;
-        this.currentProviderType = "ollama";
-        break;
-
-      case "openai":
-        this.currentProvider = openaiProvider;
-        this.currentProviderType = "openai";
-        break;
-
-      case "together":
-        this.currentProvider = togetherProvider;
-        this.currentProviderType = "together";
-        break;
-
-      case "openrouter":
-        this.currentProvider = openrouterProvider;
-        this.currentProviderType = "openrouter";
-        break;
-
-      default:
-        this.currentProvider = undefined;
-        this.currentProviderType = undefined;
-    }
+    this.currentProvider = getProvider(provider.type);
+    this.currentProviderType = this.currentProvider ? provider.type : undefined;
 
     if (this.currentProvider) {
       this.currentProvider.setProvider(provider);
@@ -144,156 +97,57 @@ class Provider {
   };
 
   getProvidersInfo = () => {
-    const anthropic = {
-      type: "anthropic" as ProviderType,
-      name: this.anthropicProvider.getName(),
-      baseUrl: this.anthropicProvider.getBaseUrl(),
-    };
-
-    const ollama = {
-      type: "ollama" as ProviderType,
-      name: this.ollamaProvider.getName(),
-      baseUrl: this.ollamaProvider.getBaseUrl(),
-    };
-
-    const openai = {
-      type: "openai" as ProviderType,
-      name: this.openaiProvider.getName(),
-      baseUrl: this.openaiProvider.getBaseUrl(),
-    };
-
-    const together = {
-      type: "together" as ProviderType,
-      name: this.togetherProvider.getName(),
-      baseUrl: this.togetherProvider.getBaseUrl(),
-    };
-
-    const openrouter = {
-      type: "openrouter" as ProviderType,
-      name: this.openrouterProvider.getName(),
-      baseUrl: this.openrouterProvider.getBaseUrl(),
-    };
-
-    return [anthropic, ollama, openai, together, openrouter];
+    return getSupportedProviderTypes().map((type) => {
+      const p = providerRegistry[type];
+      return {
+        type,
+        name: p.getName(),
+        baseUrl: p.getBaseUrl(),
+      };
+    });
   };
 
   getProviderInfo = (type: ProviderType) => {
-    if (type === "anthropic")
-      return {
-        type,
-        name: this.anthropicProvider.getName(),
-        baseUrl: this.anthropicProvider.getBaseUrl(),
-      };
-
-    if (type === "ollama")
-      return {
-        type,
-        name: this.ollamaProvider.getName(),
-        baseUrl: this.ollamaProvider.getBaseUrl(),
-      };
-
-    if (type === "openai")
-      return {
-        type,
-        name: this.openaiProvider.getName(),
-        baseUrl: this.openaiProvider.getBaseUrl(),
-      };
-
-    if (type === "together")
-      return {
-        type,
-        name: this.togetherProvider.getName(),
-        baseUrl: this.togetherProvider.getBaseUrl(),
-      };
-
-    if (type === "openrouter")
-      return {
-        type,
-        name: this.openrouterProvider.getName(),
-        baseUrl: this.openrouterProvider.getBaseUrl(),
-      };
-
+    const p = getProvider(type);
+    if (!p) {
+      return { name: "", baseUrl: "" };
+    }
     return {
-      name: "",
-      baseUrl: "",
+      type,
+      name: p.getName(),
+      baseUrl: p.getBaseUrl(),
     };
   };
 
   checkNewProvider = (type: ProviderType, data: TData) => {
-    if (type === "anthropic") return this.anthropicProvider.checkProvider(data);
-
-    if (type === "ollama") return this.ollamaProvider.checkProvider(data);
-
-    if (type === "openai") return this.openaiProvider.checkProvider(data);
-
-    if (type === "together") return this.togetherProvider.checkProvider(data);
-
-    if (type === "openrouter")
-      return this.openrouterProvider.checkProvider(data);
-
-    return false;
+    const p = getProvider(type);
+    if (!p) return false;
+    return p.checkProvider(data);
   };
 
   getProvidersModels = async (providers: TProvider[]) => {
     const models = new Map<string, Model[]>();
 
-    const actions = providers
-      .map((p) => {
-        if (p.type === "anthropic")
-          return this.anthropicProvider.getProviderModels({
-            url: p.baseUrl,
-            apiKey: p.key,
-          });
+    const validProviders = providers.filter((p) => getProvider(p.type));
 
-        if (p.type === "ollama")
-          return this.ollamaProvider.getProviderModels({
-            url: p.baseUrl,
-            apiKey: p.key,
-          });
-
-        if (p.type === "openai")
-          return this.openaiProvider.getProviderModels({
-            url: p.baseUrl,
-            apiKey: p.key,
-          });
-
-        if (p.type === "together")
-          return this.togetherProvider.getProviderModels({
-            url: p.baseUrl,
-            apiKey: p.key,
-          });
-
-        if (p.type === "openrouter")
-          return this.openrouterProvider.getProviderModels({
-            url: p.baseUrl,
-            apiKey: p.key,
-          });
-
-        return null; // Explicitly return null for unsupported types
-      })
-      .filter((action): action is Promise<Model[]> => action !== null); // Filter out null values
+    const actions = validProviders.map((p) => {
+      const providerInstance = providerRegistry[p.type];
+      return providerInstance.getProviderModels({
+        url: p.baseUrl,
+        apiKey: p.key,
+      });
+    });
 
     const fetchedModels = await Promise.allSettled(actions);
 
-    let actionIndex = 0;
-    providers.forEach((provider) => {
-      // Only process providers that have supported types
+    validProviders.forEach((provider, index) => {
+      const model = fetchedModels[index];
       if (
-        provider.type === "anthropic" ||
-        provider.type === "ollama" ||
-        provider.type === "openai" ||
-        provider.type === "together" ||
-        provider.type === "openrouter"
+        model.status === "fulfilled" &&
+        model.value &&
+        model.value.length > 0
       ) {
-        const model = fetchedModels[actionIndex];
-        if (
-          model.status === "fulfilled" &&
-          model.value &&
-          model.value.length > 0
-        ) {
-          models.set(provider.name, model.value);
-        }
-        actionIndex++;
+        models.set(provider.name, model.value);
       }
     });
 

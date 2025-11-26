@@ -18,28 +18,28 @@
 
 ### P0 - Migrate to Biome
 
-- [ ] Install Biome: `npm install --save-dev --save-exact @biomejs/biome`
-- [ ] Run `npx @biomejs/biome init`
-- [ ] Configure `biome.json` with React rules
-- [ ] Remove ESLint dependencies from `package.json`
-- [ ] Delete `eslint.config.js`
-- [ ] Update npm scripts:
-  - [ ] Add `"lint": "biome lint ."`
-  - [ ] Add `"format": "biome format --write ."`
-  - [ ] Add `"check": "biome check --write ."`
-  - [ ] Update `"build"` to include `biome check --error-on-warnings . && tsc --noEmit &&`
-- [ ] Run `npm run format` to apply formatting
-- [ ] Verify build passes with new checks
+- [x] Install Biome: `npm install --save-dev --save-exact @biomejs/biome`
+- [x] Run `npx @biomejs/biome init`
+- [x] Configure `biome.json` with React rules
+- [x] Remove ESLint dependencies from `package.json`
+- [x] Delete `eslint.config.js`
+- [x] Update npm scripts:
+  - [x] Add `"lint": "biome lint ."`
+  - [x] Add `"format": "biome format --write ."`
+  - [x] Add `"check": "biome check --write ."`
+  - [x] Update `"build"` to include `biome check --error-on-warnings . && tsc --noEmit &&`
+- [x] Run `npm run format` to apply formatting
+- [x] Verify build passes with new checks
 
 ### P1 - Fix Memory Leak
 
-- [ ] Fix `setInterval` in `src/hooks/useServers.ts` (add cleanup)
+- [x] Fix `setInterval` in `src/hooks/useServers.ts` (add cleanup)
 
 ### P2 - Quick Fixes
 
-- [ ] Fix typo: `setAddProvderVisible` → `setAddProviderVisible` in `src/pages/settings/sub-components/providers/index.tsx`
-- [ ] Fix typo: `stopedCustomServers` → `stoppedCustomServers` in `src/servers/CustomServers.ts`
-- [ ] Remove commented code in `src/hooks/useModels.ts` (lines 16-21)
+- [x] Fix typo: `setAddProvderVisible` → `setAddProviderVisible` in `src/pages/settings/sub-components/providers/index.tsx`
+- [x] Fix typo: `stopedCustomServers` → `stoppedCustomServers` in `src/servers/CustomServers.ts`
+- [x] Remove commented code in `src/hooks/useModels.ts` (lines 16-21)
 
 ---
 
@@ -47,13 +47,13 @@
 
 ### P0 - Replace Switch Statements with Registry
 
-- [ ] Create `src/providers/registry.ts` with provider map
-- [ ] Refactor `Provider.setCurrentProvider()` to use registry
-- [ ] Refactor `Provider.getProviderInfo()` to use registry
-- [ ] Refactor `Provider.checkNewProvider()` to use registry
-- [ ] Refactor `Provider.getProvidersModels()` to use registry
-- [ ] Remove redundant switch/if statements from `src/providers/index.ts`
-- [ ] Add type-safe provider lookup
+- [x] Create `src/providers/registry.ts` with provider map
+- [x] Refactor `Provider.setCurrentProvider()` to use registry
+- [x] Refactor `Provider.getProviderInfo()` to use registry
+- [x] Refactor `Provider.checkNewProvider()` to use registry
+- [x] Refactor `Provider.getProvidersModels()` to use registry
+- [x] Remove redundant switch/if statements from `src/providers/index.ts`
+- [x] Add type-safe provider lookup
 
 ---
 

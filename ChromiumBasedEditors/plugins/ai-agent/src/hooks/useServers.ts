@@ -17,13 +17,17 @@ const useServers = ({ isReady }: UseServersProps) => {
     initServers();
     getTools();
 
-    setInterval(
+    const interval = setInterval(
       () => {
         getTools();
         // update tools every 5 minutes
       },
       1000 * 60 * 5
     );
+
+    return () => {
+      clearInterval(interval);
+    };
   }, [isReady, initServers, getTools]);
 
   useEffect(() => {

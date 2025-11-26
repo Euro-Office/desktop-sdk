@@ -117,7 +117,7 @@ class Servers {
   };
 
   getCustomServersStoped = () => {
-    return this.customServers.stopedCustomServers;
+    return this.customServers.stoppedCustomServers;
   };
 
   getCustomServersLogs = () => {
