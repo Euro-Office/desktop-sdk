@@ -227,6 +227,7 @@ class OllamaProvider extends AbstractBaseProvider<Tool, Message, Ollama> {
 
     try {
       await checkClient.list();
+
       return true;
     } catch {
       return ProviderErrors.invalidUrl();
