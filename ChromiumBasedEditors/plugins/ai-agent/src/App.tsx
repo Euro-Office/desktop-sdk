@@ -50,7 +50,7 @@ const App = () => {
 
   useEffect(() => {
     if (providers.length) fetchProvidersModels();
-  }, [providers, fetchProvidersModels]);
+  }, [providers.length, fetchProvidersModels]);
 
   useEffect(() => {
     if (manageToolData) setIsManageToolOpen(true);

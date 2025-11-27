@@ -52,23 +52,31 @@ export abstract class AbstractBaseProvider<TOOL, MESSAGE, CLIENT> {
     this.stopFlag = true;
   };
 
-  setApiKey = (apiKey: string): void => {
+  /**
+   * Sets the API key. Override in subclasses if the client needs special handling.
+   * By default, stores the key and attempts to update the client's apiKey property.
+   */
+  setApiKey(apiKey: string): void {
     this.apiKey = apiKey;
 
     const client = this.client as Record<string, unknown> | undefined;
     if (client && "apiKey" in client) {
       client.apiKey = apiKey;
     }
-  };
+  }
 
-  setUrl = (url: string): void => {
+  /**
+   * Sets the base URL. Override in subclasses if the client needs special handling.
+   * By default, stores the URL and attempts to update the client's baseURL property.
+   */
+  setUrl(url: string): void {
     this.url = url;
 
     const client = this.client as Record<string, unknown> | undefined;
     if (client && "baseURL" in client) {
       client.baseURL = url;
     }
-  };
+  }
 
   // ============================================
   // Abstract methods (must be implemented by subclasses)

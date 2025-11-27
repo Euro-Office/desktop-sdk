@@ -16,7 +16,8 @@ export type ProviderType =
   | "ollama"
   | "openai"
   | "together"
-  | "openrouter";
+  | "openrouter"
+  | "genai";
 
 export type Model = {
   id: string;

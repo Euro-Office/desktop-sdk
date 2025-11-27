@@ -1,5 +1,6 @@
 import type { ProviderType } from "@/lib/types";
 import { type AnthropicProvider, anthropicProvider } from "./anthropic";
+import { type GenAIProvider, genaiProvider } from "./genai";
 import { type OllamaProvider, ollamaProvider } from "./ollama";
 import { type OpenAIProvider, openaiProvider } from "./openai";
 import { type OpenRouterProvider, openrouterProvider } from "./openrouter";
@@ -10,7 +11,8 @@ export type BaseProvider =
   | OllamaProvider
   | OpenAIProvider
   | TogetherProvider
-  | OpenRouterProvider;
+  | OpenRouterProvider
+  | GenAIProvider;
 
 /**
  * Registry mapping provider types to their singleton instances.
@@ -22,6 +24,7 @@ export const providerRegistry: Record<ProviderType, BaseProvider> = {
   openai: openaiProvider,
   together: togetherProvider,
   openrouter: openrouterProvider,
+  genai: genaiProvider,
 };
 
 /**
