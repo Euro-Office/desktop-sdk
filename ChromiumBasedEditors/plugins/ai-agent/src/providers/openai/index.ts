@@ -2,7 +2,6 @@ import type { ThreadMessageLike } from "@assistant-ui/react";
 import cloneDeep from "lodash.clonedeep";
 import OpenAI from "openai";
 import type {
-  ChatCompletionChunk,
   ChatCompletionMessageParam,
   ChatCompletionSystemMessageParam,
   ChatCompletionTool,
@@ -13,6 +12,11 @@ import type { Model, TMCPItem, TProvider } from "@/lib/types";
 import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
 import { getErrorCode, ProviderErrors } from "../errors";
 import { CREATE_TITLE_SYSTEM_PROMPT } from "../prompts";
+import {
+  createEmptyResponse,
+  createErrorResponse,
+  generateFallbackToolCallId,
+} from "./constants";
 import { handleTextMessage, handleToolCall } from "./handlers";
 import { openaiInfo } from "./info";
 import {
@@ -20,40 +24,164 @@ import {
   convertToolsToModelFormat,
 } from "./utils";
 
+// ============================================
+// Type Definitions
+// ============================================
+
+/**
+ * Extracts the array type from ThreadMessageLike content,
+ * excluding the string variant.
+ */
+type MessageArray = Exclude<ThreadMessageLike["content"], string>;
+
+/**
+ * Represents a single element in the message content array.
+ */
+type ToolCallElement = MessageArray extends ReadonlyArray<infer T> ? T : never;
+
+/**
+ * Extracts specifically the tool-call type from message content parts.
+ * Used for type-safe access to tool call properties.
+ */
+type ToolCallPart = Extract<ToolCallElement, { type: "tool-call" }>;
+
 class OpenAIProvider extends AbstractBaseProvider<
   ChatCompletionTool,
   ChatCompletionMessageParam,
   OpenAI
 > {
-  setProvider = (provider: TProvider) => {
-    this.provider = provider;
+  // ============================================
+  // Private Helper Methods
+  // ============================================
 
-    this.client = new OpenAI({
-      apiKey: provider.key,
-      baseURL: provider.baseUrl,
+  /**
+   * Creates a new OpenAI client with the given credentials.
+   * Centralizes client creation to avoid duplication.
+   * Protected to allow subclasses (e.g., OpenRouter) to reuse.
+   */
+  protected createClient(apiKey?: string, baseURL?: string): OpenAI {
+    return new OpenAI({
+      apiKey,
+      baseURL,
       dangerouslyAllowBrowser: true,
     });
+  }
+
+  /**
+   * Builds a system message in OpenAI format.
+   */
+  private buildSystemMessage(
+    content: string
+  ): ChatCompletionSystemMessageParam {
+    return { role: "system", content };
+  }
+
+  /**
+   * Creates the initial response object for streaming.
+   * If continuing after a tool call, clones the existing message to preserve tool calls.
+   */
+  private createResponseShell(
+    afterToolCall?: boolean,
+    existingMessage?: ThreadMessageLike
+  ): ThreadMessageLike {
+    if (afterToolCall && existingMessage) {
+      return cloneDeep(existingMessage);
+    }
+    return createEmptyResponse();
+  }
+
+  /**
+   * Appends messages to the conversation history.
+   */
+  private pushHistory(messages: ChatCompletionMessageParam[]): void {
+    this.prevMessages.push(...messages);
+  }
+
+  /**
+   * Converts and appends a single message to history.
+   */
+  private pushSingleMessage(message: ThreadMessageLike): void {
+    const providerMsg = convertMessagesToModelFormat([message]);
+    this.pushHistory(providerMsg);
+  }
+
+  /**
+   * Filters response content after a tool call to remove duplicated content.
+   * Keeps all tool-calls and only new text content (content added after the original message).
+   */
+  private filterAfterToolCallContent(
+    responseMessage: ThreadMessageLike,
+    originalMessage?: ThreadMessageLike
+  ): ThreadMessageLike {
+    const currentContent = responseMessage.content;
+
+    // Skip filtering for string content or missing original
+    const shouldSkip =
+      typeof currentContent === "string" ||
+      !originalMessage ||
+      typeof originalMessage.content === "string";
+
+    if (shouldSkip) return responseMessage;
+
+    const originalLength = originalMessage.content.length;
+    const filtered = currentContent.filter((part, index) => {
+      // Always keep tool-calls
+      if (part.type === "tool-call") return true;
+      // Only keep new content (added after original)
+      return index >= originalLength;
+    });
+
+    return { ...responseMessage, content: filtered };
+  }
+
+  /**
+   * Finds the last tool-call in a message's content array.
+   * Used to extract tool results for continuation.
+   */
+  private getLastToolCall(
+    message: ThreadMessageLike
+  ): ToolCallPart | undefined {
+    if (typeof message.content === "string") return undefined;
+
+    // Iterate backwards to find the most recent tool-call
+    for (let i = message.content.length - 1; i >= 0; i -= 1) {
+      const part = message.content[i];
+      if (part.type === "tool-call") {
+        return part as ToolCallPart;
+      }
+    }
+    return undefined;
+  }
+
+  // ============================================
+  // Public Configuration Methods
+  // ============================================
+
+  setProvider = (provider: TProvider): void => {
+    this.provider = provider;
+    this.client = this.createClient(provider.key, provider.baseUrl);
 
     if (provider.key) this.setApiKey(provider.key);
     if (provider.baseUrl) this.setUrl(provider.baseUrl);
   };
 
-  setPrevMessages = (prevMessages: ThreadMessageLike[]) => {
+  setPrevMessages = (prevMessages: ThreadMessageLike[]): void => {
     this.prevMessages = convertMessagesToModelFormat(prevMessages);
   };
 
-  setTools = (tools: TMCPItem[]) => {
+  setTools = (tools: TMCPItem[]): void => {
     this.tools = convertToolsToModelFormat(tools);
   };
+
+  // ============================================
+  // Chat Operations
+  // ============================================
 
   async createChatName(message: string) {
     try {
       if (!this.client) return "";
 
-      const systemMessage: ChatCompletionSystemMessageParam = {
-        role: "system",
-        content: CREATE_TITLE_SYSTEM_PROMPT,
-      };
+      const systemMessage = this.buildSystemMessage(CREATE_TITLE_SYSTEM_PROMPT);
 
       const response = await this.client.chat.completions.create({
         messages: [systemMessage, { role: "user", content: message }],
@@ -69,75 +197,61 @@ class OpenAIProvider extends AbstractBaseProvider<
     }
   }
 
+  /**
+   * Sends a message and streams the response.
+   *
+   * @param messages - New messages to send
+   * @param afterToolCall - Whether this is a continuation after a tool call
+   * @param previousMessage - The previous message (used when afterToolCall is true)
+   */
   async *sendMessage(
     messages: ThreadMessageLike[],
     afterToolCall?: boolean,
-    message?: ThreadMessageLike
+    previousMessage?: ThreadMessageLike
   ): AsyncGenerator<
     ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
   > {
+    if (!this.client) return;
+
     try {
-      if (!this.client) return;
-
-      const convertedMessage = convertMessagesToModelFormat(messages);
-
-      const systemMessage: ChatCompletionSystemMessageParam = {
-        role: "system",
-        content: this.systemPrompt,
-      };
+      const convertedMessages = convertMessagesToModelFormat(messages);
+      const systemMessage = this.buildSystemMessage(this.systemPrompt);
 
       const stream = await this.client.chat.completions.create({
-        messages: [systemMessage, ...this.prevMessages, ...convertedMessage],
+        messages: [systemMessage, ...this.prevMessages, ...convertedMessages],
         model: this.modelKey,
         tools: this.tools,
         stream: true,
       });
 
-      this.prevMessages.push(...convertedMessage);
+      this.pushHistory(convertedMessages);
 
-      let responseMessage: ThreadMessageLike =
-        afterToolCall && message
-          ? cloneDeep(message)
-          : {
-              role: "assistant",
-              content: [],
-            };
+      let responseMessage = this.createResponseShell(
+        afterToolCall,
+        previousMessage
+      );
+      let isStreamComplete = false;
 
-      let stop = false;
+      for await (const streamEvent of stream) {
+        // Process each chunk in the stream event
+        for (const chunk of streamEvent.choices) {
+          if (isStreamComplete) break;
 
-      for await (const messageStreamEvent of stream) {
-        const chunks: ChatCompletionChunk["choices"] =
-          messageStreamEvent.choices;
-
-        chunks.forEach((chunk) => {
-          if (stop) return;
-
+          // Handle stream completion
           if (chunk.finish_reason) {
-            stop = true;
-
-            const curMsg = afterToolCall
-              ? {
-                  ...responseMessage,
-                  content:
-                    typeof responseMessage.content === "string"
-                      ? responseMessage.content
-                      : responseMessage.content.filter((part, index) => {
-                          // Keep tool-call parts and new text parts added after tool execution
-                          if (part.type === "tool-call") return true;
-                          // Only keep text parts that were added after the original message
-                          const originalLength = message?.content.length ?? 0;
-                          return index >= originalLength;
-                        }),
-                }
+            responseMessage = afterToolCall
+              ? this.filterAfterToolCallContent(
+                  responseMessage,
+                  previousMessage
+                )
               : responseMessage;
 
-            const providerMsg = convertMessagesToModelFormat([curMsg]);
-
-            this.prevMessages.push(...providerMsg);
-
-            return;
+            this.pushSingleMessage(responseMessage);
+            isStreamComplete = true;
+            break;
           }
 
+          // Handle text content
           if (chunk.delta.content) {
             responseMessage = handleTextMessage(
               responseMessage,
@@ -146,57 +260,47 @@ class OpenAIProvider extends AbstractBaseProvider<
             );
           }
 
+          // Handle tool calls
           if (
             chunk.delta.tool_calls &&
             typeof responseMessage.content !== "string"
           ) {
             responseMessage = handleToolCall(responseMessage, chunk);
           }
-        });
+        }
 
+        // Handle user-initiated stop
         if (this.stopFlag) {
-          const providerMsg = convertMessagesToModelFormat([responseMessage]);
-
-          this.prevMessages.push(...providerMsg);
-
+          this.pushSingleMessage(responseMessage);
           stream.controller.abort();
-
           this.stopFlag = false;
 
-          yield {
-            isEnd: true,
-            responseMessage,
-          };
-
+          yield { isEnd: true, responseMessage };
           continue;
         }
 
-        if (stop) {
-          yield {
-            isEnd: true,
-            responseMessage,
-          };
-        } else {
-          yield responseMessage;
+        // Yield final response if stream is complete
+        if (isStreamComplete) {
+          yield { isEnd: true, responseMessage };
+          return;
         }
+
+        // Yield intermediate response for UI updates
+        yield responseMessage;
       }
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      console.error("OpenAI sendMessage error:", error);
       yield {
         isEnd: true,
-        responseMessage: {
-          role: "assistant",
-          content: "",
-          status: {
-            type: "incomplete",
-            reason: "error",
-            error: e,
-          },
-        } as ThreadMessageLike,
+        responseMessage: createErrorResponse(error),
       };
     }
   }
 
+  /**
+   * Continues the conversation after a tool call has been executed.
+   * Extracts the tool result and sends it back to the model.
+   */
   async *sendMessageAfterToolCall(
     message: ThreadMessageLike
   ): AsyncGenerator<
@@ -204,48 +308,42 @@ class OpenAIProvider extends AbstractBaseProvider<
   > {
     if (typeof message.content === "string") return message;
 
-    const result = message.content
-      .filter((c) => c.type === "tool-call")
-      .reverse()[0];
-
-    if (!result) return message;
+    const lastToolCall = this.getLastToolCall(message);
+    if (!lastToolCall) return message;
 
     const toolResult: ChatCompletionToolMessageParam = {
       role: "tool",
-      content: result.result,
-      tool_call_id: result.toolCallId ?? new Date().toISOString(),
+      content: lastToolCall.result,
+      tool_call_id: lastToolCall.toolCallId ?? generateFallbackToolCallId(),
     };
 
-    this.prevMessages.push(toolResult);
-
+    this.pushHistory([toolResult]);
     yield* this.sendMessage([], true, message);
 
     return message;
   }
 
-  getName = () => {
-    return openaiInfo.name;
-  };
+  // ============================================
+  // Provider Info Methods
+  // ============================================
 
-  getBaseUrl = () => {
-    return openaiInfo.baseUrl;
-  };
+  getName = (): string => openaiInfo.name;
+
+  getBaseUrl = (): string => openaiInfo.baseUrl;
+
+  // ============================================
+  // Provider Validation & Model Fetching
+  // ============================================
 
   checkProvider = async (data: TData): Promise<boolean | TErrorData> => {
-    const checkClient = new OpenAI({
-      baseURL: data.url,
-      apiKey: data.apiKey,
-      dangerouslyAllowBrowser: true,
-    });
+    const client = this.createClient(data.apiKey, data.url);
 
     try {
-      await checkClient.models.list();
-
+      await client.models.list();
       return true;
     } catch (error) {
-      if (getErrorCode(error) === "invalid_api_key") {
-        return ProviderErrors.invalidKey();
-      }
+      const isInvalidKey = getErrorCode(error) === "invalid_api_key";
+      if (isInvalidKey) return ProviderErrors.invalidKey();
 
       return data.apiKey
         ? ProviderErrors.invalidKey()
@@ -254,13 +352,8 @@ class OpenAIProvider extends AbstractBaseProvider<
   };
 
   getProviderModels = async (data: TData): Promise<Model[]> => {
-    const newClient = new OpenAI({
-      baseURL: data.url,
-      apiKey: data.apiKey,
-      dangerouslyAllowBrowser: true,
-    });
-
-    const response: OpenAIModel[] = (await newClient.models.list()).data;
+    const client = this.createClient(data.apiKey, data.url);
+    const response: OpenAIModel[] = (await client.models.list()).data;
 
     return response
       .filter((model) => openaiInfo.modelFilters.includes(model.id))

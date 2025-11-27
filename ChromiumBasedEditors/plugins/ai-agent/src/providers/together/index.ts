@@ -3,6 +3,7 @@ import cloneDeep from "lodash.clonedeep";
 import Together from "together-ai";
 import type { ModelListResponse, Tools } from "together-ai/resources";
 import type {
+  ChatCompletionChunk,
   ChatCompletionSystemMessageParam,
   CompletionCreateParams,
 } from "together-ai/resources/chat/completions";
@@ -17,6 +18,76 @@ import {
   convertToolsToModelFormat,
   type TogetherMessageParam,
 } from "./utils";
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Creates an error response message for failed requests.
+ */
+const createErrorResponse = (
+  error: unknown
+): { isEnd: true; responseMessage: ThreadMessageLike } => ({
+  isEnd: true,
+  responseMessage: {
+    role: "assistant",
+    content: "",
+    status: { type: "incomplete", reason: "error", error },
+  } as ThreadMessageLike,
+});
+
+/**
+ * Processes a stream chunk, updating the response message.
+ */
+const processChunk = (
+  chunk: ChatCompletionChunk.Choice,
+  responseMessage: ThreadMessageLike,
+  afterToolCall?: boolean
+): ThreadMessageLike => {
+  let result = responseMessage;
+
+  if (chunk.delta.content) {
+    result = handleTextMessage(result, chunk, afterToolCall);
+  }
+
+  if (chunk.delta.tool_calls && typeof result.content !== "string") {
+    result = handleToolCall(result, chunk);
+  }
+
+  return result;
+};
+
+/**
+ * Filters message content for after-tool-call scenarios.
+ * Keeps tool-call parts and new text parts added after tool execution.
+ */
+const filterAfterToolCallContent = (
+  responseMessage: ThreadMessageLike,
+  originalMessage?: ThreadMessageLike
+): ThreadMessageLike => {
+  if (typeof responseMessage.content === "string") return responseMessage;
+
+  const originalLength =
+    typeof originalMessage?.content === "string"
+      ? 0
+      : (originalMessage?.content.length ?? 0);
+
+  return {
+    ...responseMessage,
+    content: responseMessage.content.filter(
+      (part, index) => part.type === "tool-call" || index >= originalLength
+    ),
+  };
+};
+
+/**
+ * Checks if a message has any content.
+ */
+const hasContent = (message: ThreadMessageLike): boolean =>
+  typeof message.content === "string"
+    ? message.content.length > 0
+    : message.content.length > 0;
 
 class TogetherProvider extends AbstractBaseProvider<
   Tools,
@@ -76,123 +147,68 @@ class TogetherProvider extends AbstractBaseProvider<
     try {
       if (!this.client) return;
 
-      const convertedMessage = convertMessagesToModelFormat(messages);
-
+      const convertedMessages = convertMessagesToModelFormat(messages);
       const systemMessage: ChatCompletionSystemMessageParam = {
         role: "system",
         content: this.systemPrompt,
       };
 
       const stream = await this.client.chat.completions.create({
-        messages: [systemMessage, ...this.prevMessages, ...convertedMessage],
+        messages: [systemMessage, ...this.prevMessages, ...convertedMessages],
         model: this.modelKey,
         tools: this.tools,
         stream: true,
       });
 
-      this.prevMessages.push(...convertedMessage);
+      this.prevMessages.push(...convertedMessages);
 
       let responseMessage: ThreadMessageLike =
         afterToolCall && message
           ? cloneDeep(message)
-          : {
-              role: "assistant",
-              content: [],
-            };
+          : { role: "assistant", content: [] };
 
-      let stop = false;
+      let isFinished = false;
 
-      for await (const messageStreamEvent of stream) {
-        const chunks = messageStreamEvent.choices;
-
-        chunks.forEach((chunk) => {
-          if (stop) return;
+      for await (const event of stream) {
+        // Process all chunks in this event
+        for (const chunk of event.choices) {
+          if (isFinished) break;
 
           if (chunk.finish_reason) {
-            stop = true;
-
-            const curMsg = afterToolCall
-              ? {
-                  ...responseMessage,
-                  content:
-                    typeof responseMessage.content === "string"
-                      ? responseMessage.content
-                      : responseMessage.content.filter((part, index) => {
-                          // Keep tool-call parts and new text parts added after tool execution
-                          if (part.type === "tool-call") return true;
-                          // Only keep text parts that were added after the original message
-                          const originalLength = message?.content.length ?? 0;
-                          return index >= originalLength;
-                        }),
-                }
+            isFinished = true;
+            const finalMsg = afterToolCall
+              ? filterAfterToolCallContent(responseMessage, message)
               : responseMessage;
-
-            const providerMsg = convertMessagesToModelFormat([curMsg]);
-
-            this.prevMessages.push(...providerMsg);
-
-            return;
+            this.prevMessages.push(...convertMessagesToModelFormat([finalMsg]));
+            break;
           }
 
-          if (chunk.delta.content) {
-            responseMessage = handleTextMessage(
-              responseMessage,
-              chunk,
-              afterToolCall
+          responseMessage = processChunk(chunk, responseMessage, afterToolCall);
+        }
+
+        // Handle stop flag
+        if (this.stopFlag) {
+          if (hasContent(responseMessage)) {
+            this.prevMessages.push(
+              ...convertMessagesToModelFormat([responseMessage])
             );
           }
-
-          if (
-            chunk.delta.tool_calls &&
-            typeof responseMessage.content !== "string"
-          ) {
-            responseMessage = handleToolCall(responseMessage, chunk);
-          }
-        });
-
-        if (this.stopFlag) {
-          // Only push to prevMessages if there's actual content
-          const hasContent =
-            typeof responseMessage.content === "string"
-              ? responseMessage.content.length > 0
-              : responseMessage.content.length > 0;
-
-          if (hasContent) {
-            const providerMsg = convertMessagesToModelFormat([responseMessage]);
-            this.prevMessages.push(...providerMsg);
-          }
-
           stream.controller.abort();
-
           this.stopFlag = false;
+          yield { isEnd: true, responseMessage };
+          return;
+        }
 
-          yield {
-            isEnd: true,
-            responseMessage,
-          };
-        } else if (stop) {
-          yield {
-            isEnd: true,
-            responseMessage,
-          };
+        // Yield current state
+        if (isFinished) {
+          yield { isEnd: true, responseMessage };
         } else {
           yield responseMessage;
         }
       }
     } catch (e) {
-      console.log(e);
-      yield {
-        isEnd: true,
-        responseMessage: {
-          role: "assistant",
-          content: "",
-          status: {
-            type: "incomplete",
-            reason: "error",
-            error: e,
-          },
-        } as ThreadMessageLike,
-      };
+      console.error("Together sendMessage error:", e);
+      yield createErrorResponse(e);
     }
   }
 

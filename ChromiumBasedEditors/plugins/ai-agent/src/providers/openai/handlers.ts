@@ -2,114 +2,112 @@ import type {
   ThreadMessageLike,
   ToolCallMessagePart,
 } from "@assistant-ui/react";
-import cloneDeep from "lodash.clonedeep";
 import type { ChatCompletionChunk } from "openai/resources/chat/completions";
 
+/**
+ * Handles incoming text content from a streaming chunk.
+ * Appends or creates text parts in the response message.
+ *
+ * @param responseMessage - The current response being built
+ * @param chunk - The streaming chunk containing new text
+ * @param afterToolCall - If true, always creates a new text part after tool calls
+ *                        (prevents appending to pre-tool-call text)
+ */
 export const handleTextMessage = (
   responseMessage: ThreadMessageLike,
   chunk: ChatCompletionChunk.Choice,
   afterToolCall?: boolean
-) => {
-  // Return early if no content in delta
-  if (!chunk.delta.content) return responseMessage;
+): ThreadMessageLike => {
+  const delta = chunk.delta.content;
+  if (!delta) return responseMessage;
+  if (!Array.isArray(responseMessage.content)) return responseMessage;
 
-  let newResponseMessage = cloneDeep(responseMessage);
+  const content = [...responseMessage.content];
+  const lastPart = content[content.length - 1];
 
-  const content = newResponseMessage.content;
-
-  if (typeof content === "string") return newResponseMessage;
-
-  const lstContent = content[content.length - 1];
-
-  if (
-    (!lstContent || afterToolCall) &&
-    typeof responseMessage.content !== "string"
-  ) {
-    newResponseMessage = {
-      ...newResponseMessage,
-      content: [
-        ...content,
-        {
-          type: "text",
-          text: chunk.delta.content,
-        },
-      ],
-    };
+  // Case 1: Empty content - create first text part
+  if (!lastPart) {
+    content.push({ type: "text", text: delta });
+  }
+  // Case 2: Last part is text - append to it
+  else if (lastPart.type === "text") {
+    content[content.length - 1] = { ...lastPart, text: lastPart.text + delta };
+  }
+  // Case 3: After tool call - create new text part
+  // (don't append to tool-call parts, start fresh text after tool response)
+  else if (afterToolCall) {
+    content.push({ type: "text", text: delta });
   }
 
-  if (
-    lstContent &&
-    typeof lstContent !== "string" &&
-    typeof content !== "string"
-  ) {
-    if (lstContent.type === "text") {
-      const text = lstContent.text + chunk.delta.content;
-      const newLstContent = cloneDeep({ ...lstContent, text });
-      newResponseMessage = {
-        ...newResponseMessage,
-        content: [...content.slice(0, -1), newLstContent],
-      };
-    }
-  }
-
-  return newResponseMessage;
+  return { ...responseMessage, content };
 };
 
+/**
+ * Creates a new tool-call message part from a streaming delta.
+ */
+const createToolCallPart = (
+  delta?: ChatCompletionChunk.Choice["delta"]
+): ToolCallMessagePart =>
+  ({
+    type: "tool-call",
+    args: {},
+    argsText: delta?.tool_calls?.[0]?.function?.arguments ?? "",
+    toolName: delta?.tool_calls?.[0]?.function?.name ?? "",
+    toolCallId: delta?.tool_calls?.[0]?.id ?? "",
+  }) as ToolCallMessagePart;
+
+/**
+ * Merges new tool call data into an existing tool-call part.
+ * Tool calls stream incrementally, so we accumulate the arguments text
+ * and attempt to parse them as JSON when complete.
+ */
+const mergeToolCall = (
+  existing: ToolCallMessagePart,
+  delta?: ChatCompletionChunk.Choice["delta"]
+): ToolCallMessagePart => {
+  const update = delta?.tool_calls?.[0];
+  const argsText = existing.argsText + (update?.function?.arguments ?? "");
+
+  // Attempt to parse accumulated arguments as JSON
+  let parsedArgs = {};
+  try {
+    parsedArgs = JSON.parse(argsText || "{}");
+  } catch {
+    // Arguments still incomplete, keep empty args until fully received
+  }
+
+  return {
+    ...existing,
+    args: parsedArgs,
+    argsText,
+    toolName: existing.toolName || update?.function?.name || "",
+    toolCallId: existing.toolCallId || update?.id || "",
+  };
+};
+
+/**
+ * Handles incoming tool call data from a streaming chunk.
+ * Either creates a new tool-call part or merges into the existing one.
+ *
+ * @param responseMessage - The current response being built
+ * @param chunk - The streaming chunk containing tool call data
+ */
 export const handleToolCall = (
   responseMessage: ThreadMessageLike,
   chunk: ChatCompletionChunk.Choice
-) => {
-  let newResponseMessage = cloneDeep(responseMessage);
+): ThreadMessageLike => {
+  const delta = chunk.delta.tool_calls;
+  if (!delta || !Array.isArray(responseMessage.content)) return responseMessage;
 
-  if (!chunk.delta.tool_calls || typeof newResponseMessage.content === "string")
-    return newResponseMessage;
+  const content = [...responseMessage.content];
+  const lastPart = content[content.length - 1];
 
-  const toolCallDelta = chunk.delta.tool_calls[0];
-
-  const lastContent =
-    newResponseMessage.content[newResponseMessage.content.length - 1];
-
-  if (!lastContent || lastContent?.type !== "tool-call") {
-    const toolCall: ToolCallMessagePart = {
-      type: "tool-call",
-      args: {},
-      argsText: toolCallDelta?.function?.arguments ?? "",
-      toolName: toolCallDelta?.function?.name ?? "",
-      toolCallId: toolCallDelta?.id ?? "",
-    };
-
-    newResponseMessage = {
-      ...newResponseMessage,
-      content: [...newResponseMessage.content, toolCall],
-    };
+  // Create new tool-call or merge into existing
+  if (!lastPart || lastPart.type !== "tool-call") {
+    content.push(createToolCallPart(chunk.delta));
   } else {
-    const toolCall = lastContent;
-
-    const argsText =
-      toolCall.argsText + (toolCallDelta?.function?.arguments ?? "");
-    const name = toolCall.toolName || toolCallDelta?.function?.name || "";
-    const toolCallId = toolCall.toolCallId || toolCallDelta?.id || "";
-
-    let parsedArgs = {};
-    try {
-      parsedArgs = JSON.parse(argsText ?? "{}");
-    } catch {
-      // ignore
-    }
-
-    const newToolCall: ToolCallMessagePart = {
-      ...toolCall,
-      args: parsedArgs,
-      argsText,
-      toolName: name,
-      toolCallId,
-    };
-
-    newResponseMessage = {
-      ...newResponseMessage,
-      content: [...newResponseMessage.content.slice(0, -1), newToolCall],
-    };
+    content[content.length - 1] = mergeToolCall(lastPart, chunk.delta);
   }
 
-  return newResponseMessage;
+  return { ...responseMessage, content };
 };

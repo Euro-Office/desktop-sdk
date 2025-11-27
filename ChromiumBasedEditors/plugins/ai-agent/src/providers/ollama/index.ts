@@ -10,13 +10,80 @@ import type { Model, TMCPItem, TProvider } from "@/lib/types";
 import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
 import { ProviderErrors } from "../errors";
 import { CREATE_TITLE_SYSTEM_PROMPT } from "../prompts";
-import { handleToolCall } from "./handlers";
+import { handleToolCall, type ToolCallResult } from "./handlers";
 import { ollamaInfo } from "./info";
 import {
   convertMessagesToModelFormat,
   convertToolsToModelFormat,
   convertToolsToString,
 } from "./utils";
+
+// ============================================================================
+// Helper Types
+// ============================================================================
+
+type ContentPart = { type: "text"; text: string } | { type: "tool-call" };
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Updates response message content based on tool call parsing result.
+ * Handles text content and tool call transitions during streaming.
+ */
+const updateMessageContent = (
+  content: ContentPart[],
+  result: ToolCallResult
+): void => {
+  const { content: textContent, toolContent } = result;
+  const lastPart = content[content.length - 1];
+  const lastIsToolCall = lastPart?.type === "tool-call";
+
+  // Empty content - add first text part
+  if (content.length === 0) {
+    content.push({ type: "text", text: textContent });
+    return;
+  }
+
+  // Has tool content
+  if (toolContent) {
+    if (lastIsToolCall) {
+      // Update existing tool call
+      content[content.length - 1] = toolContent;
+    } else {
+      // Update text, then add tool call
+      content[content.length - 1] = { type: "text", text: textContent };
+      content.push(toolContent);
+    }
+    return;
+  }
+
+  // Text only - update or add text part
+  if (lastIsToolCall) {
+    content.push({ type: "text", text: textContent });
+  } else {
+    content[content.length - 1] = { type: "text", text: textContent };
+  }
+};
+
+/**
+ * Creates an error response message for failed requests.
+ */
+const createErrorResponse = (
+  error: unknown
+): { isEnd: true; responseMessage: ThreadMessageLike } => ({
+  isEnd: true,
+  responseMessage: {
+    role: "assistant",
+    content: "",
+    status: {
+      type: "incomplete",
+      reason: "error",
+      error,
+    },
+  } as ThreadMessageLike,
+});
 
 class OllamaProvider extends AbstractBaseProvider<Tool, Message, Ollama> {
   setProvider = (provider: TProvider) => {
@@ -101,42 +168,13 @@ class OllamaProvider extends AbstractBaseProvider<Tool, Message, Ollama> {
       for await (const part of response) {
         msg += part.message.content;
 
-        const { toolContent, content } = handleToolCall(msg);
+        const result = handleToolCall(msg);
 
         if (Array.isArray(responseMessage.content)) {
-          if (responseMessage.content.length === 0) {
-            responseMessage.content.push({ type: "text", text: content });
-          } else if (toolContent) {
-            if (
-              responseMessage.content[responseMessage.content.length - 1]
-                .type !== "tool-call"
-            ) {
-              responseMessage.content[responseMessage.content.length - 1] = {
-                type: "text",
-                text: content,
-              };
-
-              responseMessage.content.push(toolContent);
-            } else {
-              responseMessage.content[responseMessage.content.length - 1] =
-                toolContent;
-            }
-          } else {
-            if (
-              responseMessage.content[responseMessage.content.length - 1]
-                .type === "tool-call"
-            ) {
-              responseMessage.content.push({
-                type: "text",
-                text: content,
-              });
-            } else {
-              responseMessage.content[responseMessage.content.length - 1] = {
-                type: "text",
-                text: content,
-              };
-            }
-          }
+          updateMessageContent(
+            responseMessage.content as ContentPart[],
+            result
+          );
         }
 
         if (part.done) {
@@ -169,18 +207,7 @@ class OllamaProvider extends AbstractBaseProvider<Tool, Message, Ollama> {
         yield responseMessage;
       }
     } catch (e) {
-      yield {
-        isEnd: true,
-        responseMessage: {
-          role: "assistant",
-          content: "",
-          status: {
-            type: "incomplete",
-            reason: "error",
-            error: e,
-          },
-        } as ThreadMessageLike,
-      };
+      yield createErrorResponse(e);
     }
   }
 
