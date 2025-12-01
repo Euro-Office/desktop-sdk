@@ -5,7 +5,7 @@ import {
 } from "@/lib/constants";
 import type { Model, TProvider } from "@/lib/types";
 import { provider } from "@/providers";
-import type { TErrorData } from "@/providers/settings";
+import type { TErrorData } from "@/providers/base";
 
 interface ProvidersState {
   providers: TProvider[];
