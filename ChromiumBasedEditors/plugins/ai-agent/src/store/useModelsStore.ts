@@ -5,30 +5,25 @@ import { provider } from "@/providers";
 
 type UseModelsStoreProps = {
   currentModel: Model | null;
-  isInitLoading: boolean;
 
-  initCurrentModel: () => void;
   selectModel: (model: Model) => void;
+
   deleteSelectedModel: () => void;
 };
 
 const useModelsStore = create<UseModelsStoreProps>((set) => ({
-  currentModel: null,
-  isInitLoading: false,
+  currentModel: (() => {
+    const saved = localStorage.getItem(CURRENT_MODEL_KEY);
 
-  initCurrentModel: () => {
-    try {
-      const currentModel = localStorage.getItem(CURRENT_MODEL_KEY);
+    if (!saved) return null;
 
-      if (!currentModel) return;
+    const parsed: Model = JSON.parse(saved);
 
-      const model = JSON.parse(currentModel);
+    provider.setCurrentProviderModel(parsed.id);
 
-      set({ currentModel: model });
-    } catch (error) {
-      console.error("Failed to initialize current model:", error);
-    }
-  },
+    return parsed;
+  })(),
+
   selectModel: (model) => {
     set({ currentModel: model });
     provider.setCurrentProviderModel(model.id);

@@ -11,7 +11,6 @@ import { Layout } from "./components/layout";
 import { ManageToolDialog } from "./components/manage-tool-dialog";
 import { chatDB, initChatDB } from "./database";
 import useMessages from "./hooks/useMessages";
-import useModels from "./hooks/useModels";
 import useServers from "./hooks/useServers";
 import useThread from "./hooks/useThreads";
 import Thread from "./pages/chat";
@@ -37,8 +36,6 @@ const App = () => {
   useThread({
     isReady,
   });
-
-  useModels();
 
   useServers({
     isReady,

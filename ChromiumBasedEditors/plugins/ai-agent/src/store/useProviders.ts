@@ -7,6 +7,11 @@ import type { Model, TProvider } from "@/lib/types";
 import { provider } from "@/providers";
 import type { TErrorData } from "@/providers/base";
 
+const NAME_EXISTS_ERROR = {
+  field: "name" as const,
+  message: "Duplicate name",
+};
+
 interface ProvidersState {
   providers: TProvider[];
   currentProvider: TProvider | null;
@@ -26,39 +31,19 @@ interface ProvidersState {
 const useProviders = create<ProvidersState>()((set, get) => ({
   providers: (() => {
     const saved = localStorage.getItem(PROVIDERS_LOCAL_STORAGE_KEY);
+
     return saved ? JSON.parse(saved) : [];
   })(),
   currentProvider: (() => {
     const saved = localStorage.getItem(CURRENT_PROVIDER_KEY);
+
     if (!saved) return null;
+
     const parsed: TProvider = JSON.parse(saved);
 
     // Since checkNewProvider is async, we need to handle this differently
     // For now, just set the provider and validate it asynchronously
     provider.setCurrentProvider(parsed);
-
-    // Validate the provider asynchronously
-    const validationResult = provider.checkNewProvider(parsed.type, {
-      url: parsed.baseUrl,
-      apiKey: parsed.key,
-    });
-
-    // Handle both sync (false) and async (Promise) results
-    if (validationResult instanceof Promise) {
-      validationResult
-        .then((result: boolean | TErrorData) => {
-          if (typeof result !== "boolean" || !result) {
-            localStorage.removeItem(CURRENT_PROVIDER_KEY);
-          }
-        })
-        .catch((error: unknown) => {
-          console.error("Provider validation error:", error);
-          localStorage.removeItem(CURRENT_PROVIDER_KEY);
-        });
-    } else if (!validationResult) {
-      localStorage.removeItem(CURRENT_PROVIDER_KEY);
-      return null;
-    }
 
     return parsed;
   })(),
@@ -70,10 +55,11 @@ const useProviders = create<ProvidersState>()((set, get) => ({
 
     set({ providersModels: models });
   },
+
   setCurrentProvider: (providerInfo: TProvider) => {
-    set({ currentProvider: providerInfo });
     provider.setCurrentProvider(providerInfo);
     localStorage.setItem(CURRENT_PROVIDER_KEY, JSON.stringify(providerInfo));
+    set({ currentProvider: providerInfo });
   },
 
   addProvider: async (providerInfo: TProvider) => {
@@ -83,12 +69,7 @@ const useProviders = create<ProvidersState>()((set, get) => ({
       (p) => p.name.toLowerCase() === providerInfo.name.toLowerCase()
     );
 
-    if (nameExists) {
-      return {
-        field: "name" as const,
-        message: "Duplicate name",
-      };
-    }
+    if (nameExists) return NAME_EXISTS_ERROR;
 
     const checkResult = await provider.checkNewProvider(providerInfo.type, {
       url: providerInfo.baseUrl,
@@ -122,10 +103,7 @@ const useProviders = create<ProvidersState>()((set, get) => ({
     );
 
     if (nameExists) {
-      return {
-        field: "name" as const,
-        message: "Duplicate name",
-      };
+      return NAME_EXISTS_ERROR;
     }
 
     const checkResult = await provider.checkNewProvider(providerInfo.type, {

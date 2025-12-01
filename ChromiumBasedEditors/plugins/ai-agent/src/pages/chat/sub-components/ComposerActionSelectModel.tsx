@@ -19,6 +19,7 @@ const SelectModel = () => {
 
   const onSelectModel = React.useCallback(
     (providerInfo: TProvider, modelId: string) => {
+      console.log(providerInfo, modelId);
       if (
         currentModel?.id === modelId &&
         provider.currentProviderInfo?.name === providerInfo.name
@@ -78,6 +79,7 @@ const SelectModel = () => {
   React.useEffect(() => {
     if ((!currentModel || !currentProvider) && providers.length > 0) {
       const providerInfo = providers[0];
+
       const model = providersModels.get(providerInfo.name)?.[0];
 
       if (!model) return;

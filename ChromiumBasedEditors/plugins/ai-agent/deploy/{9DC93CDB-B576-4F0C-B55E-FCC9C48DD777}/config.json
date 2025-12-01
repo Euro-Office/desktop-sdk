@@ -23,5 +23,7 @@
     }
   ],
 
-  "onlyofficeScheme": true
+  "onlyofficeScheme": true,
+
+  "version": "99.999.99"
 }
