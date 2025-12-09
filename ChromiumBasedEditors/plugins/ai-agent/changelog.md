@@ -9,6 +9,8 @@
 - Add genai provider
 - Add deepseek provider
 - Add xai provider
+- Add LM studio provider
 - Add support SSE and streamable-http for custom servers
+
 
 ### Bugs

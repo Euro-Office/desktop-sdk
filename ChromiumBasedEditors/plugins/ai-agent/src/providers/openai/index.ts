@@ -197,6 +197,22 @@ class OpenAIProvider extends AbstractBaseProvider<
     }
   }
 
+  async getStream(
+    systemMessage: ChatCompletionSystemMessageParam,
+    convertedMessages: ChatCompletionMessageParam[]
+  ) {
+    if (!this.client) return;
+
+    const stream = await this.client.chat.completions.create({
+      messages: [systemMessage, ...this.prevMessages, ...convertedMessages],
+      model: this.modelKey,
+      tools: this.tools,
+      stream: true,
+    });
+
+    return stream;
+  }
+
   /**
    * Sends a message and streams the response.
    *
@@ -217,12 +233,9 @@ class OpenAIProvider extends AbstractBaseProvider<
       const convertedMessages = convertMessagesToModelFormat(messages);
       const systemMessage = this.buildSystemMessage(this.systemPrompt);
 
-      const stream = await this.client.chat.completions.create({
-        messages: [systemMessage, ...this.prevMessages, ...convertedMessages],
-        model: this.modelKey,
-        tools: this.tools,
-        stream: true,
-      });
+      const stream = await this.getStream(systemMessage, convertedMessages);
+
+      if (!stream) return;
 
       this.pushHistory(convertedMessages);
 

@@ -19,7 +19,6 @@ const SelectModel = () => {
 
   const onSelectModel = React.useCallback(
     (providerInfo: TProvider, modelId: string) => {
-      console.log(providerInfo, modelId);
       if (
         currentModel?.id === modelId &&
         provider.currentProviderInfo?.name === providerInfo.name
