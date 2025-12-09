@@ -2,6 +2,7 @@ node_modules
 dist
 .env
 config.ts
+coverage
 
 # # Ignore built JS and CSS files in target directory
 # {9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}/*.js
