@@ -201,7 +201,6 @@ namespace NSQRenderer
 										  , const double& y
 										  , const double& w
 										  , const double& h) override;
-		virtual HRESULT AddPath(const Aggplus::CGraphicsPath& path) override;
 
 		//-------- Функции для вывода изображений ---------------------------------------------------
 		virtual HRESULT DrawImage(IGrObject* pImage
