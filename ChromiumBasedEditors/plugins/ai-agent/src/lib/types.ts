@@ -9,6 +9,8 @@ export type Thread = {
   threadId: string;
   title?: string;
   lastEditDate?: number;
+  provider?: TProvider;
+  model?: Model;
 };
 
 export type ProviderType =

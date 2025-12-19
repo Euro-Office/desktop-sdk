@@ -280,7 +280,10 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
       provider.createChatName(textForTitle).then(async (title) => {
         if (!title) return;
 
-        insertThread(title);
+        insertThread(title, {
+          provider: currentProvider,
+          model: currentModel,
+        });
 
         // Save all messages from the store to the database (skip error messages)
         for (const msg of messages) {
@@ -294,7 +297,10 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
         await createMessage(threadId, crypto.randomUUID(), userMessage);
       });
     } else {
-      insertNewMessageToThread();
+      insertNewMessageToThread({
+        provider: currentProvider,
+        model: currentModel,
+      });
 
       const createMessages = async () => {
         await createMessage(threadId, crypto.randomUUID(), userMessage);
