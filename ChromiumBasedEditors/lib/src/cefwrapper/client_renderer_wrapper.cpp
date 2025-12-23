@@ -2176,6 +2176,21 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 							// bIsNeedRelogin = true;
 						}
 
+						if (savedInfo && !bIsServerPrivateKeyExist)
+						{
+							std::string sPublic = U_TO_UTF8(savedInfo->PublicKey);
+							std::string sPrivateEnc = U_TO_UTF8(savedInfo->PrivateKeyEnc);
+
+							// отсылаем ключи
+							NSStringUtils::string_replaceA(sPublic, "\n", "&#xA");
+							std::string sCode =
+								("setTimeout(function() { window.cloudCryptoCommand && window.cloudCryptoCommand(\"encryptionKeys\", { publicKey : \"" + sPublic + "\", privateKeyEnc : \"" +
+								 sPrivateEnc + "\" }); }, 10);");
+							CefRefPtr<CefFrame> _frame = CefV8Context::GetCurrentContext()->GetFrame();
+							_frame->ExecuteJavaScript(sCode, _frame->GetURL(), 0);
+
+						}
+
 						if (tmpInfo)
 							oAppTmp.removeInfo(L"" /*info.Email*/, info.Portal);
 
