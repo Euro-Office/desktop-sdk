@@ -136,14 +136,25 @@ const convertSystemMessage = (message: ThreadMessageLike): MessageParam[] => {
   return [{ role: "user", content }];
 };
 
+/**
+ * Strips <think> tags from text and returns only the non-thinking content.
+ * Thinking blocks require a signature to be sent back to Anthropic, so we
+ * skip them entirely when converting messages for the API.
+ */
+const stripThinkingFromText = (text: string): string => {
+  // Remove <think>...</think> blocks entirely
+  return text.replace(/<think>[\s\S]*?<\/think>\n*/g, "").trim();
+};
+
 const convertAssistantMessage = (
   message: ThreadMessageLike
 ): MessageParam[] => {
   const result: MessageParam[] = [];
 
   if (typeof message.content === "string") {
-    if (message.content) {
-      result.push({ role: "assistant", content: message.content });
+    const text = stripThinkingFromText(message.content);
+    if (text) {
+      result.push({ role: "assistant", content: text });
     }
     return result;
   }
@@ -153,7 +164,11 @@ const convertAssistantMessage = (
 
   for (const part of message.content) {
     if (part.type === "text") {
-      content.push({ type: "text", text: part.text });
+      // Strip thinking blocks - they require signature to be sent back
+      const text = stripThinkingFromText(part.text);
+      if (text) {
+        content.push({ type: "text", text });
+      }
       continue;
     }
 

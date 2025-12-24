@@ -81,6 +81,21 @@ class AnthropicProvider extends AbstractBaseProvider<
   };
 
   // --------------------------------------------------------------------------
+  // Thinking Mode Helpers
+  // --------------------------------------------------------------------------
+
+  private isThinkingMode = (): boolean => {
+    return this.modelKey.endsWith(anthropicInfo.thinkingSuffix);
+  };
+
+  private getActualModelKey = (): string => {
+    if (this.isThinkingMode()) {
+      return this.modelKey.slice(0, -anthropicInfo.thinkingSuffix.length);
+    }
+    return this.modelKey;
+  };
+
+  // --------------------------------------------------------------------------
   // Chat Name
   // --------------------------------------------------------------------------
 
@@ -90,7 +105,7 @@ class AnthropicProvider extends AbstractBaseProvider<
     try {
       const response = await this.client.messages.create({
         messages: [{ role: "user", content: message }],
-        model: this.modelKey,
+        model: this.getActualModelKey(),
         system: CREATE_TITLE_SYSTEM_PROMPT,
         max_tokens: 2048,
         stream: false,
@@ -119,14 +134,25 @@ class AnthropicProvider extends AbstractBaseProvider<
       const convertedMessages = convertMessagesToModelFormat(messages);
       this.prevMessages.push(...convertedMessages);
 
+      const actualModel = this.getActualModelKey();
+      const useThinking = this.isThinkingMode();
+
       const stream = await this.client.messages.create({
         messages: [...this.prevMessages],
-        model: this.modelKey,
+        model: actualModel,
         system: this.systemPrompt,
-        tools: this.tools,
+        tools: this.tools.length > 0 ? this.tools : undefined,
         stream: true,
-        max_tokens: 30000,
-        tool_choice: { disable_parallel_tool_use: true, type: "auto" },
+        max_tokens: useThinking ? 16000 : 30000,
+        ...(this.tools.length > 0 && {
+          tool_choice: { disable_parallel_tool_use: true, type: "auto" },
+        }),
+        ...(useThinking && {
+          thinking: {
+            type: "enabled",
+            budget_tokens: 10000,
+          },
+        }),
       });
 
       let responseMessage = createInitialResponse(afterToolCall, message);
@@ -244,15 +270,37 @@ class AnthropicProvider extends AbstractBaseProvider<
     try {
       const { data: models } = await client.models.list();
 
-      return models
-        .filter((model) =>
-          anthropicInfo.modelFilters.some((f) => model.id.includes(f))
-        )
-        .map((model) => ({
+      const result: Model[] = [];
+
+      for (const model of models) {
+        const matchesFilter = anthropicInfo.modelFilters.some((f) =>
+          model.id.includes(f)
+        );
+        if (!matchesFilter) continue;
+
+        // Add regular model
+        result.push({
           id: model.id,
           name: anthropicInfo.modelNames[model.id] || model.display_name,
           provider: "anthropic" as const,
-        }));
+        });
+
+        // Add thinking variant for supported models
+        const isThinkingCapable = anthropicInfo.thinkingModels.some((t) =>
+          model.id.includes(t)
+        );
+        if (isThinkingCapable) {
+          const baseName =
+            anthropicInfo.modelNames[model.id] || model.display_name;
+          result.push({
+            id: `${model.id}${anthropicInfo.thinkingSuffix}`,
+            name: `${baseName} (Thinking)`,
+            provider: "anthropic" as const,
+          });
+        }
+      }
+
+      return result;
     } catch {
       return [];
     }

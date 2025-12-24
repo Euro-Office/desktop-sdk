@@ -47,6 +47,13 @@ const handleTextBlockStart = (
   content.push(createTextPart(block.text));
 };
 
+const handleThinkingBlockStart = (
+  block: { thinking: string },
+  content: ContentArray
+): void => {
+  content.push(createTextPart(`<think>\n${block.thinking}`));
+};
+
 const handleToolUseBlockStart = (
   block: Anthropic.Messages.ToolUseBlock,
   content: ContentArray
@@ -66,6 +73,16 @@ const handleTextDelta = (
   if (last?.type !== "text") return;
 
   content[content.length - 1] = createTextPart(last.text + delta.text);
+};
+
+const handleThinkingDelta = (
+  delta: { thinking: string },
+  content: ContentArray
+): void => {
+  const last = getLastContent(content);
+  if (last?.type !== "text") return;
+
+  content[content.length - 1] = createTextPart(last.text + delta.thinking);
 };
 
 const tryParseJson = (text: string): ToolCallMessagePart["args"] => {
@@ -115,10 +132,27 @@ export const handleContentBlockStart = (
 
   const { content_block } = event;
 
+  // Close thinking block if previous content was thinking
+  const lastContent = getLastContent(content);
+  if (
+    lastContent?.type === "text" &&
+    lastContent.text.startsWith("<think>") &&
+    !lastContent.text.includes("</think>")
+  ) {
+    content[content.length - 1] = createTextPart(
+      `${lastContent.text}\n</think>\n\n`
+    );
+  }
+
   if (content_block.type === "text") {
     handleTextBlockStart(content_block, content);
   } else if (content_block.type === "tool_use") {
     handleToolUseBlockStart(content_block, content);
+  } else if (content_block.type === "thinking") {
+    handleThinkingBlockStart(
+      content_block as unknown as { thinking: string },
+      content
+    );
   }
 
   return message;
@@ -139,6 +173,8 @@ export const handleContentBlockDelta = (
     handleTextDelta(delta, content);
   } else if (delta.type === "input_json_delta") {
     handleInputJsonDelta(delta, content);
+  } else if ((delta as { type: string }).type === "thinking_delta") {
+    handleThinkingDelta(delta as unknown as { thinking: string }, content);
   }
 
   return message;

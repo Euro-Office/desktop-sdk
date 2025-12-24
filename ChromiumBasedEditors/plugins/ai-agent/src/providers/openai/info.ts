@@ -1,10 +1,8 @@
 export const openaiInfo = {
   name: "OpenAI",
   baseUrl: "https://api.openai.com/v1",
-  modelFilters: ["gpt-4.1", "gpt-5", "gpt-5.1-2025-11-13"],
+  modelFilters: ["gpt-5.2-2025-12-11"],
   modelNames: {
-    "gpt-4.1": "GPT-4.1",
-    "gpt-5": "GPT-5",
-    "gpt-5.1-2025-11-13": "GPT-5.1",
+    "gpt-5.2-2025-12-11": "GPT-5.2",
   } as Record<string, string>,
 };

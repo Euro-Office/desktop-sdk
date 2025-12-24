@@ -5,13 +5,84 @@ import {
   useMessage,
 } from "@assistant-ui/react";
 import { motion } from "framer-motion";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Icon } from "@/components/icon";
 import { IconButton } from "@/components/icon-button";
-import { MarkdownText } from "@/components/markdown";
+import { Loader } from "@/components/loader";
+import { MarkdownContent } from "@/components/markdown";
 import { ToolFallback } from "@/components/tool-fallback";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
 import { convertMessagesToMd, getMessageTitleFromMd } from "@/lib/utils";
 import useMessageStore from "@/store/useMessageStore";
+
+const ThinkingMarkdownText = ({ text }: { text: string }) => {
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const { thinkingContent, responseContent, isThinkingComplete } =
+    useMemo(() => {
+      // Check for complete thinking block first
+      const completeMatch = text.match(/<think>([\s\S]*?)<\/think>/);
+      if (completeMatch) {
+        return {
+          thinkingContent: completeMatch[1]?.trim() || null,
+          responseContent: text.replace(/<think>[\s\S]*?<\/think>\n*/g, ""),
+          isThinkingComplete: true,
+        };
+      }
+
+      // Check for incomplete thinking block (streaming)
+      const incompleteMatch = text.match(/<think>([\s\S]*)/);
+      if (incompleteMatch) {
+        return {
+          thinkingContent: incompleteMatch[1]?.trim() || null,
+          responseContent: "",
+          isThinkingComplete: false,
+        };
+      }
+
+      return {
+        thinkingContent: null,
+        responseContent: text,
+        isThinkingComplete: true,
+      };
+    }, [text]);
+
+  return (
+    <>
+      {thinkingContent && (
+        <div className="my-[8px] flex w-full flex-col">
+          <div
+            className="flex items-center gap-[10px] cursor-pointer mb-[8px]"
+            onClick={() => setIsCollapsed((val) => !val)}
+          >
+            {isThinkingComplete ? (
+              <Icon name="tool.called" size={16} noColor />
+            ) : (
+              <Loader size={16} />
+            )}
+            <span className="text-[14px] font-normal leading-[20px] text-[var(--chat-message-color)] ">
+              Thinking
+            </span>
+            <Icon
+              name="arrow.right"
+              size={16}
+              width={8}
+              height={8}
+              isStroke
+              isTransform={!isCollapsed}
+            />
+          </div>
+          {!isCollapsed && (
+            <div className="ps-[26px]">
+              <MarkdownContent>{thinkingContent}</MarkdownContent>
+            </div>
+          )}
+        </div>
+      )}
+      {responseContent && <MarkdownContent>{responseContent}</MarkdownContent>}
+    </>
+  );
+};
 
 const MessageError = () => {
   return (
@@ -96,7 +167,7 @@ export const AssistantMessage = () => {
         <div className="leading-[20px] text-[14px] col-span-2 col-start-2 row-start-1 ml-4 break-words leading-7 text-[var(--chat-message-color)]">
           <MessagePrimitive.Content
             components={{
-              Text: MarkdownText,
+              Text: ThinkingMarkdownText,
               tools: { Fallback: ToolFallback },
             }}
           />
