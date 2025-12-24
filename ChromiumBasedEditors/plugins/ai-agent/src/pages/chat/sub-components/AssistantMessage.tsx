@@ -20,11 +20,15 @@ const ThinkingMarkdownText = ({ text }: { text: string }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const { thinkingContent, responseContent, isThinkingComplete } =
     useMemo(() => {
+      // Strip signature comment from content for display
+      const stripSignature = (content: string) =>
+        content.replace(/<!--sig:[\s\S]*?-->/g, "").trim();
+
       // Check for complete thinking block first
       const completeMatch = text.match(/<think>([\s\S]*?)<\/think>/);
       if (completeMatch) {
         return {
-          thinkingContent: completeMatch[1]?.trim() || null,
+          thinkingContent: stripSignature(completeMatch[1] || ""),
           responseContent: text.replace(/<think>[\s\S]*?<\/think>\n*/g, ""),
           isThinkingComplete: true,
         };
@@ -34,7 +38,7 @@ const ThinkingMarkdownText = ({ text }: { text: string }) => {
       const incompleteMatch = text.match(/<think>([\s\S]*)/);
       if (incompleteMatch) {
         return {
-          thinkingContent: incompleteMatch[1]?.trim() || null,
+          thinkingContent: stripSignature(incompleteMatch[1] || ""),
           responseContent: "",
           isThinkingComplete: false,
         };

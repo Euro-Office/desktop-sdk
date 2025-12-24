@@ -151,6 +151,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
       const updatedMessage = { ...msg, content: updatedContent };
 
       updateLastMessage(updatedMessage);
+      updateMessage(messageUID, updatedMessage);
 
       if (!provider) return;
 

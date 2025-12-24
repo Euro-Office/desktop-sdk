@@ -85,6 +85,21 @@ const handleThinkingDelta = (
   content[content.length - 1] = createTextPart(last.text + delta.thinking);
 };
 
+const handleSignatureDelta = (
+  delta: { signature: string },
+  content: ContentArray
+): void => {
+  const last = getLastContent(content);
+  if (last?.type !== "text" || !last.text.startsWith("<think>")) return;
+
+  console.log(delta);
+
+  // Append signature to the thinking block (will be closed later)
+  content[content.length - 1] = createTextPart(
+    `${last.text}<!--sig:${delta.signature}-->`
+  );
+};
+
 const tryParseJson = (text: string): ToolCallMessagePart["args"] => {
   if (!text.trim().endsWith("}")) return {};
   try {
@@ -175,6 +190,8 @@ export const handleContentBlockDelta = (
     handleInputJsonDelta(delta, content);
   } else if ((delta as { type: string }).type === "thinking_delta") {
     handleThinkingDelta(delta as unknown as { thinking: string }, content);
+  } else if ((delta as { type: string }).type === "signature_delta") {
+    handleSignatureDelta(delta as unknown as { signature: string }, content);
   }
 
   return message;

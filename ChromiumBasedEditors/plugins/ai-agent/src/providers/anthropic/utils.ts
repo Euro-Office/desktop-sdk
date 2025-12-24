@@ -137,13 +137,29 @@ const convertSystemMessage = (message: ThreadMessageLike): MessageParam[] => {
 };
 
 /**
- * Strips <think> tags from text and returns only the non-thinking content.
- * Thinking blocks require a signature to be sent back to Anthropic, so we
- * skip them entirely when converting messages for the API.
+ * Strips <think> tags from text and returns the thinking content, signature, and non-thinking text.
+ * Format: <think>content<!--sig:SIGNATURE--></think>
  */
-const stripThinkingFromText = (text: string): string => {
-  // Remove <think>...</think> blocks entirely
-  return text.replace(/<think>[\s\S]*?<\/think>\n*/g, "").trim();
+const stripThinkingFromText = (
+  text: string
+): { thinkBlock: string; signature: string; text: string } => {
+  const thinkMatch = text.match(/<think>([\s\S]*?)<\/think>/);
+  let thinkBlock = "";
+  let signature = "";
+
+  if (thinkMatch) {
+    const thinkContent = thinkMatch[1];
+    const sigMatch = thinkContent.match(/<!--sig:([\s\S]*?)-->/);
+    if (sigMatch) {
+      signature = sigMatch[1];
+      thinkBlock = thinkContent.replace(/<!--sig:[\s\S]*?-->/, "").trim();
+    } else {
+      thinkBlock = thinkContent.trim();
+    }
+  }
+
+  const strippedText = text.replace(/<think>[\s\S]*?<\/think>\n*/g, "").trim();
+  return { thinkBlock, signature, text: strippedText };
 };
 
 const convertAssistantMessage = (
@@ -152,11 +168,19 @@ const convertAssistantMessage = (
   const result: MessageParam[] = [];
 
   if (typeof message.content === "string") {
-    const text = stripThinkingFromText(message.content);
-    if (text) {
-      result.push({ role: "assistant", content: text });
+    const { text, thinkBlock, signature } = stripThinkingFromText(
+      message.content
+    );
+
+    const content: ContentBlockParam[] = [];
+
+    if (thinkBlock && signature) {
+      content.push({ type: "thinking", thinking: thinkBlock, signature });
     }
-    return result;
+    if (text) {
+      content.push({ type: "text", text });
+    }
+    return [{ role: "assistant", content }];
   }
 
   let content: ContentBlockParam[] = [];
@@ -165,7 +189,11 @@ const convertAssistantMessage = (
   for (const part of message.content) {
     if (part.type === "text") {
       // Strip thinking blocks - they require signature to be sent back
-      const text = stripThinkingFromText(part.text);
+      const { text, thinkBlock, signature } = stripThinkingFromText(part.text);
+
+      if (thinkBlock && signature) {
+        content.push({ type: "thinking", thinking: thinkBlock, signature });
+      }
       if (text) {
         content.push({ type: "text", text });
       }
