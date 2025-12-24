@@ -5,4 +5,6 @@ export const openaiInfo = {
   modelNames: {
     "gpt-5.2-2025-12-11": "GPT-5.2",
   } as Record<string, string>,
+  thinkingSuffix: "-thinking",
+  thinkingMods: ["-none", "-low", "-medium", "-high"],
 };

@@ -183,9 +183,11 @@ class OpenAIProvider extends AbstractBaseProvider<
 
       const systemMessage = this.buildSystemMessage(CREATE_TITLE_SYSTEM_PROMPT);
 
+      const model = this.modelKey.split(openaiInfo.thinkingSuffix)[0];
+
       const response = await this.client.chat.completions.create({
         messages: [systemMessage, { role: "user", content: message }],
-        model: this.modelKey,
+        model,
         stream: false,
       });
 
@@ -203,11 +205,20 @@ class OpenAIProvider extends AbstractBaseProvider<
   ) {
     if (!this.client) return;
 
+    const model = this.modelKey.split(openaiInfo.thinkingSuffix)[0];
+    const reasoningEffort = this.modelKey.split(openaiInfo.thinkingSuffix)[1];
+
+    const isNone = reasoningEffort === "-none";
+    const reasoning_effort = isNone
+      ? undefined
+      : (reasoningEffort.slice(1) as "low" | "medium" | "high");
+
     const stream = await this.client.chat.completions.create({
       messages: [systemMessage, ...this.prevMessages, ...convertedMessages],
-      model: this.modelKey,
+      model,
       tools: this.tools,
       stream: true,
+      reasoning_effort,
     });
 
     return stream;
@@ -370,11 +381,23 @@ class OpenAIProvider extends AbstractBaseProvider<
 
     return response
       .filter((model) => openaiInfo.modelFilters.includes(model.id))
-      .map((model) => ({
-        id: model.id,
-        name: openaiInfo.modelNames[model.id] || model.id.toUpperCase(),
-        provider: "openai" as const,
-      }))
+      .flatMap((model) => {
+        const baseName =
+          openaiInfo.modelNames[model.id] || model.id.toUpperCase();
+
+        return openaiInfo.thinkingMods.map((mod) => {
+          const modName = mod.replace("-", "");
+          const isNone = mod === "-none";
+
+          return {
+            id: `${model.id}${openaiInfo.thinkingSuffix}${mod}`,
+            name: isNone
+              ? baseName
+              : `${baseName} ${modName.charAt(0).toUpperCase() + modName.slice(1)} Reasoning`,
+            provider: "openai" as const,
+          };
+        });
+      })
       .reverse();
   };
 }
