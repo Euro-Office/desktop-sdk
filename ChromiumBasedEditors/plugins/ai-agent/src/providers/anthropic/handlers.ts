@@ -1,11 +1,16 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type {
+  ReasoningMessagePart,
   TextMessagePart,
   ThreadMessageLike,
   ToolCallMessagePart,
 } from "@assistant-ui/react";
 
-type ContentArray = (TextMessagePart | ToolCallMessagePart)[];
+type ContentArray = (
+  | TextMessagePart
+  | ToolCallMessagePart
+  | ReasoningMessagePart
+)[];
 
 // ============================================================================
 // Helpers
@@ -51,7 +56,10 @@ const handleThinkingBlockStart = (
   block: { thinking: string },
   content: ContentArray
 ): void => {
-  content.push(createTextPart(`<think>\n${block.thinking}`));
+  content.push({
+    type: "reasoning",
+    text: block.thinking,
+  });
 };
 
 const handleToolUseBlockStart = (
@@ -80,9 +88,12 @@ const handleThinkingDelta = (
   content: ContentArray
 ): void => {
   const last = getLastContent(content);
-  if (last?.type !== "text") return;
+  if (last?.type !== "reasoning") return;
 
-  content[content.length - 1] = createTextPart(last.text + delta.thinking);
+  content[content.length - 1] = {
+    ...last,
+    text: last.text + delta.thinking,
+  };
 };
 
 const handleSignatureDelta = (
@@ -90,14 +101,13 @@ const handleSignatureDelta = (
   content: ContentArray
 ): void => {
   const last = getLastContent(content);
-  if (last?.type !== "text" || !last.text.startsWith("<think>")) return;
-
-  console.log(delta);
+  if (last?.type !== "reasoning") return;
 
   // Append signature to the thinking block (will be closed later)
-  content[content.length - 1] = createTextPart(
-    `${last.text}<!--sig:${delta.signature}-->`
-  );
+  content[content.length - 1] = {
+    ...last,
+    parentId: delta.signature,
+  };
 };
 
 const tryParseJson = (text: string): ToolCallMessagePart["args"] => {

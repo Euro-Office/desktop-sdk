@@ -136,50 +136,16 @@ const convertSystemMessage = (message: ThreadMessageLike): MessageParam[] => {
   return [{ role: "user", content }];
 };
 
-/**
- * Strips <think> tags from text and returns the thinking content, signature, and non-thinking text.
- * Format: <think>content<!--sig:SIGNATURE--></think>
- */
-const stripThinkingFromText = (
-  text: string
-): { thinkBlock: string; signature: string; text: string } => {
-  const thinkMatch = text.match(/<think>([\s\S]*?)<\/think>/);
-  let thinkBlock = "";
-  let signature = "";
-
-  if (thinkMatch) {
-    const thinkContent = thinkMatch[1];
-    const sigMatch = thinkContent.match(/<!--sig:([\s\S]*?)-->/);
-    if (sigMatch) {
-      signature = sigMatch[1];
-      thinkBlock = thinkContent.replace(/<!--sig:[\s\S]*?-->/, "").trim();
-    } else {
-      thinkBlock = thinkContent.trim();
-    }
-  }
-
-  const strippedText = text.replace(/<think>[\s\S]*?<\/think>\n*/g, "").trim();
-  return { thinkBlock, signature, text: strippedText };
-};
-
 const convertAssistantMessage = (
   message: ThreadMessageLike
 ): MessageParam[] => {
   const result: MessageParam[] = [];
 
   if (typeof message.content === "string") {
-    const { text, thinkBlock, signature } = stripThinkingFromText(
-      message.content
-    );
+    const content: ContentBlockParam[] = [
+      { type: "text", text: message.content },
+    ];
 
-    const content: ContentBlockParam[] = [];
-
-    if (thinkBlock && signature) {
-      content.push({ type: "thinking", thinking: thinkBlock, signature });
-    }
-    if (text) {
-      content.push({ type: "text", text });
-    }
     return [{ role: "assistant", content }];
   }
 
@@ -187,16 +153,19 @@ const convertAssistantMessage = (
   let toolResults: ToolResultBlockParam[] = [];
 
   for (const part of message.content) {
-    if (part.type === "text") {
-      // Strip thinking blocks - they require signature to be sent back
-      const { text, thinkBlock, signature } = stripThinkingFromText(part.text);
+    if (part.type === "reasoning") {
+      content.push({
+        type: "thinking",
+        thinking: part.text,
+        signature: part.parentId ?? "",
+      });
 
-      if (thinkBlock && signature) {
-        content.push({ type: "thinking", thinking: thinkBlock, signature });
-      }
-      if (text) {
-        content.push({ type: "text", text });
-      }
+      continue;
+    }
+
+    if (part.type === "text") {
+      content.push({ type: "text", text: part.text });
+
       continue;
     }
 
