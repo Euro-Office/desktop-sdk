@@ -93,13 +93,15 @@ export abstract class AbstractBaseProvider<TOOL, MESSAGE, CLIENT> {
   abstract sendMessage(
     messages: ThreadMessageLike[],
     afterToolCall?: boolean,
-    message?: ThreadMessageLike
+    message?: ThreadMessageLike,
+    withThinking?: boolean
   ): AsyncGenerator<
     ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
   >;
 
   abstract sendMessageAfterToolCall(
-    message: ThreadMessageLike
+    message: ThreadMessageLike,
+    withThinking?: boolean
   ): AsyncGenerator<
     ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
   >;

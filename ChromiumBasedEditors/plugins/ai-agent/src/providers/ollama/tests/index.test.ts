@@ -8,44 +8,61 @@ import { ollamaInfo } from "../info";
 // Mock Helpers
 // =============================================================================
 
-// Shared mock functions for all Ollama instances
-const mockChat = vi.fn();
+// Shared mock functions for OpenAI client
+const mockCreate = vi.fn();
 const mockList = vi.fn();
-const mockAbort = vi.fn();
 
 /**
- * Creates a mock async iterator stream for Ollama responses.
+ * Creates a mock async iterator stream for OpenAI responses.
  */
 const createMockStream = (
-  events: Array<{ message: { content: string }; done: boolean }>
+  events: Array<{
+    choices: Array<{
+      delta: { content?: string; tool_calls?: unknown[] };
+      finish_reason?: string | null;
+    }>;
+  }>
 ) => {
   async function* generator() {
     for (const event of events) {
       yield event;
     }
   }
-  return generator();
+  return {
+    [Symbol.asyncIterator]: generator,
+    controller: { abort: vi.fn() },
+  };
 };
 
 /**
  * Creates a text chunk for streaming.
  */
-const createTextChunk = (content: string, done = false) => ({
-  message: { content },
-  done,
+const createTextChunk = (content: string, finished = false) => ({
+  choices: [
+    {
+      delta: { content },
+      finish_reason: finished ? "stop" : null,
+    },
+  ],
 });
 
-// Mock the Ollama SDK
-vi.mock("ollama/browser", () => {
-  const MockOllama = vi.fn(function (
-    this: Record<string, ReturnType<typeof vi.fn>>
-  ) {
-    this.chat = mockChat;
-    this.list = mockList;
-    this.abort = mockAbort;
+// Mock the OpenAI SDK
+vi.mock("openai", () => {
+  const MockOpenAI = vi.fn(function (this: {
+    chat: { completions: { create: typeof mockCreate } };
+    models: { list: typeof mockList };
+  }) {
+    this.chat = {
+      completions: {
+        create: mockCreate,
+      },
+    };
+    this.models = {
+      list: mockList,
+    };
   });
 
-  return { Ollama: MockOllama };
+  return { default: MockOpenAI };
 });
 
 describe("OllamaProvider", () => {
@@ -54,9 +71,8 @@ describe("OllamaProvider", () => {
   beforeEach(() => {
     provider = new OllamaProvider();
     vi.clearAllMocks();
-    mockChat.mockReset();
+    mockCreate.mockReset();
     mockList.mockReset();
-    mockAbort.mockReset();
   });
 
   // ==========================================================================
@@ -70,8 +86,8 @@ describe("OllamaProvider", () => {
   });
 
   describe("getBaseUrl", () => {
-    it("should return base URL", () => {
-      expect(provider.getBaseUrl()).toBe(ollamaInfo.baseUrl);
+    it("should return base URL with /v1 endpoint", () => {
+      expect(provider.getBaseUrl()).toBe("http://localhost:11434/v1");
     });
   });
 
@@ -80,12 +96,12 @@ describe("OllamaProvider", () => {
   // ==========================================================================
 
   describe("setProvider", () => {
-    it("should set provider and create client", () => {
+    it("should set provider and create OpenAI client", () => {
       const testProvider: TProvider = {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
 
       provider.setProvider(testProvider);
@@ -94,17 +110,17 @@ describe("OllamaProvider", () => {
       expect(provider.provider).toBe(testProvider);
     });
 
-    it("should set API key when provided", () => {
+    it("should use default key 'ollama' when no key provided", () => {
       const testProvider: TProvider = {
         type: "ollama",
         name: "Ollama",
-        key: "test-key",
-        baseUrl: "http://localhost:11434",
+        key: "",
+        baseUrl: "http://localhost:11434/v1",
       };
 
       provider.setProvider(testProvider);
 
-      expect(provider.apiKey).toBe("test-key");
+      expect(provider.apiKey).toBe("ollama");
     });
 
     it("should set URL when provided", () => {
@@ -112,12 +128,12 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://custom:8080",
+        baseUrl: "http://custom:8080/v1",
       };
 
       provider.setProvider(testProvider);
 
-      expect(provider.url).toBe("http://custom:8080");
+      expect(provider.url).toBe("http://custom:8080/v1");
     });
   });
 
@@ -135,12 +151,12 @@ describe("OllamaProvider", () => {
   });
 
   describe("setTools", () => {
-    it("should convert and set tools", () => {
+    it("should convert and set tools to OpenAI format", () => {
       const tools = [
         {
           name: "get_weather",
           description: "Get weather",
-          inputSchema: { type: "object" },
+          inputSchema: { type: "object", properties: {} },
         },
       ];
 
@@ -148,7 +164,7 @@ describe("OllamaProvider", () => {
 
       expect(provider.tools).toHaveLength(1);
       expect(provider.tools[0]).toMatchObject({
-        type: "string",
+        type: "function",
         function: { name: "get_weather" },
       });
     });
@@ -201,18 +217,18 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
       provider.setModelKey("llama3");
 
       const events = [
         createTextChunk("Hello"),
-        createTextChunk("Hello world"),
-        createTextChunk("Hello world!", true),
+        createTextChunk(" world"),
+        createTextChunk("!", true),
       ];
 
-      mockChat.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStream(events));
 
       const results: unknown[] = [];
       for await (const msg of provider.sendMessage([
@@ -222,7 +238,7 @@ describe("OllamaProvider", () => {
       }
 
       expect(results.length).toBeGreaterThan(0);
-      expect(mockChat).toHaveBeenCalledOnce();
+      expect(mockCreate).toHaveBeenCalledOnce();
     });
 
     it("should handle tool call in response", async () => {
@@ -230,18 +246,43 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
       provider.setModelKey("llama3");
 
-      const toolJson = '{"name":"get_weather","args":{"city":"NYC"}}';
       const events = [
-        createTextChunk("Let me check"),
-        createTextChunk(`Let me check<TOOL_CALL>${toolJson}</TOOL_CALL>`, true),
+        {
+          choices: [
+            {
+              delta: {
+                content: "Let me check",
+                tool_calls: [
+                  {
+                    id: "call_123",
+                    type: "function",
+                    function: {
+                      name: "get_weather",
+                      arguments: '{"city":"NYC"}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: null,
+            },
+          ],
+        },
+        {
+          choices: [
+            {
+              delta: {},
+              finish_reason: "tool_calls",
+            },
+          ],
+        },
       ];
 
-      mockChat.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStream(events));
 
       const results: unknown[] = [];
       for await (const msg of provider.sendMessage([
@@ -258,14 +299,14 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
       provider.setModelKey("llama3");
 
-      const events = [createTextChunk("Hello"), createTextChunk("Hello world")];
+      const events = [createTextChunk("Hello"), createTextChunk(" world")];
 
-      mockChat.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStream(events));
 
       const results: unknown[] = [];
       let eventCount = 0;
@@ -283,55 +324,16 @@ describe("OllamaProvider", () => {
       expect(results.length).toBeGreaterThan(0);
     });
 
-    it("should handle afterToolCall flow", async () => {
-      const testProvider: TProvider = {
-        type: "ollama",
-        name: "Ollama",
-        key: "",
-        baseUrl: "http://localhost:11434",
-      };
-      provider.setProvider(testProvider);
-      provider.setModelKey("llama3");
-
-      const events = [
-        createTextChunk("Based on the result"),
-        createTextChunk("Based on the result, it's sunny.", true),
-      ];
-
-      mockChat.mockResolvedValue(createMockStream(events));
-
-      const existingMessage: ThreadMessageLike = {
-        role: "assistant",
-        content: [
-          {
-            type: "tool-call",
-            toolCallId: "123",
-            toolName: "get_weather",
-            args: { city: "NYC" },
-            argsText: '{"city":"NYC"}',
-            result: "Sunny, 72°F",
-          },
-        ],
-      };
-
-      const results: unknown[] = [];
-      for await (const msg of provider.sendMessage([], true, existingMessage)) {
-        results.push(msg);
-      }
-
-      expect(results.length).toBeGreaterThan(0);
-    });
-
     it("should handle errors gracefully", async () => {
       const testProvider: TProvider = {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
 
-      mockChat.mockRejectedValue(new Error("Connection failed"));
+      mockCreate.mockRejectedValue(new Error("Connection failed"));
 
       const results: unknown[] = [];
       for await (const msg of provider.sendMessage([
@@ -384,17 +386,17 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
       provider.setModelKey("llama3");
 
       const events = [
         createTextChunk("Based on the tool result"),
-        createTextChunk("Based on the tool result, it's sunny!", true),
+        createTextChunk(", it's sunny!", true),
       ];
 
-      mockChat.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStream(events));
 
       const message: ThreadMessageLike = {
         role: "assistant",
@@ -437,13 +439,13 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
       provider.setModelKey("llama3");
 
-      mockChat.mockResolvedValue({
-        message: { content: "Generated Title" },
+      mockCreate.mockResolvedValue({
+        choices: [{ message: { content: "Generated Title" } }],
       });
 
       const result = await provider.createChatName("test message");
@@ -456,13 +458,13 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
       provider.setModelKey("llama3");
 
-      mockChat.mockResolvedValue({
-        message: { content: null },
+      mockCreate.mockResolvedValue({
+        choices: [{ message: { content: null } }],
       });
 
       const longMessage = "This is a very long message that exceeds 25 chars";
@@ -476,11 +478,11 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
 
-      mockChat.mockRejectedValue(new Error("API Error"));
+      mockCreate.mockRejectedValue(new Error("API Error"));
 
       const result = await provider.createChatName("test message");
 
@@ -498,14 +500,14 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
 
-      mockList.mockResolvedValue({ models: [] });
+      mockList.mockResolvedValue({ data: [] });
 
       const result = await provider.checkProvider({
-        url: "http://localhost:11434",
+        url: "http://localhost:11434/v1",
       });
 
       expect(result).toBe(true);
@@ -516,14 +518,14 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
 
       mockList.mockRejectedValue(new Error("Connection refused"));
 
       const result = await provider.checkProvider({
-        url: "http://invalid:11434",
+        url: "http://invalid:11434/v1",
       });
 
       expect(result).toEqual({
@@ -543,19 +545,19 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
 
       mockList.mockResolvedValue({
-        models: [
-          { model: "llama3:latest", name: "llama3:latest" },
-          { model: "mistral:latest", name: "mistral:latest" },
+        data: [
+          { id: "llama3:latest", object: "model" },
+          { id: "mistral:latest", object: "model" },
         ],
       });
 
       const result = await provider.getProviderModels({
-        url: "http://localhost:11434",
+        url: "http://localhost:11434/v1",
       });
 
       expect(result).toHaveLength(2);
@@ -570,20 +572,38 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
 
       mockList.mockResolvedValue({
-        models: [{ model: "test-model", name: "test-model" }],
+        data: [{ id: "test-model", object: "model" }],
       });
 
       const result = await provider.getProviderModels({
-        url: "http://localhost:11434",
+        url: "http://localhost:11434/v1",
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("test-model");
+    });
+
+    it("should return empty array on error", async () => {
+      const testProvider: TProvider = {
+        type: "ollama",
+        name: "Ollama",
+        key: "",
+        baseUrl: "http://localhost:11434/v1",
+      };
+      provider.setProvider(testProvider);
+
+      mockList.mockRejectedValue(new Error("Connection failed"));
+
+      const result = await provider.getProviderModels({
+        url: "http://localhost:11434/v1",
+      });
+
+      expect(result).toEqual([]);
     });
 
     it("should return empty array when no models available", async () => {
@@ -591,14 +611,14 @@ describe("OllamaProvider", () => {
         type: "ollama",
         name: "Ollama",
         key: "",
-        baseUrl: "http://localhost:11434",
+        baseUrl: "http://localhost:11434/v1",
       };
       provider.setProvider(testProvider);
 
-      mockList.mockResolvedValue({ models: [] });
+      mockList.mockResolvedValue({ data: [] });
 
       const result = await provider.getProviderModels({
-        url: "http://localhost:11434",
+        url: "http://localhost:11434/v1",
       });
 
       expect(result).toEqual([]);

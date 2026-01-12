@@ -181,9 +181,13 @@ class OpenAIProvider extends AbstractBaseProvider<
     try {
       if (!this.client) return "";
 
-      const systemMessage = this.buildSystemMessage(CREATE_TITLE_SYSTEM_PROMPT);
+      const modelThinking = this.modelKey.includes("-thinking");
 
-      const model = this.modelKey.split(openaiInfo.thinkingSuffix)[0];
+      const model = modelThinking
+        ? this.modelKey.replace("-thinking", "")
+        : this.modelKey;
+
+      const systemMessage = this.buildSystemMessage(CREATE_TITLE_SYSTEM_PROMPT);
 
       const response = await this.client.chat.completions.create({
         messages: [systemMessage, { role: "user", content: message }],
@@ -201,20 +205,19 @@ class OpenAIProvider extends AbstractBaseProvider<
 
   async getStream(
     systemMessage: ChatCompletionSystemMessageParam,
-    convertedMessages: ChatCompletionMessageParam[]
+    convertedMessages: ChatCompletionMessageParam[],
+    withThinking?: boolean
   ) {
     if (!this.client) return;
 
-    const model = this.modelKey.split(openaiInfo.thinkingSuffix)[0];
-    const reasoningEffort = this.modelKey.includes(openaiInfo.thinkingSuffix)
-      ? this.modelKey.split(openaiInfo.thinkingSuffix)[1]
-      : undefined;
+    const modelThinking = this.modelKey.includes("-thinking");
 
-    const isNone = reasoningEffort === "-none" || !reasoningEffort;
+    const model = modelThinking
+      ? this.modelKey.replace("-thinking", "")
+      : this.modelKey;
 
-    const reasoning_effort = isNone
-      ? undefined
-      : (reasoningEffort?.slice(1) as "low" | "medium" | "high");
+    const reasoning_effort =
+      withThinking && modelThinking ? "medium" : undefined;
 
     const stream = await this.client.chat.completions.create({
       messages: [systemMessage, ...this.prevMessages, ...convertedMessages],
@@ -237,7 +240,8 @@ class OpenAIProvider extends AbstractBaseProvider<
   async *sendMessage(
     messages: ThreadMessageLike[],
     afterToolCall?: boolean,
-    previousMessage?: ThreadMessageLike
+    previousMessage?: ThreadMessageLike,
+    withThinking?: boolean
   ): AsyncGenerator<
     ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
   > {
@@ -247,7 +251,11 @@ class OpenAIProvider extends AbstractBaseProvider<
       const convertedMessages = convertMessagesToModelFormat(messages);
       const systemMessage = this.buildSystemMessage(this.systemPrompt);
 
-      const stream = await this.getStream(systemMessage, convertedMessages);
+      const stream = await this.getStream(
+        systemMessage,
+        convertedMessages,
+        withThinking
+      );
 
       if (!stream) return;
 
@@ -329,7 +337,8 @@ class OpenAIProvider extends AbstractBaseProvider<
    * Extracts the tool result and sends it back to the model.
    */
   async *sendMessageAfterToolCall(
-    message: ThreadMessageLike
+    message: ThreadMessageLike,
+    withThinking?: boolean
   ): AsyncGenerator<
     ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
   > {
@@ -345,7 +354,7 @@ class OpenAIProvider extends AbstractBaseProvider<
     };
 
     this.pushHistory([toolResult]);
-    yield* this.sendMessage([], true, message);
+    yield* this.sendMessage([], true, message, withThinking);
 
     return message;
   }
@@ -384,24 +393,16 @@ class OpenAIProvider extends AbstractBaseProvider<
 
     return response
       .filter((model) => openaiInfo.modelFilters.includes(model.id))
-      .flatMap((model) => {
+      .map((model) => {
         const baseName =
           openaiInfo.modelNames[model.id] || model.id.toUpperCase();
 
-        return openaiInfo.thinkingMods.map((mod) => {
-          const modName = mod.replace("-", "");
-          const isNone = mod === "-none";
-
-          return {
-            id: `${model.id}${openaiInfo.thinkingSuffix}${mod}`,
-            name: isNone
-              ? baseName
-              : `${baseName} ${modName.charAt(0).toUpperCase() + modName.slice(1)} Reasoning`,
-            provider: "openai" as const,
-          };
-        });
-      })
-      .reverse();
+        return {
+          id: `${model.id}-thinking`,
+          name: baseName,
+          provider: "openai" as const,
+        };
+      });
   };
 }
 

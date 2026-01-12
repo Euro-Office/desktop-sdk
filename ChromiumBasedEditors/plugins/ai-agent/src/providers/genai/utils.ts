@@ -112,6 +112,8 @@ const convertAssistantMessage = (
   for (const part of message.content) {
     if (part.type === "text") {
       parts.push({ text: part.text });
+    } else if (part.type === "reasoning") {
+      parts.push({ text: part.text, thought: true });
     } else if (part.type === "tool-call") {
       // Get thought_signature from metadata if available (for Gemini 3)
       const metadata = (

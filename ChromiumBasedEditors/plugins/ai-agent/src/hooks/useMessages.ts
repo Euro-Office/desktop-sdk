@@ -46,7 +46,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     clearAttachmentImages,
   } = useAttachmentsStore();
   const { currentProvider } = useProviders();
-  const { currentModel } = useModelsStore();
+  const { currentModel, extendedThinking } = useModelsStore();
 
   const threadIdRef = useRef(threadId);
 
@@ -155,8 +155,10 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
 
       if (!provider) return;
 
-      const streamAfterToolCall =
-        provider.sendMessageAfterToolCall(updatedMessage);
+      const streamAfterToolCall = provider.sendMessageAfterToolCall(
+        updatedMessage,
+        extendedThinking
+      );
 
       if (streamAfterToolCall) {
         handleStream(streamAfterToolCall, true, messageUID);
@@ -331,7 +333,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
 
     addMessage(userMessage);
 
-    const stream = provider.sendMessage([userMessage]);
+    const stream = provider.sendMessage([userMessage], extendedThinking);
 
     if (stream) handleStream(stream);
   };

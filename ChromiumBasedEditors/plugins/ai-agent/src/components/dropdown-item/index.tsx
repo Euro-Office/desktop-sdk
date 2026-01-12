@@ -22,10 +22,13 @@ const DropDownItem = ({
   checked,
   tooltipText,
   withSpace,
+  withAbout,
+  aboutContent,
 }: DropDownItemProps) => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
   const [submenuSide, setSubmenuSide] = useState<"left" | "right">("right");
   const [submenuOffset, setSubmenuOffset] = useState(12);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   const itemRef = useRef<HTMLDivElement | null>(null);
   const submenuRef = useRef<HTMLDivElement | null>(null);
@@ -47,6 +50,13 @@ const DropDownItem = ({
   const handleToggleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    if (
+      e.target instanceof HTMLElement &&
+      (e.target.closest("[data-slot='tooltip-trigger']") ||
+        e.target.closest("[data-slot='tooltip-content']"))
+    )
+      return;
 
     if (toggleDisabled) return;
 
@@ -112,7 +122,7 @@ const DropDownItem = ({
     <Item
       className={cn(
         "dropdown-menu-item",
-        "flex items-center justify-between gap-[16px] min-w-0 w-full max-w-full min-h-[32px] h-[32px] px-[12px] select-none cursor-pointer",
+        "flex items-center justify-between gap-[32px] min-w-0 w-full max-w-full min-h-[32px] h-[32px] px-[12px] select-none cursor-pointer",
         "outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 border-0",
         "hover:bg-[var(--drop-down-menu-item-hover-color)] hover:text-[var(--drop-down-menu-item-hover-color)]",
         // "data-[highlighted]:bg-[var(--drop-down-menu-item-active-color)] data-[highlighted]:text-[var(--drop-down-menu-item-active-color)]",
@@ -126,7 +136,7 @@ const DropDownItem = ({
       onMouseEnter={handleMouseEnter}
       ref={itemRef}
     >
-      <div className="flex items-center gap-[8px] min-w-0 flex-1">
+      <div className="flex items-center gap-[4px] min-w-0 flex-1">
         {icon && typeof icon === "string" ? (
           <IconButton iconName={icon} size={iconSize} disableHover />
         ) : (
@@ -140,6 +150,21 @@ const DropDownItem = ({
         >
           {text}
         </span>
+        {withAbout ? (
+          <Tooltip open={isAboutOpen}>
+            <TooltipTrigger asChild>
+              <IconButton
+                iconName="btn-menu-about"
+                size={24}
+                disableHover
+                onClick={() => setIsAboutOpen((val) => !val)}
+              />
+            </TooltipTrigger>
+            <TooltipContent side={undefined} sideOffset={4} isAbout>
+              {aboutContent}
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
       </div>
 
       {subMenu ? (
@@ -181,7 +206,9 @@ const DropDownItem = ({
     return (
       <Tooltip>
         <TooltipTrigger asChild>{itemContent}</TooltipTrigger>
-        <TooltipContent>{tooltipText}</TooltipContent>
+        <TooltipContent side={undefined} sideOffset={4}>
+          {tooltipText}
+        </TooltipContent>
       </Tooltip>
     );
   }

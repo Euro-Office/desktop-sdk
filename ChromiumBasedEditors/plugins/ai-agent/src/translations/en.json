@@ -82,5 +82,7 @@
   "NoModelsAvailable": "Provider not available",
   "CheckInfo": "AI Chat can make mistakes. Check important info.",
   "ConfigurationError": "Configuration must be placed inside 'mcpServers' property",
-  "Thinking": "Thinking"
+  "Thinking": "Reasoning",
+  "ExtendedThinking": "Extended Thinking",
+  "ExtendedThinkingDescription": "This model uses advanced reasoning, which may increase costs."
 }

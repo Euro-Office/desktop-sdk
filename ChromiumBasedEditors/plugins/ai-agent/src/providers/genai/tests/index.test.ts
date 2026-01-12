@@ -243,7 +243,7 @@ describe("getProviderModels", () => {
   it("should return models matching filters", async () => {
     mockList.mockResolvedValue({
       page: Promise.resolve([
-        { name: "models/gemini-2.5-pro", displayName: "Gemini 2.5 Pro" },
+        { name: "models/gemini-3-pro-preview", displayName: "Gemini 3 Pro" },
         { name: "models/unknown-model", displayName: "Unknown" },
       ]),
       hasNextPage: () => false,
@@ -257,7 +257,7 @@ describe("getProviderModels", () => {
     });
 
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("gemini-2.5-pro");
+    expect(result[0].id).toBe("gemini-3-pro-preview");
   });
 
   it("should paginate through all pages", async () => {
@@ -265,12 +265,12 @@ describe("getProviderModels", () => {
     const nextPageMock = vi
       .fn()
       .mockResolvedValue([
-        { name: "models/gemini-2.5-flash", displayName: "Gemini 2.5 Flash" },
+        { name: "models/gemini-3-flash-preview", displayName: "Gemini 3 Flash" },
       ]);
 
     mockList.mockResolvedValue({
       page: Promise.resolve([
-        { name: "models/gemini-2.5-pro", displayName: "Gemini 2.5 Pro" },
+        { name: "models/gemini-3-pro-preview", displayName: "Gemini 3 Pro" },
       ]),
       hasNextPage: () => {
         callCount++;

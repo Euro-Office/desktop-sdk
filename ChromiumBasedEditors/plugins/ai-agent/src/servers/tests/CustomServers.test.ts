@@ -713,7 +713,7 @@ describe("CustomServers", () => {
   // ==========================================================================
 
   describe("onProcess tool call error", () => {
-    it("should reject pending tool call on error response", () => {
+    it("should reject pending tool call on error response", async () => {
       customServers.setCustomServers({
         mcpServers: { test: { command: "npx" } },
       });
@@ -739,7 +739,7 @@ describe("CustomServers", () => {
         })
       );
 
-      expect(promise).rejects.toThrow("Tool failed");
+      await expect(promise).rejects.toThrow("Tool failed");
     });
   });
 

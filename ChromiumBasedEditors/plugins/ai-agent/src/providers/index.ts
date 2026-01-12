@@ -84,19 +84,26 @@ class Provider {
   };
 
   sendMessage = (
-    messages: ThreadMessageLike[]
+    messages: ThreadMessageLike[],
+    withThinking?: boolean
   ): SendMessageReturnType | undefined => {
     if (!this.currentProvider) return;
 
-    return this.currentProvider.sendMessage(messages);
+    return this.currentProvider.sendMessage(
+      messages,
+      false,
+      undefined,
+      withThinking
+    );
   };
 
   sendMessageAfterToolCall = (
-    message: ThreadMessageLike
+    message: ThreadMessageLike,
+    withThinking?: boolean
   ): SendMessageReturnType | undefined => {
     if (!this.currentProvider) return;
 
-    return this.currentProvider.sendMessageAfterToolCall(message);
+    return this.currentProvider.sendMessageAfterToolCall(message, withThinking);
   };
 
   stopMessage = () => {

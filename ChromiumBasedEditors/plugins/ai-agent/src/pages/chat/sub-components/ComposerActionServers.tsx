@@ -3,11 +3,13 @@ import { useTranslation } from "react-i18next";
 import { DropdownMenu } from "@/components/dropdown";
 import { IconButton } from "@/components/icon-button";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import useModelsStore from "@/store/useModelsStore";
 import useServersStore from "@/store/useServersStore";
 
 const ServersSettings = () => {
   const { servers, changeToolStatus, webSearchEnabled, getWebSearchEnabled } =
     useServersStore();
+  const { extendedThinking, toggleExtendedThinking } = useModelsStore();
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -48,6 +50,24 @@ const ServersSettings = () => {
           );
           window.dispatchEvent(new CustomEvent("tools-changed"));
         },
+      },
+      {
+        text: t("ExtendedThinking"),
+        icon: (
+          <IconButton iconName="btn-extended-thinking" size={24} disableHover />
+        ),
+        onClick: () => {
+          // ignore
+        },
+        withToggle: true,
+        toggleChecked: extendedThinking,
+        onToggleChange: toggleExtendedThinking,
+        withAbout: true,
+        aboutContent: (
+          <p className="p-[16px] text-[11px] leading-[16px] text-[var(--text-secondary)]">
+            {t("ExtendedThinkingDescription")}
+          </p>
+        ),
       },
       {
         text: "",
@@ -118,7 +138,15 @@ const ServersSettings = () => {
         })
         .filter((item) => item.subMenu.length > 2),
     ],
-    [servers, changeToolStatus, t, webSearchEnabled, getWebSearchEnabled]
+    [
+      servers,
+      changeToolStatus,
+      t,
+      webSearchEnabled,
+      getWebSearchEnabled,
+      toggleExtendedThinking,
+      extendedThinking,
+    ]
   );
 
   const actions = useMemo(() => [...toolsActions], [toolsActions]);

@@ -486,6 +486,108 @@ describe("anthropic utils", () => {
           ],
         });
       });
+
+      it("should convert assistant message with reasoning part", () => {
+        const messages = [
+          {
+            role: "assistant" as const,
+            content: [
+              {
+                type: "reasoning" as const,
+                text: "Let me think about this problem",
+              },
+            ],
+          },
+        ];
+
+        const result = convertMessagesToModelFormat(
+          messages as unknown as ThreadMessageLike[]
+        );
+
+        expect(result).toEqual([
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "thinking",
+                thinking: "Let me think about this problem",
+                signature: "",
+              },
+            ],
+          },
+        ]);
+      });
+
+      it("should convert assistant message with reasoning part and signature", () => {
+        const messages = [
+          {
+            role: "assistant" as const,
+            content: [
+              {
+                type: "reasoning" as const,
+                text: "Let me analyze this",
+                parentId: "signature_abc123",
+              },
+            ],
+          },
+        ];
+
+        const result = convertMessagesToModelFormat(
+          messages as unknown as ThreadMessageLike[]
+        );
+
+        expect(result).toEqual([
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "thinking",
+                thinking: "Let me analyze this",
+                signature: "signature_abc123",
+              },
+            ],
+          },
+        ]);
+      });
+
+      it("should convert assistant message with mixed reasoning and text parts", () => {
+        const messages = [
+          {
+            role: "assistant" as const,
+            content: [
+              {
+                type: "reasoning" as const,
+                text: "Internal thought process",
+              },
+              {
+                type: "text" as const,
+                text: "Here's my answer",
+              },
+            ],
+          },
+        ];
+
+        const result = convertMessagesToModelFormat(
+          messages as unknown as ThreadMessageLike[]
+        );
+
+        expect(result).toEqual([
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "thinking",
+                thinking: "Internal thought process",
+                signature: "",
+              },
+              {
+                type: "text",
+                text: "Here's my answer",
+              },
+            ],
+          },
+        ]);
+      });
     });
 
     describe("multiple messages", () => {

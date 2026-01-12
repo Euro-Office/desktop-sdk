@@ -21,26 +21,8 @@ class XAIProvider extends OpenAIProvider {
         xaiInfo.modelFilters.length > 0
           ? response
               .filter((model) => xaiInfo.modelFilters.includes(model.id))
-              .flatMap((model) => {
+              .map((model) => {
                 const baseName = xaiInfo.modelNames[model.id] || model.id;
-
-                // const isReasoning = model.id.endsWith("fast-reasoning");
-
-                // if (isReasoning) {
-                //   return xaiInfo.thinkingMods.map((i) => {
-                //     const modName = i.replace("-", "");
-                //     const isNone = i === "-none";
-                //     return {
-                //       id: isNone
-                //         ? model.id
-                //         : `${model.id}${xaiInfo.thinkingSuffix}${i}`,
-                //       name: isNone
-                //         ? baseName
-                //         : `${baseName.replace("Reasoning", "")} ${modName.charAt(0).toUpperCase() + modName.slice(1)} Reasoning`,
-                //       provider: "xai" as const,
-                //     };
-                //   });
-                // }
 
                 return {
                   id: model.id,

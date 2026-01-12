@@ -3,6 +3,7 @@ import {
   type Content,
   type FunctionDeclaration,
   GoogleGenAI,
+  ThinkingLevel,
 } from "@google/genai";
 import cloneDeep from "lodash.clonedeep";
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
@@ -137,7 +138,8 @@ class GenAIProvider extends AbstractBaseProvider<
   async *sendMessage(
     messages: ThreadMessageLike[],
     afterToolCall?: boolean,
-    message?: ThreadMessageLike
+    message?: ThreadMessageLike,
+    withThinking?: boolean
   ): AsyncGenerator<
     ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
   > {
@@ -157,6 +159,13 @@ class GenAIProvider extends AbstractBaseProvider<
           ? cloneDeep(message)
           : { role: "assistant", content: [] };
 
+      const thinkingConfig = withThinking
+        ? {
+            thinkingLevel: ThinkingLevel.THINKING_LEVEL_UNSPECIFIED,
+            includeThoughts: true,
+          }
+        : undefined;
+
       // Use streaming
       const stream = await this.client.models.generateContentStream({
         model: this.modelKey,
@@ -166,6 +175,7 @@ class GenAIProvider extends AbstractBaseProvider<
           tools: this.tools.length
             ? [{ functionDeclarations: this.tools }]
             : undefined,
+          thinkingConfig,
         },
       });
 
@@ -199,7 +209,8 @@ class GenAIProvider extends AbstractBaseProvider<
   }
 
   async *sendMessageAfterToolCall(
-    message: ThreadMessageLike
+    message: ThreadMessageLike,
+    withThinking?: boolean
   ): AsyncGenerator<
     ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
   > {
@@ -226,7 +237,7 @@ class GenAIProvider extends AbstractBaseProvider<
 
     this.prevMessages.push(functionResponse);
 
-    yield* this.sendMessage([], true, message);
+    yield* this.sendMessage([], true, message, withThinking);
 
     return message;
   }

@@ -7,6 +7,36 @@ import type { GenerateContentResponse } from "@google/genai";
 /**
  * Handles incoming text content from a GenAI response.
  */
+export const handleThoughtContent = (
+  responseMessage: ThreadMessageLike,
+  text: string
+): ThreadMessageLike => {
+  if (!text) return responseMessage;
+
+  const content = responseMessage.content;
+  if (typeof content === "string") return responseMessage;
+
+  const newContent = [...content];
+  const lastPart = newContent[newContent.length - 1];
+
+  // Last part is text - append to it
+  if (lastPart?.type === "reasoning") {
+    newContent[newContent.length - 1] = {
+      ...lastPart,
+      text: lastPart.text + text,
+    };
+  }
+  // No content yet or last part is tool-call - add new text part
+  else {
+    newContent.push({ type: "reasoning", text });
+  }
+
+  return { ...responseMessage, content: newContent };
+};
+
+/**
+ * Handles incoming text content from a GenAI response.
+ */
 export const handleTextContent = (
   responseMessage: ThreadMessageLike,
   text: string
@@ -80,6 +110,9 @@ export const processGenAIResponse = (
   if (!candidate?.content?.parts) return result;
 
   for (const part of candidate.content.parts) {
+    if (part.thought) {
+      result = handleThoughtContent(result, part.text ?? "");
+    }
     if (part.text) {
       result = handleTextContent(result, part.text);
     }

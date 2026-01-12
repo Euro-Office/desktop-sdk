@@ -446,6 +446,47 @@ describe("AnthropicProvider", () => {
       expect(results.length).toBeGreaterThan(0);
     });
 
+    it("should enable thinking mode for thinking-capable models", async () => {
+      const testProvider: TProvider = {
+        type: "anthropic",
+        name: "Anthropic",
+        key: "test-key",
+        baseUrl: "https://api.anthropic.com",
+      };
+      provider.setProvider(testProvider);
+      provider.setModelKey("claude-sonnet-4-5-20241022"); // Thinking-capable model
+
+      const events: RawMessageStreamEvent[] = [
+        createMessageStartEvent(),
+        createContentBlockStartEvent(0, "text"),
+        createTextDeltaEvent(0, "Response"),
+        createMessageStopEvent(),
+      ];
+
+      mockClient.messages.create.mockResolvedValue(createMockStream(events));
+
+      const results: unknown[] = [];
+      for await (const msg of provider.sendMessage(
+        [{ role: "user", content: "Hi" }],
+        false,
+        undefined,
+        true // withThinking=true
+      )) {
+        results.push(msg);
+      }
+
+      expect(results.length).toBeGreaterThan(0);
+      expect(mockClient.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          thinking: {
+            type: "enabled",
+            budget_tokens: 10000,
+          },
+          max_tokens: 16000,
+        })
+      );
+    });
+
     it("should handle errors gracefully", async () => {
       const testProvider: TProvider = {
         type: "anthropic",

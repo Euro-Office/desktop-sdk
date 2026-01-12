@@ -137,6 +137,65 @@ describe("anthropic handlers", () => {
 
       expect(result.content).toHaveLength(0);
     });
+
+    it("should add thinking block to message content", () => {
+      const prevMessage: ThreadMessageLike = {
+        role: "assistant",
+        content: [],
+      };
+
+      const event = createEvent<Anthropic.Messages.ContentBlockStartEvent>({
+        type: "content_block_start",
+        index: 0,
+        content_block: {
+          type: "thinking",
+          thinking: "Let me think about this...",
+        } as unknown as Anthropic.Messages.TextBlock,
+      });
+
+      const result = handleContentBlockStart(event, prevMessage);
+
+      expect(result.content).toHaveLength(1);
+      expect(result.content).toEqual([
+        {
+          type: "reasoning",
+          text: "Let me think about this...",
+        },
+      ]);
+    });
+
+    it("should close unclosed thinking block when starting new text block", () => {
+      const prevMessage: ThreadMessageLike = {
+        role: "assistant",
+        content: [
+          {
+            type: "text",
+            text: "<think>Let me analyze this problem",
+          },
+        ],
+      };
+
+      const event = createEvent<Anthropic.Messages.ContentBlockStartEvent>({
+        type: "content_block_start",
+        index: 1,
+        content_block: {
+          type: "text",
+          text: "Here's my answer",
+        } as Anthropic.Messages.TextBlock,
+      });
+
+      const result = handleContentBlockStart(event, prevMessage);
+
+      expect(result.content).toHaveLength(2);
+      expect(result.content[0]).toEqual({
+        type: "text",
+        text: "<think>Let me analyze this problem\n</think>\n\n",
+      });
+      expect(result.content[1]).toEqual({
+        type: "text",
+        text: "Here's my answer",
+      });
+    });
   });
 
   describe("handleContentBlockDelta", () => {
@@ -378,6 +437,82 @@ describe("anthropic handlers", () => {
       const result = handleContentBlockDelta(event, prevMessage);
 
       expect(result.content).toEqual([]);
+    });
+
+    it("should append thinking text to existing reasoning block", () => {
+      const prevMessage: ThreadMessageLike = {
+        role: "assistant",
+        content: [{ type: "reasoning", text: "Let me think" }],
+      };
+
+      const event = {
+        type: "content_block_delta",
+        index: 0,
+        delta: { type: "thinking_delta", thinking: " about this..." },
+      } as unknown as Anthropic.Messages.RawContentBlockDeltaEvent;
+
+      const result = handleContentBlockDelta(event, prevMessage);
+
+      expect(result.content).toEqual([
+        { type: "reasoning", text: "Let me think about this..." },
+      ]);
+    });
+
+    it("should not modify content when thinking_delta and last content is not reasoning", () => {
+      const prevMessage: ThreadMessageLike = {
+        role: "assistant",
+        content: [{ type: "text", text: "Hello" }],
+      };
+
+      const event = {
+        type: "content_block_delta",
+        index: 0,
+        delta: { type: "thinking_delta", thinking: " thinking" },
+      } as unknown as Anthropic.Messages.RawContentBlockDeltaEvent;
+
+      const result = handleContentBlockDelta(event, prevMessage);
+
+      expect(result.content).toEqual([{ type: "text", text: "Hello" }]);
+    });
+
+    it("should add signature to reasoning block", () => {
+      const prevMessage: ThreadMessageLike = {
+        role: "assistant",
+        content: [{ type: "reasoning", text: "Let me think about this" }],
+      };
+
+      const event = {
+        type: "content_block_delta",
+        index: 0,
+        delta: { type: "signature_delta", signature: "signature_abc123" },
+      } as unknown as Anthropic.Messages.RawContentBlockDeltaEvent;
+
+      const result = handleContentBlockDelta(event, prevMessage);
+
+      expect(result.content).toEqual([
+        {
+          type: "reasoning",
+          text: "Let me think about this",
+          parentId: "signature_abc123",
+        },
+      ]);
+    });
+
+    it("should not modify content when signature_delta and last content is not reasoning", () => {
+      const prevMessage: ThreadMessageLike = {
+        role: "assistant",
+        content: [{ type: "text", text: "Hello" }],
+      };
+
+      const event = {
+        type: "content_block_delta",
+        index: 0,
+        delta: { type: "signature_delta", signature: "sig_123" },
+      } as unknown as Anthropic.Messages.RawContentBlockDeltaEvent;
+
+      const result = handleContentBlockDelta(event, prevMessage);
+
+      expect(result.content).toEqual([{ type: "text", text: "Hello" }]);
     });
   });
 });

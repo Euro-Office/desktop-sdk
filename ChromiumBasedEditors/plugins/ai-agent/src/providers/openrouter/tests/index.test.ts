@@ -152,7 +152,7 @@ describe("OpenRouterProvider", () => {
 
     it("should use modelNames mapping for display names", async () => {
       modelsListMock.mockResolvedValue({
-        data: [{ id: "openai/gpt-5.1" }],
+        data: [{ id: "openai/gpt-5.2" }],
       });
 
       const result = await provider.getProviderModels({
@@ -160,7 +160,9 @@ describe("OpenRouterProvider", () => {
         url: "https://openrouter.ai/api/v1",
       });
 
-      expect(result[0].name).toBe(openrouterInfo.modelNames["openai/gpt-5.1"]);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("openai/gpt-5.2-thinking"); // Reasoning model gets -thinking suffix
+      expect(result[0].name).toBe(openrouterInfo.modelNames["openai/gpt-5.2"]);
     });
 
     it("should return empty array when no models match filters", async () => {

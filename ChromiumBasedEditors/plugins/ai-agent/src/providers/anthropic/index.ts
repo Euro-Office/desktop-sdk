@@ -85,14 +85,7 @@ class AnthropicProvider extends AbstractBaseProvider<
   // --------------------------------------------------------------------------
 
   private isThinkingMode = (): boolean => {
-    return this.modelKey.endsWith(anthropicInfo.thinkingSuffix);
-  };
-
-  private getActualModelKey = (): string => {
-    if (this.isThinkingMode()) {
-      return this.modelKey.slice(0, -anthropicInfo.thinkingSuffix.length);
-    }
-    return this.modelKey;
+    return anthropicInfo.thinkingModels.some((m) => this.modelKey.includes(m));
   };
 
   // --------------------------------------------------------------------------
@@ -105,7 +98,7 @@ class AnthropicProvider extends AbstractBaseProvider<
     try {
       const response = await this.client.messages.create({
         messages: [{ role: "user", content: message }],
-        model: this.getActualModelKey(),
+        model: this.modelKey,
         system: CREATE_TITLE_SYSTEM_PROMPT,
         max_tokens: 2048,
         stream: false,
@@ -126,7 +119,8 @@ class AnthropicProvider extends AbstractBaseProvider<
   async *sendMessage(
     messages: ThreadMessageLike[],
     afterToolCall?: boolean,
-    message?: ThreadMessageLike
+    message?: ThreadMessageLike,
+    withThinking?: boolean
   ): AsyncGenerator<StreamResult> {
     if (!this.client) return;
 
@@ -134,12 +128,11 @@ class AnthropicProvider extends AbstractBaseProvider<
       const convertedMessages = convertMessagesToModelFormat(messages);
       this.prevMessages.push(...convertedMessages);
 
-      const actualModel = this.getActualModelKey();
-      const useThinking = this.isThinkingMode();
+      const useThinking = withThinking ? this.isThinkingMode() : false;
 
       const stream = await this.client.messages.create({
         messages: [...this.prevMessages],
-        model: actualModel,
+        model: this.modelKey,
         system: this.systemPrompt,
         tools: this.tools.length > 0 ? this.tools : undefined,
         stream: true,
@@ -206,7 +199,8 @@ class AnthropicProvider extends AbstractBaseProvider<
   }
 
   async *sendMessageAfterToolCall(
-    message: ThreadMessageLike
+    message: ThreadMessageLike,
+    withThinking?: boolean
   ): AsyncGenerator<StreamResult> {
     const lastToolCall = getLastToolCall(message);
     if (!lastToolCall) return message;
@@ -219,7 +213,7 @@ class AnthropicProvider extends AbstractBaseProvider<
 
     this.prevMessages.push({ role: "user", content: [toolResult] });
 
-    yield* this.sendMessage([], true, message);
+    yield* this.sendMessage([], true, message, withThinking);
   }
 
   // --------------------------------------------------------------------------
@@ -278,23 +272,25 @@ class AnthropicProvider extends AbstractBaseProvider<
         );
         if (!matchesFilter) continue;
 
+        const displayName =
+          anthropicInfo.modelNames[model.id] || model.display_name;
+
         // Add regular model
         result.push({
           id: model.id,
-          name: anthropicInfo.modelNames[model.id] || model.display_name,
+          name: displayName,
           provider: "anthropic" as const,
         });
 
-        // Add thinking variant for supported models
-        const isThinkingCapable = anthropicInfo.thinkingModels.some((t) =>
-          model.id.includes(t)
+        // Check if model should have a thinking variant
+        const supportsThinking = anthropicInfo.thinkingModels.some((prefix) =>
+          model.id.includes(prefix)
         );
-        if (isThinkingCapable) {
-          const baseName =
-            anthropicInfo.modelNames[model.id] || model.display_name;
+
+        if (supportsThinking) {
           result.push({
-            id: `${model.id}${anthropicInfo.thinkingSuffix}`,
-            name: `${baseName} (Thinking)`,
+            id: `${model.id}-thinking`,
+            name: displayName,
             provider: "anthropic" as const,
           });
         }

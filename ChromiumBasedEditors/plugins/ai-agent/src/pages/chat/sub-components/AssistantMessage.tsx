@@ -41,9 +41,13 @@ const ThinkingMarkdownText = ({
             ) : (
               <Loader size={16} />
             )}
-            <span className="text-[14px] font-normal leading-[20px] text-[var(--chat-message-color)] ">
-              {t("Thinking")}
-            </span>
+            <div className="flex items-center bg-[var(--background-normal-element)] rounded-[4px] gap-[8px] ps-[4px] pe-[8px]">
+              <Icon name="btn-extended-thinking" size={24} />
+              <span className="text-[14px] font-normal leading-[20px] text-[var(--chat-message-color)] ">
+                {t("Thinking")}
+              </span>
+            </div>
+
             <Icon
               name="arrow.right"
               size={16}
@@ -54,7 +58,7 @@ const ThinkingMarkdownText = ({
             />
           </div>
           {!isCollapsed && (
-            <div className="ps-[26px]">
+            <div className="ps-[12px] ms-[13px] border-l-[var(--border-divider)] border-l-[1px]">
               <MarkdownContent>{text}</MarkdownContent>
             </div>
           )}
