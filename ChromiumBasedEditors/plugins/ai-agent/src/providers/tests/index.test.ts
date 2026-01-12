@@ -174,7 +174,7 @@ describe("Provider", () => {
 
     it("should handle invalid provider type gracefully", () => {
       const testProvider: TProvider = {
-        type: "invalid" as any,
+        type: "invalid" as unknown as TProvider["type"],
         name: "Invalid",
         key: "key",
         baseUrl: "url",
@@ -575,7 +575,9 @@ describe("Provider", () => {
     });
 
     it("should return empty info for invalid provider", () => {
-      const info = provider.getProviderInfo("invalid" as any);
+      const info = provider.getProviderInfo(
+        "invalid" as unknown as TProvider["type"]
+      );
 
       expect(info.name).toBe("");
       expect(info.baseUrl).toBe("");
@@ -597,10 +599,13 @@ describe("Provider", () => {
     });
 
     it("should return false for invalid provider type", async () => {
-      const result = await provider.checkNewProvider("invalid" as any, {
-        apiKey: "test-key",
-        url: "url",
-      });
+      const result = await provider.checkNewProvider(
+        "invalid" as unknown as TProvider["type"],
+        {
+          apiKey: "test-key",
+          url: "url",
+        }
+      );
 
       expect(result).toBe(false);
     });
@@ -641,7 +646,7 @@ describe("Provider", () => {
           baseUrl: "https://api.openai.com/v1",
         },
         {
-          type: "invalid" as any,
+          type: "invalid" as unknown as TProvider["type"],
           name: "Invalid",
           key: "key2",
           baseUrl: "url",

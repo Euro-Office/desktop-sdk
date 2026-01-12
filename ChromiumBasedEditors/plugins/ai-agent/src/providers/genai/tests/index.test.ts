@@ -262,11 +262,12 @@ describe("getProviderModels", () => {
 
   it("should paginate through all pages", async () => {
     let callCount = 0;
-    const nextPageMock = vi
-      .fn()
-      .mockResolvedValue([
-        { name: "models/gemini-3-flash-preview", displayName: "Gemini 3 Flash" },
-      ]);
+    const nextPageMock = vi.fn().mockResolvedValue([
+      {
+        name: "models/gemini-3-flash-preview",
+        displayName: "Gemini 3 Flash",
+      },
+    ]);
 
     mockList.mockResolvedValue({
       page: Promise.resolve([

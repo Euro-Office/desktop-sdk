@@ -176,9 +176,8 @@ describe("TogetherProvider", () => {
       ];
 
       // Temporarily remove the mapping
-      const originalName =
-        togetherInfo.modelNames["deepseek-ai/DeepSeek-V3.1"];
-      delete togetherInfo.modelNames["deepseek-ai/DeepSeek-V3.1"];
+      const originalName = togetherInfo.modelNames["deepseek-ai/DeepSeek-V3.1"];
+      togetherInfo.modelNames["deepseek-ai/DeepSeek-V3.1"] = undefined;
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,

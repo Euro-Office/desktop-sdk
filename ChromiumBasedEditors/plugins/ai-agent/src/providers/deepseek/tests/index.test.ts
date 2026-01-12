@@ -1,4 +1,3 @@
-import type { ThreadMessageLike } from "@assistant-ui/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TProvider } from "@/lib/types";
 import { DeepSeekProvider } from "../index";
@@ -196,11 +195,9 @@ describe("DeepSeekProvider", () => {
     });
 
     it("should return invalidUrl error on network error", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: { error: () => void }) => {
-          opts.error();
-        }
-      );
+      mockCreateRequest.mockImplementation((opts: { error: () => void }) => {
+        opts.error();
+      });
 
       const result = await provider.checkProvider({
         apiKey: "test-key",

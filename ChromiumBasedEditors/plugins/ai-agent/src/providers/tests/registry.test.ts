@@ -41,19 +41,19 @@ describe("Provider Registry", () => {
     });
 
     it("should return correct provider for anthropic", () => {
-      const provider = providerRegistry["anthropic"];
+      const provider = providerRegistry.anthropic;
       expect(provider).toBeDefined();
       expect(provider.getName()).toBe("Anthropic");
     });
 
     it("should return correct provider for openai", () => {
-      const provider = providerRegistry["openai"];
+      const provider = providerRegistry.openai;
       expect(provider).toBeDefined();
       expect(provider.getName()).toBe("OpenAI");
     });
 
     it("should return correct provider for ollama", () => {
-      const provider = providerRegistry["ollama"];
+      const provider = providerRegistry.ollama;
       expect(provider).toBeDefined();
       expect(provider.getName()).toBe("Ollama");
     });

@@ -9,18 +9,28 @@ class TestProvider extends AbstractBaseProvider<
   ThreadMessageLike,
   { apiKey?: string; baseURL?: string }
 > {
-  setProvider(_provider: TProvider): void {}
-  setPrevMessages(_prevMessages: ThreadMessageLike[]): void {}
-  setTools(_tools: TMCPItem[]): void {}
+  setProvider(_provider: TProvider): void {
+    // Intentionally empty for testing
+  }
+  setPrevMessages(_prevMessages: ThreadMessageLike[]): void {
+    // Intentionally empty for testing
+  }
+  setTools(_tools: TMCPItem[]): void {
+    // Intentionally empty for testing
+  }
   async createChatName(_message: string): Promise<string> {
     return "";
   }
   async *sendMessage(): AsyncGenerator<
     ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
-  > {}
+  > {
+    // Intentionally empty for testing
+  }
   async *sendMessageAfterToolCall(): AsyncGenerator<
     ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
-  > {}
+  > {
+    // Intentionally empty for testing
+  }
   getName(): string {
     return "Test Provider";
   }
@@ -59,7 +69,7 @@ describe("AbstractBaseProvider", () => {
       const provider = new TestProvider();
       provider.stopMessage();
 
-      expect(provider["stopFlag"]).toBe(true);
+      expect(provider.stopFlag).toBe(true);
     });
   });
 
@@ -145,7 +155,7 @@ describe("AbstractBaseProvider", () => {
       expect(provider.client).toBeUndefined();
       expect(provider.tools).toEqual([]);
       expect(provider.prevMessages).toEqual([]);
-      expect(provider["stopFlag"]).toBe(false);
+      expect(provider.stopFlag).toBe(false);
     });
   });
 
