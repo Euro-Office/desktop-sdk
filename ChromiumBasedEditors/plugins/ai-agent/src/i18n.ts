@@ -10,6 +10,7 @@ import pl from "./translations/pl.json";
 import ptBr from "./translations/pt-br.json";
 import ru from "./translations/ru.json";
 import sk from "./translations/sk.json";
+import zhCN from "./translations/zh.json";
 
 i18n
   .use(initReactI18next) // passes i18n down to react-i18next
@@ -42,8 +43,11 @@ i18n
       "pt-BR": {
         translation: ptBr,
       },
-      "sl-SI": {
+      "sk-SK": {
         translation: sk,
+      },
+      "zh-CN": {
+        translation: zhCN,
       },
     },
     fallbackLng: "en",
