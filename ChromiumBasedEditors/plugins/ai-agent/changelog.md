@@ -11,6 +11,7 @@
 - Add xai provider
 - Add LM studio provider
 - Add support SSE and streamable-http for custom servers
+- Add support Extended thinking
 
 
 ### Bugs
