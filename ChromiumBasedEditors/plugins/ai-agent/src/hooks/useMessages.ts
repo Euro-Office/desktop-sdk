@@ -299,6 +299,17 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
 
       textForTitle += `\n\n${message.content[0].text}`;
 
+      // Save all messages from the store to the database (skip error messages)
+      for (const msg of messages) {
+        // Skip messages with errors
+        if (msg.status?.type === "incomplete" && msg.status?.error) continue;
+
+        await createMessage(threadId, crypto.randomUUID(), msg);
+      }
+
+      // Save the new user message
+      await createMessage(threadId, crypto.randomUUID(), userMessage);
+
       provider.createChatName(textForTitle).then(async (title) => {
         if (!title) return;
 
@@ -306,17 +317,6 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
           provider: currentProvider,
           model: currentModel,
         });
-
-        // Save all messages from the store to the database (skip error messages)
-        for (const msg of messages) {
-          // Skip messages with errors
-          if (msg.status?.type === "incomplete" && msg.status?.error) continue;
-
-          await createMessage(threadId, crypto.randomUUID(), msg);
-        }
-
-        // Save the new user message
-        await createMessage(threadId, crypto.randomUUID(), userMessage);
       });
     } else {
       insertNewMessageToThread({

@@ -258,7 +258,8 @@ class GenAIProvider extends AbstractBaseProvider<
 
       return true;
     } catch (error) {
-      console.log(JSON.stringify(error));
+      if (!data.apiKey) return ProviderErrors.emptyKey();
+
       const message = error instanceof Error ? error.message : "";
 
       // Empty object error indicates invalid URL

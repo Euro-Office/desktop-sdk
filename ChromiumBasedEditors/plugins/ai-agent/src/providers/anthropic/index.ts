@@ -281,19 +281,6 @@ class AnthropicProvider extends AbstractBaseProvider<
           name: displayName,
           provider: "anthropic" as const,
         });
-
-        // Check if model should have a thinking variant
-        const supportsThinking = anthropicInfo.thinkingModels.some((prefix) =>
-          model.id.includes(prefix)
-        );
-
-        if (supportsThinking) {
-          result.push({
-            id: `${model.id}-thinking`,
-            name: displayName,
-            provider: "anthropic" as const,
-          });
-        }
       }
 
       return result;

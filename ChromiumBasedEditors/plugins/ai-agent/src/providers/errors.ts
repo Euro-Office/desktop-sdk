@@ -75,8 +75,9 @@ export const getErrorStatus = (error: unknown): number | undefined => {
 /**
  * Get error code from error object (OpenAI style).
  */
-export const getErrorCode = (error: unknown): string | undefined => {
+export const getErrorCode = (error: unknown): string | number | undefined => {
   if (typeof error !== "object" || !error) return undefined;
+  if ("message" in error && error.message === "Connection error.") return 404;
   if ("code" in error && typeof error.code === "string") {
     return error.code;
   }

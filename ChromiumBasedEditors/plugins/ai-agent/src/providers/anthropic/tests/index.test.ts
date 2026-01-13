@@ -803,13 +803,10 @@ describe("AnthropicProvider", () => {
         url: "https://api.anthropic.com",
       });
 
-      expect(result.length).toBe(3);
+      expect(result.length).toBe(2);
       expect(result.every((m) => m.provider === "anthropic")).toBe(true);
       expect(result.map((m) => m.id)).toContain("claude-haiku-4-5-20241022");
       expect(result.map((m) => m.id)).toContain("claude-sonnet-4-5-20241022");
-      expect(result.map((m) => m.id)).toContain(
-        "claude-sonnet-4-5-20241022-thinking"
-      );
       expect(result.map((m) => m.id)).not.toContain("other-model");
     });
 

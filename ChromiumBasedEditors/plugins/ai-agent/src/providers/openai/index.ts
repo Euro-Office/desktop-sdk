@@ -378,8 +378,13 @@ class OpenAIProvider extends AbstractBaseProvider<
       await client.models.list();
       return true;
     } catch (error) {
-      const isInvalidKey = getErrorCode(error) === "invalid_api_key";
+      const errorCode = getErrorCode(error);
+      const isInvalidKey = errorCode === "invalid_api_key";
       if (isInvalidKey) return ProviderErrors.invalidKey();
+
+      if (errorCode === 404) {
+        return ProviderErrors.invalidUrl();
+      }
 
       return data.apiKey
         ? ProviderErrors.invalidKey()
