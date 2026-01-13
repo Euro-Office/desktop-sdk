@@ -97,6 +97,11 @@ namespace NSQRenderer
 									, const double& width
 									, const double& height) override;
 
+		virtual HRESULT get_BrushOffset(double& offsetX, double& offsetY) const override;
+		virtual HRESULT put_BrushOffset(const double& offsetX, const double& offsetY) override;
+		virtual HRESULT get_BrushScale(bool& isScale, double& scaleX, double& scaleY) const override;
+		virtual HRESULT put_BrushScale(bool isScale, const double& scaleX, const double& scaleY) override;
+
 		virtual HRESULT put_BrushGradientColors(LONG* lColors
 												, double* pPositions
 												, LONG nCount) override;
@@ -247,7 +252,11 @@ namespace NSQRenderer
 		void ResetBaseTransform();
 
 		void PrepareBitBlt(const int& nRasterX, const int& nRasterY, const int& nRasterW, const int& nRasterH,
-						   const double& x, const double& y, const double& w, const double& h, const double& dAngle);
+						   const double& x, const double& y, const double& w, const double& h, const double& dAngle,
+						   const double& tileScaleX, const double& tileScaleY);
+
+		void GetTileScaleX(double& sx) const;
+		void GetTileScaleY(double& sy) const;
 
 		QTransform& GetCoordTransform();
 
@@ -284,6 +293,9 @@ namespace NSQRenderer
 
 		int m_nPixelWidth;
 		int m_nPixelHeight;
+
+		double m_dTileScaleX;
+		double m_dTileScaleY;
 
 		long m_lCurrentCommand;
 		long m_lCurrentClipMode;
