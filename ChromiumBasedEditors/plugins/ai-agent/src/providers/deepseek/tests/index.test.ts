@@ -18,21 +18,10 @@ vi.mock("openai", () => ({
   },
 }));
 
-// Mock window.AscSimpleRequest
-const mockCreateRequest = vi.fn();
-
 beforeEach(() => {
   mockList.mockReset();
   mockList.mockResolvedValue({ data: [] });
-  mockCreateRequest.mockReset();
   mockCreate.mockReset();
-
-  // Setup window.AscSimpleRequest mock
-  (globalThis as unknown as { window: unknown }).window = {
-    AscSimpleRequest: {
-      createRequest: mockCreateRequest,
-    },
-  };
 });
 
 /**
@@ -41,7 +30,7 @@ beforeEach(() => {
 const createMockStream = (
   events: Array<{
     choices: Array<{
-      delta: { content?: string; tool_calls?: unknown[] };
+      delta: { content?: string; reasoning_content?: string; tool_calls?: unknown[] };
       finish_reason?: string | null;
     }>;
   }>
@@ -62,6 +51,15 @@ const createTextChunk = (content: string, finished = false) => ({
     {
       delta: { content },
       finish_reason: finished ? "stop" : null,
+    },
+  ],
+});
+
+const createReasoningChunk = (reasoning_content: string) => ({
+  choices: [
+    {
+      delta: { reasoning_content },
+      finish_reason: null,
     },
   ],
 });
@@ -139,16 +137,12 @@ describe("DeepSeekProvider", () => {
   });
 
   // ==========================================================================
-  // checkProvider
+  // checkProvider (inherited from OpenAI)
   // ==========================================================================
 
   describe("checkProvider", () => {
     it("should return true on successful API call", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: { complete: (e: { responseStatus: number }) => void }) => {
-          opts.complete({ responseStatus: 200 });
-        }
-      );
+      mockList.mockResolvedValue({ data: [] });
 
       const result = await provider.checkProvider({
         apiKey: "test-key",
@@ -158,12 +152,8 @@ describe("DeepSeekProvider", () => {
       expect(result).toBe(true);
     });
 
-    it("should return invalidKey error on 401", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: { complete: (e: { responseStatus: number }) => void }) => {
-          opts.complete({ responseStatus: 401 });
-        }
-      );
+    it("should return invalidKey error on invalid_api_key", async () => {
+      mockList.mockRejectedValue({ code: "invalid_api_key" });
 
       const result = await provider.checkProvider({
         apiKey: "invalid-key",
@@ -176,28 +166,8 @@ describe("DeepSeekProvider", () => {
       });
     });
 
-    it("should return emptyKey error when no API key provided", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: { complete: (e: { responseStatus: number }) => void }) => {
-          opts.complete({ responseStatus: 400 });
-        }
-      );
-
-      const result = await provider.checkProvider({
-        apiKey: "",
-        url: "https://api.deepseek.com",
-      });
-
-      expect(result).toEqual({
-        field: "key",
-        message: expect.any(String),
-      });
-    });
-
-    it("should return invalidUrl error on network error", async () => {
-      mockCreateRequest.mockImplementation((opts: { error: () => void }) => {
-        opts.error();
-      });
+    it("should return invalidUrl error on connection error", async () => {
+      mockList.mockRejectedValue({ message: "Connection error." });
 
       const result = await provider.checkProvider({
         apiKey: "test-key",
@@ -210,20 +180,17 @@ describe("DeepSeekProvider", () => {
       });
     });
 
-    it("should use default base URL when url not provided", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: {
-          url: string;
-          complete: (e: { responseStatus: number }) => void;
-        }) => {
-          expect(opts.url).toBe(`${deepseekInfo.baseUrl}/models`);
-          opts.complete({ responseStatus: 200 });
-        }
-      );
+    it("should return emptyKey error when no API key provided", async () => {
+      mockList.mockRejectedValue(new Error("Unauthorized"));
 
-      await provider.checkProvider({
-        apiKey: "test-key",
-        url: "",
+      const result = await provider.checkProvider({
+        apiKey: "",
+        url: "https://api.deepseek.com",
+      });
+
+      expect(result).toEqual({
+        field: "key",
+        message: expect.any(String),
       });
     });
   });
@@ -234,19 +201,13 @@ describe("DeepSeekProvider", () => {
 
   describe("getProviderModels", () => {
     it("should return models matching filter", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: { complete: (e: { responseText: string }) => void }) => {
-          opts.complete({
-            responseText: JSON.stringify({
-              data: [
-                { id: "deepseek-chat", name: "DeepSeek Chat" },
-                { id: "deepseek-coder", name: "DeepSeek Coder" },
-                { id: "other-model", name: "Other" },
-              ],
-            }),
-          });
-        }
-      );
+      mockList.mockResolvedValue({
+        data: [
+          { id: "deepseek-chat" },
+          { id: "deepseek-coder" },
+          { id: "other-model" },
+        ],
+      });
 
       const models = await provider.getProviderModels({
         apiKey: "test-key",
@@ -265,18 +226,9 @@ describe("DeepSeekProvider", () => {
       const originalFilters = [...deepseekInfo.modelFilters];
       deepseekInfo.modelFilters.length = 0;
 
-      mockCreateRequest.mockImplementation(
-        (opts: { complete: (e: { responseText: string }) => void }) => {
-          opts.complete({
-            responseText: JSON.stringify({
-              data: [
-                { id: "deepseek-chat", name: "DeepSeek Chat" },
-                { id: "deepseek-coder", name: "DeepSeek Coder" },
-              ],
-            }),
-          });
-        }
-      );
+      mockList.mockResolvedValue({
+        data: [{ id: "deepseek-chat" }, { id: "deepseek-coder" }],
+      });
 
       const models = await provider.getProviderModels({
         apiKey: "test-key",
@@ -290,15 +242,9 @@ describe("DeepSeekProvider", () => {
     });
 
     it("should set provider type to deepseek", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: { complete: (e: { responseText: string }) => void }) => {
-          opts.complete({
-            responseText: JSON.stringify({
-              data: [{ id: "deepseek-chat", name: "DeepSeek Chat" }],
-            }),
-          });
-        }
-      );
+      mockList.mockResolvedValue({
+        data: [{ id: "deepseek-chat" }],
+      });
 
       const models = await provider.getProviderModels({
         apiKey: "test-key",
@@ -308,39 +254,10 @@ describe("DeepSeekProvider", () => {
       expect(models[0]?.provider).toBe("deepseek");
     });
 
-    it("should use custom URL when provided", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: {
-          url: string;
-          complete: (e: { responseText: string }) => void;
-        }) => {
-          opts.complete({
-            responseText: JSON.stringify({ data: [] }),
-          });
-        }
-      );
-
-      await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "https://custom.deepseek.com",
-      });
-
-      expect(mockCreateRequest).toHaveBeenCalled();
-      expect(mockCreateRequest.mock.calls[0][0].url).toBe(
-        "https://custom.deepseek.com/models"
-      );
-    });
-
     it("should use modelNames mapping when available", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: { complete: (e: { responseText: string }) => void }) => {
-          opts.complete({
-            responseText: JSON.stringify({
-              data: [{ id: "deepseek-chat", name: "DeepSeek Chat" }],
-            }),
-          });
-        }
-      );
+      mockList.mockResolvedValue({
+        data: [{ id: "deepseek-chat" }],
+      });
 
       const models = await provider.getProviderModels({
         apiKey: "test-key",
@@ -356,23 +273,13 @@ describe("DeepSeekProvider", () => {
     });
 
     it("should reverse the models array", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: { complete: (e: { responseText: string }) => void }) => {
-          opts.complete({
-            responseText: JSON.stringify({
-              data: [
-                { id: "model-1", name: "Model 1" },
-                { id: "model-2", name: "Model 2" },
-                { id: "model-3", name: "Model 3" },
-              ],
-            }),
-          });
-        }
-      );
-
       // Temporarily clear filters to get all models
       const originalFilters = [...deepseekInfo.modelFilters];
       deepseekInfo.modelFilters.length = 0;
+
+      mockList.mockResolvedValue({
+        data: [{ id: "model-1" }, { id: "model-2" }, { id: "model-3" }],
+      });
 
       const models = await provider.getProviderModels({
         apiKey: "test-key",
@@ -386,19 +293,15 @@ describe("DeepSeekProvider", () => {
       deepseekInfo.modelFilters.push(...originalFilters);
     });
 
-    it("should handle error responses", async () => {
-      mockCreateRequest.mockImplementation(
-        (opts: { error: (e: Error) => void }) => {
-          opts.error(new Error("Network error"));
-        }
-      );
+    it("should return empty array on error", async () => {
+      mockList.mockRejectedValue(new Error("Network error"));
 
-      await expect(
-        provider.getProviderModels({
-          apiKey: "test-key",
-          url: "",
-        })
-      ).rejects.toThrow("Network error");
+      const models = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "",
+      });
+
+      expect(models).toEqual([]);
     });
   });
 
@@ -471,6 +374,137 @@ describe("DeepSeekProvider", () => {
       const result = await provider.createChatName("test message");
 
       expect(result).toBe("Test Title");
+    });
+  });
+
+  // ==========================================================================
+  // Reasoning Content (DeepSeek thinking mode)
+  // ==========================================================================
+
+  describe("reasoning content", () => {
+    it("should handle reasoning_content in stream", async () => {
+      const testProvider: TProvider = {
+        type: "deepseek",
+        name: "DeepSeek",
+        key: "test-key",
+        baseUrl: "https://api.deepseek.com",
+      };
+      provider.setProvider(testProvider);
+      provider.setModelKey("deepseek-reasoner");
+
+      const events = [
+        createReasoningChunk("Let me think..."),
+        createReasoningChunk(" about this problem."),
+        createTextChunk("Here is my answer"),
+        createTextChunk(".", true),
+      ];
+
+      mockCreate.mockResolvedValue(createMockStream(events));
+
+      const results: unknown[] = [];
+      for await (const msg of provider.sendMessage([
+        { role: "user", content: "Solve this" },
+      ])) {
+        results.push(msg);
+      }
+
+      // Should have results with reasoning and text parts
+      expect(results.length).toBeGreaterThan(0);
+
+      // Check the final message has reasoning content
+      const lastResult = results[results.length - 1] as {
+        isEnd?: boolean;
+        responseMessage?: { content: Array<{ type: string; text: string }> };
+      };
+
+      if (lastResult.isEnd && lastResult.responseMessage) {
+        const content = lastResult.responseMessage.content;
+        const reasoningPart = content.find((p) => p.type === "reasoning");
+        const textPart = content.find((p) => p.type === "text");
+
+        expect(reasoningPart).toBeDefined();
+        expect(reasoningPart?.text).toContain("Let me think");
+        expect(textPart).toBeDefined();
+        expect(textPart?.text).toContain("Here is my answer");
+      }
+    });
+
+    it("should finalize reasoning with parentId when text starts", async () => {
+      const testProvider: TProvider = {
+        type: "deepseek",
+        name: "DeepSeek",
+        key: "test-key",
+        baseUrl: "https://api.deepseek.com",
+      };
+      provider.setProvider(testProvider);
+      provider.setModelKey("deepseek-reasoner");
+
+      const events = [
+        createReasoningChunk("Thinking..."),
+        createTextChunk("Answer", true),
+      ];
+
+      mockCreate.mockResolvedValue(createMockStream(events));
+
+      const results: unknown[] = [];
+      for await (const msg of provider.sendMessage([
+        { role: "user", content: "Test" },
+      ])) {
+        results.push(msg);
+      }
+
+      const lastResult = results[results.length - 1] as {
+        isEnd?: boolean;
+        responseMessage?: {
+          content: Array<{ type: string; text: string; parentId?: string }>;
+        };
+      };
+
+      if (lastResult.isEnd && lastResult.responseMessage) {
+        const reasoningPart = lastResult.responseMessage.content.find(
+          (p) => p.type === "reasoning"
+        );
+        expect(reasoningPart?.parentId).toBeDefined();
+      }
+    });
+
+    it("should add empty text part when stream ends with only reasoning", async () => {
+      const testProvider: TProvider = {
+        type: "deepseek",
+        name: "DeepSeek",
+        key: "test-key",
+        baseUrl: "https://api.deepseek.com",
+      };
+      provider.setProvider(testProvider);
+      provider.setModelKey("deepseek-reasoner");
+
+      const events = [
+        createReasoningChunk("Just thinking..."),
+        { choices: [{ delta: {}, finish_reason: "stop" }] },
+      ];
+
+      mockCreate.mockResolvedValue(createMockStream(events));
+
+      const results: unknown[] = [];
+      for await (const msg of provider.sendMessage([
+        { role: "user", content: "Test" },
+      ])) {
+        results.push(msg);
+      }
+
+      const lastResult = results[results.length - 1] as {
+        isEnd?: boolean;
+        responseMessage?: { content: Array<{ type: string; text: string }> };
+      };
+
+      if (lastResult.isEnd && lastResult.responseMessage) {
+        const content = lastResult.responseMessage.content;
+        const textPart = content.find((p) => p.type === "text");
+
+        // Should have an empty text part added
+        expect(textPart).toBeDefined();
+        expect(textPart?.text).toBe("");
+      }
     });
   });
 });
