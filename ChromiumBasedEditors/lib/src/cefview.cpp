@@ -91,6 +91,8 @@ void CCefViewWidgetImpl::SetParentNull(WindowHandleId handle)
 }
 #endif
 
+#include "./cors_resource_hanler.h"
+
 std::wstring GetUrlWithoutProtocol(const std::wstring& url)
 {
 	if (0 == url.find(L"http://"))
@@ -5100,6 +5102,15 @@ virtual CefRefPtr<CefResourceHandler> GetResourceHandler(
 		CefRefPtr<CefRequest> request) OVERRIDE
 {
 	std::wstring url = request->GetURL().ToWString();
+
+#ifdef CEF_SUPPORT_STREAMING_CORS_RESOURCE_HANDLER
+	if (0 == url.find(L"onlyoffice-proxy://") && frame)
+	{
+		std::string urlFrame = frame->GetURL().ToString();
+		if (0 == urlFrame.find("onlyoffice://"))
+			return new StreamingCORSResourceHandler(request);
+	}
+#endif
 
 #ifdef USE_STREAM_RESOURCE_RECOVER_CORS
 	if (0 == url.find(L"ascdesktop://fonts"))
