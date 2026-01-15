@@ -25,6 +25,7 @@ const Navigation = () => {
               setCurrentPage("chat");
               onSwitchToNewThread();
             }}
+            data-testid="new-chat-button"
           />
         </TooltipIconButton>
       </div>
@@ -37,6 +38,7 @@ const Navigation = () => {
           onClick={() =>
             setCurrentPage(currentPage === "settings" ? "chat" : "settings")
           }
+          data-testid="settings-button"
         />
       </TooltipIconButton>
     </nav>

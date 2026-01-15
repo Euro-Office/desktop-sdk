@@ -111,6 +111,7 @@ const ComposerActionAttachment = () => {
         className="cursor-pointer rounded-[4px] outline-none"
         isStroke
         isActive={isOpen}
+        data-testid="attachment-button"
       />
     </TooltipIconButton>
   );

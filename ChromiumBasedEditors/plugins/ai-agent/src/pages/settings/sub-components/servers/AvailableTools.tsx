@@ -21,6 +21,8 @@ const AvailableTools = () => {
 
   React.useEffect(() => {
     setAllToolsCount(webSearchEnabled ? tools.length - 2 : tools.length);
+
+    console.log(tools.length);
   }, [tools.length, webSearchEnabled]);
 
   React.useEffect(() => {

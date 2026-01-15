@@ -11,6 +11,7 @@ type ComboBoxProps = {
   isError?: boolean;
   withoutBg?: boolean;
   items: DropDownItemProps[];
+  "data-testid"?: string;
 };
 
 const ComboBox = ({
@@ -20,6 +21,7 @@ const ComboBox = ({
   isError,
   withoutBg,
   items,
+  "data-testid": dataTestId,
 }: ComboBoxProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -31,6 +33,7 @@ const ComboBox = ({
       trigger={
         <div
           ref={containerRef}
+          data-testid={dataTestId}
           className={cn(
             "h-[32px] rounded-[4px] ps-[12px] pe-[12px] box-border",
             "cursor-pointer flex items-center justify-between",
@@ -38,7 +41,7 @@ const ComboBox = ({
             isOpen
               ? "border bg-[var(--input-background-color)] border-[var(--input-active-border-color)]"
               : withoutBg
-                ? "hover:bg-[var(--input-hover-background-color)] hover:border-[var(--input-hover-border-color)]"
+                ? "hover:bg-[var(--input-hover-background-color)) hover:border-[var(--input-hover-border-color)]"
                 : "border bg-[var(--input-background-color)] border-[var(--input-border-color)] hover:bg-[var(--input-hover-background-color)] hover:border-[var(--input-hover-border-color)]",
             className,
             items.length === 0
