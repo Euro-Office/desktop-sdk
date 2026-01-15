@@ -99,6 +99,7 @@ const SelectModel = () => {
       value={currentProviderExists ? currentModel?.name || "" : ""}
       items={items}
       withoutBg
+      data-testid="model-selector"
     />
   );
 };

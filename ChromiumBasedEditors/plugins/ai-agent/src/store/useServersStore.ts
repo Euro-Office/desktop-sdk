@@ -159,10 +159,12 @@ const useServersStore = create<UseServersStoreProps>((set, get) => ({
 
         servers[type] = serverToolsWithStatus;
         tools.push(
-          ...serverToolsWithStatus.map((tool) => ({
-            ...tool,
-            name: `${type}_${tool.name}`,
-          }))
+          ...serverToolsWithStatus
+            .filter((tool) => tool.enabled)
+            .map((tool) => ({
+              ...tool,
+              name: `${type}_${tool.name}`,
+            }))
         );
       });
 

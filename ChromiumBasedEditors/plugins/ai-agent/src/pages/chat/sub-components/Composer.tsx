@@ -33,6 +33,7 @@ const Composer = () => {
           autoFocus
           aria-label="Message input"
           disabled={!currentProvider || !currentModel}
+          data-testid="composer-input"
         />
         <ComposerAction />
       </ComposerPrimitive.Root>
