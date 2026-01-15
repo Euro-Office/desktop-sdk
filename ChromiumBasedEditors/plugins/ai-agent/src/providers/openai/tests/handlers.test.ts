@@ -1,7 +1,12 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { ChatCompletionChunk } from "openai/resources/chat/completions";
 import { describe, expect, it } from "vitest";
-import { handleTextMessage, handleToolCall } from "../handlers";
+import {
+  finalizeReasoningPart,
+  handleReasoningMessage,
+  handleTextMessage,
+  handleToolCall,
+} from "../handlers";
 
 const createChoice = (
   delta: ChatCompletionChunk.Choice["delta"],
@@ -13,6 +18,229 @@ const createChoice = (
 });
 
 describe("openai handlers", () => {
+  // ==========================================================================
+  // handleReasoningMessage
+  // ==========================================================================
+
+  describe("handleReasoningMessage", () => {
+    it("should return unchanged message for empty reasoning content", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [],
+      };
+
+      const result = handleReasoningMessage(message, "");
+
+      expect(result).toEqual(message);
+    });
+
+    it("should return unchanged message for string content", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: "string content",
+      };
+
+      const result = handleReasoningMessage(message, "thinking...");
+
+      expect(result.content).toBe("string content");
+    });
+
+    it("should add new reasoning part when content is empty", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [],
+      };
+
+      const result = handleReasoningMessage(message, "Let me think...");
+
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(content).toHaveLength(1);
+      expect(content[0].type).toBe("reasoning");
+      expect(content[0].text).toBe("Let me think...");
+    });
+
+    it("should append to existing reasoning part", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [{ type: "reasoning", text: "First thought" }],
+      };
+
+      const result = handleReasoningMessage(message, " and more");
+
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(content).toHaveLength(1);
+      expect(content[0].text).toBe("First thought and more");
+    });
+
+    it("should add new reasoning part after text content", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [{ type: "text", text: "Some text" }],
+      };
+
+      const result = handleReasoningMessage(message, "New thought");
+
+      const content = result.content as Array<{ type: string }>;
+      expect(content).toHaveLength(2);
+      expect(content[1].type).toBe("reasoning");
+    });
+
+    it("should add new reasoning part after tool-call", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [
+          {
+            type: "tool-call",
+            toolCallId: "test_123",
+            toolName: "test",
+            args: {},
+          },
+        ],
+      };
+
+      const result = handleReasoningMessage(message, "Thinking after tool");
+
+      const content = result.content as Array<{ type: string }>;
+      expect(content).toHaveLength(2);
+      expect(content[1].type).toBe("reasoning");
+    });
+  });
+
+  // ==========================================================================
+  // finalizeReasoningPart
+  // ==========================================================================
+
+  describe("finalizeReasoningPart", () => {
+    it("should return unchanged message for string content", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: "string content",
+      };
+
+      const result = finalizeReasoningPart(message);
+
+      expect(result.content).toBe("string content");
+    });
+
+    it("should set parentId on reasoning part without one", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [{ type: "reasoning", text: "Thinking..." }],
+      };
+
+      const result = finalizeReasoningPart(message);
+
+      const content = result.content as Array<{
+        type: string;
+        parentId?: string;
+      }>;
+      expect(content[0].parentId).toBeDefined();
+      expect(content[0].parentId).toMatch(/^reasoning-/);
+    });
+
+    it("should not overwrite existing parentId", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [
+          { type: "reasoning", text: "Thinking...", parentId: "existing-id" },
+        ],
+      };
+
+      const result = finalizeReasoningPart(message);
+
+      const content = result.content as Array<{
+        type: string;
+        parentId?: string;
+      }>;
+      expect(content[0].parentId).toBe("existing-id");
+    });
+
+    it("should add empty text part when addEmptyText is true and last part is reasoning", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [{ type: "reasoning", text: "Thinking..." }],
+      };
+
+      const result = finalizeReasoningPart(message, true);
+
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(content).toHaveLength(2);
+      expect(content[1].type).toBe("text");
+      expect(content[1].text).toBe("");
+    });
+
+    it("should not add empty text part when addEmptyText is true but last part is not reasoning", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [
+          { type: "reasoning", text: "Thinking..." },
+          { type: "text", text: "Response" },
+        ],
+      };
+
+      const result = finalizeReasoningPart(message, true);
+
+      const content = result.content as Array<{ type: string }>;
+      expect(content).toHaveLength(2);
+    });
+
+    it("should handle empty content array", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [],
+      };
+
+      const result = finalizeReasoningPart(message);
+
+      expect(result.content).toEqual([]);
+    });
+
+    it("should handle content with only text parts", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [{ type: "text", text: "Hello" }],
+      };
+
+      const result = finalizeReasoningPart(message);
+
+      const content = result.content as Array<{ type: string }>;
+      expect(content).toHaveLength(1);
+      expect(content[0].type).toBe("text");
+    });
+
+    it("should finalize multiple reasoning parts", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [
+          { type: "reasoning", text: "First thought" },
+          { type: "text", text: "Response" },
+          { type: "reasoning", text: "Second thought" },
+        ],
+      };
+
+      const result = finalizeReasoningPart(message);
+
+      const content = result.content as Array<{
+        type: string;
+        parentId?: string;
+      }>;
+      expect(content[0].parentId).toBeDefined();
+      expect(content[2].parentId).toBeDefined();
+    });
+
+    it("should not add empty text when addEmptyText is false", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [{ type: "reasoning", text: "Thinking..." }],
+      };
+
+      const result = finalizeReasoningPart(message, false);
+
+      const content = result.content as Array<{ type: string }>;
+      expect(content).toHaveLength(1);
+    });
+  });
+
   // ==========================================================================
   // handleTextMessage
   // ==========================================================================
@@ -509,6 +737,44 @@ describe("openai handlers", () => {
         argsText: string;
       }>;
       expect(content[0].argsText).toBe("");
+    });
+
+    it("should use empty string fallback when both existing and update have no toolName/toolCallId", () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: [
+          {
+            type: "tool-call",
+            toolCallId: "",
+            toolName: "",
+            args: {},
+            argsText: '{"test":true}',
+          },
+        ],
+      };
+
+      // Update has undefined values for both name and id
+      const choice = createChoice({
+        tool_calls: [
+          {
+            index: 0,
+            id: undefined,
+            type: "function",
+            function: { name: undefined, arguments: "" },
+          },
+        ] as unknown as ChatCompletionChunk.Choice["delta"]["tool_calls"],
+      });
+
+      const result = handleToolCall(message, choice);
+
+      const content = result.content as unknown as Array<{
+        type: string;
+        toolCallId: string;
+        toolName: string;
+      }>;
+      // Should fall through to the empty string fallback
+      expect(content[0].toolCallId).toBe("");
+      expect(content[0].toolName).toBe("");
     });
   });
 });

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TProvider } from "@/lib/types";
+import {
+  createMockStreamWithIterator,
+  createTextChunk,
+} from "@/providers/tests/test-utils";
 import { DeepSeekProvider } from "../index";
 import { deepseekInfo } from "../info";
 
@@ -7,7 +11,6 @@ import { deepseekInfo } from "../info";
 // Mock Setup
 // =============================================================================
 
-// Mock OpenAI client
 const mockCreate = vi.fn();
 const mockList = vi.fn();
 
@@ -24,37 +27,7 @@ beforeEach(() => {
   mockCreate.mockReset();
 });
 
-/**
- * Creates a mock async iterator stream for OpenAI responses.
- */
-const createMockStream = (
-  events: Array<{
-    choices: Array<{
-      delta: { content?: string; reasoning_content?: string; tool_calls?: unknown[] };
-      finish_reason?: string | null;
-    }>;
-  }>
-) => {
-  async function* generator() {
-    for (const event of events) {
-      yield event;
-    }
-  }
-  return {
-    [Symbol.asyncIterator]: generator,
-    controller: { abort: vi.fn() },
-  };
-};
-
-const createTextChunk = (content: string, finished = false) => ({
-  choices: [
-    {
-      delta: { content },
-      finish_reason: finished ? "stop" : null,
-    },
-  ],
-});
-
+// DeepSeek-specific reasoning chunk (simpler format for mocks)
 const createReasoningChunk = (reasoning_content: string) => ({
   choices: [
     {
@@ -345,7 +318,7 @@ describe("DeepSeekProvider", () => {
         createTextChunk(" from DeepSeek", true),
       ];
 
-      mockCreate.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStreamWithIterator(events));
 
       const results: unknown[] = [];
       for await (const msg of provider.sendMessage([
@@ -399,7 +372,7 @@ describe("DeepSeekProvider", () => {
         createTextChunk(".", true),
       ];
 
-      mockCreate.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStreamWithIterator(events));
 
       const results: unknown[] = [];
       for await (const msg of provider.sendMessage([
@@ -444,7 +417,7 @@ describe("DeepSeekProvider", () => {
         createTextChunk("Answer", true),
       ];
 
-      mockCreate.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStreamWithIterator(events));
 
       const results: unknown[] = [];
       for await (const msg of provider.sendMessage([
@@ -483,7 +456,7 @@ describe("DeepSeekProvider", () => {
         { choices: [{ delta: {}, finish_reason: "stop" }] },
       ];
 
-      mockCreate.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStreamWithIterator(events));
 
       const results: unknown[] = [];
       for await (const msg of provider.sendMessage([

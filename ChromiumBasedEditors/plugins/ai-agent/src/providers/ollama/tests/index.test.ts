@@ -1,50 +1,19 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TProvider } from "@/lib/types";
+import {
+  createMockStreamWithIterator,
+  createTextChunk,
+} from "@/providers/tests/test-utils";
 import { OllamaProvider } from "../index";
 import { ollamaInfo } from "../info";
 
 // =============================================================================
-// Mock Helpers
+// Mock Setup
 // =============================================================================
 
-// Shared mock functions for OpenAI client
 const mockCreate = vi.fn();
 const mockList = vi.fn();
-
-/**
- * Creates a mock async iterator stream for OpenAI responses.
- */
-const createMockStream = (
-  events: Array<{
-    choices: Array<{
-      delta: { content?: string; tool_calls?: unknown[] };
-      finish_reason?: string | null;
-    }>;
-  }>
-) => {
-  async function* generator() {
-    for (const event of events) {
-      yield event;
-    }
-  }
-  return {
-    [Symbol.asyncIterator]: generator,
-    controller: { abort: vi.fn() },
-  };
-};
-
-/**
- * Creates a text chunk for streaming.
- */
-const createTextChunk = (content: string, finished = false) => ({
-  choices: [
-    {
-      delta: { content },
-      finish_reason: finished ? "stop" : null,
-    },
-  ],
-});
 
 // Mock the OpenAI SDK
 vi.mock("openai", () => {
@@ -228,7 +197,7 @@ describe("OllamaProvider", () => {
         createTextChunk("!", true),
       ];
 
-      mockCreate.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStreamWithIterator(events));
 
       const results: unknown[] = [];
       for await (const msg of provider.sendMessage([
@@ -282,7 +251,7 @@ describe("OllamaProvider", () => {
         },
       ];
 
-      mockCreate.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStreamWithIterator(events));
 
       const results: unknown[] = [];
       for await (const msg of provider.sendMessage([
@@ -306,7 +275,7 @@ describe("OllamaProvider", () => {
 
       const events = [createTextChunk("Hello"), createTextChunk(" world")];
 
-      mockCreate.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStreamWithIterator(events));
 
       const results: unknown[] = [];
       let eventCount = 0;
@@ -396,7 +365,7 @@ describe("OllamaProvider", () => {
         createTextChunk(", it's sunny!", true),
       ];
 
-      mockCreate.mockResolvedValue(createMockStream(events));
+      mockCreate.mockResolvedValue(createMockStreamWithIterator(events));
 
       const message: ThreadMessageLike = {
         role: "assistant",

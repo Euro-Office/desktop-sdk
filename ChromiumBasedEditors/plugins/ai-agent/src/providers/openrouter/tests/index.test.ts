@@ -177,6 +177,50 @@ describe("OpenRouterProvider", () => {
 
       expect(result).toEqual([]);
     });
+
+    it("should NOT add -thinking suffix to non-reasoning models", async () => {
+      // claude-haiku-4.5 is in modelFilters but NOT in reasoningModels
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "anthropic/claude-haiku-4.5" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result).toHaveLength(1);
+      // Non-reasoning models should keep their original id
+      expect(result[0].id).toBe("anthropic/claude-haiku-4.5");
+      expect(result[0].name).toBe(
+        openrouterInfo.modelNames["anthropic/claude-haiku-4.5"]
+      );
+    });
+
+    it("should use uppercased model id when name not in modelNames", async () => {
+      // Test with a model that's filtered but not in modelNames
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "openai/gpt-5.2" }, { id: "anthropic/claude-haiku-4.5" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      // Both should be returned
+      expect(result).toHaveLength(2);
+      // Reasoning model should have -thinking suffix
+      const reasoningModel = result.find((m) =>
+        m.id.includes("openai/gpt-5.2")
+      );
+      expect(reasoningModel?.id).toBe("openai/gpt-5.2-thinking");
+      // Non-reasoning model should not have suffix
+      const nonReasoningModel = result.find((m) =>
+        m.id.includes("claude-haiku")
+      );
+      expect(nonReasoningModel?.id).toBe("anthropic/claude-haiku-4.5");
+    });
   });
 
   // ==========================================================================

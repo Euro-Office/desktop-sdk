@@ -276,4 +276,135 @@ describe("convertMessagesToModelFormat", () => {
     expect(result[0]?.parts).toHaveLength(1);
     expect(result[0]?.parts?.[0]).toEqual({ text: "Valid text" });
   });
+
+  it("should convert image content with valid data URL", () => {
+    const messages: ThreadMessageLike[] = [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==",
+          } as unknown as ThreadMessageLike["content"] extends (infer T)[]
+            ? T
+            : never,
+        ],
+      },
+    ];
+
+    const result = convertMessagesToModelFormat(messages);
+
+    expect(result[0]?.parts).toHaveLength(1);
+    const part = result[0]?.parts?.[0] as {
+      inlineData: { mimeType: string; data: string };
+    };
+    expect(part.inlineData.mimeType).toBe("image/png");
+    expect(part.inlineData.data).toBe("iVBORw0KGgoAAAANSUhEUg==");
+  });
+
+  it("should skip image with invalid data URL format", () => {
+    const messages: ThreadMessageLike[] = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Check this" },
+          {
+            type: "image",
+            image: "invalid-not-a-data-url",
+          } as unknown as ThreadMessageLike["content"] extends (infer T)[]
+            ? T
+            : never,
+        ],
+      },
+    ];
+
+    const result = convertMessagesToModelFormat(messages);
+
+    // Should only have one part (the text part), image is skipped
+    expect(result[0]?.parts).toHaveLength(1);
+    expect(result[0]?.parts?.[0]).toEqual({ text: "Check this" });
+  });
+
+  it("should skip image with malformed base64 data URL", () => {
+    const messages: ThreadMessageLike[] = [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            image: "data:image/jpeg;notbase64,abc123",
+          } as unknown as ThreadMessageLike["content"] extends (infer T)[]
+            ? T
+            : never,
+        ],
+      },
+    ];
+
+    const result = convertMessagesToModelFormat(messages);
+
+    // Should be empty as image is skipped
+    expect(result[0]?.parts).toHaveLength(0);
+  });
+
+  it("should convert assistant message with reasoning content", () => {
+    const messages: ThreadMessageLike[] = [
+      {
+        role: "assistant",
+        content: [
+          { type: "reasoning", text: "Let me think about this..." },
+          { type: "text", text: "Here's my answer" },
+        ],
+      },
+    ];
+
+    const result = convertMessagesToModelFormat(messages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].role).toBe("model");
+    expect(result[0].parts).toHaveLength(2);
+
+    const parts = result[0].parts as Array<{ text: string; thought?: boolean }>;
+    expect(parts[0].text).toBe("Let me think about this...");
+    expect(parts[0].thought).toBe(true);
+    expect(parts[1].text).toBe("Here's my answer");
+    expect(parts[1].thought).toBeUndefined();
+  });
+
+  it("should handle multiple images in a message", () => {
+    const messages: ThreadMessageLike[] = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Compare these images" },
+          {
+            type: "image",
+            image: "data:image/png;base64,abc123",
+          } as unknown as ThreadMessageLike["content"] extends (infer T)[]
+            ? T
+            : never,
+          {
+            type: "image",
+            image: "data:image/jpeg;base64,xyz789",
+          } as unknown as ThreadMessageLike["content"] extends (infer T)[]
+            ? T
+            : never,
+        ],
+      },
+    ];
+
+    const result = convertMessagesToModelFormat(messages);
+
+    expect(result[0]?.parts).toHaveLength(3);
+    expect((result[0]?.parts?.[0] as { text: string }).text).toBe(
+      "Compare these images"
+    );
+    expect(
+      (result[0]?.parts?.[1] as { inlineData: { mimeType: string } }).inlineData
+        .mimeType
+    ).toBe("image/png");
+    expect(
+      (result[0]?.parts?.[2] as { inlineData: { mimeType: string } }).inlineData
+        .mimeType
+    ).toBe("image/jpeg");
+  });
 });

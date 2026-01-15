@@ -488,3 +488,105 @@ describe("sendMessageAfterToolCall with tool result", () => {
     expect(provider.prevMessages.length).toBeGreaterThan(0);
   });
 });
+
+describe("sendMessage stop flag handling", () => {
+  it("should handle stop flag and yield early with content", async () => {
+    let chunkIndex = 0;
+    mockGenerateContentStream.mockResolvedValue({
+      [Symbol.asyncIterator]: async function* () {
+        yield { candidates: [{ content: { parts: [{ text: "Hello" }] } }] };
+        chunkIndex++;
+        yield { candidates: [{ content: { parts: [{ text: " World" }] } }] };
+        chunkIndex++;
+        yield { candidates: [{ content: { parts: [{ text: "!" }] } }] };
+      },
+    });
+
+    const provider = new GenAIProvider();
+    provider.setProvider({
+      type: "genai",
+      name: "Test",
+      key: "key",
+      baseUrl: "",
+    });
+
+    const messages: ThreadMessageLike[] = [{ role: "user", content: "Hi" }];
+    const generator = provider.sendMessage(messages);
+
+    const results = [];
+    // Set stop flag after first chunk using public method
+    for await (const result of generator) {
+      results.push(result);
+      if (chunkIndex === 1) {
+        provider.stopMessage();
+      }
+    }
+
+    // Should have stopped early
+    const lastResult = results[results.length - 1] as { isEnd: boolean };
+    expect(lastResult.isEnd).toBe(true);
+  });
+
+  it("should handle stop flag with string content response", async () => {
+    mockGenerateContentStream.mockResolvedValue({
+      [Symbol.asyncIterator]: async function* () {
+        yield { candidates: [{ content: { parts: [{ text: "Response" }] } }] };
+      },
+    });
+
+    const provider = new GenAIProvider();
+    provider.setProvider({
+      type: "genai",
+      name: "Test",
+      key: "key",
+      baseUrl: "",
+    });
+    // Set stop flag before starting using public method
+    provider.stopMessage();
+
+    const generator = provider.sendMessage([{ role: "user", content: "Hi" }]);
+    const results = [];
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(results.length).toBeGreaterThan(0);
+    const lastResult = results[results.length - 1] as { isEnd: boolean };
+    expect(lastResult.isEnd).toBe(true);
+  });
+
+  it("should add response to prevMessages when stopped with content", async () => {
+    let yielded = false;
+    mockGenerateContentStream.mockResolvedValue({
+      [Symbol.asyncIterator]: async function* () {
+        yield {
+          candidates: [{ content: { parts: [{ text: "Some content" }] } }],
+        };
+        yielded = true;
+        // Long wait that would be interrupted
+        yield { candidates: [{ content: { parts: [{ text: " more" }] } }] };
+      },
+    });
+
+    const provider = new GenAIProvider();
+    provider.setProvider({
+      type: "genai",
+      name: "Test",
+      key: "key",
+      baseUrl: "",
+    });
+
+    const initialLength = provider.prevMessages.length;
+    const generator = provider.sendMessage([{ role: "user", content: "Hi" }]);
+
+    for await (const result of generator) {
+      if (yielded) {
+        provider.stopMessage();
+      }
+      if ((result as { isEnd?: boolean }).isEnd) break;
+    }
+
+    // Should have added both user message and partial response to history
+    expect(provider.prevMessages.length).toBeGreaterThan(initialLength);
+  });
+});

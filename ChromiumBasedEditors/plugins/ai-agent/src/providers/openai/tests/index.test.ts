@@ -2,100 +2,24 @@ import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { ChatCompletionChunk } from "openai/resources/chat/completions";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TProvider } from "@/lib/types";
+import {
+  createFinishChunk,
+  createMockStream,
+  createReasoningChunk,
+  createTextDeltaChunk,
+  createToolCallChunk,
+} from "@/providers/tests/test-utils";
 import { OpenAIProvider } from "../index";
 import { openaiInfo } from "../info";
 
 // =============================================================================
-// Mock Helpers
+// Mock Setup
 // =============================================================================
 
-// Use vi.hoisted to make mocks available in hoisted vi.mock
 const { modelsListMock, chatCreateMock } = vi.hoisted(() => ({
   modelsListMock: vi.fn(),
   chatCreateMock: vi.fn(),
 }));
-
-/**
- * Creates a mock async iterator stream for OpenAI responses.
- */
-const createMockStream = (events: ChatCompletionChunk[]) => {
-  const controller = { abort: vi.fn() };
-
-  async function* generator() {
-    for (const event of events) {
-      yield event;
-    }
-  }
-
-  return Object.assign(generator(), { controller });
-};
-
-/**
- * Creates a text delta chunk for streaming.
- */
-const createTextDeltaChunk = (content: string): ChatCompletionChunk =>
-  ({
-    id: "chatcmpl-123",
-    object: "chat.completion.chunk",
-    created: Date.now(),
-    model: "gpt-4",
-    choices: [
-      {
-        index: 0,
-        delta: { content },
-        finish_reason: null,
-      },
-    ],
-  }) as ChatCompletionChunk;
-
-/**
- * Creates a tool call delta chunk for streaming.
- */
-const createToolCallChunk = (
-  toolCallId: string,
-  toolName: string,
-  args: string
-): ChatCompletionChunk =>
-  ({
-    id: "chatcmpl-123",
-    object: "chat.completion.chunk",
-    created: Date.now(),
-    model: "gpt-4",
-    choices: [
-      {
-        index: 0,
-        delta: {
-          tool_calls: [
-            {
-              index: 0,
-              id: toolCallId,
-              type: "function",
-              function: { name: toolName, arguments: args },
-            },
-          ],
-        },
-        finish_reason: null,
-      },
-    ],
-  }) as ChatCompletionChunk;
-
-/**
- * Creates a finish chunk to end the stream.
- */
-const createFinishChunk = (): ChatCompletionChunk =>
-  ({
-    id: "chatcmpl-123",
-    object: "chat.completion.chunk",
-    created: Date.now(),
-    model: "gpt-4",
-    choices: [
-      {
-        index: 0,
-        delta: {},
-        finish_reason: "stop",
-      },
-    ],
-  }) as ChatCompletionChunk;
 
 // Mock the OpenAI SDK
 vi.mock("openai", () => ({
@@ -761,6 +685,70 @@ describe("OpenAIProvider", () => {
       });
 
       expect(result).toEqual([]);
+    });
+
+    it("should fallback to uppercased model id when not in modelNames", async () => {
+      // Add a model to filters that's not in modelNames (for testing fallback)
+      const originalFilters = openaiInfo.modelFilters;
+      openaiInfo.modelFilters = [...originalFilters, "test-model-without-name"];
+
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "test-model-without-name" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.openai.com/v1",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("TEST-MODEL-WITHOUT-NAME");
+
+      // Restore original filters
+      openaiInfo.modelFilters = originalFilters;
+    });
+  });
+
+  // ==========================================================================
+  // Stop flag with reasoning content
+  // ==========================================================================
+
+  describe("stop flag with reasoning", () => {
+    it("should finalize reasoning when stop is triggered during reasoning", async () => {
+      const testProvider: TProvider = {
+        type: "openai",
+        name: "OpenAI",
+        key: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+      };
+      provider.setProvider(testProvider);
+
+      // Create a stream that yields reasoning content
+      const mockStream = {
+        controller: { abort: vi.fn() },
+        async *[Symbol.asyncIterator]() {
+          yield createReasoningChunk("Thinking...");
+          yield createReasoningChunk(" more thinking");
+        },
+      };
+
+      chatCreateMock.mockResolvedValue(mockStream);
+
+      const results: unknown[] = [];
+      let eventCount = 0;
+
+      for await (const msg of provider.sendMessage([
+        { role: "user", content: "Hi" },
+      ])) {
+        results.push(msg);
+        eventCount++;
+        if (eventCount === 1) {
+          provider.stopMessage();
+        }
+      }
+
+      expect(results.length).toBeGreaterThan(0);
+      expect(mockStream.controller.abort).toHaveBeenCalled();
     });
   });
 });
