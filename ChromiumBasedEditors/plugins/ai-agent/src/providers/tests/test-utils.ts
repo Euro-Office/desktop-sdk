@@ -259,6 +259,8 @@ export const createMockResetFn = (
 ): (() => void) => {
   return () => {
     vi.clearAllMocks();
-    mocks.forEach((mock) => mock.mockReset());
+    mocks.forEach((mock) => {
+      mock.mockReset();
+    });
   };
 };

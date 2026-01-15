@@ -47,13 +47,9 @@ class WebSearch {
   webSearch = async (args: Record<string, unknown>) => {
     if (this.webSearchData?.provider === "Exa") {
       try {
-        const result = await new Promise<{
-          error?: number;
-          data?: unknown;
-          message?: string;
-        }>((resolve) => {
-          window.AscSimpleRequest.createRequest({
-            url: "https://api.exa.ai/search",
+        const response = await fetch(
+          "onlyoffice-proxy://https://api.exa.ai/search",
+          {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -65,27 +61,22 @@ class WebSearch {
               numResults: 5,
               livecrawl: "preferred",
             }),
-            complete: (e: { responseText: string }) => {
-              const parsedData = JSON.parse(e.responseText);
-              const data = parsedData.error
-                ? {
-                    error: parsedData.error,
-                  }
-                : parsedData.results;
-              resolve({ data });
-            },
-            error: (e: { statusCode: number }) => {
-              console.log("Request failed with status:", e.statusCode);
-              if (e.statusCode === -102) e.statusCode = 404;
-              resolve({
-                error: e.statusCode,
-                message: `Network error: ${e.statusCode}`,
-              });
-            },
-          });
-        });
+          }
+        );
 
-        return JSON.stringify(result);
+        if (!response.ok) {
+          return JSON.stringify({
+            error: response.status,
+            message: `Network error: ${response.status}`,
+          });
+        }
+
+        const parsedData = await response.json();
+        const data = parsedData.error
+          ? { error: parsedData.error }
+          : parsedData.results;
+
+        return JSON.stringify({ data });
       } catch (e) {
         console.error("WebSearch error:", e);
         return JSON.stringify({ error: e });
@@ -97,13 +88,9 @@ class WebSearch {
   webCrawling = async (args: Record<string, unknown>) => {
     if (this.webSearchData?.provider === "Exa") {
       try {
-        const result = await new Promise<{
-          error?: number;
-          data?: unknown;
-          message?: string;
-        }>((resolve) => {
-          window.AscSimpleRequest.createRequest({
-            url: "https://api.exa.ai/contents",
+        const response = await fetch(
+          "onlyoffice-proxy://https://api.exa.ai/contents",
+          {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -113,29 +100,25 @@ class WebSearch {
               urls: args.urls,
               text: true,
             }),
-            complete: (e: { responseText: string }) => {
-              const parsedData = JSON.parse(e.responseText);
-              const data = parsedData.error
-                ? {
-                    error: parsedData.error,
-                  }
-                : parsedData.results;
-              resolve({ data });
-            },
-            error: (e: { statusCode: number }) => {
-              console.log("Request failed with status:", e.statusCode);
-              if (e.statusCode === -102) e.statusCode = 404;
-              resolve({
-                error: e.statusCode,
-                message: `Network error: ${e.statusCode}`,
-              });
-            },
-          });
-        });
+          }
+        );
 
-        return JSON.stringify(result);
+        if (!response.ok) {
+          return JSON.stringify({
+            error: response.status,
+            message: `Network error: ${response.status}`,
+          });
+        }
+
+        const parsedData = await response.json();
+        const data = parsedData.error
+          ? { error: parsedData.error }
+          : parsedData.results;
+
+        return JSON.stringify({ data });
       } catch (e) {
         console.error(e);
+        return JSON.stringify({ error: e });
       }
     }
     return JSON.stringify(args);

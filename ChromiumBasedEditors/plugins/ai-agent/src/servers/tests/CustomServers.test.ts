@@ -6,6 +6,7 @@ import { CustomServers } from "../CustomServers";
 // =============================================================================
 
 const mockDispatchEvent = vi.fn();
+const mockFetch = vi.fn();
 
 // Track processes
 let processCount = 0;
@@ -30,47 +31,6 @@ class MockExternalProcess {
   }
 }
 
-// Mock AscSimpleRequest
-const requestCallbacks: {
-  complete?: (e: {
-    responseText: string;
-    headers?: Record<string, string>;
-  }) => void;
-  error?: (e: { statusCode: number }) => void;
-} = {};
-
-const mockCreateRequest = vi.fn(
-  (options: {
-    url: string;
-    method: string;
-    headers: Record<string, string>;
-    body: string;
-    complete: (e: {
-      responseText: string;
-      headers?: Record<string, string>;
-    }) => void;
-    error: (e: { statusCode: number }) => void;
-  }) => {
-    requestCallbacks.complete = options.complete;
-    requestCallbacks.error = options.error;
-  }
-);
-
-// Mock EventSource
-class MockEventSource {
-  onopen: (() => void) | null = null;
-  onmessage: ((event: { data: string }) => void) | null = null;
-  onerror: (() => void) | null = null;
-  close = vi.fn();
-
-  constructor(_url: string) {
-    // Auto-trigger onopen after construction
-    setTimeout(() => this.onopen?.(), 0);
-  }
-}
-
-vi.stubGlobal("EventSource", MockEventSource);
-
 const mockWindow = {
   ExternalProcess: MockExternalProcess,
   dispatchEvent: mockDispatchEvent,
@@ -80,12 +40,25 @@ const mockWindow = {
       this.type = type;
     }
   },
-  AscSimpleRequest: {
-    createRequest: mockCreateRequest,
-  },
 };
 
 vi.stubGlobal("window", mockWindow);
+vi.stubGlobal("fetch", mockFetch);
+
+// Helper to create mock fetch response with text() method
+const createMockResponse = (data: unknown, ok = true) => ({
+  ok,
+  status: ok ? 200 : 500,
+  text: () => Promise.resolve(JSON.stringify(data)),
+});
+
+// Helper to create mock SSE-formatted response
+const createSSEMockResponse = (data: unknown, ok = true) => ({
+  ok,
+  status: ok ? 200 : 500,
+  text: () =>
+    Promise.resolve(`event: message\ndata: ${JSON.stringify(data)}\n\n`),
+});
 
 describe("CustomServers", () => {
   let customServers: CustomServers;
@@ -112,6 +85,7 @@ describe("CustomServers", () => {
       expect(customServers.initedCustomServers).toEqual({});
       expect(customServers.stoppedCustomServers).toEqual([]);
       expect(customServers.tools).toEqual({});
+      expect(customServers.httpServers).toEqual({});
     });
   });
 
@@ -153,10 +127,10 @@ describe("CustomServers", () => {
   });
 
   // ==========================================================================
-  // startCustomServers
+  // startCustomServers - Stdio
   // ==========================================================================
 
-  describe("startCustomServers", () => {
+  describe("startCustomServers - Stdio", () => {
     it("should start configured servers", () => {
       customServers.setCustomServers({
         mcpServers: { test: { command: "npx", args: ["test"] } },
@@ -203,13 +177,145 @@ describe("CustomServers", () => {
 
       expect(customServers.customServersLogs.test).toBeDefined();
     });
+
+    it("should end existing process when command changes", () => {
+      // Line 234: end existing process when starting with different command
+      customServers.setCustomServers({
+        mcpServers: { test: { command: "npx", args: ["old-cmd"] } },
+      });
+      customServers.startCustomServers();
+
+      const oldProcess = customServers.customServersProcesses.test;
+      customServers.startedCustomServers.test = "npx old-cmd";
+
+      // Now change the command
+      customServers.setCustomServers({
+        mcpServers: { test: { command: "npx", args: ["new-cmd"] } },
+      });
+      customServers.startCustomServers();
+
+      expect(oldProcess.end).toHaveBeenCalled();
+    });
+  });
+
+  // ==========================================================================
+  // startCustomServers - HTTP
+  // ==========================================================================
+
+  describe("startCustomServers - HTTP", () => {
+    it("should start HTTP server with url config", async () => {
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "init-httpServer",
+          result: { capabilities: {} },
+        })
+      );
+
+      customServers.setCustomServers({
+        mcpServers: {
+          httpServer: {
+            url: "https://api.example.com/mcp",
+            headers: { Authorization: "Bearer token" },
+          },
+        },
+      });
+
+      customServers.startCustomServers();
+
+      // Should not create a process for HTTP servers
+      expect(processCount).toBe(0);
+      expect(customServers.httpServers.httpServer).toBeDefined();
+      expect(customServers.httpServers.httpServer.url).toBe(
+        "https://api.example.com/mcp"
+      );
+    });
+
+    it("should not restart HTTP server if same URL", () => {
+      customServers.setCustomServers({
+        mcpServers: {
+          httpServer: { url: "https://api.example.com/mcp" },
+        },
+      });
+      customServers.startedCustomServers.httpServer =
+        "https://api.example.com/mcp";
+      customServers.httpServers.httpServer = {
+        url: "https://api.example.com/mcp",
+      };
+
+      customServers.startCustomServers();
+
+      // Should not call fetch for already started server
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("should abort existing HTTP server when URL changes", async () => {
+      // Line 206: abort existing connection before starting new one
+      const abortController = new AbortController();
+      const abortSpy = vi.spyOn(abortController, "abort");
+
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "init-httpServer",
+          result: { capabilities: {} },
+        })
+      );
+
+      customServers.httpServers.httpServer = {
+        url: "https://old-url.com/mcp",
+        abortController,
+      };
+      customServers.startedCustomServers.httpServer = "https://old-url.com/mcp";
+
+      customServers.setCustomServers({
+        mcpServers: {
+          httpServer: { url: "https://new-url.com/mcp" },
+        },
+      });
+
+      customServers.startCustomServers();
+
+      expect(abortSpy).toHaveBeenCalled();
+    });
+
+    it("should use onlyoffice-proxy:// prefix for HTTP requests", async () => {
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "init-httpServer",
+          result: { capabilities: {} },
+        })
+      );
+
+      customServers.setCustomServers({
+        mcpServers: {
+          httpServer: { url: "https://api.example.com/mcp" },
+        },
+      });
+
+      customServers.startCustomServers();
+
+      // Wait for async init
+      await vi.runAllTimersAsync();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "onlyoffice-proxy://https://api.example.com/mcp",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+          }),
+        })
+      );
+    });
   });
 
   // ==========================================================================
   // restartCustomServer
   // ==========================================================================
 
-  describe("restartCustomServer", () => {
+  describe("restartCustomServer - Stdio", () => {
     beforeEach(() => {
       customServers.setCustomServers({
         mcpServers: { test: { command: "npx" } },
@@ -237,11 +343,80 @@ describe("CustomServers", () => {
     });
   });
 
+  describe("restartCustomServer - HTTP", () => {
+    it("should restart HTTP server", async () => {
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "init-httpServer",
+          result: { capabilities: {} },
+        })
+      );
+
+      customServers.setCustomServers({
+        mcpServers: {
+          httpServer: { url: "https://example.com/mcp" },
+        },
+      });
+      customServers.httpServers.httpServer = {
+        url: "https://example.com/mcp",
+        abortController: new AbortController(),
+      };
+      customServers.initedCustomServers.httpServer = true;
+
+      customServers.restartCustomServer("httpServer");
+
+      expect(customServers.initedCustomServers.httpServer).toBe(false);
+      expect(customServers.tools.httpServer).toEqual([]);
+      expect(mockDispatchEvent).toHaveBeenCalled();
+    });
+
+    it("should restart HTTP server without abortController", async () => {
+      // Line 267: branch where abortController is undefined
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "init-httpServer",
+          result: { capabilities: {} },
+        })
+      );
+
+      customServers.setCustomServers({
+        mcpServers: {
+          httpServer: { url: "https://example.com/mcp" },
+        },
+      });
+      customServers.httpServers.httpServer = {
+        url: "https://example.com/mcp",
+        // No abortController
+      };
+      customServers.initedCustomServers.httpServer = true;
+
+      customServers.restartCustomServer("httpServer");
+
+      expect(customServers.initedCustomServers.httpServer).toBe(false);
+    });
+
+    it("should skip non-matching server type in restart", () => {
+      // Line 255: early return when type !== serverType
+      customServers.setCustomServers({
+        mcpServers: {
+          httpServer: { url: "https://example.com/mcp" },
+        },
+      });
+
+      customServers.restartCustomServer("nonexistent");
+
+      // Should not call fetch because no matching server
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
+
   // ==========================================================================
   // deleteCustomServer
   // ==========================================================================
 
-  describe("deleteCustomServer", () => {
+  describe("deleteCustomServer - Stdio", () => {
     beforeEach(() => {
       customServers.setCustomServers({
         mcpServers: { test: { command: "npx" } },
@@ -263,6 +438,57 @@ describe("CustomServers", () => {
       customServers.deleteCustomServer("test");
 
       expect(mockDispatchEvent).toHaveBeenCalled();
+    });
+
+    it("should delete tools when they exist", () => {
+      customServers.tools.test = [
+        { name: "tool1", description: "test tool", inputSchema: {} },
+      ];
+
+      customServers.deleteCustomServer("test");
+
+      expect(customServers.tools.test).toBeUndefined();
+    });
+  });
+
+  describe("deleteCustomServer - HTTP", () => {
+    it("should clean up HTTP server state", () => {
+      const abortController = new AbortController();
+      const abortSpy = vi.spyOn(abortController, "abort");
+
+      customServers.httpServers.httpServer = {
+        url: "https://example.com/mcp",
+        abortController,
+      };
+      customServers.customServersLogs.httpServer = ["log"];
+      customServers.startedCustomServers.httpServer = "https://example.com/mcp";
+      customServers.customServers.httpServer = {
+        url: "https://example.com/mcp",
+      };
+      customServers.tools.httpServer = [
+        { name: "tool", description: "", inputSchema: {} },
+      ];
+
+      customServers.deleteCustomServer("httpServer");
+
+      expect(abortSpy).toHaveBeenCalled();
+      expect(customServers.httpServers.httpServer).toBeUndefined();
+      expect(customServers.customServersLogs.httpServer).toBeUndefined();
+      expect(customServers.startedCustomServers.httpServer).toBeUndefined();
+      expect(customServers.tools.httpServer).toBeUndefined();
+    });
+
+    it("should clean up HTTP server without abortController", () => {
+      // Line 321: branch where abortController is undefined
+      customServers.httpServers.httpServer = {
+        url: "https://example.com/mcp",
+        // No abortController
+      };
+      customServers.customServersLogs.httpServer = ["log"];
+
+      customServers.deleteCustomServer("httpServer");
+
+      expect(customServers.httpServers.httpServer).toBeUndefined();
     });
   });
 
@@ -305,6 +531,22 @@ describe("CustomServers", () => {
       expect(customServers.initedCustomServers.test).toBe(true);
     });
 
+    it("should remove server from stoppedCustomServers on init response", () => {
+      // Add server to stopped list first (line 111)
+      customServers.stoppedCustomServers = ["test", "other"];
+
+      const msg = JSON.stringify({
+        jsonrpc: "2.0",
+        id: "init-test",
+        result: {},
+      });
+
+      customServers.onProcess("test", 0, msg);
+
+      expect(customServers.stoppedCustomServers).not.toContain("test");
+      expect(customServers.stoppedCustomServers).toContain("other");
+    });
+
     it("should handle tools response", () => {
       const msg = JSON.stringify({
         jsonrpc: "2.0",
@@ -316,10 +558,16 @@ describe("CustomServers", () => {
 
       expect(customServers.tools.test).toEqual([{ name: "tool1" }]);
     });
+
+    it("should handle unknown message type (default case)", () => {
+      customServers.onProcess("test", 99, "unknown message");
+
+      expect(customServers.customServersLogs.test).toEqual([]);
+    });
   });
 
   // ==========================================================================
-  // initCustomServer
+  // initCustomServer (Stdio)
   // ==========================================================================
 
   describe("initCustomServer", () => {
@@ -338,13 +586,309 @@ describe("CustomServers", () => {
       const msg = stdinMock.mock.calls[0][0];
       expect(msg).toContain("initialize");
     });
+
+    it("should return early if no process", () => {
+      customServers.initCustomServer("nonexistent");
+      // Should not throw
+    });
+
+    it("should stop after server is initialized", () => {
+      customServers.setCustomServers({
+        mcpServers: { test: { command: "npx" } },
+      });
+      customServers.startCustomServers();
+
+      customServers.initedCustomServers.test = true;
+
+      vi.advanceTimersByTime(1000);
+
+      const proc = customServers.customServersProcesses.test;
+      const calls = (proc.stdin as ReturnType<typeof vi.fn>).mock.calls;
+      const hasToolsCall = calls.some((call: string[]) =>
+        call[0].includes("tools/list")
+      );
+      expect(hasToolsCall).toBe(true);
+    });
   });
 
   // ==========================================================================
-  // callToolFromMCP
+  // initHttpServer
   // ==========================================================================
 
-  describe("callToolFromMCP", () => {
+  describe("initHttpServer", () => {
+    it("should send initialize request to HTTP server", async () => {
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "init-httpTest",
+          result: { capabilities: {} },
+        })
+      );
+
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+        headers: { "X-Custom": "header" },
+      };
+      customServers.customServersLogs.httpTest = [];
+
+      await customServers.initHttpServer("httpTest");
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "onlyoffice-proxy://https://example.com/mcp",
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Custom": "header",
+          },
+        })
+      );
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.method).toBe("initialize");
+    });
+
+    it("should mark server as initialized on success", async () => {
+      mockFetch
+        .mockResolvedValueOnce(
+          createMockResponse({
+            jsonrpc: "2.0",
+            id: "init-httpTest",
+            result: { capabilities: {} },
+          })
+        )
+        .mockResolvedValueOnce(
+          createMockResponse({
+            jsonrpc: "2.0",
+            id: "tools-httpTest-123",
+            result: { tools: [] },
+          })
+        );
+
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+      };
+      customServers.customServersLogs.httpTest = [];
+
+      await customServers.initHttpServer("httpTest");
+
+      expect(customServers.initedCustomServers.httpTest).toBe(true);
+    });
+
+    it("should handle HTTP error during init", async () => {
+      mockFetch.mockResolvedValue(createMockResponse({}, false));
+
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+      };
+      customServers.customServersLogs.httpTest = [];
+
+      await customServers.initHttpServer("httpTest");
+
+      expect(customServers.stoppedCustomServers).toContain("httpTest");
+    });
+
+    it("should return early if no server", async () => {
+      await customServers.initHttpServer("nonexistent");
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("should remove server from stoppedCustomServers on HTTP init", async () => {
+      // Lines 385-386: filter stoppedCustomServers on successful init
+      mockFetch
+        .mockResolvedValueOnce(
+          createMockResponse({
+            jsonrpc: "2.0",
+            id: "init-httpTest",
+            result: { capabilities: {} },
+          })
+        )
+        .mockResolvedValueOnce(
+          createMockResponse({
+            jsonrpc: "2.0",
+            id: "tools-httpTest-123",
+            result: { tools: [] },
+          })
+        );
+
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+      };
+      customServers.customServersLogs.httpTest = [];
+      customServers.stoppedCustomServers = ["httpTest", "other"];
+
+      await customServers.initHttpServer("httpTest");
+
+      expect(customServers.stoppedCustomServers).not.toContain("httpTest");
+      expect(customServers.stoppedCustomServers).toContain("other");
+    });
+
+    it("should parse SSE-formatted response", async () => {
+      // Lines 49-52: SSE data: parsing
+      mockFetch
+        .mockResolvedValueOnce(
+          createSSEMockResponse({
+            jsonrpc: "2.0",
+            id: "init-httpTest",
+            result: { capabilities: {} },
+          })
+        )
+        .mockResolvedValueOnce(
+          createSSEMockResponse({
+            jsonrpc: "2.0",
+            id: "tools-httpTest-123",
+            result: { tools: [{ name: "sse-tool" }] },
+          })
+        );
+
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+      };
+      customServers.customServersLogs.httpTest = [];
+
+      await customServers.initHttpServer("httpTest");
+
+      expect(customServers.initedCustomServers.httpTest).toBe(true);
+    });
+
+    it("should not initialize if response id does not match", async () => {
+      // Line 383: branch where msg.id doesn't include init-${type}
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "wrong-id",
+          result: { capabilities: {} },
+        })
+      );
+
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+      };
+      customServers.customServersLogs.httpTest = [];
+
+      await customServers.initHttpServer("httpTest");
+
+      // Should not be marked as initialized
+      expect(customServers.initedCustomServers.httpTest).toBeFalsy();
+    });
+
+    it("should not initialize if response is not jsonrpc 2.0", async () => {
+      // Line 383: branch where msg.jsonrpc !== "2.0"
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "1.0",
+          id: "init-httpTest",
+          result: { capabilities: {} },
+        })
+      );
+
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+      };
+      customServers.customServersLogs.httpTest = [];
+
+      await customServers.initHttpServer("httpTest");
+
+      // Should not be marked as initialized
+      expect(customServers.initedCustomServers.httpTest).toBeFalsy();
+    });
+  });
+
+  // ==========================================================================
+  // getToolsFromHttpMCP
+  // ==========================================================================
+
+  describe("getToolsFromHttpMCP", () => {
+    it("should handle HTTP error when getting tools", async () => {
+      // Line 463: throw error on non-ok HTTP response
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        text: () => Promise.resolve("Not found"),
+      });
+
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+      };
+      customServers.customServersLogs.httpTest = [];
+
+      await customServers.getToolsFromHttpMCP("httpTest");
+
+      // Line 473: console.error should be called
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Error getting tools from HTTP MCP server"),
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("should handle network error when getting tools", async () => {
+      // Line 473: catch block for network errors
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+
+      mockFetch.mockRejectedValue(new Error("Network failure"));
+
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+      };
+      customServers.customServersLogs.httpTest = [];
+
+      await customServers.getToolsFromHttpMCP("httpTest");
+
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("should return early if server not found", async () => {
+      await customServers.getToolsFromHttpMCP("nonexistent");
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  // ==========================================================================
+  // getToolsFromMCP (Stdio)
+  // ==========================================================================
+
+  describe("getToolsFromMCP", () => {
+    it("should handle stdin error when getting tools", async () => {
+      // Line 496: catch block for stdin errors
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+
+      customServers.setCustomServers({
+        mcpServers: { test: { command: "npx" } },
+      });
+      customServers.startCustomServers();
+
+      const proc = customServers.customServersProcesses.test;
+      (proc.stdin as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw new Error("stdin error");
+      });
+
+      await customServers.getToolsFromMCP("test");
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Error getting tools from MCP server"),
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  // ==========================================================================
+  // callToolFromMCP - Stdio
+  // ==========================================================================
+
+  describe("callToolFromMCP - Stdio", () => {
     beforeEach(() => {
       customServers.setCustomServers({
         mcpServers: { test: { command: "npx" } },
@@ -377,11 +921,9 @@ describe("CustomServers", () => {
         path: "/test",
       });
 
-      // Get the request ID from the stdin call
       const msg = stdinMock.mock.calls[0][0];
       const parsed = JSON.parse(msg.trim());
 
-      // Simulate response
       proc.onprocess(
         0,
         JSON.stringify({
@@ -402,6 +944,313 @@ describe("CustomServers", () => {
 
       await expect(promise).rejects.toThrow("Timeout");
     });
+
+    it("should reject pending tool call on error response", async () => {
+      const promise = customServers.callToolFromMCP("test", "read_file", {});
+
+      const proc = customServers.customServersProcesses.test;
+      const stdinMock = proc.stdin as ReturnType<typeof vi.fn>;
+      const msg = stdinMock.mock.calls[0][0];
+      const parsed = JSON.parse(msg.trim());
+
+      proc.onprocess(
+        0,
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: parsed.id,
+          error: { code: -32000, message: "Tool failed" },
+        })
+      );
+
+      await expect(promise).rejects.toThrow("Tool failed");
+    });
+  });
+
+  // ==========================================================================
+  // callToolFromMCP - HTTP
+  // ==========================================================================
+
+  describe("callToolFromMCP - HTTP", () => {
+    beforeEach(() => {
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+        headers: { Authorization: "Bearer token" },
+      };
+      customServers.tools.httpTest = [
+        { name: "search", description: "Search", inputSchema: {} },
+      ];
+      customServers.customServersLogs.httpTest = [];
+    });
+
+    it("should throw if HTTP server not running", async () => {
+      customServers.httpServers = {};
+
+      // When httpServers is empty, it falls through to stdio path
+      await expect(
+        customServers.callToolFromMCP("httpTest", "search", {})
+      ).rejects.toThrow("MCP server httpTest is not running");
+    });
+
+    it("should throw if tool not found on HTTP server", async () => {
+      await expect(
+        customServers.callToolFromMCP("httpTest", "unknown", {})
+      ).rejects.toThrow("Tool unknown not found");
+    });
+
+    it("should send tool call via fetch", async () => {
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "call-httpTest-search-123",
+          result: { results: ["item1"] },
+        })
+      );
+
+      const result = await customServers.callToolFromMCP("httpTest", "search", {
+        query: "test",
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "onlyoffice-proxy://https://example.com/mcp",
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer token",
+          },
+        })
+      );
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.method).toBe("tools/call");
+      expect(body.params.name).toBe("search");
+      expect(body.params.arguments).toEqual({ query: "test" });
+
+      expect(result).toBe(JSON.stringify({ results: ["item1"] }));
+    });
+
+    it("should handle HTTP error in tool call", async () => {
+      mockFetch.mockResolvedValue(createMockResponse({}, false));
+
+      await expect(
+        customServers.callToolFromMCP("httpTest", "search", {})
+      ).rejects.toThrow("HTTP 500");
+    });
+
+    it("should handle MCP error response in HTTP tool call", async () => {
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "call-httpTest-search-123",
+          error: { code: -32000, message: "Search failed" },
+        })
+      );
+
+      await expect(
+        customServers.callToolFromMCP("httpTest", "search", {})
+      ).rejects.toThrow("Search failed");
+    });
+
+    it("should throw if HTTP server not found for direct call", async () => {
+      // Line 522: direct call to callToolFromHttpMCP when server doesn't exist
+      customServers.httpServers = {};
+
+      await expect(
+        customServers.callToolFromHttpMCP("httpTest", "search", {})
+      ).rejects.toThrow("HTTP MCP server httpTest is not running");
+    });
+
+    it("should throw if no result in HTTP response", async () => {
+      // Line 579: response without result field
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "call-httpTest-search-123",
+          // No result or error field
+        })
+      );
+
+      await expect(
+        customServers.callToolFromMCP("httpTest", "search", {})
+      ).rejects.toThrow("No result in response");
+    });
+
+    it("should parse SSE-formatted response in tool call", async () => {
+      // Lines 49-52: SSE parsing in tool call context
+      mockFetch.mockResolvedValue(
+        createSSEMockResponse({
+          jsonrpc: "2.0",
+          id: "call-httpTest-search-123",
+          result: { data: "sse-result" },
+        })
+      );
+
+      const result = await customServers.callToolFromMCP("httpTest", "search", {
+        query: "test",
+      });
+
+      expect(result).toBe(JSON.stringify({ data: "sse-result" }));
+    });
+  });
+
+  // ==========================================================================
+  // callToolFromStdioMCP error handling
+  // ==========================================================================
+
+  describe("callToolFromStdioMCP error handling", () => {
+    beforeEach(() => {
+      customServers.setCustomServers({
+        mcpServers: { test: { command: "npx" } },
+      });
+      customServers.startCustomServers();
+      customServers.tools.test = [
+        { name: "read_file", description: "Read", inputSchema: {} },
+      ];
+    });
+
+    it("should catch and rethrow stdin errors during tool call", async () => {
+      // Line 669: catch block when stdin throws during tool call
+      const proc = customServers.customServersProcesses.test;
+      (proc.stdin as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw new Error("Connection lost");
+      });
+
+      await expect(
+        customServers.callToolFromStdioMCP("test", "read_file", {})
+      ).rejects.toThrow(
+        "Error calling MCP tool read_file on server test: Error: Connection lost"
+      );
+    });
+
+    it("should use empty array when tools are not defined for server", async () => {
+      // Branch coverage: tools[serverType] || []
+      customServers.tools = {}; // No tools defined
+
+      await expect(
+        customServers.callToolFromStdioMCP("test", "read_file", {})
+      ).rejects.toThrow("Tool read_file not found");
+    });
+
+    it("should ignore non-matching response ids", async () => {
+      const proc = customServers.customServersProcesses.test;
+      const stdinMock = proc.stdin as unknown as ReturnType<typeof vi.fn>;
+
+      const promise = customServers.callToolFromStdioMCP("test", "read_file", {
+        path: "/test",
+      });
+
+      const msg = stdinMock.mock.calls[0][0];
+      const parsed = JSON.parse(msg.trim());
+
+      // Send a response with different id (should be ignored)
+      proc.onprocess(
+        0,
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: "different-id",
+          result: { content: "wrong" },
+        })
+      );
+
+      // Send correct response
+      proc.onprocess(
+        0,
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: parsed.id,
+          result: { content: "correct" },
+        })
+      );
+
+      const result = await promise;
+      expect(result).toBe(JSON.stringify({ content: "correct" }));
+    });
+
+    it("should ignore invalid JSON in responses", async () => {
+      const proc = customServers.customServersProcesses.test;
+      const stdinMock = proc.stdin as unknown as ReturnType<typeof vi.fn>;
+
+      const promise = customServers.callToolFromStdioMCP("test", "read_file", {
+        path: "/test",
+      });
+
+      const msg = stdinMock.mock.calls[0][0];
+      const parsed = JSON.parse(msg.trim());
+
+      // Send invalid JSON (should be ignored)
+      proc.onprocess(0, "not valid json");
+
+      // Send correct response
+      proc.onprocess(
+        0,
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: parsed.id,
+          result: { content: "data" },
+        })
+      );
+
+      const result = await promise;
+      expect(result).toBe(JSON.stringify({ content: "data" }));
+    });
+
+    it("should ignore stderr messages during tool call", async () => {
+      const proc = customServers.customServersProcesses.test;
+      const stdinMock = proc.stdin as unknown as ReturnType<typeof vi.fn>;
+
+      const promise = customServers.callToolFromStdioMCP("test", "read_file", {
+        path: "/test",
+      });
+
+      const msg = stdinMock.mock.calls[0][0];
+      const parsed = JSON.parse(msg.trim());
+
+      // Send stderr message (type 1), should be ignored
+      proc.onprocess(
+        1,
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: parsed.id,
+          result: { content: "stderr-data" },
+        })
+      );
+
+      // Send correct stdout response
+      proc.onprocess(
+        0,
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: parsed.id,
+          result: { content: "stdout-data" },
+        })
+      );
+
+      const result = await promise;
+      expect(result).toBe(JSON.stringify({ content: "stdout-data" }));
+    });
+  });
+
+  // ==========================================================================
+  // callToolFromHttpMCP edge cases
+  // ==========================================================================
+
+  describe("callToolFromHttpMCP edge cases", () => {
+    beforeEach(() => {
+      customServers.httpServers.httpTest = {
+        url: "https://example.com/mcp",
+        headers: { Authorization: "Bearer token" },
+      };
+      customServers.customServersLogs.httpTest = [];
+    });
+
+    it("should use empty array when tools are not defined for HTTP server", async () => {
+      // Branch coverage: tools[serverType] || []
+      customServers.tools = {}; // No tools defined
+
+      await expect(
+        customServers.callToolFromHttpMCP("httpTest", "search", {})
+      ).rejects.toThrow("Tool search not found");
+    });
   });
 
   // ==========================================================================
@@ -419,671 +1268,6 @@ describe("CustomServers", () => {
   });
 
   // ==========================================================================
-  // HTTP Transport Tests
-  // ==========================================================================
-
-  // TODO: Re-enable when HTTP transport is implemented
-  describe.skip("HTTP Transport", () => {
-    describe("startCustomServers with HTTP config", () => {
-      it("should start HTTP server with url config", () => {
-        customServers.setCustomServers({
-          mcpServers: {
-            httpServer: {
-              type: "http",
-              url: "https://api.example.com/mcp",
-              headers: { Authorization: "Bearer token" },
-            },
-          },
-        });
-
-        customServers.startCustomServers();
-
-        // Should not create a process for HTTP servers
-        expect(processCount).toBe(0);
-        // Should have called AscSimpleRequest after init interval
-        vi.advanceTimersByTime(1000);
-        expect(mockCreateRequest).toHaveBeenCalled();
-      });
-
-      it("should handle SSE transport type", () => {
-        customServers.setCustomServers({
-          mcpServers: {
-            sseServer: {
-              transport: "sse",
-              url: "https://api.example.com/mcp",
-            },
-          },
-        });
-
-        customServers.startCustomServers();
-
-        expect(processCount).toBe(0);
-      });
-    });
-
-    describe("restartCustomServer with HTTP", () => {
-      it("should restart HTTP server", () => {
-        customServers.setCustomServers({
-          mcpServers: {
-            httpServer: { type: "http", url: "https://example.com/mcp" },
-          },
-        });
-        customServers.startCustomServers();
-
-        // Manually set transport type
-        // @ts-expect-error - accessing private property for testing
-        customServers.serverTransportTypes.httpServer = "streamable-http";
-        // @ts-expect-error - accessing private property for testing
-        customServers.httpTransports.httpServer = {
-          type: "streamable-http",
-          url: "https://example.com/mcp",
-          headers: {},
-        };
-
-        customServers.restartCustomServer("httpServer");
-
-        expect(mockDispatchEvent).toHaveBeenCalled();
-      });
-
-      it("should return early if config not found", () => {
-        customServers.restartCustomServer("nonexistent");
-        // Should not throw
-      });
-    });
-
-    describe("deleteCustomServer with HTTP", () => {
-      it("should clean up HTTP transport", () => {
-        customServers.setCustomServers({
-          mcpServers: {
-            httpServer: { type: "http", url: "https://example.com/mcp" },
-          },
-        });
-
-        // @ts-expect-error - accessing private property for testing
-        customServers.httpTransports.httpServer = {
-          type: "streamable-http",
-          url: "https://example.com/mcp",
-          headers: {},
-          eventSource: { close: vi.fn() } as unknown as EventSource,
-        };
-        // @ts-expect-error - accessing private property for testing
-        customServers.serverTransportTypes.httpServer = "streamable-http";
-
-        customServers.deleteCustomServer("httpServer");
-
-        // @ts-expect-error - accessing private property for testing
-        expect(customServers.httpTransports.httpServer).toBeUndefined();
-        // @ts-expect-error - accessing private property for testing
-        expect(customServers.serverTransportTypes.httpServer).toBeUndefined();
-      });
-    });
-  });
-
-  // ==========================================================================
-  // initCustomServer edge cases
-  // ==========================================================================
-
-  describe("initCustomServer edge cases", () => {
-    it("should return early if no process", () => {
-      customServers.initCustomServer("nonexistent");
-      // Should not throw
-    });
-
-    it("should stop after server is initialized", () => {
-      customServers.setCustomServers({
-        mcpServers: { test: { command: "npx" } },
-      });
-      customServers.startCustomServers();
-
-      // Mark as initialized
-      customServers.initedCustomServers.test = true;
-
-      vi.advanceTimersByTime(1000);
-
-      // Should have called getToolsFromMCP (via stdin)
-      const proc = customServers.customServersProcesses.test;
-      const calls = (proc.stdin as ReturnType<typeof vi.fn>).mock.calls;
-      const hasToolsCall = calls.some((call: string[]) =>
-        call[0].includes("tools/list")
-      );
-      expect(hasToolsCall).toBe(true);
-    });
-
-    // TODO: Max retries behavior not implemented - stoppedCustomServers only populated by onProcess type 2
-    it.skip("should stop and mark as stopped after max retries", () => {
-      customServers.setCustomServers({
-        mcpServers: { test: { command: "npx" } },
-      });
-      customServers.startCustomServers();
-
-      // Advance time past max retries (30 seconds)
-      vi.advanceTimersByTime(31000);
-
-      expect(customServers.stoppedCustomServers).toContain("test");
-    });
-  });
-
-  // ==========================================================================
-  // getToolsFromMCP
-  // ==========================================================================
-
-  // TODO: Re-enable when HTTP transport is implemented
-  describe.skip("getToolsFromMCP", () => {
-    it("should send tools/list request for stdio", async () => {
-      customServers.setCustomServers({
-        mcpServers: { test: { command: "npx" } },
-      });
-      customServers.startCustomServers();
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.test = "stdio";
-
-      await customServers.getToolsFromMCP("test");
-
-      const proc = customServers.customServersProcesses.test;
-      const stdinMock = proc.stdin as ReturnType<typeof vi.fn>;
-      const lastCall = stdinMock.mock.calls[stdinMock.mock.calls.length - 1][0];
-      expect(lastCall).toContain("tools/list");
-    });
-
-    it("should send HTTP request for http transport", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-
-      const promise = customServers.getToolsFromMCP("httpTest");
-
-      // Simulate successful response
-      requestCallbacks.complete?.({
-        responseText: JSON.stringify({
-          jsonrpc: "2.0",
-          id: "tools-httpTest-123",
-          result: { tools: [] },
-        }),
-      });
-
-      await promise;
-
-      expect(mockCreateRequest).toHaveBeenCalled();
-    });
-
-    it("should stop server on error", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-
-      const promise = customServers.getToolsFromMCP("httpTest");
-
-      // Simulate error response
-      requestCallbacks.complete?.({
-        responseText: "Server error",
-      });
-
-      await promise;
-
-      expect(customServers.stoppedCustomServers).toContain("httpTest");
-    });
-  });
-
-  // ==========================================================================
-  // callToolFromMCP HTTP
-  // ==========================================================================
-
-  // TODO: Re-enable when HTTP transport is implemented
-  describe.skip("callToolFromMCP HTTP", () => {
-    it("should throw if HTTP server not connected", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      customServers.tools.httpTest = [
-        { name: "tool1", description: "", inputSchema: {} },
-      ];
-
-      await expect(
-        customServers.callToolFromMCP("httpTest", "tool1", {})
-      ).rejects.toThrow("not connected");
-    });
-
-    it("should send HTTP request and handle response", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-      customServers.tools.httpTest = [
-        { name: "tool1", description: "", inputSchema: {} },
-      ];
-
-      const promise = customServers.callToolFromMCP("httpTest", "tool1", {
-        arg: "value",
-      });
-
-      // Get the request ID from the call
-      const callArgs = mockCreateRequest.mock.calls[0][0];
-      const body = JSON.parse(callArgs.body);
-
-      // Simulate response
-      requestCallbacks.complete?.({
-        responseText: JSON.stringify({
-          jsonrpc: "2.0",
-          id: body.id,
-          result: { content: "success" },
-        }),
-      });
-
-      const result = await promise;
-      expect(result).toBe(JSON.stringify({ content: "success" }));
-    });
-
-    it("should handle HTTP error in tool call", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-      customServers.tools.httpTest = [
-        { name: "tool1", description: "", inputSchema: {} },
-      ];
-
-      const promise = customServers.callToolFromMCP("httpTest", "tool1", {});
-
-      // Simulate HTTP error
-      requestCallbacks.error?.({ statusCode: 500 });
-
-      await expect(promise).rejects.toThrow();
-    });
-  });
-
-  // ==========================================================================
-  // onProcess tool call error handling
-  // ==========================================================================
-
-  describe("onProcess tool call error", () => {
-    it("should reject pending tool call on error response", async () => {
-      customServers.setCustomServers({
-        mcpServers: { test: { command: "npx" } },
-      });
-      customServers.startCustomServers();
-      customServers.tools.test = [
-        { name: "read_file", description: "", inputSchema: {} },
-      ];
-
-      const promise = customServers.callToolFromMCP("test", "read_file", {});
-
-      const proc = customServers.customServersProcesses.test;
-      const stdinMock = proc.stdin as ReturnType<typeof vi.fn>;
-      const msg = stdinMock.mock.calls[0][0];
-      const parsed = JSON.parse(msg.trim());
-
-      // Simulate error response
-      proc.onprocess(
-        0,
-        JSON.stringify({
-          jsonrpc: "2.0",
-          id: parsed.id,
-          error: { code: -32000, message: "Tool failed" },
-        })
-      );
-
-      await expect(promise).rejects.toThrow("Tool failed");
-    });
-  });
-
-  // ==========================================================================
-  // handleHTTPResponse
-  // ==========================================================================
-
-  // TODO: Re-enable when HTTP transport is implemented
-  describe.skip("handleHTTPResponse", () => {
-    it("should handle tool call error response", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-      customServers.tools.httpTest = [
-        { name: "tool1", description: "", inputSchema: {} },
-      ];
-
-      const promise = customServers.callToolFromMCP("httpTest", "tool1", {});
-
-      const callArgs = mockCreateRequest.mock.calls[0][0];
-      const body = JSON.parse(callArgs.body);
-
-      // Simulate error response from server
-      requestCallbacks.complete?.({
-        responseText: JSON.stringify({
-          jsonrpc: "2.0",
-          id: body.id,
-          error: { code: -32000, message: "Tool execution failed" },
-        }),
-      });
-
-      await expect(promise).rejects.toThrow("Tool execution failed");
-    });
-  });
-
-  // ==========================================================================
-  // Session ID handling
-  // ==========================================================================
-
-  // TODO: Re-enable when HTTP transport is implemented
-  describe.skip("Session ID handling", () => {
-    it("should capture session ID from response headers", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-
-      const promise = customServers.getToolsFromMCP("httpTest");
-
-      // Simulate response with session ID header
-      requestCallbacks.complete?.({
-        responseText: JSON.stringify({
-          jsonrpc: "2.0",
-          id: "tools-httpTest-123",
-          result: { tools: [] },
-        }),
-        headers: { "Mcp-Session-Id": "session-123" },
-      });
-
-      await promise;
-
-      // @ts-expect-error - accessing private property for testing
-      expect(customServers.httpTransports.httpTest.sessionId).toBe(
-        "session-123"
-      );
-    });
-
-    it("should include session ID in subsequent requests", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-        sessionId: "existing-session",
-      };
-      customServers.tools.httpTest = [
-        { name: "tool1", description: "", inputSchema: {} },
-      ];
-
-      customServers.callToolFromMCP("httpTest", "tool1", {});
-
-      const callArgs = mockCreateRequest.mock.calls[0][0];
-      expect(callArgs.headers["Mcp-Session-Id"]).toBe("existing-session");
-    });
-  });
-
-  // ==========================================================================
-  // sendHTTPRequest edge cases
-  // ==========================================================================
-
-  // TODO: Re-enable when HTTP transport is implemented
-  describe.skip("sendHTTPRequest edge cases", () => {
-    it("should handle empty response", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-
-      const promise = customServers.getToolsFromMCP("httpTest");
-
-      // Simulate empty response
-      requestCallbacks.complete?.({ responseText: "" });
-
-      await promise;
-      // Should not throw
-    });
-
-    it("should handle SSE-formatted response", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-      customServers.customServersLogs.httpTest = [];
-
-      const promise = customServers.getToolsFromMCP("httpTest");
-
-      // Simulate SSE-formatted response with JSON-RPC
-      requestCallbacks.complete?.({
-        responseText: `data: ${JSON.stringify({ jsonrpc: "2.0", id: "tools-httpTest-123", result: { tools: [] } })}\n`,
-      });
-
-      await promise;
-
-      expect(customServers.tools.httpTest).toEqual([]);
-    });
-
-    it("should handle SSE-formatted response with non-JSON data", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-      customServers.customServersLogs.httpTest = [];
-
-      const promise = customServers.getToolsFromMCP("httpTest");
-
-      // Simulate SSE-formatted response with non-JSON
-      requestCallbacks.complete?.({
-        responseText: "data: not-json-data\n",
-      });
-
-      await promise;
-
-      // Should log the non-JSON data
-      expect(
-        customServers.customServersLogs.httpTest.some((log) =>
-          log.includes("non-JSON")
-        )
-      ).toBe(true);
-    });
-
-    it("should handle JSON parse error gracefully", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-      customServers.customServersLogs.httpTest = [];
-
-      const promise = customServers.getToolsFromMCP("httpTest");
-
-      // Simulate malformed JSON starting with {
-      requestCallbacks.complete?.({
-        responseText: "{invalid json",
-      });
-
-      await promise;
-
-      // Should log parse error
-      expect(
-        customServers.customServersLogs.httpTest.some((log) =>
-          log.includes("Parse error")
-        )
-      ).toBe(true);
-    });
-  });
-
-  // ==========================================================================
-  // initHTTPServer edge cases
-  // ==========================================================================
-
-  // TODO: Re-enable when HTTP transport is implemented
-  describe.skip("initHTTPServer edge cases", () => {
-    it("should stop when server becomes initialized", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-      customServers.customServersLogs.httpTest = [];
-
-      // @ts-expect-error - calling private method for testing
-      customServers.initHTTPServer("httpTest");
-
-      // Mark as initialized before first interval fires
-      customServers.initedCustomServers.httpTest = true;
-
-      vi.advanceTimersByTime(1000);
-
-      // @ts-expect-error - accessing private property for testing
-      expect(customServers.initIntervals.httpTest).toBeUndefined();
-    });
-
-    it("should stop after max retries for HTTP server", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-      customServers.customServersLogs.httpTest = [];
-
-      // @ts-expect-error - calling private method for testing
-      customServers.initHTTPServer("httpTest");
-
-      // Simulate successful responses (but not init responses)
-      for (let i = 0; i < 31; i++) {
-        vi.advanceTimersByTime(1000);
-        requestCallbacks.complete?.({
-          responseText: JSON.stringify({
-            jsonrpc: "2.0",
-            id: "other",
-            result: {},
-          }),
-        });
-      }
-
-      expect(customServers.stoppedCustomServers).toContain("httpTest");
-    });
-
-    it("should stop on HTTP error during init", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-      customServers.customServersLogs.httpTest = [];
-
-      // @ts-expect-error - calling private method for testing
-      customServers.initHTTPServer("httpTest");
-
-      vi.advanceTimersByTime(1000);
-
-      // Simulate HTTP error
-      requestCallbacks.error?.({ statusCode: 500 });
-
-      // Wait for promise to settle
-      await vi.waitFor(() => {
-        expect(customServers.stoppedCustomServers).toContain("httpTest");
-      });
-    });
-  });
-
-  // ==========================================================================
-  // handleHTTPResponse init flow
-  // ==========================================================================
-
-  // TODO: Re-enable when HTTP transport is implemented
-  describe.skip("handleHTTPResponse init flow", () => {
-    it("should call getToolsFromMCP after init response", async () => {
-      // @ts-expect-error - accessing private property for testing
-      customServers.serverTransportTypes.httpTest = "streamable-http";
-      // @ts-expect-error - accessing private property for testing
-      customServers.httpTransports.httpTest = {
-        type: "streamable-http",
-        url: "https://example.com/mcp",
-        headers: {},
-      };
-      customServers.customServersLogs.httpTest = [];
-      // @ts-expect-error - accessing private property for testing
-      customServers.initIntervals.httpTest = setInterval(() => {
-        // ignore
-      }, 1000);
-
-      // @ts-expect-error - calling private method for testing
-      customServers.handleHTTPResponse("httpTest", {
-        jsonrpc: "2.0",
-        id: "init-httpTest",
-        result: { capabilities: {} },
-      });
-
-      expect(customServers.initedCustomServers.httpTest).toBe(true);
-      // @ts-expect-error - accessing private property for testing
-      expect(customServers.initIntervals.httpTest).toBeUndefined();
-    });
-  });
-
-  // ==========================================================================
-  // deleteCustomServer complete cleanup
-  // ==========================================================================
-
-  // TODO: Re-enable when HTTP transport is implemented
-  describe.skip("deleteCustomServer complete cleanup", () => {
-    it("should clean up tools and initedCustomServers", () => {
-      customServers.setCustomServers({
-        mcpServers: { test: { command: "npx" } },
-      });
-      customServers.startCustomServers();
-      customServers.tools.test = [
-        { name: "t", description: "", inputSchema: {} },
-      ];
-      customServers.initedCustomServers.test = true;
-
-      customServers.deleteCustomServer("test");
-
-      expect(customServers.tools.test).toBeUndefined();
-      expect(customServers.initedCustomServers.test).toBeUndefined();
-    });
-  });
-
-  // ==========================================================================
   // initCustomServer stdin error
   // ==========================================================================
 
@@ -1094,7 +1278,6 @@ describe("CustomServers", () => {
       });
       customServers.startCustomServers();
 
-      // Make stdin throw
       const proc = customServers.customServersProcesses.test;
       (proc.stdin as ReturnType<typeof vi.fn>).mockImplementation(() => {
         throw new Error("stdin error");
@@ -1102,6 +1285,56 @@ describe("CustomServers", () => {
 
       // Should not throw
       vi.advanceTimersByTime(1000);
+    });
+  });
+
+  // ==========================================================================
+  // Mixed servers (both stdio and HTTP)
+  // ==========================================================================
+
+  describe("Mixed servers", () => {
+    it("should handle both stdio and HTTP servers", async () => {
+      mockFetch.mockResolvedValue(
+        createMockResponse({
+          jsonrpc: "2.0",
+          id: "init-httpServer",
+          result: { capabilities: {} },
+        })
+      );
+
+      customServers.setCustomServers({
+        mcpServers: {
+          stdioServer: { command: "npx", args: ["mcp-stdio"] },
+          httpServer: { url: "https://api.example.com/mcp" },
+        },
+      });
+
+      customServers.startCustomServers();
+
+      expect(processCount).toBe(1); // Only stdio server creates process
+      expect(customServers.httpServers.httpServer).toBeDefined();
+      expect(customServers.customServersProcesses.stdioServer).toBeDefined();
+    });
+
+    it("should clean up deleted servers of both types", () => {
+      // Setup stdio server
+      customServers.setCustomServers({
+        mcpServers: { stdioServer: { command: "npx" } },
+      });
+      customServers.startCustomServers();
+
+      // Add HTTP server
+      customServers.httpServers.httpServer = {
+        url: "https://example.com/mcp",
+        abortController: new AbortController(),
+      };
+
+      // Now update config to remove both
+      customServers.setCustomServers({ mcpServers: {} });
+      customServers.startCustomServers();
+
+      expect(customServers.customServersProcesses.stdioServer).toBeUndefined();
+      expect(customServers.httpServers.httpServer).toBeUndefined();
     });
   });
 });

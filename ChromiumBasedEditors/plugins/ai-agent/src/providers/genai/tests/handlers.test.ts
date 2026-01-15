@@ -10,7 +10,6 @@ import {
 } from "../handlers";
 
 describe("handleThoughtContent", () => {
-
   it("should return unchanged message for empty text", () => {
     const message = createEmptyMessage();
     const result = handleThoughtContent(message, "");

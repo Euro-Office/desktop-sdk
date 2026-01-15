@@ -5,7 +5,7 @@ import { WebSearch, type WebSearchData } from "../WebSearch";
 // Mock Setup
 // =============================================================================
 
-const mockCreateRequest = vi.fn();
+const mockFetch = vi.fn();
 const mockDispatchEvent = vi.fn();
 
 const createMockLocalStorage = () => {
@@ -29,7 +29,6 @@ const mockLocalStorage = createMockLocalStorage();
 // Mock window object for Node environment
 const mockWindow = {
   localStorage: mockLocalStorage,
-  AscSimpleRequest: { createRequest: mockCreateRequest },
   dispatchEvent: mockDispatchEvent,
   CustomEvent: class CustomEvent {
     type: string;
@@ -42,6 +41,7 @@ const mockWindow = {
 vi.stubGlobal("window", mockWindow);
 vi.stubGlobal("localStorage", mockLocalStorage);
 vi.stubGlobal("CustomEvent", mockWindow.CustomEvent);
+vi.stubGlobal("fetch", mockFetch);
 
 describe("WebSearch", () => {
   let webSearch: WebSearch;
@@ -175,7 +175,7 @@ describe("WebSearch", () => {
       const result = await webSearch.webSearch({ query: "test" });
 
       expect(result).toBe(JSON.stringify({ query: "test" }));
-      expect(mockCreateRequest).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it("should return args as JSON when no provider configured", async () => {
@@ -187,15 +187,16 @@ describe("WebSearch", () => {
     it("should make Exa API request with correct parameters", async () => {
       webSearch.setWebSearchData({ provider: "Exa", key: "test-api-key" });
 
-      mockCreateRequest.mockImplementation((options) => {
-        options.complete({ responseText: JSON.stringify({ results: [] }) });
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: [] }),
       });
 
       await webSearch.webSearch({ query: "test query" });
 
-      expect(mockCreateRequest).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
+        "onlyoffice-proxy://https://api.exa.ai/search",
         expect.objectContaining({
-          url: "https://api.exa.ai/search",
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -204,7 +205,7 @@ describe("WebSearch", () => {
         })
       );
 
-      const callBody = JSON.parse(mockCreateRequest.mock.calls[0][0].body);
+      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(callBody).toEqual({
         query: "test query",
         text: true,
@@ -217,10 +218,9 @@ describe("WebSearch", () => {
       webSearch.setWebSearchData({ provider: "Exa", key: "key" });
 
       const mockResults = [{ title: "Result 1", url: "https://example.com" }];
-      mockCreateRequest.mockImplementation((options) => {
-        options.complete({
-          responseText: JSON.stringify({ results: mockResults }),
-        });
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: mockResults }),
       });
 
       const result = await webSearch.webSearch({ query: "test" });
@@ -233,10 +233,9 @@ describe("WebSearch", () => {
     it("should handle API error response", async () => {
       webSearch.setWebSearchData({ provider: "Exa", key: "key" });
 
-      mockCreateRequest.mockImplementation((options) => {
-        options.complete({
-          responseText: JSON.stringify({ error: 401 }),
-        });
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ error: 401 }),
       });
 
       const result = await webSearch.webSearch({ query: "test" });
@@ -246,11 +245,12 @@ describe("WebSearch", () => {
       expect(parsed.data).toEqual({ error: 401 });
     });
 
-    it("should handle network error", async () => {
+    it("should handle network error (non-ok response)", async () => {
       webSearch.setWebSearchData({ provider: "Exa", key: "key" });
 
-      mockCreateRequest.mockImplementation((options) => {
-        options.error({ statusCode: 500 });
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
       });
 
       const result = await webSearch.webSearch({ query: "test" });
@@ -260,32 +260,41 @@ describe("WebSearch", () => {
       expect(parsed.message).toBe("Network error: 500");
     });
 
-    it("should convert -102 status code to 404", async () => {
+    it("should handle fetch exception", async () => {
       webSearch.setWebSearchData({ provider: "Exa", key: "key" });
 
-      mockCreateRequest.mockImplementation((options) => {
-        options.error({ statusCode: -102 });
-      });
+      mockFetch.mockRejectedValue(new Error("Network failure"));
 
       const result = await webSearch.webSearch({ query: "test" });
       const parsed = JSON.parse(result);
 
-      expect(parsed.error).toBe(404);
-      expect(parsed.message).toBe("Network error: 404");
+      expect(parsed.error).toBeDefined();
     });
 
-    it("should handle invalid JSON response", async () => {
-      webSearch.setWebSearchData({ provider: "Exa", key: "key" });
-
-      mockCreateRequest.mockImplementation((options) => {
-        options.complete({ responseText: "invalid json" });
+    it("should use empty string for x-api-key when key is undefined", async () => {
+      // Line 56: test ?? "" fallback when key is undefined
+      // Force the data to have undefined key by casting
+      webSearch.setWebSearchData({
+        provider: "Exa",
+        key: undefined as unknown as string,
       });
 
-      const result = await webSearch.webSearch({ query: "test" });
-      const parsed = JSON.parse(result);
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: [] }),
+      });
 
-      // expect(parsed.error).toBe(500);
-      expect(parsed.error).toStrictEqual({});
+      await webSearch.webSearch({ query: "test" });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "onlyoffice-proxy://https://api.exa.ai/search",
+        expect.objectContaining({
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": "",
+          },
+        })
+      );
     });
   });
 
@@ -302,26 +311,27 @@ describe("WebSearch", () => {
       });
 
       expect(result).toBe(JSON.stringify({ urls: ["https://example.com"] }));
-      expect(mockCreateRequest).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it("should make Exa API request to contents endpoint", async () => {
       webSearch.setWebSearchData({ provider: "Exa", key: "test-key" });
 
-      mockCreateRequest.mockImplementation((options) => {
-        options.complete({ responseText: JSON.stringify({ results: [] }) });
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: [] }),
       });
 
       await webSearch.webCrawling({ urls: ["https://example.com"] });
 
-      expect(mockCreateRequest).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
+        "onlyoffice-proxy://https://api.exa.ai/contents",
         expect.objectContaining({
-          url: "https://api.exa.ai/contents",
           method: "POST",
         })
       );
 
-      const callBody = JSON.parse(mockCreateRequest.mock.calls[0][0].body);
+      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(callBody).toEqual({
         urls: ["https://example.com"],
         text: true,
@@ -334,10 +344,9 @@ describe("WebSearch", () => {
       const mockResults = [
         { url: "https://example.com", text: "Page content" },
       ];
-      mockCreateRequest.mockImplementation((options) => {
-        options.complete({
-          responseText: JSON.stringify({ results: mockResults }),
-        });
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: mockResults }),
       });
 
       const result = await webSearch.webCrawling({
@@ -348,11 +357,12 @@ describe("WebSearch", () => {
       expect(parsed.data).toEqual(mockResults);
     });
 
-    it("should handle network error", async () => {
+    it("should handle network error (non-ok response)", async () => {
       webSearch.setWebSearchData({ provider: "Exa", key: "key" });
 
-      mockCreateRequest.mockImplementation((options) => {
-        options.error({ statusCode: 503 });
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 503,
       });
 
       const result = await webSearch.webCrawling({
@@ -361,6 +371,61 @@ describe("WebSearch", () => {
       const parsed = JSON.parse(result);
 
       expect(parsed.error).toBe(503);
+    });
+
+    it("should handle fetch exception", async () => {
+      webSearch.setWebSearchData({ provider: "Exa", key: "key" });
+
+      mockFetch.mockRejectedValue(new Error("Network failure"));
+
+      const result = await webSearch.webCrawling({
+        urls: ["https://example.com"],
+      });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBeDefined();
+    });
+
+    it("should handle API error response in crawling", async () => {
+      // Line 114: test parsedData.error branch in webCrawling
+      webSearch.setWebSearchData({ provider: "Exa", key: "key" });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ error: "Invalid URL" }),
+      });
+
+      const result = await webSearch.webCrawling({
+        urls: ["https://example.com"],
+      });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.data).toEqual({ error: "Invalid URL" });
+    });
+
+    it("should use empty string for x-api-key when key is undefined", async () => {
+      // Line 97: test ?? "" fallback when key is undefined
+      webSearch.setWebSearchData({
+        provider: "Exa",
+        key: undefined as unknown as string,
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: [] }),
+      });
+
+      await webSearch.webCrawling({ urls: ["https://example.com"] });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "onlyoffice-proxy://https://api.exa.ai/contents",
+        expect.objectContaining({
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": "",
+          },
+        })
+      );
     });
   });
 
@@ -371,8 +436,9 @@ describe("WebSearch", () => {
   describe("callTools", () => {
     beforeEach(() => {
       webSearch.setWebSearchData({ provider: "Exa", key: "key" });
-      mockCreateRequest.mockImplementation((options) => {
-        options.complete({ responseText: JSON.stringify({ results: [] }) });
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: [] }),
       });
     });
 
@@ -381,10 +447,9 @@ describe("WebSearch", () => {
         query: "test",
       });
 
-      expect(mockCreateRequest).toHaveBeenCalledWith(
-        expect.objectContaining({
-          url: "https://api.exa.ai/search",
-        })
+      expect(mockFetch).toHaveBeenCalledWith(
+        "onlyoffice-proxy://https://api.exa.ai/search",
+        expect.anything()
       );
       expect(result).toBeDefined();
     });
@@ -394,10 +459,9 @@ describe("WebSearch", () => {
         urls: ["https://example.com"],
       });
 
-      expect(mockCreateRequest).toHaveBeenCalledWith(
-        expect.objectContaining({
-          url: "https://api.exa.ai/contents",
-        })
+      expect(mockFetch).toHaveBeenCalledWith(
+        "onlyoffice-proxy://https://api.exa.ai/contents",
+        expect.anything()
       );
       expect(result).toBeDefined();
     });
@@ -406,7 +470,7 @@ describe("WebSearch", () => {
       const result = await webSearch.callTools("unknown_tool", {});
 
       expect(result).toBeUndefined();
-      expect(mockCreateRequest).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 
