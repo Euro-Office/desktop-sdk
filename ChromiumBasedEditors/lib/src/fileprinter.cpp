@@ -979,7 +979,7 @@ void CCloudPDFSaver::GetResultPdf(const std::wstring& sOutputFile, const std::ws
 	CPdfFile oPdfResult(m_oPrintData.m_pApplicationFonts);
 	oPdfResult.SetTempDirectory(sTempDir);
 
-	oPdfResult.LoadFromFile(m_sPdfFileSrc, L"", m_sPdfFileSrcPassword, m_sPdfFileSrcPassword);
+	oPdfResult.LoadFromFile(m_sPdfFileSrc, L"", m_sPdfFileSrcPassword.c_str(), m_sPdfFileSrcPassword.c_str());
 	oPdfResult.EditPdf(sOutputFile);
 
 	CConvertFromBinParams oConvertParams;
@@ -1098,7 +1098,7 @@ DWORD CCloudPDFSaver::ThreadProc()
 			CPdfFile oPdfResult(m_oPrintData.m_pApplicationFonts);
 			oPdfResult.SetTempDirectory(sTempDir);
 
-			if (oPdfResult.LoadFromFile(sTmpFile, L"", m_sPdfFileSrcPassword, m_sPdfFileSrcPassword))
+			if (oPdfResult.LoadFromFile(sTmpFile, L"", m_sPdfFileSrcPassword.c_str(), m_sPdfFileSrcPassword.c_str()))
 			{
 				int nPagesCount = oPdfResult.GetPagesCount();
 				int nImageFormat = 4; // PNG

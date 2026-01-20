@@ -387,7 +387,7 @@ public:
 		NSDirectory::CreateDirectory(m_sTempFolder);
 
 		m_pReader->SetTempDirectory(m_sTempFolder.c_str());
-		m_pReader->LoadFromFile(m_sFilePath, L"", m_sPassword, m_sPassword);
+		m_pReader->LoadFromFile(m_sFilePath, L"", m_sPassword.c_str(), m_sPassword.c_str());
 
 		switch (m_nFileType)
 		{
