@@ -80,7 +80,11 @@
 #define SEND_MESSAGE_TO_RENDERER_PROCESS(browser, message) browser->SendProcessMessage(PID_RENDERER, message)
 #else
 #define SEND_MESSAGE_TO_BROWSER_PROCESS(message) CefV8Context::GetCurrentContext()->GetFrame()->SendProcessMessage(PID_BROWSER, message)
-#define SEND_MESSAGE_TO_RENDERER_PROCESS(browser, message) browser->GetMainFrame()->SendProcessMessage(PID_RENDERER, message)
+#define SEND_MESSAGE_TO_RENDERER_PROCESS(browser, message)       \
+do {                                                             \
+	auto frame = browser->GetMainFrame();                        \
+	if (frame) frame->SendProcessMessage(PID_RENDERER, message); \
+} while(0)
 #endif
 
 #define NO_CACHE_WEB_CLOUD_SCRIPTS
