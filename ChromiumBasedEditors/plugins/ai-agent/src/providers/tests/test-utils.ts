@@ -169,6 +169,70 @@ export const createReasoningChunk = (
   }) as unknown as ChatCompletionChunk;
 
 // ============================================================================
+// Mistral Chunk Factories
+// ============================================================================
+
+/**
+ * Creates a Mistral text delta event for streaming.
+ */
+export const createMistralTextDeltaEvent = (
+  content: string,
+  finishReason?: string
+) => ({
+  data: {
+    choices: [
+      {
+        index: 0,
+        delta: { content },
+        finishReason: finishReason ?? null,
+      },
+    ],
+  },
+});
+
+/**
+ * Creates a Mistral tool call event for streaming.
+ */
+export const createMistralToolCallEvent = (
+  id: string,
+  name: string,
+  args: string,
+  finishReason?: string
+) => ({
+  data: {
+    choices: [
+      {
+        index: 0,
+        delta: {
+          toolCalls: [
+            {
+              id,
+              function: { name, arguments: args },
+            },
+          ],
+        },
+        finishReason: finishReason ?? null,
+      },
+    ],
+  },
+});
+
+/**
+ * Creates a Mistral finish event to end the stream.
+ */
+export const createMistralFinishEvent = () => ({
+  data: {
+    choices: [
+      {
+        index: 0,
+        delta: {},
+        finishReason: "stop",
+      },
+    ],
+  },
+});
+
+// ============================================================================
 // Message Factories
 // ============================================================================
 
@@ -197,17 +261,18 @@ export const createMessage = (
 export const createToolCallPart = (overrides?: {
   toolCallId?: string;
   toolName?: string;
-  args?: Record<string, unknown>;
+  args?: Record<string, string | number | boolean | null>;
   argsText?: string;
   result?: unknown;
-}) => ({
-  type: "tool-call" as const,
-  toolCallId: overrides?.toolCallId ?? "call_123",
-  toolName: overrides?.toolName ?? "test_tool",
-  args: overrides?.args ?? {},
-  argsText: overrides?.argsText ?? "{}",
-  ...(overrides?.result !== undefined && { result: overrides.result }),
-});
+}) =>
+  ({
+    type: "tool-call" as const,
+    toolCallId: overrides?.toolCallId ?? "call_123",
+    toolName: overrides?.toolName ?? "test_tool",
+    args: overrides?.args ?? {},
+    argsText: overrides?.argsText ?? "{}",
+    ...(overrides?.result !== undefined && { result: overrides.result }),
+  }) as const;
 
 /**
  * Creates a text content part.
@@ -241,7 +306,17 @@ export const createTestProvider = (
     baseUrl?: string;
   }
 ) => ({
-  type: type as "openai" | "anthropic" | "genai",
+  type: type as
+    | "openai"
+    | "anthropic"
+    | "genai"
+    | "mistral"
+    | "deepseek"
+    | "together"
+    | "xai"
+    | "openrouter"
+    | "ollama"
+    | "lm-studio",
   name: overrides?.name ?? type,
   key: overrides?.key ?? "test-key",
   baseUrl: overrides?.baseUrl ?? `https://api.${type}.com/v1`,

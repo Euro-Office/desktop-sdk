@@ -22,7 +22,8 @@ export type ProviderType =
   | "genai"
   | "deepseek"
   | "xai"
-  | "lm-studio";
+  | "lm-studio"
+  | "mistral";
 
 export type Model = {
   id: string;
