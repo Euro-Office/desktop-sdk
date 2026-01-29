@@ -50,7 +50,7 @@
   "AskAI": "Ask AI",
   "Analyzing": "Analyzing...",
   "AIWouldLikeUseThisTool": "Al would like to use this tool:",
-  "ReviewEachAction": "Review each action carefully before approving\n We cannot guarantee the security or privacy practices of third-party integrations.",
+  "ReviewEachAction": "Review each action carefully before approving.\n We cannot guarantee the security or privacy practices of third-party integrations.",
   "AlwaysAllow": "Always allow this tool to perform this action without asking again",
   "Deny": "Deny",
   "Allow": "Allow",
