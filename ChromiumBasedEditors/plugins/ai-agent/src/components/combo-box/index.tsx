@@ -1,6 +1,5 @@
 import React from "react";
 import { Icon } from "@/components/icon";
-import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import { DropdownMenu } from "../dropdown";
 import type { DropDownItemProps } from "../dropdown-item/DropDownItem.types";
@@ -24,7 +23,6 @@ const ComboBox = ({
   items,
   "data-testid": dataTestId,
 }: ComboBoxProps) => {
-  const { isRTL } = useDirection();
   const [isOpen, setIsOpen] = React.useState(false);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -40,7 +38,6 @@ const ComboBox = ({
             "h-[32px] rounded-[4px] ps-[12px] pe-[12px] box-border",
             "cursor-pointer flex items-center justify-between",
             "text-[var(--input-color)] text-[14px] leading-[16px]",
-            isRTL ? "flex-row-reverse" : "",
             isOpen
               ? "border bg-[var(--input-background-color)] border-[var(--input-active-border-color)]"
               : withoutBg

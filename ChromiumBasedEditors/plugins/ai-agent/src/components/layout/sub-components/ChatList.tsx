@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { IconButton } from "@/components/icon-button";
 import { Input } from "@/components/input";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import { useDirection } from "@/hooks/useDirection";
 import useRouter from "@/store/useRouter";
 import useThreadsStore from "@/store/useThreadsStore";
 import { ChatListItem } from "./ChatListItem";
@@ -16,6 +17,7 @@ const ChatList = () => {
     onDownloadThread,
   } = useThreadsStore();
   const { setCurrentPage } = useRouter();
+  const { isRTL } = useDirection();
 
   const [isOpen, setIsOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState("");
@@ -51,6 +53,7 @@ const ChatList = () => {
             iconName="btn-previtem"
             size={24}
             isStroke
+            className={isRTL ? "rotate-180" : ""}
             onClick={() => setIsOpen(false)}
           />
         </div>

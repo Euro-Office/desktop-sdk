@@ -17,6 +17,7 @@ export type ProviderType =
   | "anthropic"
   | "ollama"
   | "openai"
+  | "openaicompatible"
   | "together"
   | "openrouter"
   | "genai"

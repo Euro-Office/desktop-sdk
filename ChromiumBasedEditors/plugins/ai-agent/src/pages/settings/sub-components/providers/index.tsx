@@ -34,7 +34,8 @@ const Providers = ({ isActive }: ProvidersProps) => {
       <div
         className={cn(
           "flex flex-wrap gap-[16px]",
-          isActive ? "" : "opacity-70 pointer-events-none"
+          isActive ? "" : "opacity-70 pointer-events-none",
+          isRTL ? "justify-end" : ""
         )}
       >
         {providers.map((provider) => (

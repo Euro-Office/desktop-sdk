@@ -41,9 +41,12 @@ const Settings = () => {
         const isWallet = item === "wallet";
 
         return (
-          <div key={item} className="flex gap-[12px]">
+          <div
+            key={item}
+            className={cn("flex gap-[12px]", isRTL ? "justify-end" : "")}
+          >
             {showWallet ? (
-              <div className="flex items-start w-[20px] flex-shrink-0">
+              <div className={cn("flex items-start w-[20px] flex-shrink-0")}>
                 <RadioButton
                   checked={selectedSection === item}
                   onChange={() => setSelectedSection(item)}
@@ -51,7 +54,7 @@ const Settings = () => {
               </div>
             ) : null}
             <div className="select-none flex flex-col gap-[12px]">
-              <div className="flex flex-col gap-[4px]">
+              <div className="flex flex-col gap-[4px] ">
                 {showWallet ? (
                   <h2
                     className="font-normal text-[14px] leading-[20px] text-[var(--text-normal)] cursor-pointer"
@@ -62,8 +65,7 @@ const Settings = () => {
                 ) : null}
                 <p
                   className={cn(
-                    "text-[14px] leading-[20px] text-[var(--settings-description-color)]",
-                    isRTL ? "text-end" : ""
+                    "text-[14px] leading-[20px] text-[var(--settings-description-color)]"
                   )}
                 >
                   {isWallet
