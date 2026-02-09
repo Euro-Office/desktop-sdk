@@ -47,7 +47,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isSettings = currentPage === "settings";
 
   return (
-    <div className={`h-[100vh] ${themeId}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div
+      className={`h-[100vh] ${themeId} ${isRTL ? "font-rtl" : ""}`}
+      dir={isRTL ? "rtl" : "ltr"}
+    >
       <main
         id="app"
         className="h-[100vh] bg-[var(--layout-background-color)] flex flex-col"
