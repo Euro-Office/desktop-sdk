@@ -6,12 +6,14 @@ import { Dialog, DialogContent } from "@/components/dialog";
 import { FieldContainer } from "@/components/field-container";
 import { Input } from "@/components/input";
 import { Loader } from "@/components/loader";
+import { useDirection } from "@/hooks/useDirection";
 import type { ProviderType, TProvider } from "@/lib/types";
 import { sanitizeProviderName } from "@/lib/utils";
 import { provider as providerInstance } from "@/providers";
 import useProviders from "@/store/useProviders";
 import {
   dialogButtonContainerStyles,
+  dialogButtonContainerStylesRTL,
   dialogContentContainerStyles,
   dialogMainContainerStyles,
 } from "./Providers.styles";
@@ -23,6 +25,7 @@ type EditProviderDialogProps = {
 
 const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
   const { t } = useTranslation();
+  const { isRTL } = useDirection();
 
   const { providers, editProvider, currentProvider, setCurrentProvider } =
     useProviders();
@@ -193,7 +196,7 @@ const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
         <div className={dialogMainContainerStyles}>
           <div className={dialogContentContainerStyles}>
             <FieldContainer header={t("Provider")}>
-              <ComboBox value={provider.type} items={[]} />
+              <ComboBox value={provider.type} items={[]} className="w-full" />
             </FieldContainer>
             <FieldContainer header={t("Name")} error={error.name}>
               <Input
@@ -228,7 +231,13 @@ const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
             </FieldContainer>
           </div>
 
-          <div className={dialogButtonContainerStyles}>
+          <div
+            className={
+              isRTL
+                ? dialogButtonContainerStylesRTL
+                : dialogButtonContainerStyles
+            }
+          >
             <Button variant="default" onClick={onClose}>
               {t("Cancel")}
             </Button>

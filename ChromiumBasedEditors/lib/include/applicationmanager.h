@@ -322,6 +322,8 @@ public:
 
 	bool RemoveRecentByViewId(const int& viewId);
 
+	int CallCommand(const std::wstring& command);
+
 protected:
 	int GenerateNextViewId();
 	virtual CAscDpiChecker* InitDpiChecker();

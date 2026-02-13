@@ -1357,6 +1357,11 @@ bool CAscApplicationManager::RemoveRecentByViewId(const int& nId)
 	return true;
 }
 
+int CAscApplicationManager::CallCommand(const std::wstring& command)
+{
+	return 0;
+}
+
 bool NSCommon::CSystemWindowScale::g_isUseSystemScalingInit = false;
 bool NSCommon::CSystemWindowScale::g_isUseSystemScaling = false;
 

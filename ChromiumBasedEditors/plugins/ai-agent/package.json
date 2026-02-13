@@ -30,6 +30,7 @@
     "@codemirror/view": "^6.38.2",
     "@google/genai": "^1.30.0",
     "@lmstudio/sdk": "^1.5.0",
+    "@mistralai/mistralai": "^1.11.0",
     "@openrouter/ai-sdk-provider": "^1.2.3",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",

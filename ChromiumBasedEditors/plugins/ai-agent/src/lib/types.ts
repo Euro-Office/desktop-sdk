@@ -17,12 +17,14 @@ export type ProviderType =
   | "anthropic"
   | "ollama"
   | "openai"
+  | "openaicompatible"
   | "together"
   | "openrouter"
   | "genai"
   | "deepseek"
   | "xai"
-  | "lm-studio";
+  | "lm-studio"
+  | "mistral";
 
 export type Model = {
   id: string;

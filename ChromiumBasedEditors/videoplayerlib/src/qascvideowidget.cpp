@@ -94,8 +94,11 @@ QAscVideoWidget::QAscVideoWidget(QWidget *parent)
 	m_pEngine->setNotifyInterval(500);
 #endif
 
-
+#ifdef QT_VERSION_6
+	QObject::connect(m_pEngine, &QMediaPlayer::playbackStateChanged, this, &QAscVideoWidget::slotChangeState);
+#else
 	QObject::connect(m_pEngine, &QMediaPlayer::stateChanged, this, &QAscVideoWidget::slotChangeState);
+#endif
 	QObject::connect(m_pEngine, SIGNAL(positionChanged(qint64)), this, SLOT(slotPositionChange(qint64)));
 	QObject::connect(m_pEngine, SIGNAL(videoAvailableChanged(bool)), this, SLOT(slotVideoAvailableChanged(bool)));
 	QObject::connect(m_pEngine, SIGNAL(durationChanged(qint64)), this, SLOT(slotMediaDurationParsed(qint64)));

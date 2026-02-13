@@ -6,11 +6,13 @@ import { Dialog, DialogContent } from "@/components/dialog";
 import { FieldContainer } from "@/components/field-container";
 import { Input } from "@/components/input";
 import { Loader } from "@/components/loader";
+import { useDirection } from "@/hooks/useDirection";
 import { sanitizeProviderName } from "@/lib/utils";
 import { provider } from "@/providers";
 import useProviders from "@/store/useProviders";
 import {
   dialogButtonContainerStyles,
+  dialogButtonContainerStylesRTL,
   dialogContentContainerStyles,
   dialogMainContainerStyles,
 } from "./Providers.styles";
@@ -23,6 +25,7 @@ const providersInfo = provider.getProvidersInfo();
 
 const AddProviderDialog = ({ onClose }: AddProviderDialogProps) => {
   const { addProvider } = useProviders();
+  const { isRTL } = useDirection();
 
   const { t } = useTranslation();
 
@@ -145,6 +148,7 @@ const AddProviderDialog = ({ onClose }: AddProviderDialogProps) => {
           <div className={dialogContentContainerStyles}>
             <FieldContainer header={t("Provider")}>
               <ComboBox
+                className="w-full"
                 value={selectedProviderInfo.name}
                 items={providersInfo.map((p) => ({
                   text: p.name,
@@ -186,7 +190,13 @@ const AddProviderDialog = ({ onClose }: AddProviderDialogProps) => {
               />
             </FieldContainer>
           </div>
-          <div className={dialogButtonContainerStyles}>
+          <div
+            className={
+              isRTL
+                ? dialogButtonContainerStylesRTL
+                : dialogButtonContainerStyles
+            }
+          >
             <Button variant="default" onClick={onClose}>
               {t("Cancel")}
             </Button>

@@ -5,7 +5,9 @@ import { IconButton } from "@/components/icon-button";
 import { Loader } from "@/components/loader";
 import { ToggleButton } from "@/components/toggle-button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
+import { useDirection } from "@/hooks/useDirection";
 import type { TMCPItem } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import client from "@/servers";
 import useServersStore from "@/store/useServersStore";
 import DeleteServerDialog from "./DeleteServerDialog";
@@ -27,6 +29,7 @@ const AvailableToolsItem = ({
   disableEnable,
 }: AvailableToolsItemProps) => {
   const { t } = useTranslation();
+  const { isRTL } = useDirection();
 
   const [opened, setOpened] = React.useState(false);
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -145,19 +148,18 @@ const AvailableToolsItem = ({
   ]);
 
   return (
-    <div className="flex flex-col">
+    <div dir={isRTL ? "rtl" : "ltr"} className="flex flex-col">
       <div
-        className={`h-[36px] px-[8px] rounded-[4px] flex items-center justify-between ${
-          isLoadingAction ? "" : "cursor-pointer"
-        } ${
+        className={cn(
+          "h-[36px] px-[8px] rounded-[4px] flex items-center justify-between",
+          isLoadingAction ? "" : "cursor-pointer",
           opened
             ? "bg-[var(--servers-available-tools-item-active-background-color)]"
-            : "bg-[var(--servers-available-tools-item-background-color)]"
-        } ${
+            : "bg-[var(--servers-available-tools-item-background-color)]",
           !isLoading && !opened
             ? "hover:bg-[var(--servers-available-tools-item-hover-background-color)]"
             : ""
-        }`}
+        )}
         onClick={() => {
           if (isLoading || dropdownOpen || mcpItems.length === 0) return;
           setOpened((val) => !val);
@@ -172,6 +174,7 @@ const AvailableToolsItem = ({
             disableHover
             isStroke
             isTransform={opened}
+            className={isRTL ? "rotate-180" : ""}
           />
           <p className="text-[var(--servers-available-tools-item-name-color)]">
             {name}
@@ -208,8 +211,8 @@ const AvailableToolsItem = ({
                 />
               }
               items={dropdownItems}
-              side="right"
-              align="start"
+              side={isRTL ? "left" : "right"}
+              align={isRTL ? "end" : "start"}
               sideOffset={0}
               containerRef={containerRef.current}
             />
@@ -225,7 +228,10 @@ const AvailableToolsItem = ({
             return (
               <div
                 key={tool.name}
-                className="rounded-[4px] cursor-pointer flex flex-col ps-[40px] pe-[8px] hover:bg-[var(--servers-available-tools-item-hover-background-color)]"
+                className={cn(
+                  "rounded-[4px] cursor-pointer flex flex-col hover:bg-[var(--servers-available-tools-item-hover-background-color)]",
+                  isRTL ? "pr-[40px] pl-[8px]" : "pl-[40px] pr-[8px]"
+                )}
                 onClick={() => {
                   changeToolStatus(name, tool.name, !tool.enabled);
                 }}

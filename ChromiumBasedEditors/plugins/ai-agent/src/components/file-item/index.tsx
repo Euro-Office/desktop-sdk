@@ -1,4 +1,5 @@
 import { Icon } from "@/components/icon";
+import { useDirection } from "@/hooks/useDirection";
 import type { TAttachmentFile, TAttachmentImage } from "@/lib/types";
 import {
   cn,
@@ -29,6 +30,7 @@ const getFileIconName = (
 };
 
 const FileItem = ({ file, withoutClose }: FileItemProps) => {
+  const { isRTL } = useDirection();
   const { deleteAttachmentFile, deleteAttachmentImage } = useAttachmentsStore();
 
   const handleDelete = () => {
@@ -63,8 +65,12 @@ const FileItem = ({ file, withoutClose }: FileItemProps) => {
     <div
       className={cn(
         "w-fit flex flex-row items-center gap-[12px] h-[36px] rounded-[8px] box-border border-[var(--file-items-border-color)]",
-        isImage ? "p-0 pe-[4px]" : "p-[4px]",
-        withoutClose ? "cursor-pointer pe-[24px]" : "",
+        isImage ? (isRTL ? "p-0 pl-[4px]" : "p-0 pr-[4px]") : "p-[4px]",
+        withoutClose
+          ? isRTL
+            ? "cursor-pointer pl-[24px]"
+            : "cursor-pointer pr-[24px]"
+          : "",
         withoutClose
           ? "bg-[var(--file-items-chat-background-color)]"
           : "border bg-[var(--file-items-background-color)]",
@@ -83,7 +89,10 @@ const FileItem = ({ file, withoutClose }: FileItemProps) => {
     >
       {"base64" in file ? (
         <img
-          className="w-[36px] h-[36px] rounded-l-[8px]"
+          className={cn(
+            "w-[36px] h-[36px]",
+            isRTL ? "rounded-r-[8px]" : "rounded-l-[8px]"
+          )}
           src={file.base64}
           alt=""
         />

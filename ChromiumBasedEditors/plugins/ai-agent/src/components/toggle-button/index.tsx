@@ -33,6 +33,7 @@ const ToggleButton = ({
   return (
     <div className="flex items-center gap-2">
       <Switch.Root
+        dir="ltr"
         id={id}
         checked={checked}
         onCheckedChange={onCheckedChange}

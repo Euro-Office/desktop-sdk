@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useDirection } from "@/hooks/useDirection";
 import useRouter from "@/store/useRouter";
 import useThemeStore from "@/store/useThemeStore";
 import { ChatList } from "./sub-components/ChatList";
@@ -18,6 +19,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const { themeId, setThemeId } = useThemeStore();
 
   const { i18n } = useTranslation();
+  const { isRTL } = useDirection();
 
   React.useLayoutEffect(() => {
     if (window.RendererProcessVariable) {
@@ -45,7 +47,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isSettings = currentPage === "settings";
 
   return (
-    <div className={`h-[100vh] ${themeId}`}>
+    <div
+      className={`h-[100vh] ${themeId} ${isRTL ? "font-rtl" : ""}`}
+      dir={isRTL ? "rtl" : "ltr"}
+    >
       <main
         id="app"
         className="h-[100vh] bg-[var(--layout-background-color)] flex flex-col"

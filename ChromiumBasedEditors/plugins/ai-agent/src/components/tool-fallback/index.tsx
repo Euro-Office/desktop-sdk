@@ -2,6 +2,7 @@ import type { ToolCallMessagePartComponent } from "@assistant-ui/react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/icon";
+import { useDirection } from "@/hooks/useDirection";
 import server from "@/servers";
 import { IconButton } from "../icon-button";
 import { Loader } from "../loader";
@@ -13,6 +14,7 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
   result,
 }) => {
   const { t } = useTranslation();
+  const { isRTL } = useDirection();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isArgsCopied, setIsArgsCopied] = useState(false);
   const [isResultCopied, setIsResultCopied] = useState(false);
@@ -123,14 +125,16 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
             isStroke
           />
         ) : isWebSearch && result === undefined ? null : (
-          <Icon
-            name={!isCollapsed ? "arrow.bottom" : "arrow.right"}
-            size={16}
-            width={8}
-            height={8}
-            color={TOOL_CALL_COLOR}
-            isStroke
-          />
+          <span className={isRTL && isCollapsed ? "rotate-180" : ""}>
+            <Icon
+              name={!isCollapsed ? "arrow.bottom" : "arrow.right"}
+              size={16}
+              width={8}
+              height={8}
+              color={TOOL_CALL_COLOR}
+              isStroke
+            />
+          </span>
         )}
       </div>
       {!isCollapsed ? (

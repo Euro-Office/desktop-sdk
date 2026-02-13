@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/button";
 import { Dialog, DialogContent } from "@/components/dialog";
+import { useDirection } from "@/hooks/useDirection";
 import type { ProviderType, TProvider } from "@/lib/types";
 import useProviders from "@/store/useProviders";
 
@@ -12,6 +13,7 @@ type DeleteProviderDialogProps = {
 
 const DeleteProviderDialog = ({ name, onClose }: DeleteProviderDialogProps) => {
   const { providers, deleteProvider } = useProviders();
+  const { isRTL } = useDirection();
 
   const [provider, setProvider] = React.useState<TProvider>(() => {
     const provider = providers.find((p) => p.name === name);
@@ -68,7 +70,13 @@ const DeleteProviderDialog = ({ name, onClose }: DeleteProviderDialogProps) => {
           <p className="select-none h-[40px] flex items-center text-[12px] leading-[16px] text-[var(--text-normal)]">
             {t("WantDeleteProvider")}
           </p>
-          <div className="flex flex-row justify-end items-center gap-[8px] h-[48px]">
+          <div
+            className={
+              isRTL
+                ? "flex flex-row-reverse justify-end items-center gap-[8px] h-[48px]"
+                : "flex flex-row justify-end items-center gap-[8px] h-[48px]"
+            }
+          >
             <Button variant="default" onClick={onClose}>
               {t("No")}
             </Button>

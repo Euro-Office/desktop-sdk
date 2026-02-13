@@ -2,6 +2,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import React from "react";
 import { Icon } from "@/components/icon";
 import { IconButton } from "@/components/icon-button";
+import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import { DialogOverlay } from "./DialogOverlay";
 import { DialogPortal } from "./DialogPortal";
@@ -42,6 +43,7 @@ const DialogContent = ({
   withWarningIcon = false,
   ...props
 }: DialogContentProps) => {
+  const { isRTL } = useDirection();
   const widthStyles = isHuge ? widthHugeStyles : widthDefaultStyles;
   const sizeStyles = withWarningIcon ? warningSizeStyles : centeredSizeStyles;
 
@@ -65,6 +67,7 @@ const DialogContent = ({
       <DialogPrimitive.Content
         id="dialog-content"
         data-slot="dialog-content"
+        dir={isRTL ? "rtl" : "ltr"}
         className={cn(
           widthStyles,
           sizeStyles,

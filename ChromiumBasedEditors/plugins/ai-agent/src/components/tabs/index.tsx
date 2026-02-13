@@ -1,4 +1,5 @@
 import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import type { TabsProps } from "./Tabs.types";
 
@@ -9,6 +10,8 @@ const Tabs = ({
   onValueChange,
   className,
 }: TabsProps) => {
+  const { isRTL } = useDirection();
+
   return (
     <TabsPrimitive.Root
       defaultValue={defaultValue || items[0]?.value}
@@ -16,7 +19,12 @@ const Tabs = ({
       onValueChange={onValueChange}
       className={cn("w-full", className)}
     >
-      <TabsPrimitive.List className="w-full inline-flex h-[32px] gap-[20px] items-center border-b-[1px] border-[var(--tabs-border-color)]">
+      <TabsPrimitive.List
+        className={cn(
+          "w-full inline-flex h-[32px] gap-[20px] items-center border-b-[1px] border-[var(--tabs-border-color)]",
+          isRTL ? "flex-row-reverse" : ""
+        )}
+      >
         {items.map((item) => (
           <TabsPrimitive.Trigger
             key={item.value}

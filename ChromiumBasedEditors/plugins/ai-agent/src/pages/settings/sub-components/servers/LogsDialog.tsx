@@ -2,6 +2,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/button";
 import { Dialog, DialogContent } from "@/components/dialog";
+import { useDirection } from "@/hooks/useDirection";
+import { cn } from "@/lib/utils";
 import useServersStore from "@/store/useServersStore";
 
 type LogsDialogProps = {
@@ -12,6 +14,7 @@ type LogsDialogProps = {
 
 const LogsDialog = ({ type, open, onClose }: LogsDialogProps) => {
   const { t } = useTranslation();
+  const { isRTL } = useDirection();
 
   const [logs, setLogs] = React.useState<string[]>([]);
 
@@ -56,7 +59,12 @@ const LogsDialog = ({ type, open, onClose }: LogsDialogProps) => {
             ))}
           </div>
         </div>
-        <div className="flex flex-row items-center justify-end gap-[16px] h-[64px] border-t border-[var(--servers-edit-config-buttons-border-color)] mx-[-32px] px-[32px]">
+        <div
+          className={cn(
+            "flex flex-row items-center justify-end gap-[16px] h-[64px] border-t border-[var(--servers-edit-config-buttons-border-color)] mx-[-32px] px-[32px]",
+            isRTL ? "flex-row-reverse" : ""
+          )}
+        >
           <Button onClick={copyToClipboard} variant="default">
             {t("CopyToClipboard")}
           </Button>

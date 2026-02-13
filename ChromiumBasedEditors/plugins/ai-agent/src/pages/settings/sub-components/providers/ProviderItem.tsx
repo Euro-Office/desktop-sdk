@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import { DropdownMenu } from "@/components/dropdown";
 import { IconButton } from "@/components/icon-button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
+import { useDirection } from "@/hooks/useDirection";
 import type { TProvider } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import useProviders from "@/store/useProviders";
 import { DeleteProviderDialog } from "./DeleteProviderDialog";
 import { EditProviderDialog } from "./EditProviderDialog";
@@ -14,6 +16,7 @@ type ProviderItemProps = {
 
 const ProviderItem = ({ provider }: ProviderItemProps) => {
   const { providersModels } = useProviders();
+  const { isRTL } = useDirection();
 
   const [editProviderVisible, setEditProviderVisible] = React.useState(false);
   const [deleteProviderVisible, setDeleteProviderVisible] =
@@ -33,9 +36,19 @@ const ProviderItem = ({ provider }: ProviderItemProps) => {
 
   return (
     <>
-      <div className="flex flex-row justify-between gap-[12px] px-[16px] py-[12px] min-w-[274px] max-w-[312px] flex-1 rounded-[8px] bg-[var(--ai-provider-item-background-color)] shadow-[var(--ai-provider-item-shadow)]">
+      <div
+        className={cn(
+          "flex justify-between gap-[12px] px-[16px] py-[12px] min-w-[274px] max-w-[312px] flex-1 rounded-[8px] bg-[var(--ai-provider-item-background-color)] shadow-[var(--ai-provider-item-shadow)]",
+          isRTL ? "flex-row-reverse" : "flex-row"
+        )}
+      >
         <div className="flex flex-col min-w-0 flex-1">
-          <div className="flex flex-row items-center gap-[4px]">
+          <div
+            className={cn(
+              "flex items-center gap-[4px]",
+              isRTL ? "flex-row-reverse" : "flex-row"
+            )}
+          >
             <Tooltip>
               <TooltipTrigger asChild>
                 <p className="font-normal text-[14px] leading-[20px] text-[var(--ai-provider-item-color)] truncate w-fit">
@@ -62,7 +75,12 @@ const ProviderItem = ({ provider }: ProviderItemProps) => {
               </Tooltip>
             )}
           </div>
-          <p className="text-[12px] leading-[14px] text-[var(--ai-provider-item-description-color)]">
+          <p
+            className={cn(
+              "text-[12px] leading-[14px] text-[var(--ai-provider-item-description-color)]",
+              isRTL ? "text-end" : ""
+            )}
+          >
             {provider.type}
             <br />
             {provider.baseUrl}
@@ -100,8 +118,8 @@ const ProviderItem = ({ provider }: ProviderItemProps) => {
                 onClick: () => setDeleteProviderVisible(true),
               },
             ]}
-            side="right"
-            align="start"
+            side={isRTL ? "left" : "right"}
+            align={isRTL ? "end" : "start"}
             sideOffset={0}
             containerRef={containerElement}
           />

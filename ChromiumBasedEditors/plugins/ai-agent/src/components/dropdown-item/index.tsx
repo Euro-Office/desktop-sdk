@@ -1,5 +1,6 @@
 import { Item } from "@radix-ui/react-dropdown-menu";
 import { useRef, useState } from "react";
+import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import { DropdownMenu } from "../dropdown";
 import { IconButton } from "../icon-button";
@@ -25,8 +26,10 @@ const DropDownItem = ({
   withAbout,
   aboutContent,
 }: DropDownItemProps) => {
+  const { isRTL } = useDirection();
+
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
-  const [submenuSide, setSubmenuSide] = useState<"left" | "right">("right");
+  const [submenuSide, setSubmenuSide] = useState<"left" | "right">("left");
   const [submenuOffset, setSubmenuOffset] = useState(12);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
 
@@ -100,18 +103,22 @@ const DropDownItem = ({
       const viewportWidth = window.innerWidth;
 
       const spaceOnRight = viewportWidth - itemRect.right;
+      const spaceOnLeft = itemRect.left;
 
       // Assume submenu width is around 300px (max-w-[300px]) + 4px offset
       const estimatedSubmenuWidth = 154;
 
-      // Open on left if there's not enough space on right but enough on left
-      let side: "left" | "right" = "right";
-      if (spaceOnRight < estimatedSubmenuWidth) {
-        side = "left";
+      // In RTL, default to left; in LTR, default to right
+      // Fall back to opposite side if not enough space
+      let side: "left" | "right";
+      if (isRTL) {
+        side = spaceOnLeft >= estimatedSubmenuWidth ? "left" : "right";
+      } else {
+        side = spaceOnRight >= estimatedSubmenuWidth ? "right" : "left";
       }
 
       setSubmenuSide(side);
-      setSubmenuOffset(side === "left" ? itemRect.width - 24 : 12);
+      setSubmenuOffset(12);
     }
 
     setIsSubMenuOpen(true);
@@ -135,8 +142,9 @@ const DropDownItem = ({
       onClick={withToggle ? handleToggleClick : undefined}
       onMouseEnter={handleMouseEnter}
       ref={itemRef}
+      dir={isRTL ? "rtl" : "ltr"}
     >
-      <div className="flex items-center gap-[4px] min-w-0 flex-1">
+      <div className={cn("flex items-center gap-[4px] min-w-0 flex-1")}>
         {icon && typeof icon === "string" ? (
           <IconButton iconName={icon} size={iconSize} disableHover />
         ) : (
@@ -175,6 +183,7 @@ const DropDownItem = ({
               size={12}
               insideElement
               isStroke
+              className={isRTL ? "rotate-180" : ""}
             />
           }
           items={subMenu}

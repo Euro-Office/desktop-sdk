@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { RadioButton } from "@/components/radio-button";
 import { Tabs } from "@/components/tabs";
 import config from "@/config.json";
+import { useDirection } from "@/hooks/useDirection";
+import { cn } from "@/lib/utils";
 import useProviders from "@/store/useProviders";
 import { Providers } from "./sub-components/providers";
 import { Servers } from "./sub-components/servers";
@@ -13,6 +15,7 @@ const showWallet = config.showWallet;
 
 const Settings = () => {
   const { t } = useTranslation();
+  const { isRTL } = useDirection();
 
   const [selectedSection, setSelectedSection] = React.useState(
     showWallet ? "wallet" : "providers"
@@ -38,9 +41,12 @@ const Settings = () => {
         const isWallet = item === "wallet";
 
         return (
-          <div key={item} className="flex gap-[12px]">
+          <div
+            key={item}
+            className={cn("flex gap-[12px]", isRTL ? "justify-end" : "")}
+          >
             {showWallet ? (
-              <div className="flex items-start w-[20px] flex-shrink-0">
+              <div className={cn("flex items-start w-[20px] flex-shrink-0")}>
                 <RadioButton
                   checked={selectedSection === item}
                   onChange={() => setSelectedSection(item)}
@@ -48,7 +54,7 @@ const Settings = () => {
               </div>
             ) : null}
             <div className="select-none flex flex-col gap-[12px]">
-              <div className="flex flex-col gap-[4px]">
+              <div className="flex flex-col gap-[4px] ">
                 {showWallet ? (
                   <h2
                     className="font-normal text-[14px] leading-[20px] text-[var(--text-normal)] cursor-pointer"
@@ -57,7 +63,12 @@ const Settings = () => {
                     {isWallet ? t("ONLYOFFICEWallet") : t("AIProviders")}
                   </h2>
                 ) : null}
-                <p className="text-[14px] leading-[20px] text-[var(--settings-description-color)]">
+                <p
+                  className={cn(
+                    "text-[14px] leading-[20px] text-[var(--settings-description-color)]",
+                    isRTL ? "text-end" : ""
+                  )}
+                >
                   {isWallet
                     ? t("ONLYOFFICEWalletDescription")
                     : t("AIProvidersDescription")}

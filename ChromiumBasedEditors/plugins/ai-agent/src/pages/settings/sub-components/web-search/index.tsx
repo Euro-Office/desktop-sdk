@@ -4,10 +4,13 @@ import { Button } from "@/components/button";
 import { ComboBox } from "@/components/combo-box";
 import { FieldContainer } from "@/components/field-container";
 import { Input } from "@/components/input";
+import { useDirection } from "@/hooks/useDirection";
+import { cn } from "@/lib/utils";
 import client from "@/servers";
 
 const WebSearch = () => {
   const { t } = useTranslation();
+  const { isRTL } = useDirection();
 
   const [selectedProvider, setSelectedProvider] = React.useState<string>("");
   const [apiKey, setApiKey] = React.useState<string>("");
@@ -56,7 +59,12 @@ const WebSearch = () => {
 
   return (
     <div className="flex flex-col gap-[16px] mt-[16px]">
-      <p className="font-normal text-[14px] leading-[20px] text-[var(--servers-description-color)]">
+      <p
+        className={cn(
+          "font-normal text-[14px] leading-[20px] text-[var(--servers-description-color)]",
+          isRTL ? "text-end" : ""
+        )}
+      >
         {t("WebSearchDescription")}
       </p>
       <div className="flex flex-col gap-[16px]">
@@ -87,7 +95,12 @@ const WebSearch = () => {
           />
         </FieldContainer>
       </div>
-      <div className="flex flex-row gap-[8px]">
+      <div
+        className={cn(
+          "flex gap-[8px]",
+          isRTL ? "flex-row-reverse" : "flex-row"
+        )}
+      >
         <Button
           className="w-fit"
           onClick={saveWebSearchData}
