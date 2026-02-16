@@ -2656,6 +2656,9 @@ public:
 			pVisitor->m_pCallback       = this;
 
 			pVisitor->m_sUrl            = args->GetString(0).ToString();
+			if (pVisitor->m_sUrl.find("http://") != 0 && pVisitor->m_sUrl.find("https://") != 0)
+				pVisitor->m_sUrl = "https://" + pVisitor->m_sUrl;
+
 			pVisitor->m_sDomain         = args->GetString(1).ToString();
 			pVisitor->m_sPath           = args->GetString(2).ToString();
 			pVisitor->m_sCookieKey      = args->GetString(3).ToString();
