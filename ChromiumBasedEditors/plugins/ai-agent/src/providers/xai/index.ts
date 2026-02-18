@@ -28,12 +28,14 @@ class XAIProvider extends OpenAIProvider {
                   id: model.id,
                   name: baseName,
                   provider: "xai" as const,
+                  reasoning: model.id.includes("reasoning"),
                 };
               })
           : response.map((model) => ({
               id: model.id,
               name: model.id,
               provider: "xai" as const,
+              reasoning: model.id.includes("reasoning"),
             }));
 
       return models.reverse();

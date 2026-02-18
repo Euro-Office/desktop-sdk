@@ -187,17 +187,11 @@ class OpenAIProvider extends AbstractBaseProvider<
     try {
       if (!this.client) return "";
 
-      const modelThinking = this.modelKey.includes("-thinking");
-
-      const model = modelThinking
-        ? this.modelKey.replace("-thinking", "")
-        : this.modelKey;
-
       const systemMessage = this.buildSystemMessage(CREATE_TITLE_SYSTEM_PROMPT);
 
       const response = await this.client.chat.completions.create({
         messages: [systemMessage, { role: "user", content: message }],
-        model,
+        model: this.modelKey,
         stream: false,
       });
 
@@ -216,18 +210,18 @@ class OpenAIProvider extends AbstractBaseProvider<
   ) {
     if (!this.client) return;
 
-    const modelThinking = this.modelKey.includes("-thinking");
-
-    const model = modelThinking
-      ? this.modelKey.replace("-thinking", "")
-      : this.modelKey;
+    const modelThinking =
+      this.isReasoning ||
+      openaiInfo.reasoningModels.some((modelId) =>
+        this.modelKey.includes(modelId)
+      );
 
     const reasoning_effort =
       withThinking && modelThinking ? "medium" : undefined;
 
     const stream = await this.client.chat.completions.create({
       messages: [systemMessage, ...this.prevMessages, ...convertedMessages],
-      model,
+      model: this.modelKey,
       tools: this.tools,
       stream: true,
       reasoning_effort,
@@ -460,9 +454,10 @@ class OpenAIProvider extends AbstractBaseProvider<
           openaiInfo.modelNames[model.id] || model.id.toUpperCase();
 
         return {
-          id: `${model.id}-thinking`,
+          id: `${model.id}`,
           name: baseName,
           provider: "openai" as const,
+          reasoning: openaiInfo.reasoningModels.includes(model.id),
         };
       });
   };

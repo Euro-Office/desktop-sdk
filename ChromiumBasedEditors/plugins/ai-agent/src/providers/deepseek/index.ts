@@ -28,11 +28,13 @@ class DeepSeekProvider extends OpenAIProvider {
                 id: model.id,
                 name: deepseekInfo.modelNames[model.id] || model.id,
                 provider: "deepseek" as const,
+                reasoning: model.id.includes("reasoner"),
               }))
           : response.map((model) => ({
               id: model.id,
               name: model.id,
               provider: "deepseek" as const,
+              reasoning: model.id.includes("reasoner"),
             }));
 
       return models.reverse();

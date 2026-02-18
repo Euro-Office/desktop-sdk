@@ -1,7 +1,7 @@
 {
-  "name": "test-assistant-ui-front",
+  "name": "ai-agent-plugin",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -25,7 +25,7 @@ const useModelsStore = create<UseModelsStoreProps>((set) => ({
 
     const parsed: Model = JSON.parse(saved);
 
-    provider.setCurrentProviderModel(parsed.id);
+    provider.setCurrentProviderModel(parsed.id, parsed.reasoning);
 
     return parsed;
   })(),
@@ -36,7 +36,7 @@ const useModelsStore = create<UseModelsStoreProps>((set) => ({
 
     const parsed: Model = JSON.parse(saved);
 
-    provider.setCurrentProviderModel(parsed.id);
+    provider.setCurrentProviderModel(parsed.id, parsed.reasoning);
 
     return parsed;
   })(),
@@ -50,13 +50,16 @@ const useModelsStore = create<UseModelsStoreProps>((set) => ({
 
   selectModel: (model) => {
     set({ currentModel: model, persistedModel: model });
-    provider.setCurrentProviderModel(model.id);
+    provider.setCurrentProviderModel(model.id, model.reasoning);
     localStorage.setItem(CURRENT_MODEL_KEY, JSON.stringify(model));
   },
   setSessionModel: (model) => {
     set((state) => {
       const nextModel = model ?? state.persistedModel ?? null;
-      provider.setCurrentProviderModel(nextModel?.id ?? "");
+      provider.setCurrentProviderModel(
+        nextModel?.id ?? "",
+        nextModel?.reasoning
+      );
       return { currentModel: nextModel };
     });
   },

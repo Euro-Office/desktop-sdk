@@ -45,14 +45,16 @@ class Provider {
       if (savedModel) {
         const parsed: Model = JSON.parse(savedModel);
         this.currentProvider.setModelKey(parsed.id);
+        this.currentProvider.isReasoning = parsed.reasoning ?? false;
       }
     }
   };
 
-  setCurrentProviderModel = (modelKey: string) => {
+  setCurrentProviderModel = (modelKey: string, isReasoning?: boolean) => {
     if (!this.currentProvider) return;
 
     this.currentProvider.setModelKey(modelKey);
+    this.currentProvider.isReasoning = isReasoning ?? false;
   };
 
   setCurrentProviderTools = (tools: TMCPItem[]) => {

@@ -4,14 +4,27 @@ import { DropdownMenu } from "@/components/dropdown";
 import type { DropDownItemProps } from "@/components/dropdown-item/DropDownItem.types";
 import { IconButton } from "@/components/icon-button";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
-import { isDocument, isPdf, isPresentation, isSpreadsheet } from "@/lib/utils";
+import {
+  isDjVu,
+  isDocument,
+  isPdf,
+  isPdfForm,
+  isPresentation,
+  isSpreadsheet,
+  isVisio,
+  isXps,
+} from "@/lib/utils";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
 
 const getFileIconName = (type: number): string => {
+  if (isPdfForm(type)) return "pdf-form";
   if (isPdf(type)) return "pdf";
+  if (isDjVu(type)) return "djvu";
+  if (isXps(type)) return "xps";
   if (isSpreadsheet(type)) return "spreadsheets";
   if (isDocument(type)) return "documents";
   if (isPresentation(type)) return "presentations";
+  if (isVisio(type)) return "visio";
   return "unknown-format";
 };
 

@@ -62,7 +62,7 @@ const SelectModel = () => {
       if (provider.currentProviderInfo?.name !== providerInfo.name) {
         setCurrentProvider(providerInfo);
 
-        provider.setCurrentProviderModel(modelId);
+        provider.setCurrentProviderModel(modelId, model.reasoning);
         provider.setCurrentProviderTools(tools);
         provider.setCurrentProviderPrevMessages(messages);
       }
