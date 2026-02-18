@@ -3,10 +3,14 @@ import { useDirection } from "@/hooks/useDirection";
 import type { TAttachmentFile, TAttachmentImage } from "@/lib/types";
 import {
   cn,
+  isDjVu,
   isDocument,
   isPdf,
+  isPdfForm,
   isPresentation,
   isSpreadsheet,
+  isVisio,
+  isXps,
 } from "@/lib/utils";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
 import { IconButton } from "../icon-button";
@@ -16,16 +20,15 @@ type FileItemProps = {
   withoutClose?: boolean;
 };
 
-const getFileIconName = (
-  isPDFFile: boolean,
-  isDocumentFile: boolean,
-  isSpreadsheetFile: boolean,
-  isPresentationFile: boolean
-): string => {
-  if (isPDFFile) return "pdf";
-  if (isDocumentFile) return "documents";
-  if (isSpreadsheetFile) return "spreadsheets";
-  if (isPresentationFile) return "presentations";
+const getFileIconName = (type: number): string => {
+  if (isPdfForm(type)) return "pdf-form";
+  if (isPdf(type)) return "pdf";
+  if (isDjVu(type)) return "djvu";
+  if (isXps(type)) return "xps";
+  if (isSpreadsheet(type)) return "spreadsheets";
+  if (isDocument(type)) return "documents";
+  if (isPresentation(type)) return "presentations";
+  if (isVisio(type)) return "visio";
   return "unknown-format";
 };
 
@@ -47,17 +50,8 @@ const FileItem = ({ file, withoutClose }: FileItemProps) => {
   const extension = name.split(".").pop() ?? "";
   const nameWithoutExtension = name.replace(`.${extension}`, "");
 
-  const isDocumentFile = "type" in file ? isDocument(file.type) : false;
-  const isPDFFile = "type" in file ? isPdf(file.type) : false;
-  const isSpreadsheetFile = "type" in file ? isSpreadsheet(file.type) : false;
-  const isPresentationFile = "type" in file ? isPresentation(file.type) : false;
-
-  const iconName = getFileIconName(
-    isPDFFile,
-    isDocumentFile,
-    isSpreadsheetFile,
-    isPresentationFile
-  );
+  const fileType = "type" in file ? file.type : 0;
+  const iconName = getFileIconName(fileType);
 
   const isImage = "base64" in file;
 

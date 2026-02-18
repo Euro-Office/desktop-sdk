@@ -46,6 +46,7 @@ const IconButton = ({
       )}
       style={{
         width: `${size}px`,
+        minWidth: `${size}px`,
         height: `${size}px`,
         ...(isActive
           ? {
