@@ -27,6 +27,7 @@ export abstract class AbstractBaseProvider<TOOL, MESSAGE, CLIENT> {
   apiKey?: string;
   url?: string;
   provider?: TProvider;
+  isReasoning = false;
 
   // Provider-specific properties (typed by generics)
   client?: CLIENT;

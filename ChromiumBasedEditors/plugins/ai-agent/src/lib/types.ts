@@ -30,6 +30,7 @@ export type Model = {
   id: string;
   name: string;
   provider: ProviderType;
+  reasoning?: boolean;
 };
 
 export type TProvider = {

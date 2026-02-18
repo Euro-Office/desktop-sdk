@@ -85,7 +85,10 @@ class AnthropicProvider extends AbstractBaseProvider<
   // --------------------------------------------------------------------------
 
   private isThinkingMode = (): boolean => {
-    return anthropicInfo.thinkingModels.some((m) => this.modelKey.includes(m));
+    return (
+      this.isReasoning ||
+      anthropicInfo.thinkingModels.some((m) => this.modelKey.includes(m))
+    );
   };
 
   // --------------------------------------------------------------------------
@@ -280,6 +283,9 @@ class AnthropicProvider extends AbstractBaseProvider<
           id: model.id,
           name: displayName,
           provider: "anthropic" as const,
+          reasoning: anthropicInfo.thinkingModels.some((t) =>
+            model.id.includes(t)
+          ),
         });
       }
 
