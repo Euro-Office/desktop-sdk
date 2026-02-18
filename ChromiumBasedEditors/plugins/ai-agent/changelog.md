@@ -1,4 +1,4 @@
-## x.x.x
+## 1.1.x
 
 ### Refactoring
 - Refactoring providers, add abstract methods
@@ -23,3 +23,4 @@
 - 79816
 - 70819
 - 79842
+- 78530
