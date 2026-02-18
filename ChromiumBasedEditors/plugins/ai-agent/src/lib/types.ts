@@ -24,7 +24,8 @@ export type ProviderType =
   | "deepseek"
   | "xai"
   | "lm-studio"
-  | "mistral";
+  | "mistral"
+  | "wallet";
 
 export type Model = {
   id: string;

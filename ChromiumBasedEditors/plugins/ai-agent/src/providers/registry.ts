@@ -12,6 +12,7 @@ import {
 } from "./openaicompatible";
 import { type OpenRouterProvider, openrouterProvider } from "./openrouter";
 import { type TogetherProvider, togetherProvider } from "./together";
+import { type WalletProvider, walletProvider } from "./wallet";
 import { type XAIProvider, xaiProvider } from "./xai";
 
 export type BaseProvider =
@@ -25,7 +26,8 @@ export type BaseProvider =
   | DeepSeekProvider
   | XAIProvider
   | LMStudioProvider
-  | MistralProvider;
+  | MistralProvider
+  | WalletProvider;
 
 /**
  * Registry mapping provider types to their singleton instances.
@@ -43,6 +45,7 @@ export const providerRegistry: Record<ProviderType, BaseProvider> = {
   xai: xaiProvider,
   "lm-studio": lmStudioProvider,
   mistral: mistralProvider,
+  wallet: walletProvider,
 };
 
 /**

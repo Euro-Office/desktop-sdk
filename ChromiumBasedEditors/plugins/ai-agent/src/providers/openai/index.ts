@@ -263,6 +263,8 @@ class OpenAIProvider extends AbstractBaseProvider<
         withThinking
       );
 
+      console.log(stream);
+
       if (!stream) return;
 
       this.pushHistory(convertedMessages);
@@ -275,6 +277,7 @@ class OpenAIProvider extends AbstractBaseProvider<
       let hasUnfinalizedReasoning = false;
 
       for await (const streamEvent of stream) {
+        console.log(streamEvent);
         // Process each chunk in the stream event
         for (const chunk of streamEvent.choices) {
           if (isStreamComplete) break;
@@ -356,6 +359,26 @@ class OpenAIProvider extends AbstractBaseProvider<
 
         // Yield intermediate response for UI updates
         yield responseMessage;
+      }
+
+      // Handle case where stream ended without finish_reason
+      // (e.g. proxy error responses)
+      if (!isStreamComplete) {
+        const hasContent =
+          typeof responseMessage.content === "string"
+            ? responseMessage.content.length > 0
+            : responseMessage.content.length > 0;
+
+        if (hasContent) {
+          yield { isEnd: true, responseMessage };
+        } else {
+          yield {
+            isEnd: true,
+            responseMessage: createErrorResponse(
+              new Error("Stream ended unexpectedly without response")
+            ),
+          };
+        }
       }
     } catch (error) {
       console.error("OpenAI sendMessage error:", error);

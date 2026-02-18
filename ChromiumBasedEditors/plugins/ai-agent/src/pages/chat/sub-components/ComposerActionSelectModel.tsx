@@ -7,6 +7,7 @@ import useMessageStore from "@/store/useMessageStore";
 import useModelsStore from "@/store/useModelsStore";
 import useProviders from "@/store/useProviders";
 import useServersStore from "@/store/useServersStore";
+import useWalletStore from "@/store/useWalletStore";
 
 const SelectModel = () => {
   const { currentModel, selectModel } = useModelsStore();
@@ -14,8 +15,33 @@ const SelectModel = () => {
     useProviders();
   const { tools } = useServersStore();
   const { messages } = useMessageStore();
+  const {
+    isWalletActive,
+    walletModels,
+    portals,
+    selectedPortalId,
+    fetchWalletModels,
+  } = useWalletStore();
 
   const { t } = useTranslation();
+
+  const selectedPortal = portals.find((p) => p.portalId === selectedPortalId);
+
+  const walletProvider: TProvider | null =
+    isWalletActive && selectedPortal
+      ? {
+          type: "wallet",
+          name: "Wallet",
+          key: selectedPortal.key,
+          baseUrl: selectedPortal.url,
+        }
+      : null;
+
+  React.useEffect(() => {
+    if (isWalletActive && selectedPortalId) {
+      fetchWalletModels();
+    }
+  }, [isWalletActive, selectedPortalId, fetchWalletModels]);
 
   const onSelectModel = React.useCallback(
     (providerInfo: TProvider, modelId: string) => {
@@ -25,9 +51,11 @@ const SelectModel = () => {
       )
         return;
 
-      const model = providersModels
-        .get(providerInfo.name)
-        ?.find((model) => model.id === modelId);
+      const models = isWalletActive
+        ? walletModels
+        : providersModels.get(providerInfo.name);
+
+      const model = models?.find((model) => model.id === modelId);
 
       if (!model) return;
 
@@ -43,6 +71,8 @@ const SelectModel = () => {
     },
     [
       providersModels,
+      walletModels,
+      isWalletActive,
       messages,
       tools,
       currentModel,
@@ -51,31 +81,51 @@ const SelectModel = () => {
     ]
   );
 
-  const items = providers
-    .map((p) => ({
-      text: p.name,
-      id: p.name,
-      onClick: () => {
-        // ignore
-      },
-      subMenu:
-        providersModels.get(p.name)?.map((model) => ({
-          text: model.name,
-          id: model.id,
-          onClick: () => onSelectModel(p, model.id),
-          isActive: false,
-          checked:
-            model.id === currentModel?.id &&
-            p.name === provider.currentProviderInfo?.name,
-        })) || [],
-    }))
-    .filter((item) => item.subMenu.length > 0);
+  const items = isWalletActive
+    ? walletModels.map((model) => ({
+        text: model.name,
+        id: model.id,
+        onClick: () =>
+          walletProvider && onSelectModel(walletProvider, model.id),
+        isActive: false,
+        checked: model.id === currentModel?.id,
+      }))
+    : providers
+        .map((p) => ({
+          text: p.name,
+          id: p.name,
+          onClick: () => {
+            // ignore
+          },
+          subMenu:
+            providersModels.get(p.name)?.map((model) => ({
+              text: model.name,
+              id: model.id,
+              onClick: () => onSelectModel(p, model.id),
+              isActive: false,
+              checked:
+                model.id === currentModel?.id &&
+                p.name === provider.currentProviderInfo?.name,
+            })) || [],
+        }))
+        .filter((item) => item.subMenu.length > 0);
 
-  const currentProviderExists = providers.some(
-    (p) => p.name === currentProvider?.name
-  );
+  const currentProviderExists = isWalletActive
+    ? walletModels.length > 0
+    : providers.some((p) => p.name === currentProvider?.name);
 
   React.useEffect(() => {
+    if (isWalletActive) {
+      if (
+        (!currentModel || currentModel.provider !== "wallet") &&
+        walletModels.length > 0 &&
+        walletProvider
+      ) {
+        onSelectModel(walletProvider, walletModels[0].id);
+      }
+      return;
+    }
+
     if ((!currentModel || !currentProvider) && providers.length > 0) {
       const providerInfo = providers[0];
 
@@ -90,6 +140,9 @@ const SelectModel = () => {
     currentProvider,
     providers,
     providersModels,
+    walletModels,
+    walletProvider,
+    isWalletActive,
     onSelectModel,
   ]);
 

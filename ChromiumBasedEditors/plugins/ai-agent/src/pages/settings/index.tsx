@@ -6,6 +6,7 @@ import config from "@/config.json";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import useProviders from "@/store/useProviders";
+import useWalletStore from "@/store/useWalletStore";
 import { Providers } from "./sub-components/providers";
 import { Servers } from "./sub-components/servers";
 import { Wallet } from "./sub-components/wallet";
@@ -17,11 +18,23 @@ const Settings = () => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
 
+  const { isWalletActive, setWalletActive } = useWalletStore();
+
   const [selectedSection, setSelectedSection] = React.useState(
-    showWallet ? "wallet" : "providers"
+    showWallet ? (isWalletActive ? "wallet" : "providers") : "providers"
   );
 
   const { providers } = useProviders();
+
+  const onSectionChange = React.useCallback(
+    (section: string) => {
+      setSelectedSection(section);
+      if (showWallet) {
+        setWalletActive(section === "wallet");
+      }
+    },
+    [setWalletActive]
+  );
 
   const aiSettingsTab = (
     <div className="flex flex-col gap-[16px] select-none">
@@ -49,7 +62,7 @@ const Settings = () => {
               <div className={cn("flex items-start w-[20px] flex-shrink-0")}>
                 <RadioButton
                   checked={selectedSection === item}
-                  onChange={() => setSelectedSection(item)}
+                  onChange={() => onSectionChange(item)}
                 />
               </div>
             ) : null}
@@ -58,7 +71,7 @@ const Settings = () => {
                 {showWallet ? (
                   <h2
                     className="font-normal text-[14px] leading-[20px] text-[var(--text-normal)] cursor-pointer"
-                    onClick={() => setSelectedSection(item)}
+                    onClick={() => onSectionChange(item)}
                   >
                     {isWallet ? t("ONLYOFFICEWallet") : t("AIProviders")}
                   </h2>

@@ -1,6 +1,9 @@
 import { create } from "zustand";
+import type { Model } from "@/lib/types";
+import { provider } from "@/providers";
 
 const WALLET_PORTALS_KEY = "wallet_portals";
+const WALLET_ACTIVE_KEY = "wallet_active";
 
 type WalletPayer = {
   displayName: string;
@@ -24,15 +27,28 @@ type WalletPortal = {
 };
 
 type WalletState = {
+  isWalletActive: boolean;
   portals: WalletPortal[];
   selectedPortalId: string | null;
+  walletModels: Model[];
+  setWalletActive: (active: boolean) => void;
   addPortal: (portal: WalletPortal) => void;
   removePortal: (portalId: string) => void;
   setSelectedPortalId: (portalId: string) => void;
   refreshPortal: (portalId: string) => Promise<void>;
+  fetchWalletModels: () => Promise<void>;
 };
 
 const useWalletStore = create<WalletState>()((set, get) => ({
+  isWalletActive: (() => {
+    const saved = localStorage.getItem(WALLET_ACTIVE_KEY);
+    return saved ? JSON.parse(saved) : false;
+  })(),
+  walletModels: [],
+  setWalletActive: (active) => {
+    localStorage.setItem(WALLET_ACTIVE_KEY, JSON.stringify(active));
+    set({ isWalletActive: active });
+  },
   portals: (() => {
     const saved = localStorage.getItem(WALLET_PORTALS_KEY);
     return saved ? JSON.parse(saved) : [];
@@ -120,6 +136,27 @@ const useWalletStore = create<WalletState>()((set, get) => ({
       });
     } catch (err) {
       console.error("Failed to refresh portal:", err);
+    }
+  },
+  fetchWalletModels: async () => {
+    const portal = get().portals.find(
+      (p) => p.portalId === get().selectedPortalId
+    );
+    if (!portal) return;
+
+    try {
+      const models = await provider.getProvidersModels([
+        {
+          type: "wallet",
+          name: "Wallet",
+          key: portal.key,
+          baseUrl: portal.url,
+        },
+      ]);
+
+      set({ walletModels: models.get("Wallet") ?? [] });
+    } catch (err) {
+      console.error("Failed to fetch wallet models:", err);
     }
   },
 }));

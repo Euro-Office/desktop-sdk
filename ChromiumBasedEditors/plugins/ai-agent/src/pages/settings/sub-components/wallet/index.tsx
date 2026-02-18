@@ -54,7 +54,7 @@ const Wallet = ({ isActive }: WalletProps) => {
             }))}
           />
           {selectedPortal && (
-            <div className="flex gap-[12px] items-start px-[16px] py-[12px] rounded-[8px] bg-[var(--ai-provider-item-background-color)] shadow-[var(--ai-provider-item-shadow)] max-w-[312px]">
+            <div className="flex gap-[12px] items-start px-[16px] py-[12px] rounded-[8px] bg-[var(--ai-provider-item-background-color)] shadow-[var(--ai-provider-item-shadow)] border border-[var(--border-divider)] max-w-[312px]">
               <img
                 src={`${selectedPortal.url}${selectedPortal.payer.avatar}`}
                 alt={selectedPortal.payer.displayName}
