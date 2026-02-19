@@ -6153,8 +6153,21 @@ void CCefView_Private::LocalFile_IncrementCounter()
 				message->GetArgumentList()->SetInt(0, m_nLocalFileOpenError);
 
 				std::wstring sFileForData = L"";
-				if ((89 == m_nLocalFileOpenError) && (m_oLocalInfo.m_oInfo.m_nCurrentFileFormat == AVS_OFFICESTUDIO_FILE_SPREADSHEET_CSV))
-					sFileForData = m_oLocalInfo.m_oInfo.m_sFileSrc;
+				if (89 == m_nLocalFileOpenError)
+				{
+					switch (m_oLocalInfo.m_oInfo.m_nCurrentFileFormat)
+					{
+					case AVS_OFFICESTUDIO_FILE_SPREADSHEET_CSV:
+					case AVS_OFFICESTUDIO_FILE_SPREADSHEET_TSV:
+					case AVS_OFFICESTUDIO_FILE_SPREADSHEET_SCSV:
+					{
+						sFileForData = m_oLocalInfo.m_oInfo.m_sFileSrc;
+						break;
+					}
+					default:
+						break;
+					}
+				}
 
 				message->GetArgumentList()->SetString(1, sFileForData);
 
