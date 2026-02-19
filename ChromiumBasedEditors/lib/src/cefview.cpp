@@ -5123,7 +5123,7 @@ virtual CefRefPtr<CefResourceHandler> GetResourceHandler(
 		std::wstring sUrlFrame = frame->GetURL().ToWString();
 		if (NSFileDownloader::IsNeedDownload(sUrlFrame))
 		{
-			int nFlag = UU_SPACES | UU_REPLACE_PLUS_WITH_SPACE;
+			int nFlag = UU_SPACES;
 #if defined (_LINUX) && !defined(_MAC)
 			nFlag |= UU_URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS;
 #else
