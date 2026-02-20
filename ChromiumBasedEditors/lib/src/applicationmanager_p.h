@@ -1619,6 +1619,9 @@ public:
 	// показывать ли консоль для дебага
 	bool m_bDebugInfoSupport;
 
+	// is ai disabled
+	bool m_bDisableAI;
+
 	// логгировать ли урлы
 	bool m_bLoggingBrowserUrls;
 
@@ -1771,6 +1774,8 @@ public:
 		m_dForceDisplayScale = -1;
 
 		m_bIsUpdateFontsAttack = false;
+
+		m_bDisableAI = false;
 
 		m_nCurrentCryptoMode = NSAscCrypto::None;
 
@@ -2029,6 +2034,14 @@ public:
 			{
 				NSCommon::CSystemWindowScale::SetUseSystemScaling(false);
 			}
+		}
+
+		m_bDisableAI = false;
+		std::map<std::string, std::string>::iterator pairDisableAI = _map->find("disable-ai");
+		if (pairDisableAI != _map->end() && "1" == pairDisableAI->second)
+		{
+			m_bDisableAI = true;
+			CPluginsManager::DisableAI();
 		}
 
 		m_oKeyboardChecker.SetEnabled(m_bIsUseSpellCheckKeyboardInput);

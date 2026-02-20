@@ -693,6 +693,8 @@ namespace asc_client_renderer
 
 		bool m_bIsDebugMode;
 
+		bool m_bDisableAI;
+
 		bool m_bIsEnableUploadCrypto;
 
 		NSCriticalSection::CRITICAL_SECTION m_oCompleteTasksCS;
@@ -762,6 +764,8 @@ namespace asc_client_renderer
 			m_bIsMacrosesSupport = true;
 			m_bIsPluginsSupport = true;
 
+			m_bDisableAI = false;
+
 			CheckDefaults();
 
 			if (!g_pLocalResolver.is_init())
@@ -817,6 +821,9 @@ namespace asc_client_renderer
 
 			m_sLocalFileFolderWithoutFile = default_params.GetValueW("recovery_file_folder");
 
+			m_bDisableAI = (default_params.GetValue("disable-ai") == "1") ? true : false;
+			if (m_bDisableAI)
+				CPluginsManager::DisableAI();
 #if 0
 		default_params.Print();
 #endif

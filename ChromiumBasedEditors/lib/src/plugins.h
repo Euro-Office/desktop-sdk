@@ -41,6 +41,7 @@
 
 //#include "./plugins_resources.h"
 #include <map>
+#include <set>
 
 #ifdef GetTempPath
 #undef GetTempPath
@@ -95,6 +96,19 @@ public:
 		m_isSupportSystemUpdate = true;
 
 		m_bIsSupportMultiplugins = false;
+	}
+
+	static std::set<std::string>& GetDisableGUIDS()
+	{
+		static std::set<std::string> s = {};
+		return s;
+	}
+
+	static void DisableAI()
+	{
+		std::set<std::string>& guids = GetDisableGUIDS();
+		guids.insert("{9DC93CDB-B576-4F0C-B55E-FCC9C48DD007}");
+		guids.insert("{9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}");
 	}
 
 	std::string GetPluginsJson(const bool& bActivePlugins = true, const bool& bCheckCrypto = false,
@@ -329,6 +343,8 @@ private:
 		std::vector<std::string> arPlugins;
 		std::vector<std::wstring> arDir = NSDirectory::GetDirectories(sDir);
 
+		std::set<std::string>& disabledPlugins = CPluginsManager::GetDisableGUIDS();
+
 		for (size_t i = 0; i < arDir.size(); ++i)
 		{
 			std::string sJson;
@@ -339,7 +355,9 @@ private:
 
 				if (pos1 != std::string::npos && pos2 != std::string::npos && pos2 > pos1)
 				{
-					arPlugins.push_back(sJson.substr(pos1 + 4, pos2 - pos1 + 1 - 4));
+					std::string guid = sJson.substr(pos1 + 4, pos2 - pos1 + 1 - 4);
+					if (disabledPlugins.find(guid) == disabledPlugins.end())
+						arPlugins.push_back(guid);
 				}
 			}
 		}
