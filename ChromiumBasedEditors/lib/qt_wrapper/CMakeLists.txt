@@ -1,67 +1,52 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Define the project
 project(qtascdocumentscore VERSION 1.0.0 LANGUAGES CXX)
 
-# Enable standard Qt build features
+# Global Qt Setup
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
 add_compile_options(-march=native)
 
-# Find Qt (Supports both Qt5 and Qt6 dynamically)
+# Find Qt
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui PrintSupport Widgets Multimedia MultimediaWidgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui PrintSupport Widgets Multimedia MultimediaWidgets)
 
-# Define path variables
+# Paths
 set(CORE_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../../core")
 set(PWD_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
-
+# --- Subdirectories ---
+# Checks if targets exist to allow this to be included in larger builds
 if(NOT TARGET kernel)
     add_subdirectory(${CORE_ROOT_DIR}/Common kernel)
 endif()
-
 if(NOT TARGET UnicodeConverter)
     add_subdirectory(${CORE_ROOT_DIR}/UnicodeConverter UnicodeConverter)
 endif()
-
 if(NOT TARGET graphics)
     add_subdirectory(${CORE_ROOT_DIR}/DesktopEditor/graphics/cmake graphics)
 endif()
-
 if(NOT TARGET ascdocumentscore)
     add_subdirectory(${PWD_ROOT_DIR}/../ ascdocumentscore)
 endif()
 
+# Add VideoPlayerLib (Now a static library)
 if(NOT TARGET videoplayerlib)
     add_subdirectory(${PWD_ROOT_DIR}/../../videoplayerlib videoplayerlib)
 endif()
 
-# ---------------------------------------------------------------------------
-# NOTE: qmake .pri files cannot be directly included in CMake. 
-# You will need to convert base.pri and videoplayerlib_deps.pri into .cmake 
-# files or add their contents directly into this file.
-# 
-# include("${CORE_ROOT_DIR}/Common/base.cmake")
-# include("${CORE_ROOT_DIR}/../desktop-sdk/ChromiumBasedEditors/videoplayerlib/videoplayerlib_deps.cmake")
-# ---------------------------------------------------------------------------
-
-# Create a shared library (plugin)
-# Note: If this is loaded at runtime via QPluginLoader, change SHARED to MODULE.
+# --- Main Target ---
 add_library(qtascdocumentscore SHARED)
 
-# Add compilation definitions
 target_compile_definitions(qtascdocumentscore PRIVATE DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING)
 
-# Add include directories
 target_include_directories(qtascdocumentscore PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/include"
     "${CMAKE_CURRENT_LIST_DIR}/qrenderer/include"
 )
 
-# Add sources and headers
 target_sources(qtascdocumentscore PRIVATE
     include/qcefview.h
     include/qcefview_media.h
@@ -79,7 +64,6 @@ target_sources(qtascdocumentscore PRIVATE
     src/qdpichecker.cpp
 )
 
-# Link standard Qt libraries
 target_link_libraries(qtascdocumentscore PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Gui
@@ -87,52 +71,33 @@ target_link_libraries(qtascdocumentscore PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Multimedia
     Qt${QT_VERSION_MAJOR}::MultimediaWidgets
+    # Internal Dependencies
+    kernel 
+    graphics 
+    ascdocumentscore 
+    videoplayerlib # CMake will automatically pull includes and link the static code here
 )
 
-# ADD_DEPENDENCY(kernel, graphics, ascdocumentscore)
-# Assuming these are other CMake targets created elsewhere in your project:
-target_link_libraries(qtascdocumentscore PRIVATE kernel graphics ascdocumentscore videoplayerlib)
-
-# ---------------------------------------------------------------------------
-# OS-Specific Configurations
-# ---------------------------------------------------------------------------
-
-# core_windows
+# --- OS Specifics ---
 if(WIN32)
     target_link_libraries(qtascdocumentscore PRIVATE user32)
-    
-    # Handle the 'build_xp' custom condition. 
-    # If you pass -DBUILD_XP=ON via the CMake command line:
-    if(BUILD_XP)
-        set_target_properties(qtascdocumentscore PROPERTIES
-            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/xp"
-            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/xp"
-        )
-    endif()
 endif()
 
-# core_linux
 if(UNIX AND NOT APPLE)
-
     target_compile_definitions(qtascdocumentscore PRIVATE _LINUX)
-
-    # Check Qt version for specific modules
+    
+    # Qt5/6 Linux handling
     if(QT_VERSION_MAJOR LESS_EQUAL 5)
         find_package(Qt5 REQUIRED COMPONENTS X11Extras)
         target_link_libraries(qtascdocumentscore PRIVATE Qt5::X11Extras)
     else()
-        # In Qt6, X11Extras was removed/merged. Linking GuiPrivate as requested:
         target_link_libraries(qtascdocumentscore PRIVATE Qt6::GuiPrivate)
     endif()
 
-    # Linker flags
     target_link_options(qtascdocumentscore PRIVATE "-Wl,-unresolved-symbols=ignore-in-shared-libs")
 
-    # Additional dependencies
     target_link_libraries(qtascdocumentscore PRIVATE 
-        graphics 
-        kernel 
         UnicodeConverter
-        X11 # Requires libx11-dev to be installed on the system
+        X11 
     )
 endif()

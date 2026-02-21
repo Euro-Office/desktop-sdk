@@ -16,7 +16,6 @@ include(${CORE_ROOT_DIR}/common.cmake)
 # Options mapped from QMake CONFIG and DEFINES
 option(DISABLE_PROTECTION "Disable protection feature" OFF)
 option(DISABLE_SIGNATURES "Disable signatures feature" OFF)
-option(BUILD_XP "Build for Windows XP" OFF)
 option(USE_V8 "Use V8 on macOS" OFF)
 option(CEF_VERSION_107 "Use CEF Version 107 on Linux" OFF)
 
@@ -110,15 +109,13 @@ if(NOT APPLE)
     target_compile_definitions(ascdocumentscore PRIVATE DOCUMENTSCORE_OPENSSL_SUPPORT)
 endif()
 
-# CEF Extensions & Versions (When not building for XP)
-if(NOT BUILD_XP)
-    target_compile_definitions(ascdocumentscore PRIVATE
-        ENABLE_CEF_EXTENSIONS
-        CEF_VERSION_ABOVE_86
-        CEF_VERSION_ABOVE_102
-        OVERRIDE=override
-    )
-endif()
+# CEF Extensions & Versions
+target_compile_definitions(ascdocumentscore PRIVATE
+    ENABLE_CEF_EXTENSIONS
+    CEF_VERSION_ABOVE_86
+    CEF_VERSION_ABOVE_102
+    OVERRIDE=override
+)
 
 # Platform Specific Definitions
 if(APPLE)
@@ -577,16 +574,10 @@ add_executable(editors_helper "${CMAKE_CURRENT_SOURCE_DIR}/helper_main.cpp")
 target_link_libraries(editors_helper PRIVATE ascdocumentscore)
 
 # Output directory routing based on BUILD_XP flag
-if(BUILD_XP)
-    set_target_properties(editors_helper PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CORE_BUILDS_BINARY_PATH}/xp")
-else()
-    set_target_properties(editors_helper PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CORE_BUILDS_BINARY_PATH}")
-endif()
+set_target_properties(editors_helper PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CORE_BUILDS_BINARY_PATH}")
 
 if(WIN32)
-    if(NOT BUILD_XP)
-        target_sources(editors_helper PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/helper.exe.manifest")
-    endif()
+    target_sources(editors_helper PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/helper.exe.manifest")
 elseif(UNIX AND NOT APPLE)
     target_compile_definitions(editors_helper PRIVATE _LINUX)
     target_link_options(editors_helper PRIVATE 
