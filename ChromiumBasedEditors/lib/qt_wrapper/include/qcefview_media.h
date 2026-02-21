@@ -34,7 +34,7 @@
 #define QCEFWEBVIEW_MEDIA_H
 
 #include "./qcefview.h"
-#include "../../videoplayerlib/qascvideoview.h"
+#include "../../../videoplayerlib/qascvideoview.h"
 
 class DESKTOP_DECL QCefView_Media : public QCefView
 {

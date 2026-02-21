@@ -33,7 +33,7 @@
 #ifndef QEXTERNAL_MESSAGE_LOOP_H
 #define QEXTERNAL_MESSAGE_LOOP_H
 
-#include "./../include/applicationmanager.h"
+#include "./../../include/applicationmanager.h"
 #include <QApplication>
 #include <QTimer>
 

@@ -33,7 +33,7 @@
 #ifndef Q_ASC_APPLICATION_MANAGER_H
 #define Q_ASC_APPLICATION_MANAGER_H
 
-#include "./../include/applicationmanager.h"
+#include "./../../include/applicationmanager.h"
 #include <QtCore/qobject.h>
 
 class DESKTOP_DECL QAscApplicationManager : public CAscApplicationManager

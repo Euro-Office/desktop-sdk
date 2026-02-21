@@ -8,9 +8,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
+add_compile_options(-march=native)
+
 # Find Qt (Supports both Qt5 and Qt6 dynamically)
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui PrintSupport Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui PrintSupport Widgets)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui PrintSupport Widgets Multimedia MultimediaWidgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui PrintSupport Widgets Multimedia MultimediaWidgets)
 
 # Define path variables
 set(CORE_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../../core")
@@ -21,12 +23,20 @@ if(NOT TARGET kernel)
     add_subdirectory(${CORE_ROOT_DIR}/Common kernel)
 endif()
 
+if(NOT TARGET UnicodeConverter)
+    add_subdirectory(${CORE_ROOT_DIR}/UnicodeConverter UnicodeConverter)
+endif()
+
 if(NOT TARGET graphics)
     add_subdirectory(${CORE_ROOT_DIR}/DesktopEditor/graphics/cmake graphics)
 endif()
 
 if(NOT TARGET ascdocumentscore)
     add_subdirectory(${PWD_ROOT_DIR}/../ ascdocumentscore)
+endif()
+
+if(NOT TARGET videoplayerlib)
+    add_subdirectory(${PWD_ROOT_DIR}/../../videoplayerlib videoplayerlib)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -75,11 +85,13 @@ target_link_libraries(qtascdocumentscore PRIVATE
     Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::PrintSupport
     Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Multimedia
+    Qt${QT_VERSION_MAJOR}::MultimediaWidgets
 )
 
 # ADD_DEPENDENCY(kernel, graphics, ascdocumentscore)
 # Assuming these are other CMake targets created elsewhere in your project:
-target_link_libraries(qtascdocumentscore PRIVATE kernel graphics ascdocumentscore)
+target_link_libraries(qtascdocumentscore PRIVATE kernel graphics ascdocumentscore videoplayerlib)
 
 # ---------------------------------------------------------------------------
 # OS-Specific Configurations
@@ -101,6 +113,9 @@ endif()
 
 # core_linux
 if(UNIX AND NOT APPLE)
+
+    target_compile_definitions(qtascdocumentscore PRIVATE _LINUX)
+
     # Check Qt version for specific modules
     if(QT_VERSION_MAJOR LESS_EQUAL 5)
         find_package(Qt5 REQUIRED COMPONENTS X11Extras)

@@ -638,3 +638,5 @@ void QAscVideoView::slotCursorTimerOverflowed()
 	m_pInternal->m_oCursorTimer.stop();
 	setCursor(Qt::BlankCursor);
 }
+
+#include "qascvideoview.moc"

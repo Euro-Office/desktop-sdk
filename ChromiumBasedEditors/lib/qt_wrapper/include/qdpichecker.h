@@ -33,7 +33,7 @@
 #ifndef Q_ASC_DPICHECKER_H
 #define Q_ASC_DPICHECKER_H
 
-#include "./../include/applicationmanager.h"
+#include "./../../include/applicationmanager.h"
 #include <QWidget>
 
 class DESKTOP_DECL QDpiChecker : public CAscDpiChecker

@@ -47,6 +47,14 @@ if(NOT TARGET UnicodeConverter)
     add_subdirectory(${CORE_ROOT_DIR}/UnicodeConverter UnicodeConverter)
 endif()
 
+if(NOT TARGET CryptoPPLib)
+    add_subdirectory(${CORE_ROOT_DIR}/Common/3dParty/cryptopp/project CryptoPPLib)
+endif()
+
+if(NOT TARGET CompoundFileLib)
+    add_subdirectory(${CORE_ROOT_DIR}/Common/cfcpp CompoundFileLib)
+endif()
+
 if(NOT TARGET graphics)
     add_subdirectory(${CORE_ROOT_DIR}/DesktopEditor/graphics/cmake graphics)
 endif()
@@ -75,9 +83,6 @@ if(NOT TARGET ooxmlsignature)
     add_subdirectory(${CORE_ROOT_DIR}/DesktopEditor/xmlsec/src ooxmlsignature)
 endif()
 
-if(NOT TARGET CompoundFileLib)
-    add_subdirectory(${CORE_ROOT_DIR}/Common/cfcpp CompoundFileLib)
-endif()
 
 
 # Enforce C++17 Standard
@@ -517,7 +522,12 @@ target_link_directories(ascdocumentscore PRIVATE "${CORE_BUILDS_LIBRARIES_PATH}"
 target_link_libraries(ascdocumentscore PRIVATE CryptoPPLib CompoundFileLib)
 
 # Boost and ICU (Assuming targets exist via your core subdirectories)
-# target_link_libraries(ascdocumentscore PRIVATE Boost::boost ICU::icu)
+#target_link_libraries(ascdocumentscore PRIVATE     
+#                        boost_system 
+#                        boost_filesystem 
+#                        boost_regex 
+#                        boost_date_time
+#)
 
 if(WIN32)
     target_compile_definitions(ascdocumentscore PRIVATE NOMINMAX _WINDOWS)

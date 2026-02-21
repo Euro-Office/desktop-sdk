@@ -40,8 +40,8 @@
 #include <QDebug>
 #include <QPointer>
 
-#include "./../include/cefview.h"
-#include "./../include/applicationmanager.h"
+#include "./../../include/cefview.h"
+#include "./../../include/applicationmanager.h"
 
 class QCefViewProps;
 class DESKTOP_DECL QCefView : public QWidget, public CCefViewWidgetImpl
