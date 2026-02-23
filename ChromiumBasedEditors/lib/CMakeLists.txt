@@ -50,6 +50,10 @@ if(NOT TARGET CryptoPPLib)
     add_subdirectory(${CORE_ROOT_DIR}/Common/3dParty/cryptopp/project CryptoPPLib)
 endif()
 
+if(NOT TARGET BoostCustomBuild)
+    add_subdirectory(${CORE_ROOT_DIR}/Common/3dParty/boost BoostCustomBuild)
+endif()
+
 if(NOT TARGET CompoundFileLib)
     add_subdirectory(${CORE_ROOT_DIR}/Common/cfcpp CompoundFileLib)
 endif()
@@ -519,12 +523,12 @@ target_link_directories(ascdocumentscore PRIVATE "${CORE_BUILDS_LIBRARIES_PATH}"
 target_link_libraries(ascdocumentscore PRIVATE CryptoPPLib CompoundFileLib)
 
 # Boost and ICU (Assuming targets exist via your core subdirectories)
-#target_link_libraries(ascdocumentscore PRIVATE     
-#                        boost_system 
-#                        boost_filesystem 
-#                        boost_regex 
-#                        boost_date_time
-#)
+target_link_libraries(ascdocumentscore PRIVATE     
+                        boost_system 
+                        boost_filesystem 
+                        boost_regex 
+                        boost_date_time
+)
 
 if(WIN32)
     target_compile_definitions(ascdocumentscore PRIVATE NOMINMAX _WINDOWS)
@@ -570,8 +574,14 @@ endif()
 # ==============================================================================
 add_executable(editors_helper "${CMAKE_CURRENT_SOURCE_DIR}/helper_main.cpp")
 
-# Link the core library
-target_link_libraries(editors_helper PRIVATE ascdocumentscore)
+
+target_link_libraries(editors_helper PUBLIC 
+    ascdocumentscore
+    boost_system 
+    boost_filesystem 
+    boost_regex 
+    boost_date_time
+)
 
 # Output directory routing based on BUILD_XP flag
 set_target_properties(editors_helper PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CORE_BUILDS_BINARY_PATH}")
