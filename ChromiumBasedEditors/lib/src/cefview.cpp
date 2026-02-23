@@ -380,7 +380,7 @@ public:
 		};
 	}
 
-	virtual void Open(const std::wstring& sPath, const std::wstring& sRecoveryDir, const std::wstring& sChangesFile)
+	virtual void Open(const std::wstring& sPath, const std::wstring& sRecoveryDir, const std::wstring& sChangesFile, const std::string& sPrintParams)
 	{
 		m_sFilePath = sPath;
 		m_sTempFolder = sRecoveryDir + L"/PrintTemp";
@@ -396,13 +396,14 @@ public:
 		{
 			((CPdfFile*)m_pReader)->SetCMapFolder(m_sCMapFolder);
 
+			// CHANGES
 			if (!sChangesFile.empty())
 			{
-				std::wstring sTmpFileWithChanges = sRecoveryDir + L"/PdfFileWithChanges.bin";
-				if (NSFile::CFileBinary::Exists(sTmpFileWithChanges))
-					NSFile::CFileBinary::Remove(sTmpFileWithChanges);
+				std::wstring sTempFile = sRecoveryDir + L"/PdfFileWithChanges.bin";
+				if (NSFile::CFileBinary::Exists(sTempFile))
+					NSFile::CFileBinary::Remove(sTempFile);
 
-				if (((CPdfFile*)m_pReader)->EditPdf(sTmpFileWithChanges))
+				if (((CPdfFile*)m_pReader)->EditPdf(sTempFile))
 				{
 					CConvertFromBinParams oConvertParams;
 					oConvertParams.m_sInternalMediaDirectory = m_sImagesDirectory;
@@ -424,7 +425,59 @@ public:
 					NSDirectory::DeleteDirectory(m_sTempFolder);
 
 					m_pReader = new CPdfFile(m_pApplicationFonts);
-					Open(sTmpFileWithChanges, sRecoveryDir, L"");
+					Open(sTempFile, sRecoveryDir, L"", sPrintParams);
+					return;
+				}
+			}
+
+			// LAYOUT
+			if (!sPrintParams.empty())
+			{
+				int nType = -1;
+				std::string::size_type posLayout = sPrintParams.find("\"pdfLayout\":{");
+				if (std::string::npos != posLayout)
+				{
+					std::string::size_type posContent = sPrintParams.find("\"content\":\"", posLayout);
+					if (std::string::npos != posContent)
+					{
+						posContent += 11;
+						std::string::size_type posContent2 = sPrintParams.find("\"", posContent);
+						if (std::string::npos != posContent2)
+						{
+							std::string sType = sPrintParams.substr(posContent, posContent2 - posContent);
+							if (sType == "doc")
+								nType = 0;
+							else if (sType == "docAndMarkups")
+								nType = 1;
+							else if (sType == "docAndStamps")
+								nType = 2;
+							else if (sType == "formsOnly")
+								nType = 3;
+						}
+					}
+				}
+
+				if (nType != -1 && nType != 1)
+				{
+					std::wstring sTempFile = sRecoveryDir + L"/PdfFileWithChanges2.bin";
+					if (NSFile::CFileBinary::Exists(sTempFile))
+						NSFile::CFileBinary::Remove(sTempFile);
+
+					int nPagesCount = m_pReader->GetPagesCount();
+					std::vector<bool> arPages(nPagesCount);
+					for (int i = 0; i < nPagesCount; ++i)
+						arPages[i] = true;
+
+					((CPdfFile*)m_pReader)->PrintPages(arPages, nType);
+					((CPdfFile*)m_pReader)->SaveToFile(sTempFile);
+					((CPdfFile*)m_pReader)->Close();
+
+					RELEASEOBJECT(m_pReader);
+					NSDirectory::DeleteDirectory(m_sTempFolder);
+
+					m_pReader = new CPdfFile(m_pApplicationFonts);
+					Open(sTempFile, sRecoveryDir, L"", "");
+					return;
 				}
 			}
 
@@ -7267,7 +7320,7 @@ void CCefView::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 
 				m_pInternal->m_oPrintData.m_pNativePrinter->m_sImagesDirectory = m_pInternal->m_oPrintData.m_sDocumentImagesPath;
 
-				m_pInternal->m_oPrintData.m_pNativePrinter->Open(sLocalFileSrc, sTempDirRecover, m_pInternal->m_sNativePrintChangesFile);
+				m_pInternal->m_oPrintData.m_pNativePrinter->Open(sLocalFileSrc, sTempDirRecover, m_pInternal->m_sNativePrintChangesFile, sPrintParameters);
 				m_pInternal->m_oPrintData.m_pNativePrinter->Check(m_pInternal->m_oPrintData.m_arPages);
 				bIsNativePrint = true;
 			}
