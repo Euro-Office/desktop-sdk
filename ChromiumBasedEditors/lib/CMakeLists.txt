@@ -31,7 +31,6 @@ endif()
 # ==============================================================================
 # Target: ascdocumentscore (Plugin / Shared Library)
 # ==============================================================================
-add_library(ascdocumentscore SHARED)
 
 
 if(NOT TARGET kernel)
@@ -48,10 +47,6 @@ endif()
 
 if(NOT TARGET CryptoPPLib)
     add_subdirectory(${CORE_ROOT_DIR}/Common/3dParty/cryptopp/project CryptoPPLib)
-endif()
-
-if(NOT TARGET BoostCustomBuild)
-    add_subdirectory(${CORE_ROOT_DIR}/Common/3dParty/boost BoostCustomBuild)
 endif()
 
 if(NOT TARGET CompoundFileLib)
@@ -78,19 +73,22 @@ if(NOT TARGET doctrenderer)
     add_subdirectory(${CORE_ROOT_DIR}/DesktopEditor/doctrenderer doctrenderer)
 endif()
 
-if(NOT TARGET hunspell)
-    add_subdirectory(${CORE_ROOT_DIR}/Common/3dParty/hunspell/qt hunspell)
+if(NOT TARGET hunspell_wrapper)
+    add_subdirectory(${CORE_ROOT_DIR}/Common/3dParty/hunspell/qt hunspell_wrapper)
 endif()
 
 if(NOT TARGET ooxmlsignature)
     add_subdirectory(${CORE_ROOT_DIR}/DesktopEditor/xmlsec/src ooxmlsignature)
 endif()
 
+#find_package(boost_eo REQUIRED CONFIG)
+find_package(boost_eo REQUIRED COMPONENTS system filesystem regex date_time CONFIG)
 
+
+add_library(ascdocumentscore SHARED)
 
 # Enforce C++17 Standard
 target_compile_features(ascdocumentscore PRIVATE cxx_std_17)
-
 
 # Core Definitions
 target_compile_definitions(ascdocumentscore PRIVATE
@@ -145,7 +143,7 @@ target_compile_definitions(ascdocumentscore PRIVATE
 
 # Core Library Includes
 target_include_directories(ascdocumentscore PRIVATE
-    "${EO_CORE_3RD_PARTY_WORK_DIR}/hunspell/src"
+    #"${EO_CORE_3RD_PARTY_WORK_DIR}/hunspell/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/tools"
@@ -520,15 +518,17 @@ target_sources(ascdocumentscore PRIVATE ${ASCDOCUMENTSCORE_SOURCES})
 
 # Add Crypto & Compound dependencies
 target_link_directories(ascdocumentscore PRIVATE "${CORE_BUILDS_LIBRARIES_PATH}")
-target_link_libraries(ascdocumentscore PRIVATE CryptoPPLib CompoundFileLib)
 
 # Boost and ICU (Assuming targets exist via your core subdirectories)
-target_link_libraries(ascdocumentscore PRIVATE     
-                        boost_system 
-                        boost_filesystem 
-                        boost_regex 
-                        boost_date_time
+target_link_libraries(ascdocumentscore PUBLIC
+                    Boost::system
+                    Boost::filesystem
+                    Boost::regex
+                    Boost::date_time
+                    CryptoPPLib
+                    CompoundFileLib
 )
+
 
 if(WIN32)
     target_compile_definitions(ascdocumentscore PRIVATE NOMINMAX _WINDOWS)
@@ -565,7 +565,7 @@ else() # Linux
     target_link_libraries(ascdocumentscore PRIVATE
         ${GTK_LIBRARIES} X11 X11-xcb xkbcommon-x11 xkbcommon
         graphics kernel UnicodeConverter kernel_network
-        PdfFile XpsFile DjVuFile hunspell ooxmlsignature doctrenderer
+        PdfFile XpsFile DjVuFile hunspell_wrapper ooxmlsignature doctrenderer
     )
 endif()
 
@@ -577,10 +577,10 @@ add_executable(editors_helper "${CMAKE_CURRENT_SOURCE_DIR}/helper_main.cpp")
 
 target_link_libraries(editors_helper PUBLIC 
     ascdocumentscore
-    boost_system 
-    boost_filesystem 
-    boost_regex 
-    boost_date_time
+    Boost::system
+    Boost::filesystem
+    Boost::regex
+    Boost::date_time
 )
 
 # Output directory routing based on BUILD_XP flag
