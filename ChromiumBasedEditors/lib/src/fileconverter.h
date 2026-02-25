@@ -1148,6 +1148,12 @@ public:
 			oBuilder.WriteString(L"</m_oThumbnail>");
 		}
 
+		std::wstring sCMapFolder = m_pManager->m_oSettings.file_converter_path;
+		sCMapFolder += L"/../editors/sdkjs/pdf/src/engine";
+		oBuilder.WriteString(L"<m_sCmapDir>");
+		oBuilder.WriteEncodeXmlString(sDstTmpDir);
+		oBuilder.WriteString(L"</m_sCmapDir>");
+
 		oBuilder.WriteString(L"</TaskQueueDataConvert>");
 
 		std::wstring sXmlConvert = oBuilder.GetData();

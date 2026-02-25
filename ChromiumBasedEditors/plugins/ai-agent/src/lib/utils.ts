@@ -1,5 +1,5 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export const cn = (...inputs: ClassValue[]) => {
@@ -43,6 +43,10 @@ export const removeSpecialCharacter = (str: string) => {
   return str.replace(/[\\/:*"<>|?]/g, "");
 };
 
+export const sanitizeProviderName = (str: string) => {
+  return removeSpecialCharacter(str);
+};
+
 export const getMessageTitleFromMd = (md: string) => {
   const lines = md.split("\n");
 
@@ -65,4 +69,20 @@ export const isSpreadsheet = (type: number) => {
 
 export const isPdf = (type: number) => {
   return type === 0x0201 || type === 0x0209;
+};
+
+export const isDjVu = (type: number) => {
+  return type === 0x0203;
+};
+
+export const isXps = (type: number) => {
+  return type === 0x0204;
+};
+
+export const isPdfForm = (type: number) => {
+  return type === 0x0057;
+};
+
+export const isVisio = (type: number) => {
+  return !!(type & 0x4000);
 };

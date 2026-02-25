@@ -1,19 +1,7 @@
 import type { TProcess } from "./lib/types";
 
-export {};
-
 declare global {
   interface Window {
-    AscSimpleRequest: {
-      createRequest: (options: {
-        url: string;
-        method: string;
-        headers: Record<string, string>;
-        body: string;
-        complete: (e: { responseText: string }) => void;
-        error: (e: { statusCode: number }) => void;
-      }) => void;
-    };
     AscDesktopEditor: {
       getOfficeFileType: (file: string) => number;
       getToolFunctions: () => string;

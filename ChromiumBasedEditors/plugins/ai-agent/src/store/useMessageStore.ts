@@ -1,8 +1,7 @@
-import { create } from "zustand";
 import type { ThreadMessageLike } from "@assistant-ui/react";
-
-import { provider } from "@/providers";
+import { create } from "zustand";
 import { readMessages } from "@/database/messages";
+import { provider } from "@/providers";
 
 type UseMessageStoreProps = {
   messages: ThreadMessageLike[];

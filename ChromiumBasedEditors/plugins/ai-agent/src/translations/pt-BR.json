@@ -42,6 +42,7 @@
   "Download": "Baixar",
   "Search": "Pesquisar...",
   "AddLocalFile": "Adicionar arquivo local...",
+  "AddLocalImage": "Adicionar imagem local...",
   "RecentFiles": "Arquivos recentes",
   "Anexos": "Anexos",
   "APIKey": "Chave de API",
@@ -49,7 +50,7 @@
   "AskAI": "Pergunte à IA",
   "Analyzing": "Analisando...",
   "AIWouldLikeUseThisTool": "Al gostaria de usar esta ferramenta:",
-  "ReviewEachAction": "Analise cada ação cuidadosamente antes de aprová-la. Não podemos garantir a segurança ou as práticas de privacidade de integrações de terceiros.",
+  "ReviewEachAction": "Analise cada ação cuidadosamente antes de aprová-la.\n Não podemos garantir a segurança ou as práticas de privacidade de integrações de terceiros.",
   "AlwaysAllow": "Permitir que esta ferramenta execute esta ação sem perguntar novamente",
   "Deny": "Negar",
   "Allow": "Permitir",
@@ -79,5 +80,9 @@
   "EnableWebSearch": "Ativar pesquisa na Web nas configurações",
   "WantDeleteServer": "Este servidor será removido da sua lista. Deseja continuar ?",
   "NoModelsAvailable": "Fornecedor não disponível",
-  "CheckInfo": "IA Bater papo Podem ocorrer erros. Verifique informações importantes."
+  "CheckInfo": "IA Bater papo Podem ocorrer erros. Verifique informações importantes.",
+  "ConfigurationError": "A configuração deve ser colocada dentro da propriedade 'mcpServers'",
+  "Thinking": "Raciocínio",
+  "ExtendedThinking": "Raciocínio Avançado",
+  "ExtendedThinkingDescription": "Este modelo usa raciocínio avançado, o que pode aumentar os custos."
 }

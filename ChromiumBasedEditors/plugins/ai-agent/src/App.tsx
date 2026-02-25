@@ -1,32 +1,25 @@
-import { useEffect, useState } from "react";
-
 import {
   AssistantRuntimeProvider,
-  useExternalStoreRuntime,
   CompositeAttachmentAdapter,
   SimpleImageAttachmentAdapter,
   SimpleTextAttachmentAdapter,
   type ThreadMessageLike,
+  useExternalStoreRuntime,
 } from "@assistant-ui/react";
-
-import useMessageStore from "./store/useMessageStore";
-import useRouter from "./store/useRouter";
-import useProviders from "./store/useProviders";
-import useServersStore from "./store/useServersStore";
-
-import EmptyScreen from "./pages/empty-screen";
-import Settings from "./pages/settings";
-import Thread from "./pages/chat";
-
+import { useEffect, useState } from "react";
 import { Layout } from "./components/layout";
 import { ManageToolDialog } from "./components/manage-tool-dialog";
-
-import useMessages from "./hooks/useMessages";
-import useThread from "./hooks/useThreads";
-import useModels from "./hooks/useModels";
-import useServers from "./hooks/useServers";
-
 import { chatDB, initChatDB } from "./database";
+import useMessages from "./hooks/useMessages";
+import useServers from "./hooks/useServers";
+import useThread from "./hooks/useThreads";
+import Thread from "./pages/chat";
+import EmptyScreen from "./pages/empty-screen";
+import Settings from "./pages/settings";
+import useMessageStore from "./store/useMessageStore";
+import useProviders from "./store/useProviders";
+import useRouter from "./store/useRouter";
+import useServersStore from "./store/useServersStore";
 
 import "./i18n";
 
@@ -44,8 +37,6 @@ const App = () => {
     isReady,
   });
 
-  useModels();
-
   useServers({
     isReady,
   });
@@ -56,7 +47,7 @@ const App = () => {
 
   useEffect(() => {
     if (providers.length) fetchProvidersModels();
-  }, [providers, fetchProvidersModels]);
+  }, [providers.length, fetchProvidersModels]);
 
   useEffect(() => {
     if (manageToolData) setIsManageToolOpen(true);

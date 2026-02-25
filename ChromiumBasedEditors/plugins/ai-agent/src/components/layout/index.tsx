@@ -1,10 +1,10 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
+import { useDirection } from "@/hooks/useDirection";
 import useRouter from "@/store/useRouter";
-
-import { Navigation } from "./sub-components/Header";
+import useThemeStore from "@/store/useThemeStore";
 import { ChatList } from "./sub-components/ChatList";
+import { Navigation } from "./sub-components/Header";
 
 const getSystemTheme = (system: "dark" | "light") => {
   if (system === "dark") {
@@ -16,22 +16,10 @@ const getSystemTheme = (system: "dark" | "light") => {
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { currentPage } = useRouter();
+  const { themeId, setThemeId } = useThemeStore();
 
   const { i18n } = useTranslation();
-
-  const [theme, setTheme] = React.useState(() => {
-    if (window.RendererProcessVariable) {
-      if (window.RendererProcessVariable.theme.id === "theme-system") {
-        return getSystemTheme(
-          window.RendererProcessVariable.theme.system as "dark" | "light"
-        );
-      }
-
-      return window.RendererProcessVariable.theme.id;
-    } else {
-      return "theme-light";
-    }
-  });
+  const { isRTL } = useDirection();
 
   React.useLayoutEffect(() => {
     if (window.RendererProcessVariable) {
@@ -45,22 +33,24 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
       if (info.theme) {
         if (info.theme === "theme-system") {
-          setTheme(
-            getSystemTheme(
-              window.RendererProcessVariable.theme.system as "dark" | "light"
-            )
+          const resolvedTheme = getSystemTheme(
+            window.RendererProcessVariable.theme.system as "dark" | "light"
           );
+          setThemeId(resolvedTheme);
         } else {
-          setTheme(info.theme);
+          setThemeId(info.theme);
         }
       }
     };
-  }, [i18n]);
+  }, [i18n, setThemeId]);
 
   const isSettings = currentPage === "settings";
 
   return (
-    <div className={`h-[100vh] ${theme}`}>
+    <div
+      className={`h-[100vh] ${themeId} ${isRTL ? "font-rtl" : ""}`}
+      dir={isRTL ? "rtl" : "ltr"}
+    >
       <main
         id="app"
         className="h-[100vh] bg-[var(--layout-background-color)] flex flex-col"

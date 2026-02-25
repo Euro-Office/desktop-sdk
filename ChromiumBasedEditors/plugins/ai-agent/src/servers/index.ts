@@ -1,7 +1,6 @@
 import type { TMCPItem } from "@/lib/types";
-
-import { DesktopEditorTool } from "./DesktopEditor";
 import { CustomServers } from "./CustomServers";
+import { DesktopEditorTool } from "./DesktopEditor";
 import { WebSearch, type WebSearchData } from "./WebSearch";
 
 const ALLOW_ALWAYS_TOOLS = "allowAlwaysTools";
@@ -118,7 +117,7 @@ class Servers {
   };
 
   getCustomServersStoped = () => {
-    return this.customServers.stopedCustomServers;
+    return this.customServers.stoppedCustomServers;
   };
 
   getCustomServersLogs = () => {

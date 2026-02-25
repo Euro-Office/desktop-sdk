@@ -42,6 +42,7 @@
   "Download": "Pobierz",
   "Search": "Wyszukaj...",
   "AddLocalFile": "Dodaj plik lokalny...",
+  "AddLocalImage": "Dodaj obraz lokalny...",
   "RecentFiles": "Ostatnie pliki",
   "Attachments": "Załączniki",
   "APIKey": "Klucz API",
@@ -49,7 +50,7 @@
   "AskAI": "Zapytaj AI",
   "Analyzing": "Analizowanie...",
   "AIWouldLikeUseThisTool": "AI chce skorzystać z tego narzędzia:",
-  "ReviewEachAction": "Sprawdź każde działanie przed zatwierdzeniem\n Nie gwarantujemy bezpieczeństwa ani prywatności w integracjach z podmiotami trzecimi.",
+  "ReviewEachAction": "Sprawdź każde działanie przed zatwierdzeniem.\n Nie gwarantujemy bezpieczeństwa ani prywatności w integracjach z podmiotami trzecimi.",
   "AlwaysAllow": "Zawsze zezwalaj narzędziu na to działanie bez ponownego pytania",
   "Deny": "Odmów",
   "Allow": "Zezwól",
@@ -79,5 +80,9 @@
   "EnableWebSearch": "Włącz wyszukiwanie w internecie w ustawieniach",
   "WantDeleteServer": "Serwer zostanie usunięty z Twojej listy. Kontynuować?",
   "NoModelsAvailable": "Dostawca jest niedostępny",
-  "CheckInfo": "Czat AI może popełniać błędy. Sprawdź ważne informacje."
+  "CheckInfo": "Czat AI może popełniać błędy. Sprawdź ważne informacje.",
+  "ConfigurationError": "Konfiguracja musi być umieszczona w właściwości 'mcpServers'",
+  "Thinking": "Rozumowanie",
+  "ExtendedThinking": "Rozszerzone myślenie",
+  "ExtendedThinkingDescription": "Ten model wykorzystuje zaawansowane rozumowanie, co może zwiększyć koszty."
 }

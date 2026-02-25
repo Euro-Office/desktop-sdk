@@ -47,17 +47,13 @@ class WebSearch {
   webSearch = async (args: Record<string, unknown>) => {
     if (this.webSearchData?.provider === "Exa") {
       try {
-        const result = await new Promise<{
-          error?: number;
-          data?: unknown;
-          message?: string;
-        }>((resolve) => {
-          window.AscSimpleRequest.createRequest({
-            url: "https://api.exa.ai/search",
+        const response = await fetch(
+          "onlyoffice-proxy://https://api.exa.ai/search",
+          {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-api-key": this.webSearchData!.key,
+              "x-api-key": this.webSearchData?.key ?? "",
             },
             body: JSON.stringify({
               query: args.query,
@@ -65,31 +61,25 @@ class WebSearch {
               numResults: 5,
               livecrawl: "preferred",
             }),
-            complete: function (e: { responseText: string }) {
-              const parsedData = JSON.parse(e.responseText);
-              const data = parsedData.error
-                ? {
-                    error: parsedData.error,
-                  }
-                : parsedData.results;
-              resolve({ data });
-            },
-            error: function (e: { statusCode: number }) {
-              console.log("Request failed with status:", e.statusCode);
-              if (e.statusCode == -102) e.statusCode = 404;
-              resolve({
-                error: e.statusCode,
-                message: `Network error: ${e.statusCode}`,
-              });
-            },
+          }
+        );
+
+        if (!response.ok) {
+          return JSON.stringify({
+            error: response.status,
+            message: `Network error: ${response.status}`,
           });
-        });
+        }
 
-        console.log();
+        const parsedData = await response.json();
+        const data = parsedData.error
+          ? { error: parsedData.error }
+          : parsedData.results;
 
-        return JSON.stringify(result);
+        return JSON.stringify({ data });
       } catch (e) {
         console.error("WebSearch error:", e);
+        return JSON.stringify({ error: e });
       }
     }
     return JSON.stringify(args);
@@ -98,45 +88,37 @@ class WebSearch {
   webCrawling = async (args: Record<string, unknown>) => {
     if (this.webSearchData?.provider === "Exa") {
       try {
-        const result = await new Promise<{
-          error?: number;
-          data?: unknown;
-          message?: string;
-        }>((resolve) => {
-          window.AscSimpleRequest.createRequest({
-            url: "https://api.exa.ai/contents",
+        const response = await fetch(
+          "onlyoffice-proxy://https://api.exa.ai/contents",
+          {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-api-key": this.webSearchData!.key,
+              "x-api-key": this.webSearchData?.key ?? "",
             },
             body: JSON.stringify({
               urls: args.urls,
               text: true,
             }),
-            complete: function (e: { responseText: string }) {
-              const parsedData = JSON.parse(e.responseText);
-              const data = parsedData.error
-                ? {
-                    error: parsedData.error,
-                  }
-                : parsedData.results;
-              resolve({ data });
-            },
-            error: function (e: { statusCode: number }) {
-              console.log("Request failed with status:", e.statusCode);
-              if (e.statusCode == -102) e.statusCode = 404;
-              resolve({
-                error: e.statusCode,
-                message: `Network error: ${e.statusCode}`,
-              });
-            },
-          });
-        });
+          }
+        );
 
-        return JSON.stringify(result);
+        if (!response.ok) {
+          return JSON.stringify({
+            error: response.status,
+            message: `Network error: ${response.status}`,
+          });
+        }
+
+        const parsedData = await response.json();
+        const data = parsedData.error
+          ? { error: parsedData.error }
+          : parsedData.results;
+
+        return JSON.stringify({ data });
       } catch (e) {
         console.error(e);
+        return JSON.stringify({ error: e });
       }
     }
     return JSON.stringify(args);

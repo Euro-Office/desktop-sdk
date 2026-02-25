@@ -1,11 +1,10 @@
-import { create } from "zustand";
 import type { ThreadMessageLike } from "@assistant-ui/react";
-
-import type { TMCPItem } from "@/lib/types";
+import { create } from "zustand";
 import {
   MAX_TOOL_COUNT,
   MAX_TOOL_COUNT_WITH_WEB_SEARCH,
 } from "@/lib/constants";
+import type { TMCPItem } from "@/lib/types";
 import client from "@/servers";
 
 const DISABLED_TOOLS_NAME = "disabledTools";
@@ -66,7 +65,7 @@ const useServersStore = create<UseServersStoreProps>((set, get) => ({
     if (disabledToolsNamesStr) {
       const disabledTools = JSON.parse(disabledToolsNamesStr);
 
-      Object.entries(allTools).map(([type, serverTools]) => {
+      Object.entries(allTools).forEach(([type, serverTools]) => {
         if (type === "web-search") {
           servers[type] = [...serverTools];
 
@@ -125,7 +124,7 @@ const useServersStore = create<UseServersStoreProps>((set, get) => ({
 
       let webSearchEnabled = false;
 
-      Object.entries(allTools).map(([type, serverTools]) => {
+      Object.entries(allTools).forEach(([type, serverTools]) => {
         disabledTools[type] = [];
 
         if (type === "web-search") {
@@ -160,10 +159,12 @@ const useServersStore = create<UseServersStoreProps>((set, get) => ({
 
         servers[type] = serverToolsWithStatus;
         tools.push(
-          ...serverToolsWithStatus.map((tool) => ({
-            ...tool,
-            name: `${type}_${tool.name}`,
-          }))
+          ...serverToolsWithStatus
+            .filter((tool) => tool.enabled)
+            .map((tool) => ({
+              ...tool,
+              name: `${type}_${tool.name}`,
+            }))
         );
       });
 
@@ -291,7 +292,7 @@ const useServersStore = create<UseServersStoreProps>((set, get) => ({
     const thisStore = get();
 
     const type = client.getServerType(name);
-    const toolName = name.replace(type + "_", "");
+    const toolName = name.replace(`${type}_`, "");
 
     const tool = thisStore.disabledTools[type].find(
       (tool) => tool === toolName

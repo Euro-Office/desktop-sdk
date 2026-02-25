@@ -1,19 +1,18 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import useServersStore from "@/store/useServersStore";
-
-import client from "@/servers";
-
+import { useDirection } from "@/hooks/useDirection";
 import {
   MAX_TOOL_COUNT,
   MAX_TOOL_COUNT_WITH_WEB_SEARCH,
 } from "@/lib/constants";
-
+import { cn } from "@/lib/utils";
+import client from "@/servers";
+import useServersStore from "@/store/useServersStore";
 import AvailableToolsItem from "./AvailableToolsItem";
 
 const AvailableTools = () => {
   const { t } = useTranslation();
+  const { isRTL } = useDirection();
 
   const [customServers, setCustomServers] = React.useState({});
 
@@ -43,7 +42,12 @@ const AvailableTools = () => {
 
   return (
     <div className="w-[640px] h-[560px] border border-[var(--servers-available-tools-border-color)] rounded-[8px] flex flex-col">
-      <div className="min-h-[44px] h-[44px] flex items-center justify-between px-[16px] border-b border-[var(--servers-available-tools-border-color)]">
+      <div
+        className={cn(
+          "min-h-[44px] h-[44px] flex items-center justify-between px-[16px] border-b border-[var(--servers-available-tools-border-color)]",
+          isRTL ? "flex-row-reverse" : ""
+        )}
+      >
         <p className="font-bold text-[14px] leading-[20px] text-[var(--servers-available-tools-header-color)]">
           {t("AvailableTools")}
         </p>
@@ -54,7 +58,10 @@ const AvailableTools = () => {
           /{MAX_TOOL_COUNT} {t("Tools")}
         </p>
       </div>
-      <div className="flex flex-col gap-[8px] pt-[12px] pb-[16px] px-[8px] overflow-y-auto">
+      <div
+        dir={isRTL ? "rtl" : "ltr"}
+        className="flex flex-col gap-[8px] pt-[12px] pb-[16px] px-[8px] overflow-y-auto"
+      >
         <AvailableToolsItem
           name="desktop-editor"
           mcpItems={servers["desktop-editor"] ?? []}

@@ -1,13 +1,11 @@
-import React from "react";
-import { useTranslation } from "react-i18next";
-
-import { EditorView, basicSetup } from "codemirror";
 import { json } from "@codemirror/lang-json";
 import { EditorState } from "@codemirror/state";
-import { ViewUpdate } from "@codemirror/view";
-
-import { Dialog, DialogContent } from "@/components/dialog";
+import type { ViewUpdate } from "@codemirror/view";
+import { basicSetup, EditorView } from "codemirror";
+import React from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/button";
+import { Dialog, DialogContent } from "@/components/dialog";
 import useServersStore from "@/store/useServersStore";
 
 import "./ConfigDialog.css";
@@ -121,7 +119,7 @@ const ConfigDialog = ({ open, onClose }: ConfigDialogProps) => {
         viewRef.current = null;
       }
     };
-  }, [open, t, validateJson, getConfig]);
+  }, [open, validateJson, getConfig]);
 
   const onSubmitAction = React.useCallback(() => {
     if (!isValidJson) return;
@@ -133,7 +131,10 @@ const ConfigDialog = ({ open, onClose }: ConfigDialogProps) => {
     if (!open) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      if (
+        e.key === "Enter" &&
+        document.activeElement?.id === "dialog-content"
+      ) {
         e.preventDefault();
         onSubmitAction();
       }
@@ -147,7 +148,7 @@ const ConfigDialog = ({ open, onClose }: ConfigDialogProps) => {
   }, [open, onSubmitAction]);
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open}>
       <DialogContent
         header={t("EditConfiguration")}
         onClose={onClose}

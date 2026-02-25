@@ -554,6 +554,8 @@ namespace asc_scheme
 
 			if (schemeName == "onlyoffice")
 				return new ClientSchemeHandlerOO(m_pManager);
+			if (schemeName == "onlyoffice-proxy")
+				return nullptr;
 
 			std::wstring sMainUrl = L"";
 			if (browser && browser->GetMainFrame())
@@ -580,6 +582,7 @@ namespace asc_scheme
 	{
 		registrar->AddCustomScheme("ascdesktop", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CORS_ENABLED | CEF_SCHEME_OPTION_FETCH_ENABLED);
 		registrar->AddCustomScheme("onlyoffice", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CORS_ENABLED | CEF_SCHEME_OPTION_FETCH_ENABLED);
+		registrar->AddCustomScheme("onlyoffice-proxy", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CORS_ENABLED | CEF_SCHEME_OPTION_FETCH_ENABLED);
 	}
 #endif
 
@@ -588,6 +591,7 @@ namespace asc_scheme
 		bool res = true;
 		res = res && CefRegisterSchemeHandlerFactory("ascdesktop", "", new ClientSchemeHandlerFactory(pManager));
 		res = res && CefRegisterSchemeHandlerFactory("onlyoffice", "", new ClientSchemeHandlerFactory(pManager));
+		res = res && CefRegisterSchemeHandlerFactory("onlyoffice-proxy", "", new ClientSchemeHandlerFactory(pManager));
 		return res;
 	}
 

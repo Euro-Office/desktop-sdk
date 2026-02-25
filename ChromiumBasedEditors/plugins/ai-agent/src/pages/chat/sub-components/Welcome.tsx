@@ -1,5 +1,4 @@
 import { ThreadPrimitive } from "@assistant-ui/react";
-
 import { useTranslation } from "react-i18next";
 
 const ThreadWelcome = () => {

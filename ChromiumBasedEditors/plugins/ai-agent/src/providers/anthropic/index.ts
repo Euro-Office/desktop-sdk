@@ -1,90 +1,104 @@
-import type { ThreadMessageLike } from "@assistant-ui/react";
-import Anthropic from "@anthropic-ai/sdk";
+import type Anthropic from "@anthropic-ai/sdk";
 import type {
   MessageParam,
   ToolResultBlockParam,
   ToolUnion,
 } from "@anthropic-ai/sdk/resources/messages";
-import cloneDeep from "lodash.clonedeep";
-
+import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { Model, TMCPItem, TProvider } from "@/lib/types";
-
-import type { BaseProvider } from "../base";
-import type { SettingsProvider, TData, TErrorData } from "../settings";
-
-import { CREATE_TITLE_SYSTEM_PROMPT } from "../Providers.utils";
-
-import {
-  convertMessagesToModelFormat,
-  convertToolsToModelFormat,
-} from "./utils";
+import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
+import { extractErrorMessage, getErrorStatus, ProviderErrors } from "../errors";
+import { CREATE_TITLE_SYSTEM_PROMPT } from "../prompts";
 import {
   handleContentBlockDelta,
   handleContentBlockStart,
   handleMessageStart,
 } from "./handlers";
+import {
+  createClient,
+  createEndResult,
+  createErrorResult,
+  createInitialResponse,
+  getLastToolCall,
+} from "./helpers";
+import { anthropicInfo } from "./info";
+import type { StreamResult } from "./types";
+import {
+  convertMessagesToModelFormat,
+  convertToolsToModelFormat,
+} from "./utils";
 
-class AnthropicProvider
-  implements BaseProvider<ToolUnion, MessageParam, Anthropic>, SettingsProvider
-{
-  modelKey: string = "claude-3-7-sonnet-latest";
-  systemPrompt: string = "";
+// ============================================================================
+// Provider Class
+// ============================================================================
 
-  apiKey?: string;
-  url?: string;
-  provider?: TProvider;
+class AnthropicProvider extends AbstractBaseProvider<
+  ToolUnion,
+  MessageParam,
+  Anthropic
+> {
+  // --------------------------------------------------------------------------
+  // Setup Methods
+  // --------------------------------------------------------------------------
 
-  messageStopped: boolean = false;
-
-  prevMessages: MessageParam[] = [];
-  tools: ToolUnion[] = [];
-  client?: Anthropic;
-
-  constructor() {}
-
-  setProvider = (provider: TProvider) => {
+  setProvider = (provider: TProvider): void => {
     this.provider = provider;
 
-    this.client = new Anthropic({
-      apiKey: provider.key,
-      baseURL: provider.baseUrl,
-      dangerouslyAllowBrowser: true,
-    });
+    this.client = createClient(provider.key, provider.baseUrl);
 
     if (provider.key) this.setApiKey(provider.key);
     if (provider.baseUrl) this.setUrl(provider.baseUrl);
   };
 
-  setModelKey = (modelKey: string) => {
-    this.modelKey = modelKey;
-  };
-
-  setSystemPrompt = (systemPrompt: string) => {
-    this.systemPrompt = systemPrompt;
-  };
-
-  setApiKey = (apiKey: string) => {
-    this.apiKey = apiKey;
-    if (this.client) this.client.apiKey = apiKey;
-  };
-
-  setUrl = (url: string) => {
-    this.url = url;
-    if (this.client) this.client.baseURL = url;
-  };
-
-  setPrevMessages = (prevMessages: ThreadMessageLike[]) => {
+  setPrevMessages = (prevMessages: ThreadMessageLike[]): void => {
     this.prevMessages = convertMessagesToModelFormat(prevMessages);
   };
 
-  setTools = (tools: TMCPItem[]) => {
+  setTools = (tools: TMCPItem[]): void => {
     this.tools = convertToolsToModelFormat(tools);
   };
 
-  async createChatName(message: string) {
-    try {
-      if (!this.client) return "";
+  // --------------------------------------------------------------------------
+  // History Management
+  // --------------------------------------------------------------------------
 
+  private pushToHistory = (message: ThreadMessageLike): void => {
+    const converted = convertMessagesToModelFormat([message]);
+    this.prevMessages.push(...converted);
+  };
+
+  private pushToHistorySliced = (
+    responseMessage: ThreadMessageLike,
+    originalMessage: ThreadMessageLike
+  ): void => {
+    if (typeof responseMessage.content === "string") return;
+    if (typeof originalMessage.content === "string") return;
+
+    const newContent = responseMessage.content.slice(
+      originalMessage.content.length
+    );
+    this.pushToHistory({ ...responseMessage, content: newContent });
+  };
+
+  // --------------------------------------------------------------------------
+  // Thinking Mode Helpers
+  // --------------------------------------------------------------------------
+
+  private isThinkingMode = (): boolean => {
+    return (
+      this.isReasoning ||
+      anthropicInfo.thinkingModels.some((m) => this.modelKey.includes(m))
+    );
+  };
+
+  // --------------------------------------------------------------------------
+  // Chat Name
+  // --------------------------------------------------------------------------
+
+  async createChatName(message: string): Promise<string> {
+    if (!this.client) return "";
+
+    try {
       const response = await this.client.messages.create({
         messages: [{ role: "user", content: message }],
         model: this.modelKey,
@@ -101,247 +115,182 @@ class AnthropicProvider
     }
   }
 
+  // --------------------------------------------------------------------------
+  // Message Streaming
+  // --------------------------------------------------------------------------
+
   async *sendMessage(
     messages: ThreadMessageLike[],
     afterToolCall?: boolean,
-    message?: ThreadMessageLike
-  ): AsyncGenerator<
-    ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
-  > {
-    try {
-      if (!this.client) return;
+    message?: ThreadMessageLike,
+    withThinking?: boolean
+  ): AsyncGenerator<StreamResult> {
+    if (!this.client) return;
 
-      const convertedMessage = convertMessagesToModelFormat(messages);
+    try {
+      const convertedMessages = convertMessagesToModelFormat(messages);
+      this.prevMessages.push(...convertedMessages);
+
+      const useThinking = withThinking ? this.isThinkingMode() : false;
 
       const stream = await this.client.messages.create({
-        messages: [...this.prevMessages, ...convertedMessage],
+        messages: [...this.prevMessages],
         model: this.modelKey,
         system: this.systemPrompt,
-        tools: this.tools,
+        tools: this.tools.length > 0 ? this.tools : undefined,
         stream: true,
-        max_tokens: 30000,
-        tool_choice: {
-          disable_parallel_tool_use: true,
-          type: "auto",
-        },
+        max_tokens: useThinking ? 16000 : 30000,
+        ...(this.tools.length > 0 && {
+          tool_choice: { disable_parallel_tool_use: true, type: "auto" },
+        }),
+        ...(useThinking && {
+          thinking: {
+            type: "enabled",
+            budget_tokens: 10000,
+          },
+        }),
       });
 
-      this.prevMessages.push(...convertedMessage);
+      let responseMessage = createInitialResponse(afterToolCall, message);
 
-      let responseMessage: ThreadMessageLike =
-        afterToolCall && message
-          ? cloneDeep(message)
-          : {
-              role: "assistant",
-              content: [],
-            };
-
-      for await (const messageStreamEvent of stream) {
-        const { type } = messageStreamEvent;
-
-        if (type === "message_start") {
-          if (afterToolCall && message) {
-            yield message;
-
-            continue;
-          }
-
-          responseMessage = handleMessageStart(messageStreamEvent);
-        }
-
-        if (type === "content_block_start") {
-          responseMessage = handleContentBlockStart(
-            messageStreamEvent,
-            responseMessage
-          );
-        }
-
-        if (type === "content_block_delta") {
-          responseMessage = handleContentBlockDelta(
-            messageStreamEvent,
-            responseMessage
-          );
-        }
-
-        if (type === "message_stop") {
-          if (afterToolCall && message) {
-            const newContent = responseMessage.content.slice(
-              message.content.length
-            );
-
-            const newMsg = {
-              ...responseMessage,
-              content: newContent,
-            };
-
-            const providerMsg = convertMessagesToModelFormat([newMsg]);
-
-            this.prevMessages.push(...providerMsg);
-
-            yield { isEnd: true, responseMessage };
-            continue;
-          }
-          const providerMsg = convertMessagesToModelFormat([responseMessage]);
-
-          this.prevMessages.push(...providerMsg);
-
-          yield { isEnd: true, responseMessage };
-          continue;
-        }
-
-        if (this.messageStopped) {
-          this.messageStopped = false;
-
-          const providerMsg = convertMessagesToModelFormat([responseMessage]);
-
-          this.prevMessages.push(...providerMsg);
-
+      for await (const event of stream) {
+        // Handle stop flag
+        if (this.stopFlag) {
+          this.stopFlag = false;
+          this.pushToHistory(responseMessage);
           stream.controller.abort();
+          yield createEndResult(responseMessage);
+          return;
+        }
 
-          yield { isEnd: true, responseMessage };
+        // Process event by type
+        switch (event.type) {
+          case "message_start":
+            if (afterToolCall && message) {
+              yield message;
+            } else {
+              responseMessage = handleMessageStart(event);
+            }
+            break;
 
-          continue;
+          case "content_block_start":
+            responseMessage = handleContentBlockStart(event, responseMessage);
+            break;
+
+          case "content_block_delta":
+            responseMessage = handleContentBlockDelta(event, responseMessage);
+            break;
+
+          case "message_stop":
+            if (afterToolCall && message) {
+              this.pushToHistorySliced(responseMessage, message);
+            } else {
+              this.pushToHistory(responseMessage);
+            }
+            yield createEndResult(responseMessage);
+            return;
+
+          default:
+            break;
         }
 
         yield responseMessage;
       }
-    } catch (e) {
-      yield {
-        isEnd: true,
-        responseMessage: {
-          role: "assistant",
-          content: "",
-          status: {
-            type: "incomplete",
-            reason: "error",
-            error: e,
-          },
-        } as ThreadMessageLike,
-      };
+    } catch (error) {
+      yield createErrorResult(error);
     }
   }
 
   async *sendMessageAfterToolCall(
-    message: ThreadMessageLike
-  ): AsyncGenerator<
-    ThreadMessageLike | { isEnd: true; responseMessage: ThreadMessageLike }
-  > {
-    if (typeof message.content === "string") return message;
-
-    const result = message.content
-      .filter((c) => c.type === "tool-call")
-      .reverse()[0];
-
-    if (!result) return message;
+    message: ThreadMessageLike,
+    withThinking?: boolean
+  ): AsyncGenerator<StreamResult> {
+    const lastToolCall = getLastToolCall(message);
+    if (!lastToolCall) return message;
 
     const toolResult: ToolResultBlockParam = {
       type: "tool_result",
-      content: result.result,
-      tool_use_id: result.toolCallId ?? "",
+      content: lastToolCall.result,
+      tool_use_id: lastToolCall.toolCallId ?? "",
     };
 
-    this.prevMessages.push({
-      role: "user",
-      content: [toolResult],
-    });
+    this.prevMessages.push({ role: "user", content: [toolResult] });
 
-    yield* this.sendMessage([], true, message);
-
-    return message;
+    yield* this.sendMessage([], true, message, withThinking);
   }
 
-  stopMessage = () => {
-    this.messageStopped = true;
-  };
+  // --------------------------------------------------------------------------
+  // Provider Info
+  // --------------------------------------------------------------------------
 
-  getBaseUrl = (): string => {
-    return "https://api.anthropic.com";
-  };
+  getBaseUrl = (): string => anthropicInfo.baseUrl;
 
-  getName = (): string => {
-    return "Anthropic";
-  };
+  getName = (): string => anthropicInfo.name;
+
+  // --------------------------------------------------------------------------
+  // Provider Validation & Models
+  // --------------------------------------------------------------------------
 
   checkProvider = async (data: TData): Promise<boolean | TErrorData> => {
-    const checkClient = new Anthropic({
-      apiKey: data.apiKey,
-      baseURL: data.url,
-      dangerouslyAllowBrowser: true,
-    });
+    const client = createClient(data.apiKey, data.url);
 
     try {
-      await checkClient.models.list();
-
+      await client.models.list();
       return true;
     } catch (error) {
-      console.log(JSON.stringify(error));
-      if (typeof error === "object" && error) {
-        if ("status" in error && error.status === 401) {
-          const errorMessage =
-            "error" in error &&
-            typeof error.error === "object" &&
-            error.error &&
-            "error" in error.error &&
-            typeof error.error.error === "object" &&
-            error.error.error &&
-            "message" in error.error.error
-              ? error.error.error.message
-              : "Invalid API key";
+      const status = getErrorStatus(error);
 
-          return {
-            field: "key",
-            message: errorMessage as string,
-          };
-        }
-
-        if ("status" in error && error.status === 404) {
-          return {
-            field: "url",
-            message: "Invalid URL",
-          };
-        }
+      // Network/connection error (unreachable URL)
+      if (
+        status === 0 ||
+        (error && typeof error === "object" && "cause" in error)
+      ) {
+        return ProviderErrors.invalidUrl();
       }
 
-      if (data.apiKey) {
-        return {
-          field: "key",
-          message: "Invalid API key",
-        };
+      if (status === 401) {
+        return ProviderErrors.invalidKey(extractErrorMessage(error));
+      }
+      if (status === 404) {
+        return ProviderErrors.invalidUrl();
       }
 
-      return {
-        field: "key",
-        message: "Empty key",
-      };
+      return data.apiKey
+        ? ProviderErrors.invalidKey()
+        : ProviderErrors.emptyKey();
     }
   };
 
   getProviderModels = async (data: TData): Promise<Model[]> => {
-    const checkClient = new Anthropic({
-      apiKey: data.apiKey,
-      baseURL: data.url,
-      dangerouslyAllowBrowser: true,
-    });
+    const client = createClient(data.apiKey, data.url);
 
     try {
-      const modelsRes = await checkClient.models.list();
+      const { data: models } = await client.models.list();
 
-      const body = modelsRes.data;
+      const result: Model[] = [];
 
-      return body
-        .filter(
-          (model) =>
-            model.id.includes("claude-haiku-4-5") ||
-            model.id.includes("claude-sonnet-4-5") ||
-            model.id.includes("claude-opus-4-5")
-        )
-        .map((model) => ({
+      for (const model of models) {
+        const matchesFilter = anthropicInfo.modelFilters.some((f) =>
+          model.id.includes(f)
+        );
+        if (!matchesFilter) continue;
+
+        const displayName =
+          anthropicInfo.modelNames[model.id] || model.display_name;
+
+        // Add regular model
+        result.push({
           id: model.id,
-          name: model.display_name,
+          name: displayName,
           provider: "anthropic" as const,
-        }));
-    } catch (error) {
-      console.log(error);
+          reasoning: anthropicInfo.thinkingModels.some((t) =>
+            model.id.includes(t)
+          ),
+        });
+      }
+
+      return result;
+    } catch {
       return [];
     }
   };

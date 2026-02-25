@@ -1,17 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import OpenChatListUrl from "@/assets/btn-list-search.svg?url";
-import ArrowLeftUrl from "@/assets/btn-previtem.svg?url";
-import SearchUrl from "@/assets/search.svg?url";
-
-import useThreadsStore from "@/store/useThreadsStore";
-import useRouter from "@/store/useRouter";
-
 import { IconButton } from "@/components/icon-button";
 import { Input } from "@/components/input";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
-
+import { useDirection } from "@/hooks/useDirection";
+import useRouter from "@/store/useRouter";
+import useThreadsStore from "@/store/useThreadsStore";
 import { ChatListItem } from "./ChatListItem";
 
 const ChatList = () => {
@@ -23,6 +17,7 @@ const ChatList = () => {
     onDownloadThread,
   } = useThreadsStore();
   const { setCurrentPage } = useRouter();
+  const { isRTL } = useDirection();
 
   const [isOpen, setIsOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState("");
@@ -46,7 +41,7 @@ const ChatList = () => {
 
   return isOpen ? (
     <div
-      className="w-[264px] min-w-[264px] h-full max-h-full border-r-[1px] border-[var(--chat-list-border-right)] flex flex-col overflow-y-auto"
+      className="w-[264px] min-w-[264px] h-full max-h-full border-e-[1px] border-[var(--chat-list-border-right)] flex flex-col overflow-y-auto"
       style={{ maxHeight: "100%" }}
     >
       <div className="sticky top-0 bg-[var(--layout-background-color)] z-10 pt-[24px] px-[24px]">
@@ -55,9 +50,10 @@ const ChatList = () => {
             {t("ChatHistory")}
           </h4>
           <IconButton
-            iconName={ArrowLeftUrl}
+            iconName="btn-previtem"
             size={24}
             isStroke
+            className={isRTL ? "rotate-180" : ""}
             onClick={() => setIsOpen(false)}
           />
         </div>
@@ -67,7 +63,7 @@ const ChatList = () => {
               className="w-full"
               type="search"
               placeholder={t("Search")}
-              icon={SearchUrl}
+              icon="search"
               value={searchValue}
               onChange={onChangeSearchValue}
               onClear={() => setSearchValue("")}
@@ -107,12 +103,11 @@ const ChatList = () => {
       </div>
     </div>
   ) : (
-    <div className="ml-[32px] mt-[24px]">
+    <div className="ms-[32px] mt-[24px]">
       <TooltipIconButton tooltip={t("ChatHistory")}>
         <IconButton
-          iconName={OpenChatListUrl}
+          iconName="btn-list-search"
           size={24}
-          // isStroke
           onClick={() => {
             setCurrentPage("chat");
             setIsOpen(true);

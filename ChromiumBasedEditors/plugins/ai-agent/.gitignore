@@ -2,6 +2,7 @@ node_modules
 dist
 .env
 config.ts
+coverage
 
 # # Ignore built JS and CSS files in target directory
 # {9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}/*.js
@@ -11,4 +12,9 @@ config.ts
 
 scripts/dev.js
 
-console.log
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+e2e/screenshots/
+

@@ -1,23 +1,21 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import type { ProviderType, TProvider } from "@/lib/types";
-
-import { Dialog, DialogContent } from "@/components/dialog";
 import { Button } from "@/components/button";
-import { FieldContainer } from "@/components/field-container";
 import { ComboBox } from "@/components/combo-box";
+import { Dialog, DialogContent } from "@/components/dialog";
+import { FieldContainer } from "@/components/field-container";
 import { Input } from "@/components/input";
 import { Loader } from "@/components/loader";
-
-import useProviders from "@/store/useProviders";
-
+import { useDirection } from "@/hooks/useDirection";
+import type { ProviderType, TProvider } from "@/lib/types";
+import { sanitizeProviderName } from "@/lib/utils";
 import { provider as providerInstance } from "@/providers";
-
+import useProviders from "@/store/useProviders";
 import {
-  dialogMainContainerStyles,
-  dialogContentContainerStyles,
   dialogButtonContainerStyles,
+  dialogButtonContainerStylesRTL,
+  dialogContentContainerStyles,
+  dialogMainContainerStyles,
 } from "./Providers.styles";
 
 type EditProviderDialogProps = {
@@ -27,6 +25,7 @@ type EditProviderDialogProps = {
 
 const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
   const { t } = useTranslation();
+  const { isRTL } = useDirection();
 
   const { providers, editProvider, currentProvider, setCurrentProvider } =
     useProviders();
@@ -48,9 +47,9 @@ const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
   });
 
   const [value, setValue] = React.useState({
-    name: provider!.name,
-    url: provider!.baseUrl,
-    key: provider!.key,
+    name: provider?.name,
+    url: provider?.baseUrl,
+    key: provider?.key,
   });
   const [error, setError] = React.useState({
     key: "",
@@ -92,18 +91,24 @@ const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
   const dialogRef = React.useRef<HTMLDivElement>(null);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value: inputValue } = e.target;
+    const nextValue =
+      name === "name" ? sanitizeProviderName(inputValue) : inputValue;
+
     setValue((prevValue) => ({
       ...prevValue,
-      [e.target.name]: e.target.value,
+      [name]: nextValue,
     }));
     setError((prev) => ({
       ...prev,
-      [e.target.name]: "",
+      [name]: "",
     }));
   };
 
+  const trimmedName = value.name.trim();
+
   const isSameUrlAndName =
-    value.name === provider.name && value.url === provider.baseUrl;
+    trimmedName === provider.name && value.url === provider.baseUrl;
 
   const isSameKey = value.key === provider.key;
 
@@ -111,7 +116,8 @@ const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
     (isSameKey && isSameUrlAndName) ||
     !!error.key ||
     !!error.url ||
-    !!error.name;
+    !!error.name ||
+    !trimmedName;
 
   const onSubmitAction = React.useCallback(async () => {
     if (isRequestRunningRef.current || isDisabled) return;
@@ -119,8 +125,8 @@ const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
     setIsRequestRunning(true);
 
     const updatedProviderInfo = {
-      type: provider!.type,
-      name: value.name,
+      type: provider?.type,
+      name: trimmedName,
       key: value.key,
       baseUrl: value.url,
     };
@@ -155,6 +161,7 @@ const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
     onClose,
     currentProvider,
     setCurrentProvider,
+    trimmedName,
   ]);
 
   React.useEffect(() => {
@@ -189,7 +196,7 @@ const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
         <div className={dialogMainContainerStyles}>
           <div className={dialogContentContainerStyles}>
             <FieldContainer header={t("Provider")}>
-              <ComboBox value={provider.type} items={[]} />
+              <ComboBox value={provider.type} items={[]} className="w-full" />
             </FieldContainer>
             <FieldContainer header={t("Name")} error={error.name}>
               <Input
@@ -224,7 +231,13 @@ const EditProviderDialog = ({ name, onClose }: EditProviderDialogProps) => {
             </FieldContainer>
           </div>
 
-          <div className={dialogButtonContainerStyles}>
+          <div
+            className={
+              isRTL
+                ? dialogButtonContainerStylesRTL
+                : dialogButtonContainerStyles
+            }
+          >
             <Button variant="default" onClick={onClose}>
               {t("Cancel")}
             </Button>

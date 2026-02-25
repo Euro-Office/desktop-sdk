@@ -1,20 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ReactSVG } from "react-svg";
-
-import MoreIconSvgUrl from "@/assets/more.svg?url";
-import RemoveIconSvgUrl from "@/assets/btn-remove.svg?url";
-import RenameIconSvgUrl from "@/assets/btn-rename.svg?url";
-import DownloadIconSvgUrl from "@/assets/btn-save.svg?url";
-
-import type { Page } from "@/store/useRouter";
-
-import type { Thread } from "@/lib/types";
-
 import { DropdownMenu } from "@/components/dropdown";
+import { Icon } from "@/components/icon";
 import { IconButton } from "@/components/icon-button";
 import { Input } from "@/components/input";
-
+import type { Thread } from "@/lib/types";
+import type { Page } from "@/store/useRouter";
 import { DeleteChatDialog } from "./DeleteChatDialog";
 
 type ChatListItemProps = {
@@ -26,47 +17,9 @@ type ChatListItemProps = {
   setCurrentPage: (page: Page) => void;
 };
 
-const handleDownloadIconInjection = (svg: SVGSVGElement) => {
-  const path = svg.querySelector("path");
-  if (path) {
-    path.setAttribute("stroke", "var(--icon-button-color)");
-  }
-};
-
-const handleRenameIconInjection = (svg: SVGSVGElement) => {
-  const path = svg.querySelector("path");
-  if (path) {
-    path.setAttribute("fill", "var(--icon-button-color)");
-  }
-};
-
-const handleRemoveIconInjection = (svg: SVGSVGElement) => {
-  const path = svg.querySelector("path");
-  if (path) {
-    path.setAttribute("fill", "var(--icon-button-color)");
-  }
-};
-
-const DownloadIcon = () => (
-  <ReactSVG
-    src={DownloadIconSvgUrl}
-    beforeInjection={handleDownloadIconInjection}
-  />
-);
-
-const RenameIcon = () => (
-  <ReactSVG
-    src={RenameIconSvgUrl}
-    beforeInjection={handleRenameIconInjection}
-  />
-);
-
-const RemoveIcon = () => (
-  <ReactSVG
-    src={RemoveIconSvgUrl}
-    beforeInjection={handleRemoveIconInjection}
-  />
-);
+const DownloadIcon = () => <Icon name="btn-save" size={16} isStroke />;
+const RenameIcon = () => <Icon name="btn-rename" size={16} />;
+const RemoveIcon = () => <Icon name="btn-remove" size={16} />;
 
 const ChatListItem = ({
   thread,
@@ -183,7 +136,7 @@ const ChatListItem = ({
               onOpenChange={setIsOpen}
               trigger={
                 <IconButton
-                  iconName={MoreIconSvgUrl}
+                  iconName="more"
                   size={20}
                   isActive={isOpen}
                   insideElement

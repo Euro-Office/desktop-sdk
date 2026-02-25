@@ -1,0 +1,95 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.7/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              ["source", "type:source"],
+              ["alias", "type:alias"],
+              ["relative:../", "type:relative:../"],
+              ["relative:./", "type:relative:./"]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "useExhaustiveDependencies": "warn",
+        "useHookAtTopLevel": "error",
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error",
+        "noUndeclaredVariables": "error",
+        "noUnreachable": "error"
+      },
+      "style": {
+        "useConst": "error",
+        "noNonNullAssertion": "warn",
+        "useTemplate": "warn",
+        "noParameterAssign": "warn",
+        "useDefaultParameterLast": "warn",
+        "useExportType": "error",
+        "useImportType": "error",
+        "noNamespace": "error",
+        "useEnumInitializers": "warn"
+      },
+      "suspicious": {
+        "noExplicitAny": "warn",
+        "noDoubleEquals": "error",
+        "noConsole": "off",
+        "noDebugger": "error",
+        "noEmptyBlockStatements": "warn",
+        "noAsyncPromiseExecutor": "error",
+        "noConfusingVoidType": "warn",
+        "noAssignInExpressions": "error"
+      },
+      "complexity": {
+        "noForEach": "off",
+        "noImportantStyles": "off",
+        "noBannedTypes": "warn",
+        "noStaticOnlyClass": "warn",
+        "noExcessiveCognitiveComplexity": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn"
+      },
+      "performance": {
+        "noAccumulatingSpread": "warn",
+        "noDelete": "warn"
+      },
+      "a11y": {
+        "recommended": true,
+        "useKeyWithClickEvents": "off",
+        "noStaticElementInteractions": "off"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "es5"
+    }
+  },
+  "files": {
+    "includes": ["src/**"]
+  }
+}

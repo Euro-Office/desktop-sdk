@@ -1,14 +1,12 @@
 import { ThreadPrimitive } from "@assistant-ui/react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-
 import { Loader } from "@/components/loader";
 import useMessageStore from "@/store/useMessageStore";
-
-import { ThreadWelcome } from "./sub-components/Welcome";
-import { UserMessage } from "./sub-components/UserMessage";
 import { AssistantMessage } from "./sub-components/AssistantMessage";
 import { Composer } from "./sub-components/Composer";
+import { UserMessage } from "./sub-components/UserMessage";
+import { ThreadWelcome } from "./sub-components/Welcome";
 
 import "./Thread.css";
 

@@ -80,7 +80,11 @@
 #define SEND_MESSAGE_TO_RENDERER_PROCESS(browser, message) browser->SendProcessMessage(PID_RENDERER, message)
 #else
 #define SEND_MESSAGE_TO_BROWSER_PROCESS(message) CefV8Context::GetCurrentContext()->GetFrame()->SendProcessMessage(PID_BROWSER, message)
-#define SEND_MESSAGE_TO_RENDERER_PROCESS(browser, message) browser->GetMainFrame()->SendProcessMessage(PID_RENDERER, message)
+#define SEND_MESSAGE_TO_RENDERER_PROCESS(browser, message)       \
+do {                                                             \
+	auto frame = browser->GetMainFrame();                        \
+	if (frame) frame->SendProcessMessage(PID_RENDERER, message); \
+} while(0)
 #endif
 
 #define NO_CACHE_WEB_CLOUD_SCRIPTS
@@ -949,6 +953,7 @@ public:
 				case AVS_OFFICESTUDIO_FILE_DOCUMENT_ODT:
 				case AVS_OFFICESTUDIO_FILE_DOCUMENT_RTF:
 				case AVS_OFFICESTUDIO_FILE_DOCUMENT_TXT:
+				case AVS_OFFICESTUDIO_FILE_DOCUMENT_MD:
 				case AVS_OFFICESTUDIO_FILE_DOCUMENT_DOTX:
 				case AVS_OFFICESTUDIO_FILE_DOCUMENT_OTT:
 				case AVS_OFFICESTUDIO_FILE_PRESENTATION_PPTX:
@@ -1614,6 +1619,9 @@ public:
 	// показывать ли консоль для дебага
 	bool m_bDebugInfoSupport;
 
+	// is ai disabled
+	bool m_bDisableAI;
+
 	// логгировать ли урлы
 	bool m_bLoggingBrowserUrls;
 
@@ -1766,6 +1774,8 @@ public:
 		m_dForceDisplayScale = -1;
 
 		m_bIsUpdateFontsAttack = false;
+
+		m_bDisableAI = false;
 
 		m_nCurrentCryptoMode = NSAscCrypto::None;
 
@@ -2024,6 +2034,14 @@ public:
 			{
 				NSCommon::CSystemWindowScale::SetUseSystemScaling(false);
 			}
+		}
+
+		m_bDisableAI = false;
+		std::map<std::string, std::string>::iterator pairDisableAI = _map->find("disable-ai");
+		if (pairDisableAI != _map->end() && "1" == pairDisableAI->second)
+		{
+			m_bDisableAI = true;
+			CPluginsManager::DisableAI();
 		}
 
 		m_oKeyboardChecker.SetEnabled(m_bIsUseSpellCheckKeyboardInput);

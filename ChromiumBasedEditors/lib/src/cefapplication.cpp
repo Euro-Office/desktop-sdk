@@ -579,7 +579,8 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 		if (NSDirectory::Exists(strBase))
 			NSFile::CFileBinary::Remove(strBase);
 
-		NSDirectory::CopyDirectory(sSystemPlugins + L"/v1", strBase);
+		if (!NSDirectory::Exists(strBase))
+			NSDirectory::CopyDirectory(sSystemPlugins + L"/v1", strBase);
 
 		if (NSFile::CFileBinary::Exists(sUserPlugins + L"/pluginBase.js"))
 			NSFile::CFileBinary::Remove(sUserPlugins + L"/pluginBase.js");

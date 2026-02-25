@@ -9,19 +9,28 @@ export type Thread = {
   threadId: string;
   title?: string;
   lastEditDate?: number;
+  provider?: TProvider;
+  model?: Model;
 };
 
 export type ProviderType =
   | "anthropic"
   | "ollama"
   | "openai"
+  | "openaicompatible"
   | "together"
-  | "openrouter";
+  | "openrouter"
+  | "genai"
+  | "deepseek"
+  | "xai"
+  | "lm-studio"
+  | "mistral";
 
 export type Model = {
   id: string;
   name: string;
   provider: ProviderType;
+  reasoning?: boolean;
 };
 
 export type TProvider = {
@@ -35,7 +44,11 @@ export type TAttachmentFile = {
   path: string;
   content: string;
   type: number;
-  isImage?: boolean;
+};
+
+export type TAttachmentImage = {
+  name: string;
+  base64: string;
 };
 
 export type TProcess = {

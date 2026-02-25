@@ -1,8 +1,6 @@
 import { useTranslation } from "react-i18next";
-
-import useRouter from "@/store/useRouter";
-
 import { Button } from "@/components/button";
+import useRouter from "@/store/useRouter";
 
 const EmptyScreen = () => {
   const { t } = useTranslation();

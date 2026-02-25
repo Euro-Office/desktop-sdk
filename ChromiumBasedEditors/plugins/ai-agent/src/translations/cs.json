@@ -42,6 +42,7 @@
   "Download": "Stáhnout",
   "Search": "Hledat...",
   "AddLocalFile": "Přidat místní soubor...",
+  "AddLocalImage": "Přidat místní obrázek...",
   "RecentFiles": "Poslední soubory",
   "Attachments": "Přílohy",
   "APIKey": "API klíč",
@@ -49,7 +50,7 @@
   "AskAI": "Zeptejte se AI",
   "Analyzing": "Probíhá analýza...",
   "AIWouldLikeUseThisTool": "Al by ráda použila tento nástroj:",
-  "ReviewEachAction": "Před schválením pečlivě zkontrolujte každou akci\n Nemůžeme zaručit bezpečnost ani ochranu soukromí u integrací třetích stran.",
+  "ReviewEachAction": "Před schválením pečlivě zkontrolujte každou akci.\n Nemůžeme zaručit bezpečnost ani ochranu soukromí u integrací třetích stran.",
   "AlwaysAllow": "Vždy povolit tomuto nástroji provést tuto akci bez dalšího dotazu",
   "Deny": "Odmítnout",
   "Allow": "Povolit",
@@ -79,5 +80,9 @@
   "EnableWebSearch": "Povolit webové vyhledávání v nastavení",
   "WantDeleteServer": "Tento server bude odstraněn z vašeho seznamu. Pokračovat?",
   "NoModelsAvailable": "Poskytovatel není k dispozici",
-  "CheckInfo": "AI chat může dělat chyby. Zkontrolujte důležité informace."
+  "CheckInfo": "AI chat může dělat chyby. Zkontrolujte důležité informace.",
+  "ConfigurationError": "Konfigurace musí být umístěna uvnitř vlastnosti 'mcpServers'",
+  "Thinking": "Uvažování",
+  "ExtendedThinking": "Rozšířené myšlení",
+  "ExtendedThinkingDescription": "Tento model používá pokročilé uvažování, což může zvýšit náklady."
 }

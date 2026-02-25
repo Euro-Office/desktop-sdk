@@ -1,27 +1,38 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ReactSVG } from "react-svg";
-
-import AttachmentIconUrl from "@/assets/attachment.svg?url";
-import DocumentsIconSvg from "@/assets/formats/24/documents.svg?url";
-import SpreadsheetsIconSvg from "@/assets/formats/24/spreadsheets.svg?url";
-import PdfIconSvg from "@/assets/formats/24/pdf.svg?url";
-import PresentationsIconSvg from "@/assets/formats/24/presentations.svg?url";
-import UnknownFormatIconSvg from "@/assets/formats/24/unknown-format.svg?url";
-
-import useAttachmentsStore from "@/store/useAttachmentsStore";
-
-import { isDocument, isPdf, isPresentation, isSpreadsheet } from "@/lib/utils";
-
-import { IconButton } from "@/components/icon-button";
 import { DropdownMenu } from "@/components/dropdown";
 import type { DropDownItemProps } from "@/components/dropdown-item/DropDownItem.types";
+import { IconButton } from "@/components/icon-button";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import {
+  isDjVu,
+  isDocument,
+  isPdf,
+  isPdfForm,
+  isPresentation,
+  isSpreadsheet,
+  isVisio,
+  isXps,
+} from "@/lib/utils";
+import useAttachmentsStore from "@/store/useAttachmentsStore";
+
+const getFileIconName = (type: number): string => {
+  if (isPdfForm(type)) return "pdf-form";
+  if (isPdf(type)) return "pdf";
+  if (isDjVu(type)) return "djvu";
+  if (isXps(type)) return "xps";
+  if (isSpreadsheet(type)) return "spreadsheets";
+  if (isDocument(type)) return "documents";
+  if (isPresentation(type)) return "presentations";
+  if (isVisio(type)) return "visio";
+  return "unknown-format";
+};
 
 const ComposerActionAttachment = () => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
 
-  const { addAttachmentFile } = useAttachmentsStore();
+  const { addAttachmentFile, addAttachmentImage } = useAttachmentsStore();
 
   const onOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -89,27 +100,15 @@ const ComposerActionAttachment = () => {
   )?.files
     ?.filter((file) => !file.url)
     ?.map((file) => {
-      let icon: null | string = DocumentsIconSvg;
-
-      if (isPdf(file.type)) {
-        icon = PdfIconSvg;
-      } else if (isSpreadsheet(file.type)) {
-        icon = SpreadsheetsIconSvg;
-      } else if (isDocument(file.type)) {
-        icon = DocumentsIconSvg;
-      } else if (isPresentation(file.type)) {
-        icon = PresentationsIconSvg;
-      } else {
-        icon = UnknownFormatIconSvg;
-      }
+      const iconName = getFileIconName(file.type);
 
       return {
         text: file.path.includes("\\")
-          ? file.path.split("\\").pop() ?? ""
-          : file.path.split("/").pop() ?? "",
+          ? (file.path.split("\\").pop() ?? "")
+          : (file.path.split("/").pop() ?? ""),
         key: file.path,
         id: file.path,
-        icon: icon ? <ReactSVG src={icon} /> : null,
+        icon: <IconButton iconName={iconName} size={24} disableHover noColor />,
         onClick: () => selectRecentFile(file.path, file.type),
       };
     })
@@ -120,23 +119,73 @@ const ComposerActionAttachment = () => {
   const trigger = (
     <TooltipIconButton tooltip={t("Attachments")} visible={!isOpen}>
       <IconButton
-        iconName={AttachmentIconUrl}
+        iconName="attachment"
         size={24}
         className="cursor-pointer rounded-[4px] outline-none"
         isStroke
         isActive={isOpen}
+        data-testid="attachment-button"
       />
     </TooltipIconButton>
   );
 
   const items: DropDownItemProps[] = [
     { text: t("AddLocalFile"), onClick: () => selectLocalFile() },
-    { text: "", onClick: () => {}, isSeparator: true },
-    { text: t("RecentFiles"), onClick: () => {}, subMenu: recentFiles },
+    {
+      text: t("AddLocalImage"),
+      onClick: () => imageInputRef.current?.click(),
+    },
   ];
 
+  if (recentFiles.length > 0) {
+    items.push({
+      text: "",
+      onClick: () => {
+        // ignore
+      },
+      isSeparator: true,
+    });
+    items.push({
+      text: t("RecentFiles"),
+      onClick: () => {
+        // ignore
+      },
+      subMenu: recentFiles,
+    });
+  }
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        addAttachmentImage({ name: file.name, base64 });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = "";
+  };
+
   return (
-    <DropdownMenu trigger={trigger} items={items} onOpenChange={onOpenChange} />
+    <>
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleImageSelect}
+        className="hidden"
+      />
+      <DropdownMenu
+        trigger={trigger}
+        items={items}
+        onOpenChange={onOpenChange}
+      />
+    </>
   );
 };
 

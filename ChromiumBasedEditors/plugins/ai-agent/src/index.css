@@ -3,11 +3,15 @@
 
 @import "./styles/themes.css";
 
-
 :root {
   font-family: Arial, "Segoe UI", system-ui, Avenir, Helvetica, sans-serif;
 }
 
+.font-rtl {
+  font-family:
+    system-ui, -apple-system, "Geeza Pro", "Segoe UI", "Traditional Arabic",
+    "Noto Sans";
+}
 
 *::-webkit-scrollbar-track {
   background-color: var(--background-normal-element) !important;

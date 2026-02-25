@@ -1,7 +1,5 @@
 import * as Switch from "@radix-ui/react-switch";
-
 import { cn } from "@/lib/utils";
-
 import type { ToggleButtonProps } from "./ToggleButton.types";
 
 const ToggleButton = ({
@@ -35,6 +33,7 @@ const ToggleButton = ({
   return (
     <div className="flex items-center gap-2">
       <Switch.Root
+        dir="ltr"
         id={id}
         checked={checked}
         onCheckedChange={onCheckedChange}

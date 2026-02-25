@@ -1,6 +1,6 @@
-import React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-
+import type React from "react";
+import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 
 const DialogTitle = ({
@@ -10,8 +10,11 @@ const DialogTitle = ({
 }: React.ComponentProps<typeof DialogPrimitive.Title> & {
   withWarningIcon?: boolean;
 }) => {
+  const { isRTL } = useDirection();
+
   return (
     <DialogPrimitive.Title
+      dir={isRTL ? "rtl" : "ltr"}
       data-slot="dialog-title"
       className={cn(
         "font-bold text-[var(--modal-dialog-header-color)] select-none",

@@ -1,22 +1,20 @@
-import { useEffect, useRef } from "react";
-
 import type {
   AppendMessage,
   FileMessagePart,
+  ImageMessagePart,
   ThreadMessageLike,
 } from "@assistant-ui/react";
-
+import { useEffect, useRef } from "react";
+import { createMessage, updateMessage } from "@/database/messages";
+import { getThread } from "@/database/metadata";
 import { provider, type SendMessageReturnType } from "@/providers";
 import server from "@/servers";
-import { createMessage, updateMessage } from "@/database/messages";
-
-import useMessageStore from "@/store/useMessageStore";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
-import useThreadsStore from "@/store/useThreadsStore";
-import useServersStore from "@/store/useServersStore";
-import useProviders from "@/store/useProviders";
+import useMessageStore from "@/store/useMessageStore";
 import useModelsStore from "@/store/useModelsStore";
-import { getThread } from "@/database/metadata";
+import useProviders from "@/store/useProviders";
+import useServersStore from "@/store/useServersStore";
+import useThreadsStore from "@/store/useThreadsStore";
 
 type UseMessagesProps = {
   isReady: boolean;
@@ -41,9 +39,14 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     setAllowAlways,
     setManageToolData,
   } = useServersStore();
-  const { attachmentFiles, clearAttachmentFiles } = useAttachmentsStore();
+  const {
+    attachmentFiles,
+    clearAttachmentFiles,
+    attachmentImages,
+    clearAttachmentImages,
+  } = useAttachmentsStore();
   const { currentProvider } = useProviders();
-  const { currentModel } = useModelsStore();
+  const { currentModel, extendedThinking } = useModelsStore();
 
   const threadIdRef = useRef(threadId);
 
@@ -76,7 +79,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     const toolName = toolCall.toolName;
 
     const type = server.getServerType(toolName);
-    const name = toolName.replace(type + "_", "");
+    const name = toolName.replace(`${type}_`, "");
 
     if (allowAlways) {
       setAllowAlways(true, type, name);
@@ -127,7 +130,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     const toolName = toolCall.toolName;
 
     const type = server.getServerType(toolName);
-    const name = toolName.replace(type + "_", "");
+    const name = toolName.replace(`${type}_`, "");
 
     if (checkAllowAlways(type, name) || accept || deny) {
       const result = deny
@@ -148,11 +151,14 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
       const updatedMessage = { ...msg, content: updatedContent };
 
       updateLastMessage(updatedMessage);
+      updateMessage(messageUID, updatedMessage);
 
       if (!provider) return;
 
-      const streamAfterToolCall =
-        provider.sendMessageAfterToolCall(updatedMessage);
+      const streamAfterToolCall = provider.sendMessageAfterToolCall(
+        updatedMessage,
+        extendedThinking
+      );
 
       if (streamAfterToolCall) {
         handleStream(streamAfterToolCall, true, messageUID);
@@ -172,7 +178,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     messageUIDProp?: string
   ) => {
     setIsStreamRunning(true);
-    let initedMessage = afterToolCall ? true : false;
+    let initedMessage = !!afterToolCall;
     const messageUID =
       afterToolCall && messageUIDProp ? messageUIDProp : crypto.randomUUID();
 
@@ -238,6 +244,8 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
 
     let fileContent: FileMessagePart[] = [];
 
+    let imageContent: ImageMessagePart[] = [];
+
     if (attachmentFiles.length > 0) {
       fileContent = attachmentFiles.map((file) => ({
         type: "file",
@@ -248,8 +256,19 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
       clearAttachmentFiles();
     }
 
+    if (attachmentImages.length > 0) {
+      imageContent = attachmentImages.map((image) => ({
+        type: "image",
+        image: image.base64,
+        name: image.name,
+      }));
+
+      clearAttachmentImages();
+    }
+
     const content: ThreadMessageLike["content"] = [
       ...fileContent,
+      ...imageContent,
       { type: "text", text: message.content[0].text },
     ];
 
@@ -272,32 +291,38 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
           typeof msg.content === "string"
             ? msg.content
             : msg.content[0].type === "text"
-            ? msg.content[0].text
-            : "";
+              ? msg.content[0].text
+              : "";
 
         textForTitle += "\n\n";
       }
 
-      textForTitle += "\n\n" + message.content[0].text;
+      textForTitle += `\n\n${message.content[0].text}`;
+
+      // Save all messages from the store to the database (skip error messages)
+      for (const msg of messages) {
+        // Skip messages with errors
+        if (msg.status?.type === "incomplete" && msg.status?.error) continue;
+
+        await createMessage(threadId, crypto.randomUUID(), msg);
+      }
+
+      // Save the new user message
+      await createMessage(threadId, crypto.randomUUID(), userMessage);
 
       provider.createChatName(textForTitle).then(async (title) => {
         if (!title) return;
 
-        insertThread(title);
-
-        // Save all messages from the store to the database (skip error messages)
-        for (const msg of messages) {
-          // Skip messages with errors
-          if (msg.status?.type === "incomplete" && msg.status?.error) continue;
-
-          await createMessage(threadId, crypto.randomUUID(), msg);
-        }
-
-        // Save the new user message
-        await createMessage(threadId, crypto.randomUUID(), userMessage);
+        insertThread(title, {
+          provider: currentProvider,
+          model: currentModel,
+        });
       });
     } else {
-      insertNewMessageToThread();
+      insertNewMessageToThread({
+        provider: currentProvider,
+        model: currentModel,
+      });
 
       const createMessages = async () => {
         await createMessage(threadId, crypto.randomUUID(), userMessage);
@@ -308,7 +333,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
 
     addMessage(userMessage);
 
-    const stream = provider.sendMessage([userMessage]);
+    const stream = provider.sendMessage([userMessage], extendedThinking);
 
     if (stream) handleStream(stream);
   };

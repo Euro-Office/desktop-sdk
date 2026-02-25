@@ -1,24 +1,74 @@
 import {
   ActionBarPrimitive,
   ErrorPrimitive,
-  useMessage,
   MessagePrimitive,
+  useMessage,
 } from "@assistant-ui/react";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import DownloadIconUrl from "@/assets/btn-save.svg?url";
-import BtnCopyIconUrl from "@/assets/btn-copy.svg?url";
-import BtnCheckIconUrl from "@/assets/checked.svg?url";
-
+import { Icon } from "@/components/icon";
+import { IconButton } from "@/components/icon-button";
+import { Loader } from "@/components/loader";
+import { MarkdownContent } from "@/components/markdown";
+import { ToolFallback } from "@/components/tool-fallback";
+import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import { convertMessagesToMd, getMessageTitleFromMd } from "@/lib/utils";
 import useMessageStore from "@/store/useMessageStore";
 
-import { convertMessagesToMd, getMessageTitleFromMd } from "@/lib/utils";
+const ThinkingMarkdownText = ({
+  text,
+  type,
+  parentId,
+}: {
+  text: string;
+  type: string;
+  parentId?: string;
+}) => {
+  const { t } = useTranslation();
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
-import { MarkdownText } from "@/components/markdown";
-import { TooltipIconButton } from "@/components/tooltip-icon-button";
-import { ToolFallback } from "@/components/tool-fallback";
-import { IconButton } from "@/components/icon-button";
+  return (
+    <>
+      {type === "reasoning" ? (
+        <div className="my-[8px] flex w-full flex-col">
+          <div
+            className="flex items-center gap-[10px] cursor-pointer mb-[8px]"
+            onClick={() => setIsCollapsed((val) => !val)}
+          >
+            {parentId ? (
+              <Icon name="tool.called" size={16} noColor />
+            ) : (
+              <Loader size={16} />
+            )}
+            <div className="flex items-center bg-[var(--background-normal-element)] rounded-[4px] gap-[8px] ps-[4px] pe-[8px]">
+              <Icon name="btn-extended-thinking" size={24} />
+              <span className="text-[14px] font-normal leading-[20px] text-[var(--chat-message-color)] ">
+                {t("Thinking")}
+              </span>
+            </div>
+
+            <Icon
+              name="arrow.right"
+              size={16}
+              width={8}
+              height={8}
+              isStroke
+              isTransform={!isCollapsed}
+            />
+          </div>
+          {!isCollapsed && (
+            <div className="ps-[12px] ms-[13px] border-l-[var(--border-divider)] border-l-[1px]">
+              <MarkdownContent>{text}</MarkdownContent>
+            </div>
+          )}
+        </div>
+      ) : (
+        <MarkdownContent>{text}</MarkdownContent>
+      )}
+    </>
+  );
+};
 
 const MessageError = () => {
   return (
@@ -58,40 +108,28 @@ const AssistantActionBar = () => {
   return (
     <ActionBarPrimitive.Root
       hidden={isStreamRunning}
-      // autohide="not-last"
-      // autohideFloat="single-branch"
       className="col-start-3 row-start-2 ml-3 mt-3 flex gap-[8px]"
     >
       <ActionBarPrimitive.Copy asChild>
         <TooltipIconButton tooltip={t("CopyToClipboard")}>
           <MessagePrimitive.If copied>
-            <IconButton
-              iconName={BtnCheckIconUrl}
-              size={24}
-              isStroke
-              disabled
-            />
+            <IconButton iconName="checked" size={24} isStroke disabled />
           </MessagePrimitive.If>
           <MessagePrimitive.If copied={false}>
-            <IconButton iconName={BtnCopyIconUrl} size={24} />
+            <IconButton iconName="btn-copy" size={24} />
           </MessagePrimitive.If>
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>
       <div>
         <TooltipIconButton tooltip={t("Save")}>
           <IconButton
-            iconName={DownloadIconUrl}
+            iconName="btn-save"
             size={24}
             onClick={onDownload}
             isStroke
           />
         </TooltipIconButton>
       </div>
-      {/* <ActionBarPrimitive.Reload asChild>
-        <TooltipIconButton tooltip="Refresh">
-          <RefreshCwIcon />
-        </TooltipIconButton>
-      </ActionBarPrimitive.Reload> */}
     </ActionBarPrimitive.Root>
   );
 };
@@ -108,8 +146,9 @@ export const AssistantMessage = () => {
         <div className="leading-[20px] text-[14px] col-span-2 col-start-2 row-start-1 ml-4 break-words leading-7 text-[var(--chat-message-color)]">
           <MessagePrimitive.Content
             components={{
-              Text: MarkdownText,
               tools: { Fallback: ToolFallback },
+              Reasoning: ThinkingMarkdownText,
+              Text: ThinkingMarkdownText,
             }}
           />
           <MessageError />

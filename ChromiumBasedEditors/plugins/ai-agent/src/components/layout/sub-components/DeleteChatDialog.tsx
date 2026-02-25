@@ -1,9 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import { Dialog, DialogContent } from "@/components/dialog";
 import { Button } from "@/components/button";
-
+import { Dialog, DialogContent } from "@/components/dialog";
+import { useDirection } from "@/hooks/useDirection";
 import useThreadsStore from "@/store/useThreadsStore";
 
 type DeleteChatDialogProps = {
@@ -13,6 +12,7 @@ type DeleteChatDialogProps = {
 
 const DeleteChatDialog = ({ id, onClose }: DeleteChatDialogProps) => {
   const { onDeleteThread } = useThreadsStore();
+  const { isRTL } = useDirection();
 
   const { t } = useTranslation();
 
@@ -44,7 +44,13 @@ const DeleteChatDialog = ({ id, onClose }: DeleteChatDialogProps) => {
           <p className="select-none h-[40px] flex items-center text-[12px] leading-[16px] text-[var(--text-normal)]">
             {t("WantDeleteChat")}
           </p>
-          <div className="flex flex-row justify-end items-center gap-[8px] h-[48px]">
+          <div
+            className={
+              isRTL
+                ? "flex flex-row-reverse justify-end items-center gap-[8px] h-[48px]"
+                : "flex flex-row justify-end items-center gap-[8px] h-[48px]"
+            }
+          >
             <Button variant="default" onClick={onClose}>
               {t("No")}
             </Button>

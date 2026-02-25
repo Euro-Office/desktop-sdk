@@ -1,22 +1,21 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import { Dialog, DialogContent } from "@/components/dialog";
-import { ComboBox } from "@/components/combo-box";
 import { Button } from "@/components/button";
+import { ComboBox } from "@/components/combo-box";
+import { Dialog, DialogContent } from "@/components/dialog";
 import { FieldContainer } from "@/components/field-container";
-
-import { provider } from "@/providers";
-
-import useProviders from "@/store/useProviders";
-
-import {
-  dialogMainContainerStyles,
-  dialogContentContainerStyles,
-  dialogButtonContainerStyles,
-} from "./Providers.styles";
 import { Input } from "@/components/input";
 import { Loader } from "@/components/loader";
+import { useDirection } from "@/hooks/useDirection";
+import { sanitizeProviderName } from "@/lib/utils";
+import { provider } from "@/providers";
+import useProviders from "@/store/useProviders";
+import {
+  dialogButtonContainerStyles,
+  dialogButtonContainerStylesRTL,
+  dialogContentContainerStyles,
+  dialogMainContainerStyles,
+} from "./Providers.styles";
 
 type AddProviderDialogProps = {
   onClose: VoidFunction;
@@ -26,6 +25,7 @@ const providersInfo = provider.getProvidersInfo();
 
 const AddProviderDialog = ({ onClose }: AddProviderDialogProps) => {
   const { addProvider } = useProviders();
+  const { isRTL } = useDirection();
 
   const { t } = useTranslation();
 
@@ -52,18 +52,24 @@ const AddProviderDialog = ({ onClose }: AddProviderDialogProps) => {
   );
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value: inputValue } = e.target;
+    const nextValue =
+      name === "name" ? sanitizeProviderName(inputValue) : inputValue;
+
     setValue((prevValue) => ({
       ...prevValue,
-      [e.target.name]: e.target.value,
+      [name]: nextValue,
     }));
     setError((prev) => ({
       ...prev,
-      [e.target.name]: "",
+      [name]: "",
     }));
   };
 
+  const trimmedName = value.name.trim();
+
   const isDisabled =
-    !value.name || !value.url || !!error.key || !!error.url || !!error.name;
+    !trimmedName || !value.url || !!error.key || !!error.url || !!error.name;
 
   const onSubmitAction = React.useCallback(async () => {
     if (isRequestRunningRef.current || isDisabled) return;
@@ -72,7 +78,7 @@ const AddProviderDialog = ({ onClose }: AddProviderDialogProps) => {
 
     const result = await addProvider({
       type: selectedProviderInfo.type,
-      name: value.name.trim(),
+      name: trimmedName,
       key: value.key,
       baseUrl: value.url,
     });
@@ -87,7 +93,14 @@ const AddProviderDialog = ({ onClose }: AddProviderDialogProps) => {
     }
     isRequestRunningRef.current = false;
     setIsRequestRunning(false);
-  }, [addProvider, selectedProviderInfo, value, onClose, isDisabled]);
+  }, [
+    addProvider,
+    selectedProviderInfo,
+    value,
+    onClose,
+    isDisabled,
+    trimmedName,
+  ]);
 
   React.useEffect(() => {
     setValue((prevValue) => ({
@@ -135,6 +148,7 @@ const AddProviderDialog = ({ onClose }: AddProviderDialogProps) => {
           <div className={dialogContentContainerStyles}>
             <FieldContainer header={t("Provider")}>
               <ComboBox
+                className="w-full"
                 value={selectedProviderInfo.name}
                 items={providersInfo.map((p) => ({
                   text: p.name,
@@ -176,7 +190,13 @@ const AddProviderDialog = ({ onClose }: AddProviderDialogProps) => {
               />
             </FieldContainer>
           </div>
-          <div className={dialogButtonContainerStyles}>
+          <div
+            className={
+              isRTL
+                ? dialogButtonContainerStylesRTL
+                : dialogButtonContainerStyles
+            }
+          >
             <Button variant="default" onClick={onClose}>
               {t("Cancel")}
             </Button>

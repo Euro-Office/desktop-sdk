@@ -42,6 +42,7 @@
   "Download": "Herunterladen",
   "Search": "Suchen...",
   "AddLocalFile": "Lokale Datei hinzufügen...",
+  "AddLocalImage": "Lokales Image hinzufügen...",
   "RecentFiles": "Zuletzt verwendete Dateien",
   "Attachments": "Anlagen",
   "APIKey": "API-Schlüssel",
@@ -49,7 +50,7 @@
   "AskAI": "KI fragen",
   "Analyzing": "Analyse läuft...",
   "AIWouldLikeUseThisTool": "KI möchte dieses Tool verwenden:",
-  "ReviewEachAction": "Prüfen Sie jede Aktion sorgfältig, bevor Sie sie genehmigen.\n Wir können die Sicherheit und den Datenschutz bei Integrationen von Drittanbietern nicht garantieren.", 
+  "ReviewEachAction": "Prüfen Sie jede Aktion sorgfältig, bevor Sie sie genehmigen.\n Wir können die Sicherheit und den Datenschutz bei Integrationen von Drittanbietern nicht garantieren.",
   "AlwaysAllow": "Diesem Tool immer erlauben, diese Aktion ohne erneute Nachfrage auszuführen.",
   "Deny": "Ablehnen",
   "Allow": "Erlauben",
@@ -61,7 +62,7 @@
   "CustomServersDescription": " In diesem Abschnitt können Sie MCP-Server für die Verwendung im KI-Agenten konfigurieren. Sie können die Konfiguration bearbeiten, um neue MCP-Server hinzuzufügen und bei Bedarf Tools zu aktivieren.",
   "EditConfiguration": "Konfiguration bearbeiten",
   "EnterYourJSONConfiguration": "Geben Sie Ihre JSON-Konfiguration ein:",
-  "AvailableTools": "Verfügbare Tools", 
+  "AvailableTools": "Verfügbare Tools",
   "Tools": "Tools",
   "ToolsEnabled": "Tools aktiviert",
   "EnableAllTools": "Alle Tools aktivieren",
@@ -79,5 +80,9 @@
   "EnableWebSearch": "Aktivieren Sie die Websuche in den Einstellungen",
   "WantDeleteServer": "Dieser Server wird aus Ihrer Liste gelöscht. Weiter?",
   "NoModelsAvailable": "Anbieter nicht verfügbar",
-  "CheckInfo": "KI-Chat kann Fehler machen. Überprüfen Sie wichtige Informationen."
+  "CheckInfo": "KI-Chat kann Fehler machen. Überprüfen Sie wichtige Informationen.",
+  "ConfigurationError": "Die Konfiguration muss in der Eigenschaft 'mcpServers' platziert werden",
+  "Thinking": "Schlussfolgerung",
+  "ExtendedThinking": "Erweitertes Denken",
+  "ExtendedThinkingDescription": "Dieses Modell verwendet fortgeschrittene Schlussfolgerungen, was die Kosten erhöhen kann."
 }

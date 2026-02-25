@@ -10,4 +10,6 @@ export type IconButtonProps = {
   insideElement?: boolean;
   disableHover?: boolean;
   noColor?: boolean;
+  width?: number;
+  height?: number;
 } & ButtonHTMLAttributes<HTMLButtonElement>;

@@ -1,12 +1,18 @@
-import type { TProcess, TMCPItem } from "@/lib/types";
+import type { TMCPItem, TProcess } from "@/lib/types";
+
+type THttpServer = {
+  url: string;
+  headers?: Record<string, string>;
+  abortController?: AbortController;
+};
 
 const getParams = (config: Record<string, unknown>) => {
   let command = "";
   const env: Record<string, string> = {};
   let args = "";
 
-  Object.entries(config).map(([key, value]) => {
-    if (key == "env") {
+  Object.entries(config).forEach(([key, value]) => {
+    if (key === "env") {
       Object.entries(value as Record<string, string>).forEach(([k, v]) => {
         env[k] = v;
       });
@@ -16,22 +22,67 @@ const getParams = (config: Record<string, unknown>) => {
       command = value as string;
     }
 
-    if (key == "args") {
+    if (key === "args") {
       args = (value as string[]).join(" ");
     }
   });
 
-  const commandLine = command + " " + args;
+  const commandLine = `${command} ${args}`;
 
   return { commandLine, env };
+};
+
+const isHttpServer = (config: Record<string, unknown>): boolean => {
+  return typeof config.url === "string";
+};
+
+/**
+ * Parse SSE-formatted response text to extract JSON-RPC messages.
+ * SSE format: "event: message\ndata: {...json...}\n\n"
+ */
+const parseSSEResponse = (text: string): unknown[] => {
+  const results: unknown[] = [];
+  const lines = text.split("\n");
+
+  for (const line of lines) {
+    if (line.startsWith("data: ")) {
+      const jsonStr = line.slice(6); // Remove "data: " prefix
+      try {
+        const parsed = JSON.parse(jsonStr);
+        results.push(parsed);
+      } catch {
+        // Skip non-JSON data lines
+      }
+    }
+  }
+
+  // If no SSE format found, try parsing the whole text as JSON
+  if (results.length === 0 && text.trim()) {
+    try {
+      results.push(JSON.parse(text));
+    } catch {
+      // Not valid JSON either
+    }
+  }
+
+  return results;
+};
+
+const getHttpParams = (
+  config: Record<string, unknown>
+): { url: string; headers: Record<string, string> } => {
+  const url = config.url as string;
+  const headers = (config.headers as Record<string, string>) || {};
+  return { url, headers };
 };
 
 class CustomServers {
   customServers: Record<string, Record<string, unknown>>;
   startedCustomServers: Record<string, string>;
   initedCustomServers: Record<string, boolean>;
-  stopedCustomServers: string[];
+  stoppedCustomServers: string[];
   customServersProcesses: Record<string, TProcess>;
+  httpServers: Record<string, THttpServer>;
   customServersLogs: Record<string, string[]>;
   tools: Record<string, TMCPItem[]>;
 
@@ -40,9 +91,10 @@ class CustomServers {
     this.startedCustomServers = {};
     this.initedCustomServers = {};
     this.customServersProcesses = {};
+    this.httpServers = {};
     this.customServersLogs = {};
     this.tools = {};
-    this.stopedCustomServers = [];
+    this.stoppedCustomServers = [];
   }
 
   onProcess = (type: string, t: number, message: string) => {
@@ -52,10 +104,10 @@ class CustomServers {
       if (
         correctJson.jsonrpc === "2.0" &&
         correctJson.id &&
-        correctJson.id.includes("init-" + type)
+        correctJson.id.includes(`init-${type}`)
       ) {
         this.initedCustomServers[type] = true;
-        this.stopedCustomServers = this.stopedCustomServers.filter(
+        this.stoppedCustomServers = this.stoppedCustomServers.filter(
           (s) => s !== type
         );
       }
@@ -63,7 +115,7 @@ class CustomServers {
       if (
         correctJson.jsonrpc === "2.0" &&
         correctJson.id &&
-        correctJson.id.includes("tools-" + type)
+        correctJson.id.includes(`tools-${type}`)
       ) {
         this.tools[type] = correctJson.result.tools;
         window.dispatchEvent(new CustomEvent("tools-changed"));
@@ -89,7 +141,7 @@ class CustomServers {
         this.customServersLogs[type].push(
           `${new Date().toLocaleString()}: [stop] ${message}\n`
         );
-        this.stopedCustomServers.push(type);
+        this.stoppedCustomServers.push(type);
         break;
       }
       default:
@@ -120,32 +172,11 @@ class CustomServers {
     Object.entries(this.customServers).forEach(([type, config]) => {
       servers.push(type);
 
-      const { commandLine, env } = getParams(config);
-
-      if (
-        this.startedCustomServers[type] &&
-        this.startedCustomServers[type] === commandLine
-      ) {
-        return;
+      if (isHttpServer(config)) {
+        this.startHttpServer(type, config);
+      } else {
+        this.startStdioServer(type, config);
       }
-
-      if (this.customServersProcesses[type]) {
-        this.customServersProcesses[type].end();
-      }
-
-      this.customServersLogs[type] = [
-        `${new Date().toLocaleString()}: ${commandLine}\n`,
-      ];
-
-      const process = new window.ExternalProcess(commandLine, env);
-
-      process.onprocess = this.onProcess.bind(this, type);
-
-      this.customServersProcesses[type] = process;
-
-      process.start();
-
-      this.initCustomServer(type);
     });
 
     // remove deleted servers
@@ -154,39 +185,143 @@ class CustomServers {
         this.deleteCustomServer(type);
       }
     });
+
+    // remove deleted HTTP servers
+    Object.keys(this.httpServers).forEach((type) => {
+      if (!servers.includes(type)) {
+        this.deleteCustomServer(type);
+      }
+    });
+  };
+
+  startHttpServer = (type: string, config: Record<string, unknown>) => {
+    const { url, headers } = getHttpParams(config);
+
+    if (this.startedCustomServers[type] === url) {
+      return;
+    }
+
+    // Stop existing HTTP server if running
+    if (this.httpServers[type]?.abortController) {
+      this.httpServers[type].abortController.abort();
+    }
+
+    this.customServersLogs[type] = [
+      `${new Date().toLocaleString()}: HTTP MCP ${url}\n`,
+    ];
+
+    this.httpServers[type] = {
+      url,
+      headers,
+      abortController: new AbortController(),
+    };
+
+    this.startedCustomServers[type] = url;
+    this.initHttpServer(type);
+  };
+
+  startStdioServer = (type: string, config: Record<string, unknown>) => {
+    const { commandLine, env } = getParams(config);
+
+    if (
+      this.startedCustomServers[type] &&
+      this.startedCustomServers[type] === commandLine
+    ) {
+      return;
+    }
+
+    if (this.customServersProcesses[type]) {
+      this.customServersProcesses[type].end();
+    }
+
+    this.customServersLogs[type] = [
+      `${new Date().toLocaleString()}: ${commandLine}\n`,
+    ];
+
+    const process = new window.ExternalProcess(commandLine, env);
+
+    process.onprocess = this.onProcess.bind(this, type);
+
+    this.customServersProcesses[type] = process;
+
+    process.start();
+
+    this.startedCustomServers[type] = commandLine;
+    this.initCustomServer(type);
   };
 
   restartCustomServer = (type: string) => {
     Object.entries(this.customServers).forEach(([serverType, config]) => {
       if (type !== serverType) return;
 
-      this.customServersProcesses[type].end();
-
-      const { commandLine, env } = getParams(config);
-
-      this.customServersLogs[type] = [
-        `${new Date().toLocaleString()}: ${commandLine}\n`,
-      ];
-
-      this.tools[type] = [];
-
-      const process = new window.ExternalProcess(commandLine, env);
-
-      process.onprocess = this.onProcess.bind(this, type);
-
-      this.customServersProcesses[type] = process;
-
-      process.start();
-
-      this.initCustomServer(type);
-      window.dispatchEvent(new CustomEvent("tools-changed"));
+      if (isHttpServer(config)) {
+        this.restartHttpServer(type, config);
+      } else {
+        this.restartStdioServer(type, config);
+      }
     });
   };
 
+  restartHttpServer = (type: string, config: Record<string, unknown>) => {
+    // Stop existing connection
+    if (this.httpServers[type]?.abortController) {
+      this.httpServers[type].abortController.abort();
+    }
+
+    const { url, headers } = getHttpParams(config);
+
+    this.customServersLogs[type] = [
+      `${new Date().toLocaleString()}: HTTP MCP ${url}\n`,
+    ];
+
+    this.tools[type] = [];
+    this.initedCustomServers[type] = false;
+
+    this.httpServers[type] = {
+      url,
+      headers,
+      abortController: new AbortController(),
+    };
+
+    this.initHttpServer(type);
+    window.dispatchEvent(new CustomEvent("tools-changed"));
+  };
+
+  restartStdioServer = (type: string, config: Record<string, unknown>) => {
+    this.customServersProcesses[type].end();
+
+    const { commandLine, env } = getParams(config);
+
+    this.customServersLogs[type] = [
+      `${new Date().toLocaleString()}: ${commandLine}\n`,
+    ];
+
+    this.tools[type] = [];
+
+    const process = new window.ExternalProcess(commandLine, env);
+
+    process.onprocess = this.onProcess.bind(this, type);
+
+    this.customServersProcesses[type] = process;
+
+    process.start();
+
+    this.initCustomServer(type);
+    window.dispatchEvent(new CustomEvent("tools-changed"));
+  };
+
   deleteCustomServer = (type: string) => {
+    // Stop stdio process if exists
     if (this.customServersProcesses[type]) {
       this.customServersProcesses[type].end();
       delete this.customServersProcesses[type];
+    }
+    // Stop HTTP connection if exists
+    if (this.httpServers[type]) {
+      if (this.httpServers[type].abortController) {
+        this.httpServers[type].abortController.abort();
+      }
+      delete this.httpServers[type];
     }
     if (this.customServersLogs[type]) {
       delete this.customServersLogs[type];
@@ -201,6 +336,63 @@ class CustomServers {
       delete this.tools[type];
     }
     window.dispatchEvent(new CustomEvent("tools-changed"));
+  };
+
+  initHttpServer = async (type: string) => {
+    const server = this.httpServers[type];
+    if (!server) return;
+
+    try {
+      // Send initialize request
+      const initRequest = {
+        jsonrpc: "2.0",
+        id: `init-${type}`,
+        method: "initialize",
+        params: {
+          protocolVersion: "2024-11-05",
+          capabilities: {
+            tools: {},
+          },
+          clientInfo: {
+            name: "ai-agent",
+            version: "1.0.0",
+          },
+        },
+      };
+
+      const response = await fetch(`onlyoffice-proxy://${server.url}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...server.headers,
+        },
+        body: JSON.stringify(initRequest),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const text = await response.text();
+      const results = parseSSEResponse(text);
+
+      for (const result of results) {
+        this.onProcess(type, 0, JSON.stringify(result));
+
+        const msg = result as { jsonrpc?: string; id?: string };
+        if (msg.jsonrpc === "2.0" && msg.id?.includes(`init-${type}`)) {
+          this.initedCustomServers[type] = true;
+          this.stoppedCustomServers = this.stoppedCustomServers.filter(
+            (s) => s !== type
+          );
+          await this.getToolsFromHttpMCP(type);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error(`Error initializing HTTP MCP server ${type}:`, error);
+      this.onProcess(type, 2, `Connection failed: ${error}`);
+    }
   };
 
   initCustomServer = (type: string) => {
@@ -246,6 +438,42 @@ class CustomServers {
     }, 1000);
   };
 
+  getToolsFromHttpMCP = async (type: string) => {
+    const server = this.httpServers[type];
+    if (!server) return;
+
+    try {
+      const request = {
+        jsonrpc: "2.0",
+        id: `tools-${type}-${Date.now()}`,
+        method: "tools/list",
+        params: {},
+      };
+
+      const response = await fetch(`onlyoffice-proxy://${server.url}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...server.headers,
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const text = await response.text();
+      const results = parseSSEResponse(text);
+
+      for (const result of results) {
+        this.onProcess(type, 0, JSON.stringify(result));
+      }
+    } catch (error) {
+      console.error(`Error getting tools from HTTP MCP server ${type}:`, error);
+    }
+  };
+
   getToolsFromMCP = async (type: string) => {
     // Get all running custom server processes
 
@@ -270,6 +498,93 @@ class CustomServers {
   };
 
   callToolFromMCP = async (
+    serverType: string,
+    toolName: string,
+    args: Record<string, unknown>
+  ): Promise<unknown> => {
+    // Check if it's an HTTP server
+    if (this.httpServers[serverType]) {
+      return this.callToolFromHttpMCP(serverType, toolName, args);
+    }
+
+    // Otherwise use stdio
+    return this.callToolFromStdioMCP(serverType, toolName, args);
+  };
+
+  callToolFromHttpMCP = async (
+    serverType: string,
+    toolName: string,
+    args: Record<string, unknown>
+  ): Promise<unknown> => {
+    const server = this.httpServers[serverType];
+
+    if (!server) {
+      throw new Error(`HTTP MCP server ${serverType} is not running`);
+    }
+
+    // Check if tool exists
+    const serverTools = this.tools[serverType] || [];
+    const tool = serverTools.find((t) => t.name === toolName);
+
+    if (!tool) {
+      throw new Error(`Tool ${toolName} not found on server ${serverType}`);
+    }
+
+    try {
+      const request = {
+        jsonrpc: "2.0",
+        id: `call-${serverType}-${toolName}-${Date.now()}`,
+        method: "tools/call",
+        params: {
+          name: toolName,
+          arguments: args,
+        },
+      };
+
+      const response = await fetch(`onlyoffice-proxy://${server.url}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...server.headers,
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const text = await response.text();
+      const results = parseSSEResponse(text);
+
+      for (const result of results) {
+        this.onProcess(serverType, 0, JSON.stringify(result));
+
+        const msg = result as {
+          error?: { code: number; message: string };
+          result?: unknown;
+        };
+
+        if (msg.error) {
+          throw new Error(
+            `MCP tool error (${msg.error.code}): ${msg.error.message}`
+          );
+        }
+
+        if (msg.result !== undefined) {
+          return JSON.stringify(msg.result);
+        }
+      }
+
+      throw new Error("No result in response");
+    } catch (error) {
+      throw new Error(
+        `Error calling HTTP MCP tool ${toolName} on server ${serverType}: ${error}`
+      );
+    }
+  };
+
+  callToolFromStdioMCP = async (
     serverType: string,
     toolName: string,
     args: Record<string, unknown>
@@ -327,10 +642,7 @@ class CustomServers {
               const response = JSON.parse(message);
 
               // Check if this is our tool call response
-              if (
-                response.id &&
-                response.id.startsWith(`call-${serverType}-${toolName}`)
-              ) {
+              if (response.id?.startsWith(`call-${serverType}-${toolName}`)) {
                 // Restore original handler
                 process.onprocess = originalOnProcess;
                 clearTimeout(timeout);

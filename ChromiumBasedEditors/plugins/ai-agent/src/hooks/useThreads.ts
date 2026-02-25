@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-
 import useThreadsStore from "@/store/useThreadsStore";
 
 type UseThreadProps = {

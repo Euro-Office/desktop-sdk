@@ -1,28 +1,20 @@
-import { useEffect, useState, useCallback } from "react";
 import type { ToolCallMessagePartComponent } from "@assistant-ui/react";
-import { ReactSVG } from "react-svg";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import ToolCalledIconUrl from "@/assets/tool.called.svg?url";
-import CodeIconUrl from "@/assets/code.svg?url";
-import ArrowBottomIconUrl from "@/assets/arrow.bottom.svg?url";
-import ArrowRightIconUrl from "@/assets/arrow.right.svg?url";
-import CopyIconUrl from "@/assets/btn-copy.svg?url";
-import CheckedIconUrl from "@/assets/checked.svg?url";
-import SearchIconUrl from "@/assets/btn-web-search.svg?url";
-import ExternalIconUrl from "@/assets/btn-external.svg?url";
-
+import { Icon } from "@/components/icon";
+import { useDirection } from "@/hooks/useDirection";
 import server from "@/servers";
-
-import { Loader } from "../loader";
 import { IconButton } from "../icon-button";
+import { Loader } from "../loader";
 
+const TOOL_CALL_COLOR = "var(--chat-message-tool-call-name-color)";
 export const ToolFallback: ToolCallMessagePartComponent = ({
   toolName,
   argsText,
   result,
 }) => {
   const { t } = useTranslation();
+  const { isRTL } = useDirection();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isArgsCopied, setIsArgsCopied] = useState(false);
   const [isResultCopied, setIsResultCopied] = useState(false);
@@ -44,7 +36,7 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
   }, [isResultCopied]);
 
   const type = server.getServerType(toolName);
-  const name = toolName.replace(type + "_", "");
+  const name = toolName.replace(`${type}_`, "");
 
   const isLoading = result === undefined;
 
@@ -66,34 +58,19 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
       ? isWebSearch
         ? JSON.parse(argsTextFinal).query
         : isWebCrawling
-        ? JSON.parse(argsTextFinal).urls[0]
-        : ""
+          ? JSON.parse(argsTextFinal).urls[0]
+          : ""
       : "";
   } catch {
     //ignore
   }
 
-  const handleBeforeInjectionFill = useCallback((svg: SVGSVGElement) => {
-    const paths = svg.querySelectorAll("path");
-    paths.forEach((path) => {
-      path.setAttribute("fill", "var(--chat-message-tool-call-name-color)");
-    });
-    const circles = svg.querySelectorAll("circle");
-    circles.forEach((circle) => {
-      circle.setAttribute("fill", "var(--chat-message-tool-call-name-color)");
-    });
-  }, []);
-
-  const handleBeforeInjection = useCallback((svg: SVGSVGElement) => {
-    const paths = svg.querySelectorAll("path");
-    paths.forEach((path) => {
-      path.setAttribute("stroke", "var(--chat-message-tool-call-name-color)");
-    });
-    const circles = svg.querySelectorAll("circle");
-    circles.forEach((circle) => {
-      circle.setAttribute("stroke", "var(--chat-message-tool-call-name-color)");
-    });
-  }, []);
+  let parsedResult = result;
+  try {
+    parsedResult = typeof result === "string" ? JSON.parse(result) : result;
+  } catch {
+    // ignore
+  }
 
   return (
     <div className="my-[16px] flex w-full flex-col gap-3">
@@ -113,7 +90,11 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
         }}
       >
         {!isLoading ? (
-          <ReactSVG src={ToolCalledIconUrl} />
+          <Icon
+            name={parsedResult?.data?.error ? "status.error" : "tool.called"}
+            size={16}
+            noColor
+          />
         ) : (
           <Loader size={16} />
         )}
@@ -124,34 +105,36 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
         ) : null}
         <span className="flex items-center gap-[8px] rounded-[4px] ps-[4px] pe-[8px] text-[14px] leading-[20px] font-normal text-[var(--chat-message-tool-call-name-color)] bg-[var(--chat-message-tool-call-name-background-color)] min-w-0 w-fit">
           {isWebSearch ? (
-            <ReactSVG
-              src={SearchIconUrl}
-              beforeInjection={handleBeforeInjectionFill}
-            />
+            <Icon name="btn-web-search" size={24} color={TOOL_CALL_COLOR} />
           ) : !isWebCrawling ? (
-            <ReactSVG
-              src={CodeIconUrl}
-              beforeInjection={handleBeforeInjection}
-            />
+            <Icon name="code" size={24} color={TOOL_CALL_COLOR} isStroke />
           ) : null}
           <span className="truncate">
             {isWebSearch
               ? webSearchName
               : isWebCrawling
-              ? `${name} | ${webSearchName}`
-              : name}
+                ? `${name} | ${webSearchName}`
+                : name}
           </span>
         </span>
         {isWebCrawling ? (
-          <ReactSVG
-            src={ExternalIconUrl}
-            beforeInjection={handleBeforeInjection}
+          <Icon
+            name="btn-external"
+            size={16}
+            color={TOOL_CALL_COLOR}
+            isStroke
           />
         ) : isWebSearch && result === undefined ? null : (
-          <ReactSVG
-            src={!isCollapsed ? ArrowBottomIconUrl : ArrowRightIconUrl}
-            beforeInjection={handleBeforeInjection}
-          />
+          <span className={isRTL && isCollapsed ? "rotate-180" : ""}>
+            <Icon
+              name={!isCollapsed ? "arrow.bottom" : "arrow.right"}
+              size={16}
+              width={8}
+              height={8}
+              color={TOOL_CALL_COLOR}
+              isStroke
+            />
+          </span>
         )}
       </div>
       {!isCollapsed ? (
@@ -160,15 +143,17 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
             <div className="">
               <p className="flex flex-row items-center justify-between text-[var(--chat-message-tool-call-header-color)] text-[14px] font-bold leading-[20px]">
                 {t("ToolCallArguments")}
-                <ReactSVG
-                  src={isArgsCopied ? CheckedIconUrl : CopyIconUrl}
+                <span
                   onClick={() => setIsArgsCopied(true)}
-                  beforeInjection={
-                    !isArgsCopied
-                      ? handleBeforeInjectionFill
-                      : handleBeforeInjection
-                  }
-                />
+                  className="cursor-pointer"
+                >
+                  <Icon
+                    name={isArgsCopied ? "checked" : "btn-copy"}
+                    size={24}
+                    color={TOOL_CALL_COLOR}
+                    isStroke={isArgsCopied}
+                  />
+                </span>
               </p>
               <pre className="max-h-[200px] overflow-y-auto whitespace-pre-wrap text-[var(--chat-message-tool-call-pre-color)] border border-[var(--chat-message-tool-call-pre-border-color)] bg-[var(--chat-message-tool-call-pre-background-color)] px-[8px] py-[2px] rounded-[4px]">
                 {argsTextFinal ? argsTextFinal : "{}"}
@@ -181,18 +166,14 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
                 <div>
                   {(() => {
                     try {
-                      const parsedResult =
-                        typeof result === "string"
-                          ? JSON.parse(result)
-                          : result;
-
                       // Check if there's an error in the result
-                      if (parsedResult?.error) {
+
+                      if (parsedResult?.data?.error) {
                         return (
                           <pre className="max-h-[200px] overflow-y-auto whitespace-pre-wrap text-[var(--chat-message-tool-call-pre-color)] border border-[var(--chat-message-tool-call-pre-border-color)] bg-[var(--chat-message-tool-call-pre-background-color)] px-[8px] py-[2px] rounded-[4px]">
-                            {typeof result === "string"
+                            {typeof parsedResult === "string"
                               ? result
-                              : JSON.stringify(result, null, 2)}
+                              : parsedResult?.data?.error}
                           </pre>
                         );
                       }
@@ -210,16 +191,16 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
                                 publishedDate?: string;
                                 author?: string;
                               },
-                              index: number
+                              _index: number
                             ) => (
                               <div
-                                key={index}
+                                key={item.id}
                                 className="group h-[36px] px-[8px] rounded-[4px] flex flex-row items-center justify-between cursor-pointer hover:bg-[var(--drop-down-menu-item-hover-color)] transition-colors"
                                 onClick={() => window.open(item.url, "_blank")}
                               >
                                 <div className="flex flex-row items-center gap-[8px] min-w-0 flex-1">
                                   <IconButton
-                                    iconName={SearchIconUrl}
+                                    iconName="btn-web-search"
                                     size={24}
                                     disableHover
                                   />
@@ -229,7 +210,7 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
                                 </div>
                                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                                   <IconButton
-                                    iconName={ExternalIconUrl}
+                                    iconName="btn-external"
                                     size={24}
                                     disableHover
                                   />
@@ -260,15 +241,17 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
                 <>
                   <p className="flex flex-row items-center justify-between text-[var(--chat-message-tool-call-header-color)] text-[14px] font-bold leading-[20px]">
                     {t("ToolCallResult")}
-                    <ReactSVG
-                      src={isResultCopied ? CheckedIconUrl : CopyIconUrl}
+                    <span
                       onClick={() => setIsResultCopied(true)}
-                      beforeInjection={
-                        !isResultCopied
-                          ? handleBeforeInjectionFill
-                          : handleBeforeInjection
-                      }
-                    />
+                      className="cursor-pointer"
+                    >
+                      <Icon
+                        name={isResultCopied ? "checked" : "btn-copy"}
+                        size={24}
+                        color={TOOL_CALL_COLOR}
+                        isStroke={isResultCopied}
+                      />
+                    </span>
                   </p>
                   <pre className="max-h-[200px] overflow-y-auto whitespace-pre-wrap text-[var(--chat-message-tool-call-pre-color)] border border-[var(--chat-message-tool-call-pre-border-color)] bg-[var(--chat-message-tool-call-pre-background-color)] px-[8px] py-[2px] rounded-[4px]">
                     {typeof result === "string"

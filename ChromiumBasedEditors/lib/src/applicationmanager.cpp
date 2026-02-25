@@ -997,6 +997,8 @@ int CAscApplicationManager::GetFileFormatByExtentionForSave(const std::wstring& 
 		nFormat = AVS_OFFICESTUDIO_FILE_DOCUMENT_RTF;
 	else if (sName == L"txt")
 		nFormat = AVS_OFFICESTUDIO_FILE_DOCUMENT_TXT;
+	else if (sName == L"md")
+		nFormat = AVS_OFFICESTUDIO_FILE_DOCUMENT_MD;
 	else if (sName == L"html")
 		nFormat = AVS_OFFICESTUDIO_FILE_DOCUMENT_HTML;
 	else if (sName == L"xlsx")
@@ -1249,6 +1251,10 @@ std::vector<std::string> CAscApplicationManager::GetRendererStartupProperties()
 	props.push_back("tmp_folder=" + U_TO_UTF8(m_pInternal->StartTmpDirectory()));
 	props.push_back("recovers_folder=" + U_TO_UTF8(m_oSettings.recover_path));
 	props.push_back("renderer_process_variable=" + U_TO_UTF8(m_pInternal->m_sRendererJSON));
+	props.push_back("renderer_process_variable=" + U_TO_UTF8(m_pInternal->m_sRendererJSON));
+
+	if (m_pInternal->m_bDisableAI)
+		props.push_back("disable-ai=1");
 
 	if (!m_oSettings.macroses_support)
 		props.push_back("macroses_support=false");
@@ -1355,6 +1361,11 @@ bool CAscApplicationManager::RemoveRecentByViewId(const int& nId)
 
 	m_pInternal->Recents_Remove(nRecentId);
 	return true;
+}
+
+int CAscApplicationManager::CallCommand(const std::wstring& command)
+{
+	return 0;
 }
 
 bool NSCommon::CSystemWindowScale::g_isUseSystemScalingInit = false;

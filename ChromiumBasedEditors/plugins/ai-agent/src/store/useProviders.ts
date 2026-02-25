@@ -1,19 +1,25 @@
 import { create } from "zustand";
-
-import type { TProvider, Model } from "@/lib/types";
 import {
-  PROVIDERS_LOCAL_STORAGE_KEY,
   CURRENT_PROVIDER_KEY,
+  PROVIDERS_LOCAL_STORAGE_KEY,
 } from "@/lib/constants";
+import type { Model, TProvider } from "@/lib/types";
 import { provider } from "@/providers";
-import type { TErrorData } from "@/providers/settings";
+import type { TErrorData } from "@/providers/base";
+
+const NAME_EXISTS_ERROR = {
+  field: "name" as const,
+  message: "Duplicate name",
+};
 
 interface ProvidersState {
   providers: TProvider[];
   currentProvider: TProvider | null;
+  persistedProvider: TProvider | null;
   providersModels: Map<string, Model[]>;
   fetchProvidersModels: () => Promise<void>;
   setCurrentProvider: (providerInfo: TProvider) => void;
+  setSessionProvider: (providerInfo: TProvider | null) => void;
   addProvider: (
     providerInfo: TProvider
   ) => Promise<boolean | TErrorData | undefined>;
@@ -27,39 +33,28 @@ interface ProvidersState {
 const useProviders = create<ProvidersState>()((set, get) => ({
   providers: (() => {
     const saved = localStorage.getItem(PROVIDERS_LOCAL_STORAGE_KEY);
+
     return saved ? JSON.parse(saved) : [];
   })(),
   currentProvider: (() => {
     const saved = localStorage.getItem(CURRENT_PROVIDER_KEY);
+
     if (!saved) return null;
+
     const parsed: TProvider = JSON.parse(saved);
 
-    // Since checkNewProvider is async, we need to handle this differently
-    // For now, just set the provider and validate it asynchronously
     provider.setCurrentProvider(parsed);
 
-    // Validate the provider asynchronously
-    const validationResult = provider.checkNewProvider(parsed.type, {
-      url: parsed.baseUrl,
-      apiKey: parsed.key,
-    });
+    return parsed;
+  })(),
+  persistedProvider: (() => {
+    const saved = localStorage.getItem(CURRENT_PROVIDER_KEY);
 
-    // Handle both sync (false) and async (Promise) results
-    if (validationResult instanceof Promise) {
-      validationResult
-        .then((result: boolean | TErrorData) => {
-          if (typeof result !== "boolean" || !result) {
-            localStorage.removeItem(CURRENT_PROVIDER_KEY);
-          }
-        })
-        .catch((error: unknown) => {
-          console.error("Provider validation error:", error);
-          localStorage.removeItem(CURRENT_PROVIDER_KEY);
-        });
-    } else if (!validationResult) {
-      localStorage.removeItem(CURRENT_PROVIDER_KEY);
-      return null;
-    }
+    if (!saved) return null;
+
+    const parsed: TProvider = JSON.parse(saved);
+
+    provider.setCurrentProvider(parsed);
 
     return parsed;
   })(),
@@ -71,10 +66,18 @@ const useProviders = create<ProvidersState>()((set, get) => ({
 
     set({ providersModels: models });
   },
+
   setCurrentProvider: (providerInfo: TProvider) => {
-    set({ currentProvider: providerInfo });
     provider.setCurrentProvider(providerInfo);
     localStorage.setItem(CURRENT_PROVIDER_KEY, JSON.stringify(providerInfo));
+    set({ currentProvider: providerInfo, persistedProvider: providerInfo });
+  },
+  setSessionProvider: (providerInfo: TProvider | null) => {
+    set((state) => {
+      const nextProvider = providerInfo ?? state.persistedProvider ?? null;
+      provider.setCurrentProvider(nextProvider || undefined);
+      return { currentProvider: nextProvider };
+    });
   },
 
   addProvider: async (providerInfo: TProvider) => {
@@ -84,12 +87,7 @@ const useProviders = create<ProvidersState>()((set, get) => ({
       (p) => p.name.toLowerCase() === providerInfo.name.toLowerCase()
     );
 
-    if (nameExists) {
-      return {
-        field: "name" as const,
-        message: "Duplicate name",
-      };
-    }
+    if (nameExists) return NAME_EXISTS_ERROR;
 
     const checkResult = await provider.checkNewProvider(providerInfo.type, {
       url: providerInfo.baseUrl,
@@ -123,10 +121,7 @@ const useProviders = create<ProvidersState>()((set, get) => ({
     );
 
     if (nameExists) {
-      return {
-        field: "name" as const,
-        message: "Duplicate name",
-      };
+      return NAME_EXISTS_ERROR;
     }
 
     const checkResult = await provider.checkNewProvider(providerInfo.type, {
@@ -156,17 +151,31 @@ const useProviders = create<ProvidersState>()((set, get) => ({
         (p) => p.name !== providerInfo.name
       );
 
-      if (state.currentProvider?.name === providerInfo.name) {
-        state.currentProvider = null;
+      const isRemovingPersisted =
+        state.persistedProvider?.name === providerInfo.name;
+
+      let nextPersisted = state.persistedProvider;
+      let nextCurrent = state.currentProvider;
+
+      if (isRemovingPersisted) {
+        nextPersisted = null;
         localStorage.removeItem(CURRENT_PROVIDER_KEY);
-        provider.setCurrentProvider();
+      }
+
+      if (state.currentProvider?.name === providerInfo.name) {
+        nextCurrent = nextPersisted;
+        provider.setCurrentProvider(nextCurrent || undefined);
       }
 
       localStorage.setItem(
         PROVIDERS_LOCAL_STORAGE_KEY,
         JSON.stringify(newProviders)
       );
-      return { providers: newProviders };
+      return {
+        providers: newProviders,
+        currentProvider: nextCurrent,
+        persistedProvider: nextPersisted,
+      };
     });
   },
 }));

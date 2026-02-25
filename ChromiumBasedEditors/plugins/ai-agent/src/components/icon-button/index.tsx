@@ -1,8 +1,5 @@
-import { useCallback } from "react";
-import { ReactSVG } from "react-svg";
-
+import { Icon } from "@/components/icon";
 import { cn } from "@/lib/utils";
-
 import type { IconButtonProps } from "./IconButton.types";
 
 const IconButton = ({
@@ -16,6 +13,8 @@ const IconButton = ({
   disableHover,
   color,
   noColor,
+  width,
+  height,
   ...props
 }: IconButtonProps) => {
   const hoverStyles = !disableHover
@@ -34,31 +33,6 @@ const IconButton = ({
   const focusStyles =
     "outline-none focus:outline-none focus-visible:outline-none";
 
-  const handleBeforeInjection = useCallback(
-    (svg: SVGSVGElement) => {
-      if (noColor) {
-        return;
-      }
-      const paths = svg.querySelectorAll("path");
-      paths.forEach((path) => {
-        if (!isStroke) {
-          path.setAttribute("fill", color || "var(--icon-button-color)");
-        } else {
-          path.setAttribute("stroke", color || "var(--icon-button-color)");
-        }
-      });
-      const circles = svg.querySelectorAll("circle");
-      circles.forEach((circle) => {
-        if (!isStroke) {
-          circle.setAttribute("fill", color || "var(--icon-button-color)");
-        } else {
-          circle.setAttribute("stroke", color || "var(--icon-button-color)");
-        }
-      });
-    },
-    [isStroke, color, noColor]
-  );
-
   return (
     <button
       className={cn(
@@ -72,6 +46,7 @@ const IconButton = ({
       )}
       style={{
         width: `${size}px`,
+        minWidth: `${size}px`,
         height: `${size}px`,
         ...(isActive
           ? {
@@ -81,12 +56,15 @@ const IconButton = ({
       }}
       {...props}
     >
-      <ReactSVG
-        src={iconName}
-        className={`flex items-center justify-center ${
-          isTransform ? "rotate-90" : ""
-        }`}
-        beforeInjection={handleBeforeInjection}
+      <Icon
+        name={iconName}
+        size={size}
+        isStroke={isStroke}
+        isTransform={isTransform}
+        color={color}
+        noColor={noColor}
+        width={width}
+        height={height}
       />
     </button>
   );

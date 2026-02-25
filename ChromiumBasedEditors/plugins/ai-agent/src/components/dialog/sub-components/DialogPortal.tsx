@@ -1,5 +1,5 @@
-import React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import type React from "react";
 
 const DialogPortal = ({
   ...props

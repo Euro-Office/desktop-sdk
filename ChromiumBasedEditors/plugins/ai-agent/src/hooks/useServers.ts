@@ -1,8 +1,7 @@
 import { useEffect } from "react";
-
 import { provider } from "@/providers";
-import useServersStore from "@/store/useServersStore";
 import useProviders from "@/store/useProviders";
+import useServersStore from "@/store/useServersStore";
 
 type UseServersProps = {
   isReady: boolean;
@@ -18,10 +17,17 @@ const useServers = ({ isReady }: UseServersProps) => {
     initServers();
     getTools();
 
-    setInterval(() => {
-      getTools();
-      // update tools every 5 minutes
-    }, 1000 * 60 * 5);
+    const interval = setInterval(
+      () => {
+        getTools();
+        // update tools every 5 minutes
+      },
+      1000 * 60 * 5
+    );
+
+    return () => {
+      clearInterval(interval);
+    };
   }, [isReady, initServers, getTools]);
 
   useEffect(() => {

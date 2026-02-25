@@ -41,7 +41,8 @@
   "Rename": "Renommer",
   "Download": "Télécharger",
   "Search": "Recherche...",
-  "AddLocalFile": "Ajout d'un fichier local...",
+  "AddLocalFile": "Ajouter un fichier local...",
+  "AddLocalImage": "Ajouter une image locale...",
   "RecentFiles": "Fichiers récents",
   "Attachments": "Pièces jointes",
   "APIKey": "Clé API",
@@ -49,7 +50,7 @@
   "AskAI": "Demander à l'IA",
   "Analyzing": "Analyse en cours...",
   "AIWouldLikeUseThisTool": "lA aimerait utiliser cet outil :",
-  "ReviewEachAction": "Examinez attentivement chaque action avant de l'approuver. Nous ne pouvons garantir la sécurité ou les pratiques de confidentialité des intégrations tierces.",
+  "ReviewEachAction": "Examinez attentivement chaque action avant de l'approuver.\n Nous ne pouvons garantir la sécurité ou les pratiques de confidentialité des intégrations tierces.",
   "AlwaysAllow": "Toujours autoriser cet outil à effectuer cette action sans demander à nouveau",
   "Deny": "Refuser",
   "Allow": "Autoriser",
@@ -79,5 +80,9 @@
   "EnableWebSearch": "Activer la recherche Web dans les paramètres",
   "WantDeleteServer": "Ce serveur sera supprimé de votre liste. Continuer ?",
   "NoModelsAvailable": "Fournisseur indisponible",
-  "CheckInfo": "Le chatbot IA peut faire des erreurs. Vérifiez les informations importantes."
+  "CheckInfo": "Le chatbot IA peut faire des erreurs. Vérifiez les informations importantes.",
+  "ConfigurationError": "La configuration doit être placée dans la propriété « mcpServers »",
+  "Thinking": "Raisonnement",
+  "ExtendedThinking": "Raisonnement étendu",
+  "ExtendedThinkingDescription": "Ce modèle utilise un raisonnement avancé, ce qui peut augmenter les coûts."
 }

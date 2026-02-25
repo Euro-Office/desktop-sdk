@@ -13,6 +13,8 @@ const sourceDir = path.join(
   "{9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}"
 );
 
+const configPath = path.join(sourceDir, "config.json");
+
 // Default path - can be overridden via command line argument
 const defaultTargetPath = path.join(
   process.env.HOME || "~",
@@ -25,6 +27,22 @@ const targetDir = path.join(
   customPath,
   "{9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}"
 );
+
+// Function to add version to config.json
+function addVersion() {
+  const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  config.version = "99.999.999";
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+  console.log("Added version 99.999.999 to config.json");
+}
+
+// Function to remove version from config.json
+function removeVersion() {
+  const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  delete config.version;
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+  console.log("Removed version from config.json");
+}
 
 // Function to recursively copy directory
 function copyDirectory(src, dest) {
@@ -59,7 +77,7 @@ function removeDirectory(dirPath) {
 // Check if source directory exists
 if (!fs.existsSync(sourceDir)) {
   console.error(
-    "❌ Error: Source plugin directory not found. Please run build first."
+    "Error: Source plugin directory not found. Please run build first."
   );
   console.error(`Expected: ${sourceDir}`);
   process.exit(1);
@@ -72,24 +90,38 @@ if (!fs.existsSync(targetParent)) {
   fs.mkdirSync(targetParent, { recursive: true });
 }
 
-console.log("🚀 Starting plugin move process...");
+console.log("Starting plugin move process...");
 console.log(`Source: ${sourceDir}`);
 console.log(`Target: ${targetDir}`);
 
 try {
+  // Add version to config.json before move
+  console.log("\nPreparing config.json...");
+  addVersion();
+
   // Remove existing target directory if it exists
   if (fs.existsSync(targetDir)) {
-    console.log("\n Removing existing plugin directory...");
+    console.log("\nRemoving existing plugin directory...");
     removeDirectory(targetDir);
   }
 
   // Copy plugin directory to target location
-  console.log("\n📁 Copying plugin directory...");
+  console.log("\nCopying plugin directory...");
   copyDirectory(sourceDir, targetDir);
 
-  console.log("\n✅ Plugin moved successfully!");
+  // Remove version from config.json after move
+  console.log("\nCleaning up config.json...");
+  removeVersion();
+
+  console.log("\nPlugin moved successfully!");
   console.log(`Plugin is now available at: ${targetDir}`);
 } catch (error) {
-  console.error("❌ Error during move process:", error);
+  // Ensure version is removed even if error occurs
+  try {
+    removeVersion();
+  } catch {
+    // Ignore cleanup errors
+  }
+  console.error("Error during move process:", error);
   process.exit(1);
 }

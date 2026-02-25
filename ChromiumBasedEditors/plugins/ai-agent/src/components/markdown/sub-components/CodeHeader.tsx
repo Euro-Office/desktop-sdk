@@ -1,12 +1,7 @@
 import type { CodeHeaderProps } from "@assistant-ui/react-markdown";
 import { useTranslation } from "react-i18next";
-
-import BtnCopyIconUrl from "@/assets/btn-copy.svg?url";
-import BtnCheckIconUrl from "@/assets/checked.svg?url";
-
-import { TooltipIconButton } from "../../tooltip-icon-button";
 import { IconButton } from "../../icon-button";
-
+import { TooltipIconButton } from "../../tooltip-icon-button";
 import useCopyToClipboard from "../hooks/useCopyToClipboard";
 
 const CodeHeader = ({ language, code }: CodeHeaderProps) => {
@@ -27,14 +22,9 @@ const CodeHeader = ({ language, code }: CodeHeaderProps) => {
         onClick={onCopy}
         visible={!isCopied}
       >
-        {!isCopied && <IconButton iconName={BtnCopyIconUrl} size={16} />}
+        {!isCopied && <IconButton iconName="btn-copy" size={24} />}
         {isCopied && (
-          <IconButton
-            iconName={BtnCheckIconUrl}
-            size={16}
-            isStroke
-            disableHover
-          />
+          <IconButton iconName="checked" size={24} isStroke disableHover />
         )}
       </TooltipIconButton>
     </div>

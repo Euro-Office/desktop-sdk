@@ -22,6 +22,9 @@ export type DropDownItemProps = {
   checked?: boolean;
 
   tooltipText?: string;
-  
+
   withSpace?: boolean;
+
+  withAbout?: boolean;
+  aboutContent?: React.ReactNode;
 };

@@ -1,18 +1,21 @@
-import type { Thread } from "@/lib/types";
-
+import type { Model, Thread, TProvider } from "@/lib/types";
 import { chatDB } from "./index";
 import { deleteMessagesInThread } from "./messages";
 
 // Create thread
 export const createThread = async (
   threadId: string,
-  title: string
+  title: string,
+  provider?: TProvider,
+  model?: Model
 ): Promise<void> => {
   const db = chatDB.getDB();
   const threadData: Thread = {
     threadId,
     title,
     lastEditDate: Date.now(),
+    provider,
+    model,
   };
 
   return new Promise((resolve, reject) => {
@@ -95,7 +98,10 @@ export const updateThread = async (
 };
 
 // Update thread's lastEditDate (for when messages are added)
-export const touchThread = async (threadId: string): Promise<void> => {
+export const touchThread = async (
+  threadId: string,
+  updates?: { provider?: TProvider | null; model?: Model | null }
+): Promise<void> => {
   const db = chatDB.getDB();
 
   return new Promise((resolve, reject) => {
@@ -114,6 +120,12 @@ export const touchThread = async (threadId: string): Promise<void> => {
 
       const updatedThread: Thread = {
         ...existingThread,
+        ...(updates && "provider" in updates
+          ? { provider: updates.provider ?? undefined }
+          : {}),
+        ...(updates && "model" in updates
+          ? { model: updates.model ?? undefined }
+          : {}),
         lastEditDate: Date.now(),
       };
 

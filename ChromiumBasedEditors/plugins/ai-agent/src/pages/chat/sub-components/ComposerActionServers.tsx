@@ -1,18 +1,15 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import SearchIconUrl from "@/assets/btn-web-search.svg?url";
-import ToolsIconUrl from "@/assets/tools.svg?url";
-
-import useServersStore from "@/store/useServersStore";
-
-import { IconButton } from "@/components/icon-button";
 import { DropdownMenu } from "@/components/dropdown";
+import { IconButton } from "@/components/icon-button";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import useModelsStore from "@/store/useModelsStore";
+import useServersStore from "@/store/useServersStore";
 
 const ServersSettings = () => {
   const { servers, changeToolStatus, webSearchEnabled, getWebSearchEnabled } =
     useServersStore();
+  const { extendedThinking, toggleExtendedThinking } = useModelsStore();
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -21,7 +18,13 @@ const ServersSettings = () => {
   const trigger = useMemo(
     () => (
       <TooltipIconButton visible={!isOpen} tooltip={t("MCPServers")}>
-        <IconButton iconName={ToolsIconUrl} size={24} isActive={isOpen} />
+        <IconButton
+          iconName="tools"
+          size={24}
+          width={12}
+          height={16}
+          isActive={isOpen}
+        />
       </TooltipIconButton>
     ),
     [isOpen, t]
@@ -31,8 +34,10 @@ const ServersSettings = () => {
     () => [
       {
         text: t("WebSearch"),
-        onClick: () => {},
-        icon: <IconButton iconName={SearchIconUrl} size={24} disableHover />,
+        onClick: () => {
+          // ignore
+        },
+        icon: <IconButton iconName="btn-web-search" size={24} disableHover />,
         withToggle: true,
         toggleChecked: getWebSearchEnabled() ? webSearchEnabled : false,
         toggleDisabled: !getWebSearchEnabled(),
@@ -46,20 +51,54 @@ const ServersSettings = () => {
           window.dispatchEvent(new CustomEvent("tools-changed"));
         },
       },
-      { text: "", onClick: () => {}, isSeparator: true },
+      {
+        text: t("ExtendedThinking"),
+        icon: (
+          <IconButton iconName="btn-extended-thinking" size={24} disableHover />
+        ),
+        onClick: () => {
+          // ignore
+        },
+        withToggle: true,
+        toggleChecked: extendedThinking,
+        onToggleChange: toggleExtendedThinking,
+        withAbout: true,
+        aboutContent: (
+          <p className="p-[16px] text-[11px] leading-[16px] text-[var(--text-secondary)]">
+            {t("ExtendedThinkingDescription")}
+          </p>
+        ),
+      },
+      {
+        text: "",
+        onClick: () => {
+          // ignore
+        },
+        isSeparator: true,
+      },
       ...Object.entries(servers)
         .map(([type, tools]) => {
           if (type === "web-search")
-            return { text: type, onClick: () => {}, subMenu: [] };
+            return {
+              text: type,
+              onClick: () => {
+                // ignore
+              },
+              subMenu: [],
+            };
 
           const isAllEnabled = tools.some((tool) => tool.enabled);
           return {
             text: type,
-            onClick: () => {},
+            onClick: () => {
+              // ignore
+            },
             subMenu: [
               {
                 text: "All tools",
-                onClick: () => {},
+                onClick: () => {
+                  // ignore
+                },
                 withToggle: true,
                 toggleChecked: isAllEnabled,
                 onToggleChange: () => {
@@ -74,11 +113,19 @@ const ServersSettings = () => {
                   }
                 },
               },
-              { text: "", onClick: () => {}, isSeparator: true },
+              {
+                text: "",
+                onClick: () => {
+                  // ignore
+                },
+                isSeparator: true,
+              },
               ...tools.map((tool) => {
                 return {
                   text: tool.name,
-                  onClick: () => {},
+                  onClick: () => {
+                    // ignore
+                  },
                   withToggle: true,
                   toggleChecked: tool.enabled,
                   onToggleChange: (checked: boolean) => {
@@ -91,7 +138,15 @@ const ServersSettings = () => {
         })
         .filter((item) => item.subMenu.length > 2),
     ],
-    [servers, changeToolStatus, t, webSearchEnabled, getWebSearchEnabled]
+    [
+      servers,
+      changeToolStatus,
+      t,
+      webSearchEnabled,
+      getWebSearchEnabled,
+      toggleExtendedThinking,
+      extendedThinking,
+    ]
   );
 
   const actions = useMemo(() => [...toolsActions], [toolsActions]);

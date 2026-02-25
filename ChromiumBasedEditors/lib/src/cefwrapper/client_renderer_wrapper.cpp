@@ -693,6 +693,8 @@ namespace asc_client_renderer
 
 		bool m_bIsDebugMode;
 
+		bool m_bDisableAI;
+
 		bool m_bIsEnableUploadCrypto;
 
 		NSCriticalSection::CRITICAL_SECTION m_oCompleteTasksCS;
@@ -762,6 +764,8 @@ namespace asc_client_renderer
 			m_bIsMacrosesSupport = true;
 			m_bIsPluginsSupport = true;
 
+			m_bDisableAI = false;
+
 			CheckDefaults();
 
 			if (!g_pLocalResolver.is_init())
@@ -817,6 +821,9 @@ namespace asc_client_renderer
 
 			m_sLocalFileFolderWithoutFile = default_params.GetValueW("recovery_file_folder");
 
+			m_bDisableAI = (default_params.GetValue("disable-ai") == "1") ? true : false;
+			if (m_bDisableAI)
+				CPluginsManager::DisableAI();
 #if 0
 		default_params.Print();
 #endif
@@ -2176,6 +2183,21 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 							// bIsNeedRelogin = true;
 						}
 
+						if (savedInfo && !bIsServerPrivateKeyExist)
+						{
+							std::string sPublic = U_TO_UTF8(savedInfo->PublicKey);
+							std::string sPrivateEnc = U_TO_UTF8(savedInfo->PrivateKeyEnc);
+
+							// отсылаем ключи
+							NSStringUtils::string_replaceA(sPublic, "\n", "&#xA");
+							std::string sCode =
+								("setTimeout(function() { window.cloudCryptoCommand && window.cloudCryptoCommand(\"encryptionKeys\", { publicKey : \"" + sPublic + "\", privateKeyEnc : \"" +
+								 sPrivateEnc + "\" }); }, 10);");
+							CefRefPtr<CefFrame> _frame = CefV8Context::GetCurrentContext()->GetFrame();
+							_frame->ExecuteJavaScript(sCode, _frame->GetURL(), 0);
+
+						}
+
 						if (tmpInfo)
 							oAppTmp.removeInfo(L"" /*info.Email*/, info.Portal);
 
@@ -2615,6 +2637,32 @@ window._external_process_callback = {};\n\
 						{
 							bResult = oPlugins.AddPlugin(sTmpFile);
 							NSFile::CFileBinary::Remove(sTmpFile);
+						}
+					}
+				}
+
+				// ENGINE can be updated!!!
+				if (true)
+				{
+					std::wstring baseUrl = L"https://onlyoffice.github.io/sdkjs-plugins/v1/";
+					std::vector<std::wstring> arFiles = {L"plugins.js", L"plugins-ui.js", L"plugins.css"};
+					std::wstring userFolder = m_sUserPlugins + L"/v1/";
+
+					for (std::vector<std::wstring>::const_iterator i = arFiles.cbegin(); i != arFiles.cend(); i++)
+					{
+						std::wstring sTmpFile = NSFile::CFileBinary::CreateTempFileWithUniqueName(NSFile::CFileBinary::GetTempPath(), L"IMG");
+						if (NSFile::CFileBinary::Exists(sTmpFile))
+							NSFile::CFileBinary::Remove(sTmpFile);
+
+						CFileDownloaderWrapper oDownloader(baseUrl + *i, sTmpFile);
+						oDownloader.DownloadSync();
+
+						if (NSFile::CFileBinary::Exists(sTmpFile))
+						{
+							std::wstring outFile = userFolder + *i;
+							if (NSFile::CFileBinary::Exists(outFile))
+								NSFile::CFileBinary::Remove(outFile);
+							NSFile::CFileBinary::Copy(sTmpFile, outFile);
 						}
 					}
 				}
@@ -5027,6 +5075,16 @@ window.AscDesktopEditor.CallInFrame(\"" +
 					m_mapLocalAddImagesCRC.insert(std::pair<unsigned int, std::wstring>(nCRC32, sRet));
 
 				CBgraFrame::RemoveOrientation(m_sLocalFileFolderWithoutFile + L"/media/" + sRet);
+				return sRet;
+			}
+			if (oChecker.eFileType == _CXIMAGE_FORMAT_GIF)
+			{
+				std::wstring sRet = L"image" + std::to_wstring(m_nLocalImagesNextIndex++) + L".gif";
+				NSFile::CFileBinary::Copy(sUrl, m_sLocalFileFolderWithoutFile + L"/media/" + sRet);
+				m_mapLocalAddImages.insert(std::pair<std::wstring, std::wstring>(sUrlMap, sRet));
+				if (0 != nCRC32)
+					m_mapLocalAddImagesCRC.insert(std::pair<unsigned int, std::wstring>(nCRC32, sRet));
+
 				return sRet;
 			}
 			if (oChecker.eFileType == _CXIMAGE_FORMAT_SVG)

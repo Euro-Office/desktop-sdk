@@ -1,21 +1,14 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import MoreIconSvgUrl from "@/assets/more.svg?url";
-import RemoveIconSvgUrl from "@/assets/btn-remove.svg?url";
-import EditIconSvgUrl from "@/assets/btn-edit.svg?url";
-import StatusErrorIconUrl from "@/assets/status.error.svg?url";
-
-import type { TProvider } from "@/lib/types";
-
-import { IconButton } from "@/components/icon-button";
 import { DropdownMenu } from "@/components/dropdown";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/tooltip";
-
+import { IconButton } from "@/components/icon-button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
+import { useDirection } from "@/hooks/useDirection";
+import type { TProvider } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import useProviders from "@/store/useProviders";
-
-import { EditProviderDialog } from "./EditProviderDialog";
 import { DeleteProviderDialog } from "./DeleteProviderDialog";
+import { EditProviderDialog } from "./EditProviderDialog";
 
 type ProviderItemProps = {
   provider: TProvider;
@@ -23,6 +16,7 @@ type ProviderItemProps = {
 
 const ProviderItem = ({ provider }: ProviderItemProps) => {
   const { providersModels } = useProviders();
+  const { isRTL } = useDirection();
 
   const [editProviderVisible, setEditProviderVisible] = React.useState(false);
   const [deleteProviderVisible, setDeleteProviderVisible] =
@@ -38,13 +32,23 @@ const ProviderItem = ({ provider }: ProviderItemProps) => {
 
   const { t } = useTranslation();
 
-  const hasModels = providersModels.get(provider.name)?.length ?? 0 > 0;
+  const hasModels = !!providersModels.get(provider.name)?.length;
 
   return (
     <>
-      <div className="flex flex-row justify-between gap-[12px] px-[16px] py-[12px] min-w-[274px] max-w-[312px] flex-1 rounded-[8px] bg-[var(--ai-provider-item-background-color)] shadow-[var(--ai-provider-item-shadow)]">
+      <div
+        className={cn(
+          "flex justify-between gap-[12px] px-[16px] py-[12px] min-w-[274px] max-w-[312px] flex-1 rounded-[8px] bg-[var(--ai-provider-item-background-color)] shadow-[var(--ai-provider-item-shadow)]",
+          isRTL ? "flex-row-reverse" : "flex-row"
+        )}
+      >
         <div className="flex flex-col min-w-0 flex-1">
-          <div className="flex flex-row items-center gap-[4px]">
+          <div
+            className={cn(
+              "flex items-center gap-[4px]",
+              isRTL ? "flex-row-reverse" : "flex-row"
+            )}
+          >
             <Tooltip>
               <TooltipTrigger asChild>
                 <p className="font-normal text-[14px] leading-[20px] text-[var(--ai-provider-item-color)] truncate w-fit">
@@ -58,7 +62,7 @@ const ProviderItem = ({ provider }: ProviderItemProps) => {
                 <TooltipTrigger asChild>
                   <div>
                     <IconButton
-                      iconName={StatusErrorIconUrl}
+                      iconName="status.error"
                       size={16}
                       disableHover
                       noColor
@@ -71,7 +75,12 @@ const ProviderItem = ({ provider }: ProviderItemProps) => {
               </Tooltip>
             )}
           </div>
-          <p className="text-[12px] leading-[14px] text-[var(--ai-provider-item-description-color)]">
+          <p
+            className={cn(
+              "text-[12px] leading-[14px] text-[var(--ai-provider-item-description-color)]",
+              isRTL ? "text-end" : ""
+            )}
+          >
             {provider.type}
             <br />
             {provider.baseUrl}
@@ -80,18 +89,12 @@ const ProviderItem = ({ provider }: ProviderItemProps) => {
         <div className="flex items-center justify-end" ref={containerRef}>
           <DropdownMenu
             onOpenChange={setIsOpen}
-            trigger={
-              <IconButton
-                iconName={MoreIconSvgUrl}
-                size={20}
-                isActive={isOpen}
-              />
-            }
+            trigger={<IconButton iconName="more" size={20} isActive={isOpen} />}
             items={[
               {
                 icon: (
                   <IconButton
-                    iconName={EditIconSvgUrl}
+                    iconName="btn-edit"
                     size={20}
                     disableHover
                     isStroke
@@ -100,21 +103,23 @@ const ProviderItem = ({ provider }: ProviderItemProps) => {
                 text: t("Edit"),
                 onClick: () => setEditProviderVisible(true),
               },
-              { text: "", onClick: () => {}, isSeparator: true },
+              {
+                text: "",
+                onClick: () => {
+                  // ignore
+                },
+                isSeparator: true,
+              },
               {
                 icon: (
-                  <IconButton
-                    iconName={RemoveIconSvgUrl}
-                    size={20}
-                    disableHover
-                  />
+                  <IconButton iconName="btn-remove" size={20} disableHover />
                 ),
                 text: t("Delete"),
                 onClick: () => setDeleteProviderVisible(true),
               },
             ]}
-            side="right"
-            align="start"
+            side={isRTL ? "left" : "right"}
+            align={isRTL ? "end" : "start"}
             sideOffset={0}
             containerRef={containerElement}
           />

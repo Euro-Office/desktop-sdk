@@ -1,27 +1,27 @@
 .composer-root {
-    border-color: var(--chat-composer-border-color);
-    background: var(--chat-composer-background-color);
+  border-color: var(--chat-composer-border-color);
+  background: var(--chat-composer-background-color);
 }
 
 .composer-root:hover {
-    border-color: var(--chat-composer-hover-border-color);
+  border-color: var(--chat-composer-hover-border-color);
 }
 
 .composer-root:focus-within {
-    border-color: var(--chat-composer-active-border-color);
+  border-color: var(--chat-composer-active-border-color);
 }
 
 .composer-input {
-    font-size: 14px;
-    line-height: 15px;
+  font-size: 14px;
+  line-height: 15px;
 
-    /* font-family: Arial; */
+  /* font-family: Arial; */
 
-    color: var(--chat-composer-text-color);
+  color: var(--chat-composer-text-color);
 }
 
 .composer-input::placeholder {
-    color: var(--chat-composer-placeholder-color);
+  color: var(--chat-composer-placeholder-color);
 }
 
 /* Disable streaming caret/dot */

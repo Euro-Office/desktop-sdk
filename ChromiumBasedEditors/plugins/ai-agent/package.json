@@ -1,14 +1,23 @@
 {
-  "name": "test-assistant-ui-front",
+  "name": "ai-agent-plugin",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "dev:local": "node scripts/dev.js",
-    "build": "vite build && node scripts/build.js",
-    "build:local": "vite build && node scripts/build.js && node scripts/move.js",
-    "lint": "eslint .",
+    "build": "biome check --error-on-warnings ./src && tsc --noEmit && vite build && node scripts/build.js",
+    "build:local": "biome check --error-on-warnings ./src && tsc --noEmit && vite build && node scripts/build.js && node scripts/move.js",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
+    "lint": "biome lint ./src",
+    "format": "biome format --write ./src",
+    "check": "biome check --write ./src",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -19,6 +28,9 @@
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.2",
+    "@google/genai": "^1.30.0",
+    "@lmstudio/sdk": "^1.5.0",
+    "@mistralai/mistralai": "^1.11.0",
     "@openrouter/ai-sdk-provider": "^1.2.3",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -50,21 +62,19 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
-    "@eslint/js": "^9.33.0",
+    "@biomejs/biome": "2.3.7",
+    "@playwright/test": "^1.57.0",
     "@types/codemirror": "^5.60.16",
     "@types/lodash.clonedeep": "^4.5.9",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
-    "eslint": "^9.33.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^16.3.0",
+    "@vitest/coverage-v8": "^4.0.14",
     "path": "^0.12.7",
     "tw-animate-css": "^1.3.6",
     "typescript": "~5.8.3",
-    "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2",
-    "vite-plugin-svgr": "^4.5.0"
+    "vite-plugin-svgr": "^4.5.0",
+    "vitest": "^4.0.14"
   }
 }
