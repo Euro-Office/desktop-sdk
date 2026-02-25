@@ -81,9 +81,24 @@ if(NOT TARGET ooxmlsignature)
     add_subdirectory(${CORE_ROOT_DIR}/DesktopEditor/xmlsec/src ooxmlsignature)
 endif()
 
-#find_package(boost_eo REQUIRED CONFIG)
-find_package(boost_eo REQUIRED COMPONENTS system filesystem regex date_time CONFIG)
 
+#find_package(hunspell REQUIRED)
+# Above doesn't work, have to do manually
+find_path(HUNSPELL_INCLUDE_DIR NAMES hunspell/hunspell.h)
+find_library(HUNSPELL_LIBRARY NAMES hunspell-1.7 hunspell)
+
+# 2. Create a "Fake" Modern Target (Interface/Imported)
+# This mimics what find_package would have done
+if(HUNSPELL_INCLUDE_DIR AND HUNSPELL_LIBRARY)
+    add_library(hunspell::libhunspell UNKNOWN IMPORTED)
+    set_target_properties(hunspell::libhunspell PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${HUNSPELL_INCLUDE_DIR}"
+        IMPORTED_LOCATION "${HUNSPELL_LIBRARY}"
+    )
+endif()
+
+
+find_package(Boost REQUIRED COMPONENTS system filesystem regex date_time)
 
 add_library(ascdocumentscore SHARED)
 
@@ -521,6 +536,7 @@ target_link_directories(ascdocumentscore PRIVATE "${CORE_BUILDS_LIBRARIES_PATH}"
 
 # Boost and ICU (Assuming targets exist via your core subdirectories)
 target_link_libraries(ascdocumentscore PUBLIC
+                    hunspell::libhunspell
                     Boost::system
                     Boost::filesystem
                     Boost::regex
