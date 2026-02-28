@@ -84,8 +84,8 @@ endif()
 
 #find_package(hunspell REQUIRED)
 # Above doesn't work, have to do manually
-find_path(HUNSPELL_INCLUDE_DIR NAMES hunspell/hunspell.h)
-find_library(HUNSPELL_LIBRARY NAMES hunspell-1.7 hunspell)
+find_path(HUNSPELL_INCLUDE_DIR NAMES hunspell/hunspell.h REQUIRED)
+find_library(HUNSPELL_LIBRARY NAMES hunspell-1.7 hunspell REQUIRED)
 
 # 2. Create a "Fake" Modern Target (Interface/Imported)
 # This mimics what find_package would have done
@@ -572,7 +572,7 @@ else() # Linux
     pkg_check_modules(GTK REQUIRED glib-2.0 gtk+-3.0 atk)
 
     target_compile_options(ascdocumentscore PRIVATE -fPIC)
-    target_link_directories(ascdocumentscore PRIVATE "${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
+    #target_link_directories(ascdocumentscore PRIVATE "${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
     
     # RPATH & Linker options
     target_link_options(ascdocumentscore PRIVATE "-Wl,-rpath,'$ORIGIN'" "-Wl,-rpath,'$ORIGIN/converter'" "-Wl,--disable-new-dtags")
