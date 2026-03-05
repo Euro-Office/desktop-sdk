@@ -575,7 +575,7 @@ else() # Linux
     #target_link_directories(ascdocumentscore PRIVATE "${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
     
     # RPATH & Linker options
-    target_link_options(ascdocumentscore PRIVATE "-Wl,-rpath,'$ORIGIN'" "-Wl,-rpath,'$ORIGIN/converter'" "-Wl,--disable-new-dtags")
+    target_link_options(ascdocumentscore PRIVATE "-Wl,-rpath,$ORIGIN" "-Wl,-rpath,$ORIGIN/converter" "-Wl,--disable-new-dtags")
     
     target_include_directories(ascdocumentscore PRIVATE ${GTK_INCLUDE_DIRS})
     target_link_libraries(ascdocumentscore PRIVATE
@@ -588,8 +588,19 @@ endif()
 # ==============================================================================
 # Target: editors_helper (Executable)
 # ==============================================================================
+
+set(CEF_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/cef")
+list(APPEND CMAKE_MODULE_PATH "${CEF_ROOT}/cmake")
+find_package(CEF REQUIRED)
+
 add_executable(editors_helper "${CMAKE_CURRENT_SOURCE_DIR}/helper_main.cpp")
 
+target_link_directories(editors_helper PRIVATE
+    $<$<CONFIG:Debug>:${CEF_ROOT}/Debug>
+    $<$<CONFIG:Debug>:${CEF_ROOT}/dll-wrapper-debug/libcef_dll_wrapper>
+    $<$<CONFIG:Release>:${CEF_ROOT}/Release>
+    $<$<CONFIG:Release>:${CEF_ROOT}/dll-wrapper-release/libcef_dll_wrapper>
+)
 
 target_link_libraries(editors_helper PUBLIC 
     ascdocumentscore
@@ -597,6 +608,7 @@ target_link_libraries(editors_helper PUBLIC
     Boost::filesystem
     Boost::regex
     Boost::date_time
+    cef
 )
 
 # Output directory routing based on BUILD_XP flag
@@ -607,8 +619,8 @@ if(WIN32)
 elseif(UNIX AND NOT APPLE)
     target_compile_definitions(editors_helper PRIVATE _LINUX)
     target_link_options(editors_helper PRIVATE 
-        "-Wl,-rpath,'$ORIGIN'" 
-        "-Wl,-rpath,'$ORIGIN/converter'"
+        "-Wl,-rpath,$ORIGIN" 
+        "-Wl,-rpath,$ORIGIN/converter"
         "-Wl,-unresolved-symbols=ignore-in-shared-libs"
     )
     # Extra Linux dependencies defined in ascdocumentscore_helper.pro
