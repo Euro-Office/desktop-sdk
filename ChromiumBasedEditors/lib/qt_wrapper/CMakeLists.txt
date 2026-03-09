@@ -84,7 +84,7 @@ if(WIN32)
 endif()
 
 if(UNIX AND NOT APPLE)
-    target_compile_definitions(qtascdocumentscore PRIVATE _LINUX)
+    target_compile_definitions(qtascdocumentscore PRIVATE _LINUX LINUX OS_LINUX _X11)
     
     # Qt5/6 Linux handling
     if(QT_VERSION_MAJOR LESS_EQUAL 5)
@@ -94,7 +94,7 @@ if(UNIX AND NOT APPLE)
         target_link_libraries(qtascdocumentscore PRIVATE Qt6::GuiPrivate)
     endif()
 
-    target_link_options(qtascdocumentscore PRIVATE "-Wl,-unresolved-symbols=ignore-in-shared-libs")
+    #target_link_options(qtascdocumentscore PRIVATE "-Wl,-unresolved-symbols=ignore-in-shared-libs")
 
     target_link_libraries(qtascdocumentscore PRIVATE 
         UnicodeConverter
