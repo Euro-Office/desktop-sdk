@@ -544,6 +544,9 @@ list(APPEND ASCDOCUMENTSCORE_HEADERS
     "${CEF_SRC_PATH}/include/wrapper/cef_stream_resource_handler.h"
     "${CEF_SRC_PATH}/include/wrapper/cef_xml_object.h"
     "${CEF_SRC_PATH}/include/wrapper/cef_zip_archive.h"
+)
+
+set( DLLWRAPPER_SOURCES
     "${CEF_SRC_PATH}/libcef_dll/cpptoc/accessibility_handler_cpptoc.h"
     "${CEF_SRC_PATH}/libcef_dll/cpptoc/app_cpptoc.h"
     "${CEF_SRC_PATH}/libcef_dll/cpptoc/audio_handler_cpptoc.h"
@@ -718,9 +721,7 @@ list(APPEND ASCDOCUMENTSCORE_HEADERS
     "${CEF_SRC_PATH}/libcef_dll/transfer_util.h"
     "${CEF_SRC_PATH}/libcef_dll/wrapper/cef_browser_info_map.h"
     "${CEF_SRC_PATH}/libcef_dll/wrapper_types.h"
-)
 
-list(APPEND ASCDOCUMENTSCORE_SOURCES
     "${CEF_SRC_PATH}/libcef_dll/base/cef_atomic_flag.cc"
     "${CEF_SRC_PATH}/libcef_dll/base/cef_callback_helpers.cc"
     "${CEF_SRC_PATH}/libcef_dll/base/cef_callback_internal.cc"
@@ -1097,7 +1098,15 @@ endif()
 
 message(STATUS "SRC COUNT: ${ASCDOCUMENTSCORE_SOURCES}")
 message(STATUS "HDR COUNT: ${ASCDOCUMENTSCORE_HEADERS}")
-target_sources(ascdocumentscore PRIVATE ${ASCDOCUMENTSCORE_HEADERS} ${ASCDOCUMENTSCORE_SOURCES})
+
+
+
+# Override visibility for wrapper sources only
+#set_source_files_properties(${DLLWRAPPER_SOURCES}
+#    PROPERTIES COMPILE_FLAGS "-fvisibility=default"
+#)
+
+target_sources(ascdocumentscore PRIVATE ${ASCDOCUMENTSCORE_HEADERS} ${ASCDOCUMENTSCORE_SOURCES} ${DLLWRAPPER_SOURCES})
 
 # ------------------------------------------------------------------------------
 # Linking & Libraries (ascdocumentscore)

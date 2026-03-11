@@ -10,6 +10,12 @@ set(CMAKE_AUTORCC ON)
 add_compile_options(-march=native)
 
 # Find Qt
+set(QT_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/qt/Qt-5.9.9/gcc_64/")
+set(QT_DIR "${QT_ROOT}/lib/cmake/Qt5")
+#set(QT_DIR "/build-cache-desktop/vcpkg_installed/x64-linux-dynamic/qt/Qt-5.9.9/gcc_64/lib/cmake/Qt5/")
+set(Qt5_DIR "${QT_ROOT}/lib/cmake/Qt5")
+#set(Qt5_DIR "/build-cache-desktop/vcpkg_installed/x64-linux-dynamic/qt/Qt-5.9.9/gcc_64/lib/cmake/Qt5/")
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui PrintSupport Widgets Multimedia MultimediaWidgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui PrintSupport Widgets Multimedia MultimediaWidgets)
 
@@ -84,7 +90,7 @@ if(WIN32)
 endif()
 
 if(UNIX AND NOT APPLE)
-    target_compile_definitions(qtascdocumentscore PRIVATE _LINUX LINUX OS_LINUX _X11)
+    target_compile_definitions(qtascdocumentscore PRIVATE _LINUX LINUX OS_LINUX _X11 QT_VERSION_LESS_5_15)
     
     # Qt5/6 Linux handling
     if(QT_VERSION_MAJOR LESS_EQUAL 5)
