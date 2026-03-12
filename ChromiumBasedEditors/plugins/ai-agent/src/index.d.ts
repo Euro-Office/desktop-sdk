@@ -1,11 +1,18 @@
 import type { TProcess } from "./lib/types";
 
+export type TCloud = {
+  url: string;
+  data: { apiKey: string };
+};
+
 declare global {
   interface Window {
     AscDesktopEditor: {
       getOfficeFileType: (file: string) => number;
       getToolFunctions: () => string;
       callToolFunction: (name: string, args?: string) => string;
+      getClouds: () => TCloud[];
+      openConnectCloud: () => void;
       openTemplate: (file: string, name: string) => void;
       saveAndOpen: (
         content: string,
@@ -41,6 +48,7 @@ declare global {
       };
     };
     on_update_plugin_info: (info: { theme: string; lang: string }) => void;
+    on_update_cloud: () => void;
     ExternalProcess: new (
       command: string,
       env?: Record<string, string>

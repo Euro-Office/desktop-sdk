@@ -15,33 +15,26 @@ const SelectModel = () => {
     useProviders();
   const { tools } = useServersStore();
   const { messages } = useMessageStore();
-  const {
-    isWalletActive,
-    walletModels,
-    portals,
-    selectedPortalId,
-    fetchWalletModels,
-  } = useWalletStore();
+  const { isWalletActive, walletModels, selectedCloud, fetchWalletModels } =
+    useWalletStore();
 
   const { t } = useTranslation();
 
-  const selectedPortal = portals.find((p) => p.portalId === selectedPortalId);
-
   const walletProvider: TProvider | null =
-    isWalletActive && selectedPortal
+    isWalletActive && selectedCloud
       ? {
           type: "wallet",
           name: "Wallet",
-          key: selectedPortal.key,
-          baseUrl: selectedPortal.url,
+          key: selectedCloud.data.apiKey,
+          baseUrl: selectedCloud.url,
         }
       : null;
 
   React.useEffect(() => {
-    if (isWalletActive && selectedPortalId) {
+    if (isWalletActive && selectedCloud) {
       fetchWalletModels();
     }
-  }, [isWalletActive, selectedPortalId, fetchWalletModels]);
+  }, [isWalletActive, selectedCloud, fetchWalletModels]);
 
   const onSelectModel = React.useCallback(
     (providerInfo: TProvider, modelId: string) => {

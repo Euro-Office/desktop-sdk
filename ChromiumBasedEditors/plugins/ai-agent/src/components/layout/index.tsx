@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDirection } from "@/hooks/useDirection";
+import useCloudsStore from "@/store/useCloudsStore";
 import useRouter from "@/store/useRouter";
 import useThemeStore from "@/store/useThemeStore";
 import { ChatList } from "./sub-components/ChatList";
@@ -17,6 +18,7 @@ const getSystemTheme = (system: "dark" | "light") => {
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { currentPage } = useRouter();
   const { themeId, setThemeId } = useThemeStore();
+  const { fetchClouds } = useCloudsStore();
 
   const { i18n } = useTranslation();
   const { isRTL } = useDirection();
@@ -42,7 +44,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
       }
     };
-  }, [i18n, setThemeId]);
+
+    window.on_update_cloud = () => {
+      fetchClouds();
+    };
+  }, [i18n, setThemeId, fetchClouds]);
 
   const isSettings = currentPage === "settings";
 

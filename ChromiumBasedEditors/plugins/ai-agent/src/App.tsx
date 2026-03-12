@@ -16,6 +16,7 @@ import useThread from "./hooks/useThreads";
 import Thread from "./pages/chat";
 import EmptyScreen from "./pages/empty-screen";
 import Settings from "./pages/settings";
+import useCloudsStore from "./store/useCloudsStore";
 import useMessageStore from "./store/useMessageStore";
 import useProviders from "./store/useProviders";
 import useRouter from "./store/useRouter";
@@ -32,6 +33,7 @@ const App = () => {
   const { providers, fetchProvidersModels } = useProviders();
   const { currentPage } = useRouter();
   const { manageToolData } = useServersStore();
+  const { fetchClouds } = useCloudsStore();
 
   useThread({
     isReady,
@@ -54,12 +56,13 @@ const App = () => {
   }, [manageToolData]);
 
   useEffect(() => {
+    fetchClouds();
     initChatDB().then(() => setIsReady(true));
 
     return () => {
       chatDB.close();
     };
-  }, []);
+  }, [fetchClouds]);
 
   const runtime = useExternalStoreRuntime<ThreadMessageLike>({
     messages,

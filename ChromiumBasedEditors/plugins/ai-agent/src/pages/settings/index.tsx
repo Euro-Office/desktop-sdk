@@ -5,6 +5,7 @@ import { Tabs } from "@/components/tabs";
 import config from "@/config.json";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
+import useCloudsStore from "@/store/useCloudsStore";
 import useProviders from "@/store/useProviders";
 import useWalletStore from "@/store/useWalletStore";
 import { Providers } from "./sub-components/providers";
@@ -19,6 +20,7 @@ const Settings = () => {
   const { isRTL } = useDirection();
 
   const { isWalletActive, setWalletActive } = useWalletStore();
+  const { fetchClouds } = useCloudsStore();
 
   const [selectedSection, setSelectedSection] = React.useState(
     showWallet ? (isWalletActive ? "wallet" : "providers") : "providers"
@@ -26,14 +28,19 @@ const Settings = () => {
 
   const { providers } = useProviders();
 
+  React.useEffect(() => {
+    fetchClouds();
+  }, [fetchClouds]);
+
   const onSectionChange = React.useCallback(
     (section: string) => {
       setSelectedSection(section);
       if (showWallet) {
         setWalletActive(section === "wallet");
+        if (section === "wallet") fetchClouds();
       }
     },
-    [setWalletActive]
+    [setWalletActive, fetchClouds]
   );
 
   const aiSettingsTab = (

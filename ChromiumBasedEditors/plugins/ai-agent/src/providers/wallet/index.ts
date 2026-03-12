@@ -20,7 +20,7 @@ class WalletProvider extends OpenAIProvider {
 
   setProvider = (provider: TProvider): void => {
     const baseUrl = provider.baseUrl.replace(/\/+$/, "");
-    const walletUrl = `onlyoffice-proxy://${baseUrl}/api/2.0/ai/openai/-1/v1`;
+    const walletUrl = `${baseUrl}/api/2.0/ai/openai/235/v1`;
 
     this.provider = provider;
     this.client = this.createClient(provider.key, walletUrl);
@@ -70,6 +70,7 @@ class WalletProvider extends OpenAIProvider {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Accept: "text/event-stream",
         ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}),
       },
       body: JSON.stringify(body),
@@ -106,7 +107,16 @@ class WalletProvider extends OpenAIProvider {
       async *[Symbol.asyncIterator]() {
         try {
           while (true) {
-            const { value, done } = await reader.read();
+            let value: Uint8Array | undefined;
+            let done: boolean;
+
+            try {
+              ({ value, done } = await reader.read());
+            } catch {
+              // Network error after stream ends — ignore
+              break;
+            }
+
             if (done) break;
 
             buffer += decoder.decode(value, { stream: true });
@@ -158,7 +168,7 @@ class WalletProvider extends OpenAIProvider {
       : {};
 
     const response = await fetch(
-      `onlyoffice-proxy://${baseUrl}/api/2.0/ai/chats/models?provider=-1`,
+      `onlyoffice-proxy://${baseUrl}/api/2.0/ai/chats/models?provider=235`,
       { headers }
     );
 

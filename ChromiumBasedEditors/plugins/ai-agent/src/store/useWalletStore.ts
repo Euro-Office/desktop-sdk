@@ -1,9 +1,10 @@
 import { create } from "zustand";
+import type { TCloud } from "@/index";
 import type { Model } from "@/lib/types";
 import { provider } from "@/providers";
 
-const WALLET_PORTALS_KEY = "wallet_portals";
 const WALLET_ACTIVE_KEY = "wallet_active";
+const WALLET_SELECTED_CLOUD_KEY = "wallet_selected_cloud";
 
 type WalletPayer = {
   displayName: string;
@@ -17,10 +18,7 @@ type WalletBalance = {
   subAccounts: { amount: number; currency: string }[];
 };
 
-type WalletPortal = {
-  url: string;
-  key: string;
-  portalId: string;
+type WalletInfo = {
   email: string;
   payer: WalletPayer;
   balance: WalletBalance;
@@ -28,15 +26,14 @@ type WalletPortal = {
 
 type WalletState = {
   isWalletActive: boolean;
-  portals: WalletPortal[];
-  selectedPortalId: string | null;
+  selectedCloud: TCloud | null;
   walletModels: Model[];
+  walletInfo: WalletInfo | null;
   setWalletActive: (active: boolean) => void;
-  addPortal: (portal: WalletPortal) => void;
-  removePortal: (portalId: string) => void;
-  setSelectedPortalId: (portalId: string) => void;
-  refreshPortal: (portalId: string) => Promise<void>;
+  setSelectedCloud: (cloud: TCloud) => void;
+  fetchSelectedCloud: () => void;
   fetchWalletModels: () => Promise<void>;
+  fetchWalletInfo: () => Promise<void>;
 };
 
 const useWalletStore = create<WalletState>()((set, get) => ({
@@ -44,64 +41,59 @@ const useWalletStore = create<WalletState>()((set, get) => ({
     const saved = localStorage.getItem(WALLET_ACTIVE_KEY);
     return saved ? JSON.parse(saved) : false;
   })(),
+  selectedCloud: (() => {
+    const saved = localStorage.getItem(WALLET_SELECTED_CLOUD_KEY);
+    return saved ? JSON.parse(saved) : null;
+  })(),
   walletModels: [],
+  walletInfo: null,
   setWalletActive: (active) => {
     localStorage.setItem(WALLET_ACTIVE_KEY, JSON.stringify(active));
     set({ isWalletActive: active });
   },
-  portals: (() => {
-    const saved = localStorage.getItem(WALLET_PORTALS_KEY);
-    return saved ? JSON.parse(saved) : [];
-  })(),
-  selectedPortalId: (() => {
-    const saved = localStorage.getItem(WALLET_PORTALS_KEY);
-    const portals: WalletPortal[] = saved ? JSON.parse(saved) : [];
-    return portals.length > 0 ? portals[0].portalId : null;
-  })(),
-  addPortal: (portal) => {
-    set((state) => {
-      const exists = state.portals.some((p) => p.portalId === portal.portalId);
-      const newPortals = exists
-        ? state.portals.map((p) =>
-            p.portalId === portal.portalId ? portal : p
-          )
-        : [...state.portals, portal];
-      localStorage.setItem(WALLET_PORTALS_KEY, JSON.stringify(newPortals));
-      return { portals: newPortals, selectedPortalId: portal.portalId };
-    });
+  setSelectedCloud: (cloud) => {
+    localStorage.setItem(WALLET_SELECTED_CLOUD_KEY, JSON.stringify(cloud));
+    set({ selectedCloud: cloud, walletInfo: null });
   },
-  removePortal: (portalId) => {
-    set((state) => {
-      const newPortals = state.portals.filter((p) => p.portalId !== portalId);
-      localStorage.setItem(WALLET_PORTALS_KEY, JSON.stringify(newPortals));
-      const newSelected =
-        state.selectedPortalId === portalId
-          ? (newPortals[0]?.portalId ?? null)
-          : state.selectedPortalId;
-      return { portals: newPortals, selectedPortalId: newSelected };
-    });
+  fetchSelectedCloud: () => {
+    const saved = localStorage.getItem(WALLET_SELECTED_CLOUD_KEY);
+    const cloud: TCloud | null = saved ? JSON.parse(saved) : null;
+    set({ selectedCloud: cloud });
   },
-  setSelectedPortalId: (portalId) => {
-    set({ selectedPortalId: portalId });
-  },
-  refreshPortal: async (portalId) => {
-    const portal = get().portals.find((p) => p.portalId === portalId);
-    if (!portal) return;
+  fetchWalletModels: async () => {
+    const cloud = get().selectedCloud;
+    if (!cloud) return;
 
     try {
-      const headers: HeadersInit = portal.key
-        ? { Authorization: `Bearer ${portal.key}` }
+      const models = await provider.getProvidersModels([
+        {
+          type: "wallet",
+          name: "Wallet",
+          key: cloud.data.apiKey,
+          baseUrl: cloud.url,
+        },
+      ]);
+
+      set({ walletModels: models.get("Wallet") ?? [] });
+    } catch (err) {
+      console.error("Failed to fetch wallet models:", err);
+    }
+  },
+  fetchWalletInfo: async () => {
+    const cloud = get().selectedCloud;
+    if (!cloud) return;
+
+    try {
+      const baseUrl = cloud.url.replace(/\/+$/, "");
+      const headers: HeadersInit = cloud.data.apiKey
+        ? { Authorization: `Bearer ${cloud.data.apiKey}` }
         : {};
 
       const [balanceRes, customerInfoRes] = await Promise.all([
-        fetch(
-          `onlyoffice-proxy://${portal.url}/api/2.0/portal/payment/customer/balance`,
-          { headers }
-        ),
-        fetch(
-          `onlyoffice-proxy://${portal.url}/api/2.0/portal/payment/customerinfo`,
-          { headers }
-        ),
+        fetch(`${baseUrl}/api/2.0/portal/payment/customer/balance`, {
+          headers,
+        }),
+        fetch(`${baseUrl}/api/2.0/portal/payment/customerinfo`, { headers }),
       ]);
 
       const [balanceData, customerInfoData] = await Promise.all([
@@ -112,54 +104,26 @@ const useWalletStore = create<WalletState>()((set, get) => ({
       const customerInfo = customerInfoData.response;
       const balance = balanceData.response;
 
-      const updatedPortal: WalletPortal = {
-        ...portal,
-        email: customerInfo.email,
-        payer: {
-          displayName: customerInfo.payer.displayName,
+      set({
+        walletInfo: {
           email: customerInfo.email,
-          avatar: customerInfo.payer.avatarMedium,
-          id: customerInfo.payer.id,
+          payer: {
+            displayName: customerInfo.payer.displayName,
+            email: customerInfo.email,
+            avatar: customerInfo.payer.avatarMedium,
+            id: customerInfo.payer.id,
+          },
+          balance: {
+            accountNumber: balance.accountNumber,
+            subAccounts: balance.subAccounts,
+          },
         },
-        balance: {
-          accountNumber: balance.accountNumber,
-          subAccounts: balance.subAccounts,
-        },
-      };
-
-      set((state) => {
-        const newPortals = state.portals.map((p) =>
-          p.portalId === portalId ? updatedPortal : p
-        );
-        localStorage.setItem(WALLET_PORTALS_KEY, JSON.stringify(newPortals));
-        return { portals: newPortals };
       });
     } catch (err) {
-      console.error("Failed to refresh portal:", err);
-    }
-  },
-  fetchWalletModels: async () => {
-    const portal = get().portals.find(
-      (p) => p.portalId === get().selectedPortalId
-    );
-    if (!portal) return;
-
-    try {
-      const models = await provider.getProvidersModels([
-        {
-          type: "wallet",
-          name: "Wallet",
-          key: portal.key,
-          baseUrl: portal.url,
-        },
-      ]);
-
-      set({ walletModels: models.get("Wallet") ?? [] });
-    } catch (err) {
-      console.error("Failed to fetch wallet models:", err);
+      console.error("Failed to fetch wallet info:", err);
     }
   },
 }));
 
 export default useWalletStore;
-export type { WalletPortal, WalletPayer, WalletBalance };
+export type { WalletPayer, WalletBalance, WalletInfo };
