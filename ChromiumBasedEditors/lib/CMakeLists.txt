@@ -102,7 +102,7 @@ if(HUNSPELL_INCLUDE_DIR AND HUNSPELL_LIBRARY)
     )
 endif()
 
-
+set(BOOST_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/boost/linux_64")
 find_package(Boost REQUIRED COMPONENTS system filesystem regex date_time)
 
 add_library(ascdocumentscore SHARED)
