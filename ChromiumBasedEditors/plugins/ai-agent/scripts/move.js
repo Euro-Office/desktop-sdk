@@ -16,10 +16,16 @@ const sourceDir = path.join(
 const configPath = path.join(sourceDir, "config.json");
 
 // Default path - can be overridden via command line argument
-const defaultTargetPath = path.join(
-  process.env.HOME || "~",
-  "Library/Application Support/asc.onlyoffice.ONLYOFFICE/data/sdkjs-plugins"
-);
+const defaultTargetPath =
+  process.platform === "win32"
+    ? path.join(
+        process.env.USERPROFILE || "",
+        "AppData/Local/ONLYOFFICE/DesktopEditors/data/sdkjs-plugins"
+      )
+    : path.join(
+        process.env.HOME || "~",
+        "Library/Application Support/asc.onlyoffice.ONLYOFFICE/data/sdkjs-plugins"
+      );
 
 // Get target path from command line argument or use default
 const customPath = process.argv[2] || defaultTargetPath;
@@ -91,6 +97,7 @@ if (!fs.existsSync(targetParent)) {
 }
 
 console.log("Starting plugin move process...");
+console.log(`Platform: ${process.platform}`);
 console.log(`Source: ${sourceDir}`);
 console.log(`Target: ${targetDir}`);
 
