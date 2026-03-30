@@ -20,8 +20,12 @@ const InitialSetup = () => {
           {t("ConnectAIProviderToEnableChat")}
         </h1>
 
-        <div className="flex flex-col gap-[16px] mb-[32px]">
-          <FieldContainer header={t("Provider")} isHorizontal>
+        <div className="flex flex-col mb-[48px]">
+          <FieldContainer
+            className="mb-[10px]"
+            header={t("Provider")}
+            isHorizontal
+          >
             <ComboBox
               className="w-full"
               placeholder={t("SelectProvider")}
@@ -33,7 +37,12 @@ const InitialSetup = () => {
             />
           </FieldContainer>
 
-          <FieldContainer header={t("APIKey")} isHorizontal>
+          <FieldContainer
+            className="mb-[32px]"
+            header={t("APIKey")}
+            isHorizontal
+            action={<Link href="#">{t("GetAPIKey")}</Link>}
+          >
             <Input
               name="key"
               placeholder={t("EnterKey")}
@@ -45,7 +54,11 @@ const InitialSetup = () => {
             />
           </FieldContainer>
 
-          <FieldContainer header={t("BaseURL")} isHorizontal>
+          <FieldContainer
+            className="mb-[32px]"
+            header={t("BaseURL")}
+            isHorizontal
+          >
             <Input
               name="url"
               placeholder={t("SelectModelFirst")}
@@ -56,7 +69,11 @@ const InitialSetup = () => {
             />
           </FieldContainer>
 
-          <FieldContainer header={t("Model")} isHorizontal>
+          <FieldContainer
+            className="mb-[32px]"
+            header={t("Model")}
+            isHorizontal
+          >
             <ComboBox
               className="w-full"
               placeholder={t("SelectModel")}

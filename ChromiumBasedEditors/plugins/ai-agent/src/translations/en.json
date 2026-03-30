@@ -89,6 +89,7 @@
   "SelectProvider": "Select provider",
   "SelectModelFirst": "Select model first...",
   "ProfileName": "Profile name",
+  "GetAPIKey": "Get API key",
   "Import": "Import",
   "BaseURL": "Base URL"
 }
