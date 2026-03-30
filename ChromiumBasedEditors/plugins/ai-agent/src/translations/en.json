@@ -93,5 +93,7 @@
   "ConnectNewAIModel": "Connect new AI Model",
   "AddModel": "Add Model",
   "Import": "Import",
-  "BaseURL": "Base URL"
+  "BaseURL": "Base URL",
+  "EnterModelConfigTooltip": "Enter the configuration for the AI Model API in JS format. Provide the model name, endpoint URLs, and headers.",
+  "DownloadTemplate": "Download template"
 }

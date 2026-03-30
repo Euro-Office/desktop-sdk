@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/button";
 import { ComboBox } from "@/components/combo-box";
@@ -5,6 +6,7 @@ import { FieldContainer } from "@/components/field-container";
 import { IconButton } from "@/components/icon-button";
 import { Input } from "@/components/input";
 import { Link } from "@/components/link";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 import { provider } from "@/providers";
 
@@ -13,6 +15,7 @@ const providersInfo = provider.getProvidersInfo();
 const InitialSetup = () => {
   const { t } = useTranslation();
   const isDisabled = true;
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
 
   return (
     <div className="flex items-center justify-center h-full w-full bg-[var(--layout-background-color)]">
@@ -104,12 +107,32 @@ const InitialSetup = () => {
         <div className="flex flex-row justify-between items-center">
           <div className="flex flex-row items-center gap-[4px]">
             <Link href="#">{t("Import")}</Link>
-            <IconButton
-              className="cursor-pointer"
-              iconName="btn-menu-about"
-              size={24}
-              disableHover
-            />
+            <Tooltip open={isTooltipOpen}>
+              <TooltipTrigger asChild>
+                <IconButton
+                  className="cursor-pointer"
+                  iconName="btn-menu-about"
+                  size={24}
+                  disableHover
+                  onClick={() => setIsTooltipOpen((val) => !val)}
+                />
+              </TooltipTrigger>
+              <TooltipContent
+                className="p-[12px]"
+                side="bottom"
+                isAbout
+                align="start"
+              >
+                <div className="flex flex-col gap-[6px] max-w-[221px]">
+                  <p className="text-[12px] leading-[16px] select-none">
+                    {t("EnterModelConfigTooltip")}
+                  </p>
+                  <Link href="#" className="text-[12px] leading-[16px]">
+                    {t("DownloadTemplate")}
+                  </Link>
+                </div>
+              </TooltipContent>
+            </Tooltip>
           </div>
           <div className="flex flex-row gap-[12px]">
             <Button variant="default">{t("Cancel")}</Button>
