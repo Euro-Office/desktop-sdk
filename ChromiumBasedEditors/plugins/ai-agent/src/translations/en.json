@@ -90,6 +90,8 @@
   "SelectModelFirst": "Select model first...",
   "ProfileName": "Profile name",
   "GetAPIKey": "Get API key",
+  "AIModels": "AI Models",
+  "AIModelsDescription": "Connect your own AI source — either via API key from a provider or a locally hosted model",
   "ConnectNewAIModel": "Connect new AI Model",
   "AddModel": "Add Model",
   "Import": "Import",
