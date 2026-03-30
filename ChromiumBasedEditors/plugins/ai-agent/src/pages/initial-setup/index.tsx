@@ -4,6 +4,7 @@ import { ComboBox } from "@/components/combo-box";
 import { FieldContainer } from "@/components/field-container";
 import { IconButton } from "@/components/icon-button";
 import { Input } from "@/components/input";
+import { Link } from "@/components/link";
 import { provider } from "@/providers";
 
 const providersInfo = provider.getProvidersInfo();
@@ -77,9 +78,7 @@ const InitialSetup = () => {
 
         <div className="flex flex-row justify-between items-center">
           <div className="flex flex-row items-center gap-[4px]">
-            <span className="text-[var(--text-color)] opacity-60 group-hover:opacity-100 transition-opacity underline decoration-dotted cursor-pointer">
-              {t("Import")}
-            </span>
+            <Link href="#">{t("Import")}</Link>
             <IconButton
               className="cursor-pointer"
               iconName="btn-menu-about"
