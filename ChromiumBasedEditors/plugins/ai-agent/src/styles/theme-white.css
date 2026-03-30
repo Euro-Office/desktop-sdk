@@ -161,6 +161,7 @@
 
   /* link */
   --link-color: var(--text-tertiary);
+  --link-primary-color: var(--background-accent-button);
 
   /* model-config-card */
   --model-config-card-border-color: var(--border-divider);

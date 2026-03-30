@@ -127,7 +127,11 @@ const InitialSetup = () => {
                   <p className="text-[12px] leading-[16px] select-none">
                     {t("EnterModelConfigTooltip")}
                   </p>
-                  <Link href="#" className="text-[12px] leading-[16px]">
+                  <Link
+                    variant="primary"
+                    href="#"
+                    className="text-[12px] leading-[16px]"
+                  >
                     {t("DownloadTemplate")}
                   </Link>
                 </div>
