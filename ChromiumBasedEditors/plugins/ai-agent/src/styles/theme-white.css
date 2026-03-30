@@ -162,6 +162,12 @@
   /* link */
   --link-color: var(--text-tertiary);
 
+  /* model-config-card */
+  --model-config-card-border-color: var(--border-divider);
+  --model-config-card-border-radius: 8px;
+  --model-config-card-border-width: 1px;
+  --model-config-card-background-color: var(--layout-background-color);
+
   /* loader */
   --loader-border-color: var(--background-accent-button);
 

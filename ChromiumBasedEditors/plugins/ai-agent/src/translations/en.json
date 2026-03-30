@@ -90,6 +90,8 @@
   "SelectModelFirst": "Select model first...",
   "ProfileName": "Profile name",
   "GetAPIKey": "Get API key",
+  "ConnectNewAIModel": "Connect new AI Model",
+  "AddModel": "Add Model",
   "Import": "Import",
   "BaseURL": "Base URL"
 }
