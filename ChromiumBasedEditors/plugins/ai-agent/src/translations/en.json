@@ -84,5 +84,11 @@
   "ConfigurationError": "Configuration must be placed inside 'mcpServers' property",
   "Thinking": "Reasoning",
   "ExtendedThinking": "Extended Thinking",
-  "ExtendedThinkingDescription": "This model uses advanced reasoning, which may increase costs."
+  "ExtendedThinkingDescription": "This model uses advanced reasoning, which may increase costs.",
+  "ConnectAIProviderToEnableChat": "Connect an AI provider to enable AI chat",
+  "SelectProvider": "Select provider",
+  "SelectModelFirst": "Select model first...",
+  "ProfileName": "Profile name",
+  "Import": "Import",
+  "BaseURL": "Base URL"
 }

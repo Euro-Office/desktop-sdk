@@ -35,7 +35,7 @@ const ComboBox = ({
           ref={containerRef}
           data-testid={dataTestId}
           className={cn(
-            "h-[32px] rounded-[4px] ps-[12px] pe-[12px] box-border",
+            "h-[36px] rounded-[4px] ps-[12px] box-border",
             "cursor-pointer flex items-center justify-between",
             "text-[var(--input-color)] text-[14px] leading-[16px]",
             isOpen
@@ -61,19 +61,18 @@ const ComboBox = ({
           >
             {value || placeholder}
           </span>
-          <Icon
-            name="arrow.bottom"
-            size={16}
-            color="var(--input-color)"
-            width={8}
-            height={8}
-            isStroke
-            className={cn(
-              "transition-transform",
-              "ms-[8px]",
-              isOpen ? "rotate-180" : ""
-            )}
-          />
+          <div className="flex items-center h-full w-[25px]">
+            <Icon
+              name="arrow.bottom.big"
+              color="var(--input-color)"
+              width={9}
+              height={4.5}
+              isStroke
+              className={cn("transition-transform ms-[4px]", {
+                "rotate-180": isOpen,
+              })}
+            />
+          </div>
         </div>
       }
       align="start"

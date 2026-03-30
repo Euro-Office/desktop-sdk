@@ -4,7 +4,7 @@ import useThemeStore from "@/store/useThemeStore";
 
 type IconProps = {
   name: string;
-  size: number;
+  size?: number;
   width?: number;
   height?: number;
   isStroke?: boolean;

@@ -32,10 +32,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           type={props.type ?? "text"}
           dir={isRTL ? "rtl" : "ltr"}
           className={cn(
-            "h-[32px] rounded-[4px] box-border border border-[var(--input-border-color)]",
+            "h-[36px] rounded-[4px] box-border border border-[var(--input-border-color)]",
             "bg-[var(--input-background-color)]",
             props.disabled
-              ? ""
+              ? "cursor-not-allowed pointer-events-none opacity-50"
               : "hover:bg-[var(--input-hover-background-color)] hover:border-[var(--input-hover-border-color)]",
             "focus:bg-[var(--input-active-background-color)] focus:border focus:border-[var(--input-active-border-color)]",
             "outline-none",

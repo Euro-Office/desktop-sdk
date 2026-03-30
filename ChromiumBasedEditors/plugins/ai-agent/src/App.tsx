@@ -15,6 +15,7 @@ import useServers from "./hooks/useServers";
 import useThread from "./hooks/useThreads";
 import Thread from "./pages/chat";
 import EmptyScreen from "./pages/empty-screen";
+import InitialSetup from "./pages/initial-setup";
 import Settings from "./pages/settings";
 import useMessageStore from "./store/useMessageStore";
 import useProviders from "./store/useProviders";
@@ -86,7 +87,13 @@ const App = () => {
   return (
     <Layout>
       <AssistantRuntimeProvider runtime={runtime}>
-        {currentPage === "settings" ? <Settings /> : <Thread />}
+        {currentPage === "settings" ? (
+          <Settings />
+        ) : currentPage === "initial-setup" ? (
+          <InitialSetup />
+        ) : (
+          <Thread />
+        )}
       </AssistantRuntimeProvider>
       {isManageToolOpen ? (
         <ManageToolDialog
