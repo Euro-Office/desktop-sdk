@@ -20,7 +20,7 @@ const InitialSetup = () => {
         </h1>
 
         <div className="flex flex-col gap-[16px] mb-[32px]">
-          <FieldContainer header={t("Provider")}>
+          <FieldContainer header={t("Provider")} isHorizontal>
             <ComboBox
               className="w-full"
               placeholder={t("SelectProvider")}
@@ -32,7 +32,7 @@ const InitialSetup = () => {
             />
           </FieldContainer>
 
-          <FieldContainer header={t("APIKey")}>
+          <FieldContainer header={t("APIKey")} isHorizontal>
             <Input
               name="key"
               placeholder={t("EnterKey")}
@@ -44,7 +44,7 @@ const InitialSetup = () => {
             />
           </FieldContainer>
 
-          <FieldContainer header={t("BaseURL")}>
+          <FieldContainer header={t("BaseURL")} isHorizontal>
             <Input
               name="url"
               placeholder={t("SelectModelFirst")}
@@ -55,7 +55,7 @@ const InitialSetup = () => {
             />
           </FieldContainer>
 
-          <FieldContainer header={t("Model")}>
+          <FieldContainer header={t("Model")} isHorizontal>
             <ComboBox
               className="w-full"
               placeholder={t("SelectModel")}
@@ -63,7 +63,7 @@ const InitialSetup = () => {
             />
           </FieldContainer>
 
-          <FieldContainer header={t("ProfileName")}>
+          <FieldContainer header={t("ProfileName")} isHorizontal>
             <Input
               name="name"
               placeholder={t("EnterName")}
