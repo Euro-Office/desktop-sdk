@@ -135,7 +135,7 @@ public:
     [pInfo setTopMargin:0];
     [pInfo setBottomMargin:0];
     
-    // узнаем ориентацию
+    // determine orientation
     [self fillInfo];
     m_arOrientation.clear();
     for (int nPage = 0; nPage < m_pPrinterInfo->m_nPagesCount; ++nPage)
@@ -263,26 +263,26 @@ public:
         
         // start print dialog
         NSPrintInfo* pPrintInfo;
-        NSString* sKeyPrint = @"prihord"; // Ключ в котором расположен объект NSPrintInfo
+        NSString* sKeyPrint = @"prihord"; // Key where the NSPrintInfo object is stored
         
-        // Пробуем извлечь
+        // Try to extract
         NSUserDefaults* pUserDef = [[NSUserDefaults alloc] init];
         NSData* pDataInfo = [pUserDef dataForKey:sKeyPrint];
         if (pDataInfo)
         {
-            // Если удачно извлекли
+            // If successfully extracted
             pPrintInfo = [NSUnarchiver unarchiveObjectWithData:pDataInfo];
         }
         else
         {
 #if 0
-            // Иначе выводим панель настройки печати
+            // Otherwise display the print settings panel
             NSPageLayout* pPageLayout = [[NSPageLayout alloc] init];
             if ([pPageLayout runModal] == NSModalResponseOK)
             {
                 pPrintInfo = pPageLayout.printInfo;
                 
-                // сохраним введенные настройки в User Defaults
+                // save the entered settings to User Defaults
                 pDataInfo = [NSArchiver archivedDataWithRootObject:pPrintInfo];
                 [pUserDef setObject:pDataInfo forKey:sKeyPrint];
             }
@@ -301,7 +301,7 @@ public:
         else
             pro = [NSPrintOperation printOperationWithView:m_pView];
         
-        [pro setShowsPrintPanel:YES]; // Выводим на печать или предпросмотр
+        [pro setShowsPrintPanel:YES]; // Output to print or preview
         [[pro printPanel] setOptions:options];
         //[pro runOperation];
         [pro runOperationModalForWindow:pViewParent.window delegate:sender didRunSelector:didRunSelector contextInfo:nil];
@@ -354,7 +354,7 @@ public:
                                             kCGImageAlphaPremultipliedLast, pDataProvider,
                                             NULL, false, kCGRenderingIntentAbsoluteColorimetric);
         
-        // здесь никаких поворотов - разруливаем все раньше
+        // no rotations here - we handle everything earlier
         CGFloat fX = (CGFloat)((x + m_oInfo.m_nMarginLeft) * m_oInfo.m_nPaperWidthOrigin / m_oInfo.m_nPaperWidth);
         CGFloat fY = (CGFloat)((y + m_oInfo.m_nMarginTop) * m_oInfo.m_nPaperHeightOrigin / m_oInfo.m_nPaperHeight);
         CGFloat fW = (CGFloat)(nRasterW * m_oInfo.m_nPaperWidthOrigin / m_oInfo.m_nPaperWidth);

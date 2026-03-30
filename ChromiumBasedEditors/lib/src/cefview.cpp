@@ -133,9 +133,9 @@ public:
 };
 #endif
 
-// иногда (при неправильной ссылке) - не приходят сообщения OnDownloadUpdate
-// поэтому мы запускаем таймер. и если за его время не было сообщений - то считаем,
-// что при скачке произошла ошибка
+// sometimes (when the link is incorrect) - OnDownloadUpdate messages do not arrive
+// therefore we start a timer. and if there are no messages during this time - we consider
+// that an error occurred during the download
 class CDownloadFilesAborted : public NSTimers::CTimer
 {
 protected:
@@ -661,7 +661,7 @@ public:
 
 				if (bIsOfficeFile)
 				{
-					// зашифрованные - итак зашифрованы
+					// encrypted files - are already encrypted
 					if (oChecker.nFileType == AVS_OFFICESTUDIO_FILE_OTHER_MS_OFFCRYPTO)
 						bIsOfficeFile = false;
 				}
@@ -673,7 +673,7 @@ public:
 
 				if (!bIsOfficeFile)
 				{
-					// не нужна конвертация
+					// no conversion needed
 					FilesDst.push_back(L"");
 				}
 				else
@@ -713,14 +713,14 @@ public:
 				return;
 			}
 
-			// запрос пароля
+			// password request
 			CefRefPtr<CefFrame> pFrame = GetFrame();
 			if (!pFrame)
 			{
 				OnCompleteFile(sFileSrc);
 				return;
 			}
-			// нужно криптовать... запрашиваем пароль
+			// need to encrypt... requesting password
 			pFrame->ExecuteJavaScript("window.AscDesktopEditor.sendSystemMessage({ type : \"generatePassword\" });", pFrame->GetURL(), 0);
 		}
 		void OnPassword(const std::wstring& sPass, const std::wstring& sInfo)
@@ -729,7 +729,7 @@ public:
 			if (pFrame)
 				pFrame->ExecuteJavaScript("window.onSystemMessage && window.onSystemMessage({ type : \"operation\", block : true, opType : 1 });", pFrame->GetURL(), 0);
 
-			// пришел пароль из плагина. делаем конвертацию и отсылаем файл
+			// password received from plugin. performing conversion and sending file
 			if (0 >= Files.size())
 			{
 				OnComplete();
@@ -738,7 +738,7 @@ public:
 			std::wstring sFileSrc = *Files.begin();
 			std::wstring sFileDst = *FilesDst.begin();
 
-			// конвертируем
+			// converting
 			NSStringUtils::CStringBuilder oBuilder;
 			oBuilder.WriteString(L"<?xml version=\"1.0\" encoding=\"utf-8\"?><TaskQueueDataConvert><m_sFileFrom>");
 			oBuilder.WriteEncodeXmlString(sFileSrc);
@@ -778,7 +778,7 @@ public:
 				return;
 			}
 
-			// запрос сохранения пароля
+			// password save request
 			if (!pFrame)
 			{
 				OnCompleteFile(sFileSrc);
@@ -799,7 +799,7 @@ public:
 		}
 		void OnSavePassword()
 		{
-			// пароли сохранены
+			// passwords saved
 			if (0 >= Files.size())
 			{
 				OnComplete();
@@ -811,7 +811,7 @@ public:
 		}
 		void OnSend()
 		{
-			// файл отослался
+			// file sent
 			if (0 >= Files.size())
 				return; // error
 
@@ -841,7 +841,7 @@ public:
 	private:
 		void OnCompleteFile(const std::wstring& sFile, const bool& isCrypto = false)
 		{
-			// файл готов. отправляем его в облако. удалим все ненужное на деструкторе
+			// file is ready. sending it to the cloud. we will delete all unnecessary data in the destructor
 			CefRefPtr<CefFrame> pFrame = GetFrame();
 			if (!pFrame)
 				return;
@@ -854,7 +854,7 @@ public:
 		}
 		void OnComplete()
 		{
-			// вся работа закончена
+			// all work is finished
 			CefRefPtr<CefFrame> pFrame = GetFrame();
 			if (pFrame)
 				pFrame->ExecuteJavaScript("window.on_cloud_crypto_upload = undefined;window.onSystemMessage({ type : \"upload_end\" });", pFrame->GetURL(), 0);
@@ -868,80 +868,80 @@ public:
 	CAscApplicationManager* m_pManager;
 	CCefView* m_pCefView;
 
-	// окно
+	// window
 	CCefViewWidgetImpl* m_pWidgetImpl;
 
-	// данные для печати
+	// print data
 	CPrintData m_oPrintData;
 	std::string m_sPrintParameters;
 
 	std::wstring m_sCloudNativePrintFile;
 	std::wstring m_sNativePrintChangesFile;
 
-	// ссылка для view
+	// URL for view
 	std::wstring m_strUrl;
 	std::wstring m_sOriginalUrl;
 	std::wstring m_sOpenAsLocalUrl;
 
-	// вызывается для скачки файлов, после того, как покажем диалог для выбора куда качать
+	// called for downloading files, after showing the dialog to choose where to download
 	CefRefPtr<CefBeforeDownloadCallback> m_before_callback;
-	NSEditorApi::CAscDownloadFileInfo* m_before_callback_info; // мы можем отменить скачку (а евенты наверх уше ушли - надо удалить из приложения)
+	NSEditorApi::CAscDownloadFileInfo* m_before_callback_info; // we can cancel the download (but events have already been sent up - need to delete from application)
 
-	// информация для локальных файлов
+	// information for local files
 	CAscLocalFileInfoCS m_oLocalInfo;
 
-	// конвертеры
+	// converters
 	CASCFileConverterToEditor m_oConverterToEditor;
 	CASCFileConverterFromEditor m_oConverterFromEditor;
 
-	// криптованные данные храним в docx
+	// encrypted data stored in docx
 	CTextDocxConverter m_oTxtToDocx;
 
-	// идет сохранение с помощью x2t
+	// saving in progress using x2t
 	bool m_bIsSaving;
-	// идет сохранение и криптование с помощью x2t
+	// saving and encryption in progress using x2t
 	bool m_bIsSavingCrypto;
-	// нужно ли удалить папку recover
+	// whether to delete the recover folder
 	bool m_bIsRemoveRecoveryOnClose;
-	// идет закрытие веб-страницы
+	// web page closing in progress
 	bool m_bIsClosing;
-	// идет удаление веб-страницы
+	// web page deletion in progress
 	bool m_bIsDestroying;
-	// показывается диалог для сохранения
+	// save dialog is being shown
 	bool m_bIsSavingDialog;
-	// идет сборка криптованного облачного файла
+	// building encrypted cloud file in progress
 	bool m_bIsBuilding;
-	// удален ли view
+	// whether view is deleted
 	bool m_bIsDestroy;
-	// упал ли процесс рендерера
+	// whether renderer process has crashed
 	bool m_bIsCrashed;
-	// ошибка загрузки
+	// loading error
 	bool m_bIsLoadingError;
-	// если документ не модифицирован, но закрывать без предупреждения нельзя
+	// if document is not modified, but cannot be closed without warning
 	bool m_bIsLockedSave;
 
-	// поддерживается ли криптование
+	// whether encryption is supported
 	bool m_bIsOnlyPassSupport;
 
-	// типо редактора (0 - word, 1 - slide, 2 - cell)
+	// editor type (0 - word, 1 - slide, 2 - cell)
 	int m_nEditorType;
 
-	// ошибка при открытии файла (0 - все хорошо)
+	// error when opening file (0 - all good)
 	int m_nLocalFileOpenError;
 
-	// настройки для открытия pdf, djvu, xps
+	// settings for opening pdf, djvu, xps
 	CNativeFileViewerInfo m_oNativeViewer;
 	std::wstring m_sNativeFilePassword;
 
-	// текущий devicePixelRatio
+	// current devicePixelRatio
 	double m_dDeviceScale;
-	// нужно ли при move/resize проверять deviceScale
+	// whether to check deviceScale on move/resize
 	bool m_bIsWindowsCheckZoom;
 
-	// настройки для репортера
-	bool m_bIsReporter; // репортер
-	int m_nReporterParentId; // репортер
-	int m_nReporterChildId; // id репортера у parent
+	// settings for reporter
+	bool m_bIsReporter; // reporter
+	int m_nReporterParentId; // reporter
+	int m_nReporterChildId; // reporter id at parent
 	std::string m_sCloudCryptoReporter;
 
 	bool m_bIsLoaded;
@@ -952,40 +952,40 @@ public:
 	std::wstring m_strSSOFirstDomain;
 	std::map<std::wstring, bool> m_arSSOSecondDomain;
 
-	// id фрейма, из которого пришел евент (для коллбэка)
+	// id of frame from which event came (for callback)
 	std::string m_sIFrameIDMethod;
 	std::string m_sSaveFileContent;
 
-	// криптование облачных файлов
+	// cloud file encryption
 	bool m_bIsCloudCryptFile;
 	std::wstring m_sCloudCryptSrc;
 	std::wstring m_sCloudCryptName;
 	int m_nCloudCryptFileType;
 
-	// скачка криптованного файла (в принципе можно просто качать что угодно)
+	// downloading encrypted file (basically can download anything)
 	CCefView* m_pDownloadViewCallback;
 	std::wstring m_sDownloadViewPath;
 
-	// external id у recent
+	// external id for recent
 	std::wstring m_sRecentOpenExternalId;
 
 	// hash info (GetHash js function)
 	std::string m_sGetHashAlg;
 	std::string m_sGetHashFrame;
 
-	// картинки для скачки, в криптованном режиме
+	// images for downloading, in encrypted mode
 	std::map<std::wstring, std::wstring> m_arCryptoImages;
 	std::map<std::wstring, int_64_type> m_arCryptoImagesFrameId;
 
-	// файлы с ссылками для метода AscDesktopEditor.DownloadFiles
+	// files with links for AscDesktopEditor.DownloadFiles method
 	std::map<std::wstring, CDownloadFileItem> m_arDownloadedFiles;
 	std::map<std::wstring, std::wstring> m_arDownloadedFilesComplete;
 	int64 m_nDownloadedFilesFrameId;
 
-	// приходил ли хоть раз евент onDocumentModifiedChanged
+	// has onDocumentModifiedChanged event ever been received
 	bool m_bIsReceiveOnce_OnDocumentModified;
 
-	// url страницы, откуда был открыт текущий редактор (нужно для recents)
+	// url of page from which current editor was opened (needed for recents)
 	std::wstring m_sParentUrl;
 
 #if defined(_LINUX) && !defined(_MAC)
@@ -994,44 +994,44 @@ public:
 
 	CWindowHandleChecker m_hideChecker;
 
-	// прерывание скачивания у проблемных ссылок
+	// download abort for problematic links
 	CDownloadFilesAborted m_oDownloaderAbortChecker;
 
-	// настройки внешних (не onlyoffice) облаков
+	// settings for external (non-onlyoffice) clouds
 	bool m_bIsExternalCloud;
 	CExternalCloudRegister m_oExternalCloud;
 
-	// облачный криптованный файл => downloadAs
+	// cloud encrypted file => downloadAs
 	int m_nCryptoDownloadAsFormat;
 	std::string m_sCryptoDownloadAsParams;
 	CSimpleConverter m_oSimpleX2tConverter;
 
-	// версия облака и поддерживаемый им функционал
+	// cloud version and its supported functionality
 	std::string m_sCloudVersion;
 	int m_nCloudVersion;
 
-	// системные сообщения
+	// system messages
 	std::vector<CSystemMessage> m_arSystemMessages;
 
-	// создание/аплоад криптованных файлов в облаке
+	// creating/uploading encrypted files to cloud
 	CCloudCryptoUpload* m_pUploadFiles;
 
-	// путь к файлу для сравнения (только для локальных файлов)
-	// после открытия нужно прокинуть в редактор и удалить файл (если он временный (по урлу))
+	// path to file for comparison (only for local files)
+	// after opening need to pass to editor and delete file (if it's temporary (by url))
 	std::wstring m_sComparingFile;
 	int m_nComparingFileType; // 0 - file, 1 - url
 
-	// поведение в мерже - как и в compare. тип для возможных таких же режимов.
+	// behavior in merge - same as in compare. type for possible similar modes.
 	int m_nComparingMode; // -1 - default, 0 - compare, 1 - merge
 
 	// path template (may be cloud)
 	std::wstring m_sTemplateUrl;
 	std::wstring m_sTemplateName;
 
-	bool m_bIsLocalFileLocked; // залочен ли файл?
-	NSSystem::CLocalFileLocker* m_pLocalFileLocker; // класс для лока открытых файлов
+	bool m_bIsLocalFileLocked; // is file locked?
+	NSSystem::CLocalFileLocker* m_pLocalFileLocker; // class for locking open files
 
-	NSSystem::CLocalFileLocker* m_pLockRecover; // для корректнрой работы рековеров в не singleapplication mode
+	NSSystem::CLocalFileLocker* m_pLockRecover; // for correct recovers operation in non-singleapplication mode
 
 	std::string m_sVersionForReporter;
 
@@ -1043,7 +1043,7 @@ public:
 
 	std::vector<CSimpleConverterExternal*> m_arExternalConverters;
 
-	// информация о view (type, caption...)
+	// view information (type, caption...)
 	std::wstring m_sViewportSettings;
 
 public:
@@ -1148,10 +1148,10 @@ public:
 
 		RELEASEOBJECT(m_pCloudSaveToDrawing);
 
-		// разлочиваем файл
+		// unlock the file
 		RELEASEOBJECT(m_pLocalFileLocker);
 
-		// смотрим, есть ли несохраненные данные
+		// check if there is unsaved data
 		m_oLocalInfo.m_oCS.Enter();
 
 		bool bIsNeedRemove = false;
@@ -1162,7 +1162,7 @@ public:
 		std::wstring sChangesFile = m_oLocalInfo.m_oInfo.m_sRecoveryDir + L"/changes/changes0.json";
 		if (!NSFile::CFileBinary::Exists(sChangesFile))
 		{
-			// нет изменений - нечего рековерить. актуально для НОВОГО файла
+			// no changes - nothing to recover. relevant for NEW file
 			bIsNeedRemove = true;
 		}
 		else
@@ -1243,18 +1243,18 @@ public:
 
 	int GetViewCryptoMode()
 	{
-		// общий режим
+		// general mode
 		int nCryptoMode = m_pManager->m_pInternal->m_nCurrentCryptoMode;
 
-		// чужое облако, не поддерживающее шифрование
+		// external cloud that does not support encryption
 		if (m_bIsExternalCloud && !m_oExternalCloud.crypto_support)
 			nCryptoMode = 0;
 
-		// шифровальщик сам не поддерживает чужие облака
+		// encryptor itself does not support external clouds
 		if (m_bIsExternalCloud && m_pManager->m_pInternal->m_bCryptoDisableForExternalCloud)
 			nCryptoMode = 0;
 
-		// локальный файл и шифровальщик не поддерживает их
+		// local file and encryptor does not support them
 		if (m_pManager->m_pInternal->m_bCryptoDisableForLocal && !m_oLocalInfo.m_oInfo.m_sRecoveryDir.empty() && m_sCloudCryptSrc.empty())
 			nCryptoMode = 0;
 
@@ -1263,8 +1263,8 @@ public:
 
 	std::wstring GetFileDocInfo(const std::wstring& sFile)
 	{
-		// используется для криптования.
-		// незашифрованная информация в зашифрованном файле
+		// used for encryption.
+		// unencrypted information in encrypted file
 		std::wstring sDocInfo = L"";
 		COfficeFileFormatChecker oChecker;
 		bool bIsStorage = oChecker.isMS_OFFCRYPTOFormatFile(sFile, sDocInfo);
@@ -1394,7 +1394,7 @@ public:
 
 		m_oLocalInfo.SetupOptions(m_oConverterToEditor.m_oInfo);
 
-		// и теперь убираем, если новый
+		// and now remove, if new
 		std::wstring sNewPath = m_pManager->m_oSettings.file_converter_path + L"/empty/";
 		if (m_oLocalInfo.m_oInfo.m_sFileSrc.find(sNewPath) == 0)
 			m_oLocalInfo.m_oInfo.m_sFileSrc = m_oLocalInfo.m_oInfo.m_sFileSrc.substr(sNewPath.length());
@@ -1428,7 +1428,7 @@ public:
 		{
 			if (m_pLocalFileLocker->GetFileLocked() != m_oConverterFromEditor.m_oInfo.m_sFileSrc)
 			{
-				// сохраняем не в тот же файл
+				// saving to a different file
 
 				bool isSaveToEditFormat = true;
 				if (nType != -1)
@@ -1439,7 +1439,7 @@ public:
 			}
 			else if (m_sCloudCryptSrc.empty())
 			{
-				// сохраняем обычный локальный файл по тому же пути
+				// saving regular local file to the same path
 				m_oConverterFromEditor.m_pLocker = m_pLocalFileLocker;
 			}
 		}
@@ -1557,10 +1557,10 @@ public:
 
 	void LocalFile_GetSupportSaveFormats(std::vector<int>& arFormats)
 	{
-		// в какие форматы можно сохранить текущий документ
+		// which formats the current document can be saved to
 		bool bEncryption = (GetViewCryptoMode() != 0) ? true : false;
 
-		// важен порядок (для красоты) - поэтому такие странные if'ы
+		// order is important (for aesthetics) - hence these strange if's
 
 		if (m_oLocalInfo.m_oInfo.m_nCurrentFileFormat & AVS_OFFICESTUDIO_FILE_DOCUMENT)
 		{
@@ -1722,7 +1722,7 @@ public:
 
 	bool LocalFile_IsSupportSaveCurrentFormat()
 	{
-		// открыли файл. А можно ли его сохранить? (без изменения формата)
+		// file is opened. Can it be saved? (without changing format)
 		std::vector<int> arFormats;
 		LocalFile_GetSupportSaveFormats(arFormats);
 
@@ -1840,9 +1840,9 @@ public:
 	CCefView* m_pParent;
 	bool m_bIsLoaded;
 
-	// в виндоус есть баг с ресайзом. лечится "двойным" ресайзом.
-	// но на всяких loaded - его нужно отключать
-	// TODO: удалить, после релиза 7.4
+	// there is a bug with resize in Windows. fixed with "double" resize.
+	// but on various loaded events - it needs to be disabled
+	// TODO: remove after release 7.4
 	bool m_bIsDisableResizeOnLoaded;
 	bool m_bIsDisableResizeOnLoadedOneCall;
 
@@ -1986,7 +1986,7 @@ public:
 			else
 				sFilterInput += L";;*.*";
 
-			// пока не учитываем фильтры (переводы)
+			// not accounting for filters (translations) for now
 			std::wstring sFilter = L"any";
 			if (L".docx.doc.docm.dot.dotm.dotx.epub.fodt.odt.ott.rtf;;*.*" == sFilterInput)
 				sFilter = L"word";
@@ -2061,11 +2061,11 @@ public:
 			NSStringUtils::string_replace(sUrlLower, L".ashx?", L"?");
 		}
 
-		// определяем, редактор ли это
+		// determine if this is an editor
 		bool bIsEditor = (sUrlLower.find(L"files/doceditor?fileid") == std::wstring::npos) ? false : true;
 		if (!bIsEditor)
 		{
-			// есть еще actions...
+			// there are also actions...
 			bIsEditor = (sUrlLower.find(L"files/httphandlers/filehandler?action=") == std::wstring::npos) ? false : true;
 		}
 
@@ -2077,13 +2077,13 @@ public:
 
 				if (bIsEditor)
 				{
-					// прокидываем во view информацию
+					// pass information to view
 					sUrl += (L"desktop_editor_cloud_type_external=" + m_pParent->m_pInternal->m_oExternalCloud.id + L"_ext_id");
 				}
 			}
 			else if (!m_pParent->m_pInternal->m_oExternalCloud.test_editor.empty())
 			{
-				// проверяем и на своих облаках
+				// also check on our own clouds
 				bIsEditor = IsExternalCloudEditor(sUrlLower, m_pParent->m_pInternal->m_oExternalCloud.test_editor);
 			}
 			else if (NSFileDownloader::IsNeedDownload(m_pParent->m_pInternal->m_strUrl))
@@ -2100,13 +2100,13 @@ public:
 
 				if (!m_pParent->m_pInternal->m_oExternalCloud.test_editor.empty())
 				{
-					// проверяем и на своих облаках
+					// also check on our own clouds
 					bIsEditor = IsExternalCloudEditor(sUrlLower, m_pParent->m_pInternal->m_oExternalCloud.test_editor);
 				}
 			}
 		}
 
-		// определяем
+		// determine
 		bool bIsDownload    = false;
 		if (sUrlLower.find(L"filehandler?action=download") != std::wstring::npos)
 			bIsDownload     = true;
@@ -2122,7 +2122,7 @@ public:
 				if (0 == sUrl.find(L"about:blank"))
 					return true;
 
-				// заглушка для персонал (https://bugzilla.onlyoffice.com/show_bug.cgi?id=57638)
+				// workaround for personal (https://bugzilla.onlyoffice.com/show_bug.cgi?id=57638)
 				if (m_pParent->GetType() == cvwtSimple && !m_pParent->m_pInternal->m_bIsExternalCloud)
 				{
 					std::wstring sFindEnd = L"products/files/doceditor";
@@ -2227,7 +2227,7 @@ public:
 		{
 			if (NULL != m_pParent && NULL != pListener && NULL == m_pParent->m_pInternal->m_before_callback)
 			{
-				// есть parent и ничего не качается в данный момент
+				// there is a parent and nothing is downloading at the moment
 				m_pParent->StartDownload(sUrl);
 			}
 
@@ -2579,7 +2579,7 @@ public:
 		std::string message_name = message->GetName();
 		if (message_name == "EditorType" && !m_bIsEditorTypeSet)
 		{
-			// прокидываем наверх тип редактора
+			// pass editor type upward
 			m_bIsEditorTypeSet = true;
 			m_pParent->m_pInternal->m_nEditorType = args->GetInt(0);
 
@@ -2595,7 +2595,7 @@ public:
 		}
 		else if (message_name == "spell_check_task")
 		{
-			// задача для проверки орфографии
+			// spell checking task
 			m_pParent->GetAppManager()->SpellCheck(args->GetInt(0),
 												   args->GetString(1).ToString(),
 												   NSArgumentList::GetInt64(args, 2));
@@ -2603,7 +2603,7 @@ public:
 		}
 		else if (message_name == "create_editor_api")
 		{
-			// евент после создания api (sdkjs)
+			// event after api creation (sdkjs)
 			NSEditorApi::CAscMenuEvent* pEvent = new NSEditorApi::CAscMenuEvent();
 			pEvent->m_nType = ASC_MENU_EVENT_TYPE_CEF_CONTROL_ID;
 			m_pParent->Apply(pEvent);
@@ -2616,13 +2616,13 @@ public:
 			pEvent2->m_nType = ASC_MENU_EVENT_TYPE_CEF_SYNC_COMMAND;
 			m_pParent->Apply(pEvent2);
 
-			// в обычных случаях - просто увеличится счетчик и все
+			// in normal cases - just increment the counter and that's it
 			m_pParent->m_pInternal->m_oConverterToEditor.NativeViewerOpen();
 			return true;
 		}
 		else if (message_name == "on_js_context_created")
 		{
-			// вызывается, после создания js контекста
+			// called after js context creation
 			bool bIsOnlyPassSupport = m_pParent->GetAppManager()->m_oSettings.pass_support;
 			if (bIsOnlyPassSupport)
 			{
@@ -2651,7 +2651,7 @@ public:
 		}
 		else if (message_name == "on_init_js_context")
 		{
-			// вызывается, после создания js контекста
+			// called after js context creation
 			std::vector<NSEditorApi::CAscMenuEvent*>* pArr = NULL;
 			CApplicationManagerAdditionalBase* pAdditional = pManager->m_pInternal->m_pAdditional;
 
@@ -2667,7 +2667,7 @@ public:
 				pAdditional->m_arApplyEvents = NULL;
 			}
 
-			// прокидываем cloudCrypto для репортера
+			// pass cloudCrypto for reporter
 			if (m_pParent->m_pInternal->m_bIsReporter && !m_pParent->m_pInternal->m_sCloudCryptoReporter.empty())
 			{
 				CefRefPtr<CefFrame> _frame = browser->GetMainFrame();
@@ -2781,7 +2781,7 @@ public:
 
 					if (true)
 					{
-						// уточняем формат по расширению
+						// clarify format by extension
 						COfficeFileFormatChecker oChecker;
 						std::wstring sFileExt = NSFile::GetFileExtention(pData->get_Name());
 						NSCommon::makeLowerW(sFileExt);
@@ -2824,7 +2824,7 @@ public:
 		}
 		else if (message_name == "on_document_save")
 		{
-			// для локального файла посылаем когда прошла конвертация
+			// for local file we send when conversion is complete
 			if (m_pParent->m_pInternal->m_bIsSaving &&
 					(m_pParent->m_pInternal->m_oLocalInfo.m_oInfo.m_sRecoveryDir.empty() ||
 					 !m_pParent->m_pInternal->m_sCloudCryptSrc.empty()))
@@ -2873,7 +2873,7 @@ public:
 		}
 		else if (message_name == "print_start")
 		{
-			// начало печати
+			// print start
 			m_pParent->m_pInternal->m_oPrintData.m_sDocumentUrl = args->GetString(0).ToWString();
 			m_pParent->m_pInternal->m_oPrintData.m_sFrameUrl = args->GetString(2).ToWString();
 
@@ -2898,7 +2898,7 @@ public:
 		}
 		else if (message_name == "print_page")
 		{
-			// запоминаем пдф-команды для каждой страницы
+			// remember pdf commands for each page
 			int nIndex = args->GetInt(1);
 			int nProgress = 100 * (nIndex + 1) / (int)m_pParent->m_pInternal->m_oPrintData.m_arPages.size();
 
@@ -2922,7 +2922,7 @@ public:
 		}
 		else if (message_name == "print_end")
 		{
-			// окончание печати на js - стороне. отправляем евент наверх, что готовы к печати
+			// print end on js side. send event upward that we are ready to print
 			NSEditorApi::CAscCefMenuEvent* pEvent = m_pParent->CreateCefEvent(ASC_MENU_EVENT_TYPE_CEF_ONBEFORE_PRINT_END);
 
 			NSEditorApi::CAscPrintEnd* pData = new NSEditorApi::CAscPrintEnd();
@@ -2952,8 +2952,8 @@ public:
 		}
 		else if (message_name == "print")
 		{
-			// метод для печати (AscDesktopEditor.Print)
-			// для редакторов - вызывает asc_nativePrint
+			// method for printing (AscDesktopEditor.Print)
+			// for editors - calls asc_nativePrint
 			NSEditorApi::CAscMenuEvent* pEvent = new NSEditorApi::CAscMenuEvent();
 			pEvent->m_nType = ASC_MENU_EVENT_TYPE_CEF_PRINT_START;
 
@@ -2979,7 +2979,7 @@ public:
 		}
 		else if (message_name == "load_js")
 		{
-			// загрузка скриптов
+			// scripts loading
 			NSEditorApi::CAscEditorScript* pData = new NSEditorApi::CAscEditorScript();
 			pData->put_Url(args->GetString(0).ToWString());
 			pData->put_Destination(args->GetString(1).ToWString());
@@ -3012,7 +3012,7 @@ public:
 		}
 		else if (message_name == "onlocaldocument_open")
 		{
-			// этот метод не используется. для старой стартовой страницы
+			// this method is not used. for old start page
 			NSEditorApi::CAscCefMenuEvent* pEvent = m_pParent->CreateCefEvent(ASC_MENU_EVENT_TYPE_CEF_LOCALFILE_OPEN);
 			NSEditorApi::CAscLocalFileOpen* pData = new NSEditorApi::CAscLocalFileOpen();
 			if (args->GetSize() == 1)
@@ -3024,7 +3024,7 @@ public:
 		}
 		else if (message_name == "onlocaldocument_create")
 		{
-			// этот метод не используется. для старой стартовой страницы
+			// this method is not used. for old start page
 			NSEditorApi::CAscCefMenuEvent* pEvent = m_pParent->CreateCefEvent(ASC_MENU_EVENT_TYPE_CEF_LOCALFILE_CREATE);
 			NSEditorApi::CAscLocalFileCreate* pData = new NSEditorApi::CAscLocalFileCreate();
 			pData->put_Type(args->GetInt(0));
@@ -3113,10 +3113,10 @@ public:
 				}
 			}
 
-			// нужно ли показывать диалог?
-			// 1) файл новый/восстановленный, т.е. некуда пока сохранять
+			// do we need to show dialog?
+			// 1) file is new/recovered, i.e. nowhere to save yet
 			// 2) saveAs
-			// 3) текущий формат не поддерживает сохранение
+			// 3) current format does not support saving
 			bool bIsNeedSaveDialog = bIsNeedSave || bIsSaveAs || (!m_pParent->m_pInternal->LocalFile_IsSupportSaveCurrentFormat());
 
 			CApplicationManagerAdditionalBase* pAdditional = pManager->m_pInternal->m_pAdditional;
@@ -3161,7 +3161,7 @@ public:
 		}
 		else if (message_name == "onlocaldocument_onaddimage")
 		{
-			// добавление картинки (с показом диалога)
+			// adding image (with dialog shown)
 			NSEditorApi::CAscCefMenuEvent* pEvent = m_pParent->CreateCefEvent(ASC_MENU_EVENT_TYPE_CEF_LOCALFILE_ADDIMAGE);
 			NSEditorApi::CAscLocalOpenFileDialog* pData = new NSEditorApi::CAscLocalOpenFileDialog();
 			pData->put_Id(m_pParent->GetId());
@@ -3177,7 +3177,7 @@ public:
 		}
 		else if (message_name == "on_setadvancedoptions")
 		{
-			// открытие с настройками
+			// opening with settings
 			m_pParent->m_pInternal->m_oConverterToEditor.m_sAdditionalConvertation = args->GetString(0).ToWString();
 
 			// detect password
@@ -3218,7 +3218,7 @@ public:
 		}
 		else if (message_name == "native_viewer_onopened")
 		{
-			// открыт вьюер
+			// viewer opened
 			std::string sBase64 = args->GetString(0).ToString();
 			m_pParent->m_pInternal->m_sNativeFilePassword = args->GetString(1).ToWString();
 			m_pParent->m_pInternal->m_oConverterToEditor.NativeViewerOpenEnd(sBase64);
@@ -3226,7 +3226,7 @@ public:
 		}
 		else if (message_name == "on_signature_sign")
 		{
-			// подписать
+			// sign
 			std::string sId     = args->GetString(0).ToString();
 			std::wstring sGuid  = args->GetString(1).ToWString();
 			std::wstring sUrl   = args->GetString(2).ToWString();
@@ -3313,7 +3313,7 @@ public:
 		}
 		else if (message_name == "on_signature_remove")
 		{
-			// удалить подпись
+			// remove signature
 			std::string sGuid;
 			if (args->GetSize() > 0)
 				sGuid = args->GetString(0).ToString();
@@ -3358,7 +3358,7 @@ public:
 		}
 		else if (message_name == "on_signature_viewcertificate")
 		{
-			// посмотреть сертификат
+			// view certificate
 			int nIndex = args->GetInt(0);
 			COOXMLVerifier* pVerifier = m_pParent->m_pInternal->m_oConverterToEditor.m_pVerifier;
 			if (NULL != pVerifier)
@@ -3412,7 +3412,7 @@ public:
 		}
 		else if (message_name == "on_signature_defaultcertificate")
 		{
-			// данные сертификата по умолчанию
+			// default certificate data
 			CCertificateInfo info = NSCertificate::GetDefault();
 
 			CJSONSimple serializer;
@@ -3431,7 +3431,7 @@ public:
 		}
 		else if (message_name == "on_signature_selectsertificate")
 		{
-			// диалог выбора сертификата
+			// certificate selection dialog
 			ICertificate* pCert = NSCertificate::CreateInstance();
 
 			WindowHandleId _handle = m_pParent->GetWidgetImpl()->cef_handle;
@@ -3471,7 +3471,7 @@ public:
 		}
 		else if (message_name == "on_open_filename_dialog")
 		{
-			// показать окно выбора файлов. по окончании вызовется коллбек js
+			// show file selection window. on completion js callback will be called
 			NSEditorApi::CAscCefMenuEvent* pEvent = m_pParent->CreateCefEvent(ASC_MENU_EVENT_TYPE_DOCUMENTEDITORS_OPENFILENAME_DIALOG);
 			NSEditorApi::CAscLocalOpenFileDialog* pData = new NSEditorApi::CAscLocalOpenFileDialog();
 			pData->put_Id(m_pParent->GetId());
@@ -3504,7 +3504,7 @@ public:
 		}
 		else if (message_name == "on_file_save_question")
 		{
-			// при некоторых действиях необходимо сохранение (например подпись)
+			// some actions require saving (for example signing)
 			NSEditorApi::CAscCefMenuEvent* pEvent = m_pParent->CreateCefEvent(ASC_MENU_EVENT_TYPE_DOCUMENTEDITORS_SAVE_YES_NO);
 			NSEditorApi::CAscEditorSaveQuestion* pData = new NSEditorApi::CAscEditorSaveQuestion();
 			pData->put_Id(m_pParent->GetId());
@@ -3545,7 +3545,7 @@ public:
 		}
 		else if (message_name == "send_to_reporter")
 		{
-			// сообщение докладчику
+			// message to reporter
 			CCefView* pViewSend = m_pParent->GetAppManager()->GetViewById(m_pParent->m_pInternal->m_nReporterChildId);
 			if (!pViewSend)
 				return true;
@@ -3563,7 +3563,7 @@ public:
 		}
 		else if (message_name == "send_from_reporter")
 		{
-			// сообщение от докладчика
+			// message from reporter
 			CCefView* pViewSend = m_pParent->GetAppManager()->GetViewById(m_pParent->m_pInternal->m_nReporterParentId);
 			if (!pViewSend)
 				return true;
@@ -3581,8 +3581,8 @@ public:
 		}
 		else if (message_name == "file_get_hash")
 		{
-			// нужно посчитать хэш облачного файла.
-			// качаем, считаем, отдаем
+			// need to calculate hash of cloud file.
+			// download, calculate, return
 			m_pParent->m_pInternal->m_pDownloadViewCallback = m_pParent;
 			m_pParent->m_pInternal->m_sDownloadViewPath = NSFile::CFileBinary::CreateTempFileWithUniqueName(NSDirectory::GetTempPath(), L"OL");
 			if (NSFile::CFileBinary::Exists(m_pParent->m_pInternal->m_sDownloadViewPath))
@@ -3606,7 +3606,7 @@ public:
 		}
 		else if (message_name == "send_system_message")
 		{
-			// системное сообщение (для external plugins)
+			// system message (for external plugins)
 			CCefView_Private::CSystemMessage sysMessage;
 			sysMessage.ViewID = m_pParent->GetId();
 			sysMessage.FrameID = args->GetString(1).ToString();
@@ -3638,9 +3638,9 @@ public:
 		}
 		else if (message_name == "open_file_crypt")
 		{
-			// открытие облачного зашифрованного файла
-			// 1) корректируем ссылку
-			// 2) помечаем ссылку параметрами, чтобы созданный view понял, о чем идет речь (имя)
+			// opening cloud encrypted file
+			// 1) correct the link
+			// 2) mark the link with parameters so the created view understands what it's about (name)
 			std::wstring sName = args->GetString(0).ToWString();
 			std::wstring sDownloadLink = args->GetString(1).ToWString();
 
@@ -3683,7 +3683,7 @@ public:
 		}
 		else if (message_name == "build_crypted")
 		{
-			// собрать зашифтованный файл
+			// build encrypted file
 			m_pParent->m_pInternal->m_bIsBuilding = true;
 			if (0 == args->GetSize())
 				return true;
@@ -3711,8 +3711,8 @@ public:
 		}
 		else if (message_name == "build_crypted_end")
 		{
-			// окончание сборки. файл уже отправлен.
-			// просто отправляем наверх
+			// build complete. file already sent.
+			// just send upward
 			m_pParent->m_pInternal->m_bIsBuilding = false;
 
 			bool bIsNoError = args->GetBool(0);
@@ -3782,7 +3782,7 @@ public:
 		}
 		else if (message_name == "download_files")
 		{
-			// скачать файлы.
+			// download files.
 			int nCount = args->GetSize();
 
 			if (nCount == 0 || ((nCount & 0x01) == 0x01))
@@ -3815,8 +3815,8 @@ public:
 			for (std::map<std::wstring, CDownloadFileItem>::iterator iter = m_pParent->m_pInternal->m_arDownloadedFiles.begin();
 				 iter != m_pParent->m_pInternal->m_arDownloadedFiles.end(); /*nothing*/)
 			{
-				// могут прийти локальные ссылки, или base64 (наприменр при вставке картинок в зашифрованный файл).
-				// нужно просто имитировать скачку - просто сохранить файлы во временные
+				// local links or base64 may arrive (for example when inserting images into encrypted file).
+				// need to just emulate download - just save files to temporary
 				bool isEmulate = false;
 				std::wstring sEmulateLocal = iter->second.Url;
 				if (0 == sEmulateLocal.find(L"file://"))
@@ -3898,8 +3898,8 @@ public:
 		}
 		else if (message_name == "set_crypto_mode")
 		{
-			// выставить режим криптования.
-			// если открыт хоть один редактор - не выставлять
+			// set encryption mode.
+			// if at least one editor is open - do not set
 			std::string sPass = args->GetString(0).ToString();
 			int nMode = args->GetInt(1);
 			bool bIsCallback = args->GetBool(2);
@@ -4301,7 +4301,7 @@ public:
 			std::string sConvertationType = args->GetString(0).ToString();
 			if ("sendTo" == sConvertationType)
 			{
-				// сохраняем копию в tmp и прикрепляем ее
+				// save copy to tmp and attach it
 				m_pParent->m_pInternal->m_pLocalFileConverter = new CConvertFileInEditor();
 				CConvertFileInEditor* pConv = m_pParent->m_pInternal->m_pLocalFileConverter;
 				pConv->DestroyOnFinish();
@@ -4813,7 +4813,7 @@ virtual void OnLoadingStateChange(CefRefPtr<CefBrowser> browser,
 
 	if (!isLoading)
 	{
-		// вот тут уже можно делать зум!!!
+		// zoom can be done here!!!
 		m_pParent->m_pInternal->m_bIsWindowsCheckZoom = true;
 		m_pParent->m_pInternal->m_dDeviceScale = -1;
 
@@ -4823,7 +4823,7 @@ virtual void OnLoadingStateChange(CefRefPtr<CefBrowser> browser,
 		if (CAscApplicationManager::IsUseSystemScaling())
 			m_bIsDisableResizeOnLoaded = true;
 
-		// полагаем, что это корректный запуск приложения
+		// we assume this is a correct application launch
 		if ( m_pParent->m_pInternal->m_pManager->m_pInternal->m_sLogFile.length() && m_pParent->m_nId == 1 )
 		{
 			std::wstring sOutput = L"[DesktopEditors]: start page loaded";
@@ -4838,7 +4838,7 @@ virtual void OnLoadingStateChange(CefRefPtr<CefBrowser> browser,
 				{
 					if ( !NSDirectory::CreateDirectories(sFolder) )
 					{
-						// относительный путь
+						// relative path
 						sFolder = NSFile::GetProcessDirectory() + L"/" + sFolder;
 						NSDirectory::CreateDirectories(sFolder);
 					}
@@ -4862,7 +4862,7 @@ virtual void OnLoadStart(CefRefPtr<CefBrowser> browser,
 						 #endif
 						 )
 {
-	// вот тут уже можно делать зум!!!
+	// zoom can be done here!!!
 	m_pParent->m_pInternal->m_bIsWindowsCheckZoom = true;
 	m_pParent->m_pInternal->m_dDeviceScale = -1;
 	m_bIsDisableResizeOnLoadedOneCall = true;
@@ -4898,7 +4898,7 @@ virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser,
 		if ((0 != sUrl.find(L"file:///")) || !m_pParent->m_pInternal->m_bIsOnlyPassSupport || m_pParent->GetType() == cvwtEditor)
 			return;
 
-		// это стартовая страница. отправляем external плагины
+		// this is start page. send external plugins
 		std::vector<CExternalPluginInfo>& arPluginsExternal = m_pParent->m_pInternal->m_pManager->m_pInternal->m_arExternalPlugins;
 		std::wstring sSystemPluginsPath = m_pParent->GetAppManager()->m_oSettings.system_plugins_path;
 		std::wstring sUserPluginsPath = m_pParent->GetAppManager()->m_oSettings.user_plugins_path;
@@ -5023,7 +5023,7 @@ virtual void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
 
 	if (bIsExist)
 	{
-		// удаляем все первые и последние сепараторы
+		// remove all first and last separators
 		int nNaturalCount2 = model->GetCount();
 		for (int i = 0; i < nNaturalCount2; ++i)
 		{
@@ -5510,7 +5510,7 @@ virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,
 
 			if (m_pParent->GetType() == cvwtEditor)
 			{
-				// чтобы не спрашивали,сохранять изменения или нет - отошлем, что нет изменений.
+				// to avoid being asked whether to save changes or not - we'll send that there are no changes.
 				pEvent = new NSEditorApi::CAscCefMenuEvent();
 				pEvent->m_nType = ASC_MENU_EVENT_TYPE_CEF_MODIFY_CHANGED;
 				pEvent->put_SenderId(m_pParent->GetId());
@@ -5552,7 +5552,7 @@ virtual void OnBeforeDownload(CefRefPtr<CefBrowser> browser,
 
 	std::wstring sDestPath = L"";
 
-	// если указан m_pDownloadViewCallback - то уже все готово. просто продолжаем
+	// if m_pDownloadViewCallback is specified - then everything is ready. just continue
 	if (NULL != m_pParent->m_pInternal->m_pDownloadViewCallback)
 	{
 		sDestPath = m_pParent->m_pInternal->m_pDownloadViewCallback->m_pInternal->GetViewDownloadPath();
@@ -5560,7 +5560,7 @@ virtual void OnBeforeDownload(CefRefPtr<CefBrowser> browser,
 
 	if (sDestPath.empty())
 	{
-		// если ссылка приватная (внутренняя) - то уже все готово. просто продолжаем
+		// if link is private (internal) - then everything is ready. just continue
 		std::wstring sPrivateDownloadUrl = m_pParent->GetAppManager()->m_pInternal->GetPrivateDownloadUrl();
 		if (sUrlOriginalWithoutProtocol == GetUrlWithoutProtocol(sPrivateDownloadUrl))
 		{
@@ -5570,7 +5570,7 @@ virtual void OnBeforeDownload(CefRefPtr<CefBrowser> browser,
 
 	if (sDestPath.empty())
 	{
-		// проверяем на зашифрованные картинки
+		// check for encrypted images
 		std::map<std::wstring, std::wstring>::iterator findCryptoImage = m_pParent->m_pInternal->m_arCryptoImages.find(sUrlOriginal);
 		if (findCryptoImage != m_pParent->m_pInternal->m_arCryptoImages.end())
 		{
@@ -5580,7 +5580,7 @@ virtual void OnBeforeDownload(CefRefPtr<CefBrowser> browser,
 
 	if (sDestPath.empty())
 	{
-		// проверяем на файлы метода AscDesktopEditor.DownloadFiles
+		// check for files of AscDesktopEditor.DownloadFiles method
 		std::map<std::wstring, CDownloadFileItem>::iterator findDownloadFile = m_pParent->m_pInternal->m_arDownloadedFiles.find(sUrlOriginalWithoutProtocol);
 		if (findDownloadFile != m_pParent->m_pInternal->m_arDownloadedFiles.end())
 		{
@@ -5597,7 +5597,7 @@ virtual void OnBeforeDownload(CefRefPtr<CefBrowser> browser,
 		return;
 	}
 
-	// скачивание, которое надо отправлять наверх
+	// download that needs to be sent upward
 	m_pParent->m_pInternal->m_before_callback = callback;
 	callback->AddRef();
 
@@ -5704,7 +5704,7 @@ virtual void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 	if (download_item->IsInProgress() || download_item->IsCanceled() || download_item->IsComplete() || (0 != download_item->GetReceivedBytes()))
 		m_pParent->m_pInternal->m_oDownloaderAbortChecker.EndDownload(sUrl);
 
-	// проверяем на m_pDownloadViewCallback
+	// check for m_pDownloadViewCallback
 	if (NULL != m_pParent->m_pInternal->m_pDownloadViewCallback)
 	{
 		if (download_item->IsComplete())
@@ -5716,14 +5716,14 @@ virtual void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 
 			m_pParent->GetAppManager()->GetEventListener()->OnEvent(pEvent);
 
-			// OpenLocalFile нужно запускать в главном потоке
+			// OpenLocalFile needs to be run in main thread
 			//m_pParent->m_pInternal->m_pDownloadViewCallback->m_pInternal->OnViewDownloadFile();
 			//m_pParent->m_pInternal->m_pDownloadViewCallback = NULL;
 		}
 		return;
 	}
 
-	// проверяем на зашифрованные картинки
+	// check for encrypted images
 	if (!m_pParent->m_pInternal->m_arCryptoImages.empty())
 	{
 		std::map<std::wstring, std::wstring>::iterator findCryptoImage = m_pParent->m_pInternal->m_arCryptoImages.find(sUrlOriginal);
@@ -5755,7 +5755,7 @@ virtual void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 		}
 	}
 
-	// проверяем на файлы метода AscDesktopEditor.DownloadFiles
+	// check for files of AscDesktopEditor.DownloadFiles method
 	if (!m_pParent->m_pInternal->m_arDownloadedFiles.empty())
 	{
 		std::map<std::wstring, CDownloadFileItem>::iterator findDownloadFile = m_pParent->m_pInternal->m_arDownloadedFiles.find(sUrlOriginalWithoutProtocol);
@@ -5795,7 +5795,7 @@ virtual void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 		}
 	}
 
-	// интерфейсные скачивания
+	// interface downloads
 	unsigned int uId = (unsigned int)download_item->GetId();
 
 	NSEditorApi::CAscDownloadFileInfo* pData = new NSEditorApi::CAscDownloadFileInfo();
@@ -5854,7 +5854,7 @@ bool OnDragEnter(CefRefPtr<CefBrowser> browser,
 
 	if (0 != arFiles.size())
 	{
-		// нельзя напрямую - нужно скрыть добавление в resolver
+		// cannot directly - need to hide addition to resolver
 		CefRefPtr<CefProcessMessage> message = CefProcessMessage::Create("set_drop_files");
 		int nIndex = 0;
 		for (std::vector<CefString>::iterator i = arFiles.begin(); i != arFiles.end(); i++)
@@ -5867,7 +5867,7 @@ bool OnDragEnter(CefRefPtr<CefBrowser> browser,
 		SEND_MESSAGE_TO_RENDERER_PROCESS(browser, message);
 	}
 
-	// разруливаем на стороне js
+	// handle on js side
 	return false;
 }
 
@@ -6010,7 +6010,7 @@ bool CCefView_Private::LocalFileSaveEnd_CheckSaveAs()
 		 m_oConverterFromEditor.m_oInfo.m_nCurrentFileFormat == AVS_OFFICESTUDIO_FILE_DOCUMENT_OFORM_PDF) &&
 		 nOldFormat != m_oConverterFromEditor.m_oInfo.m_nCurrentFileFormat)
 	{
-		// значит был saveAs. мы не можем переходить из интерфейса редактора в интерфейсе заполнения
+		// it means saveAs was performed. we cannot switch from editor interface to fill interface
 		bIsSavedFileCurrent = false;
 	}
 	if (!(nOldFormat & AVS_OFFICESTUDIO_FILE_CROSSPLATFORM) &&
@@ -6092,13 +6092,13 @@ void CCefView_Private::LocalFile_SaveEnd(int nError, const std::wstring& sPass)
 
 		if (bIsSaved)
 		{
-			// обновим информацию о файле
+			// update file information
 			m_oLocalInfo.m_oInfo.m_sFileSrc = m_oConverterFromEditor.m_oInfo.m_sFileSrc;
 			m_oLocalInfo.m_oInfo.m_nCurrentFileFormat = m_oConverterFromEditor.m_oInfo.m_nCurrentFileFormat;
 
 			CheckLockLocalFile();
 
-			// информация для recover
+			// information for recover
 			std::wstring sNameInfo = m_oLocalInfo.m_oInfo.m_sRecoveryDir + L"/asc_name.info";
 			if (NSFile::CFileBinary::Exists(sNameInfo))
 				NSFile::CFileBinary::Remove(sNameInfo);
@@ -6109,12 +6109,12 @@ void CCefView_Private::LocalFile_SaveEnd(int nError, const std::wstring& sPass)
 			oBuilderInfo.WriteString(L"\" />");
 			NSFile::CFileBinary::SaveToFile(sNameInfo, oBuilderInfo.GetData(), true);
 
-			// добавляем в recent
+			// add to recent
 			m_pManager->m_pInternal->Recents_Add(m_oLocalInfo.m_oInfo.m_sFileSrc, m_oLocalInfo.m_oInfo.m_nCurrentFileFormat, L"", L"", m_sParentUrl);
 
 			if (m_pManager->GetEventListener())
 			{
-				// событие наверх
+				// event upward
 				NSEditorApi::CAscCefMenuEvent* pEvent = m_pCefView->CreateCefEvent(ASC_MENU_EVENT_TYPE_CEF_DOCUMENT_NAME);
 
 				NSEditorApi::CAscDocumentName* pData = new NSEditorApi::CAscDocumentName();
@@ -6135,9 +6135,9 @@ void CCefView_Private::LocalFile_SaveEnd(int nError, const std::wstring& sPass)
 
 			if (m_pManager->GetEventListener())
 			{
-				// событие onsave
-				// в случае криптования - после записи паролей
-				if (GetViewCryptoMode() == 0) // только после конца записи в блокчейн
+				// onsave event
+				// in case of encryption - after passwords are written
+				if (GetViewCryptoMode() == 0) // only after blockchain write is complete
 				{
 					m_bIsSaving = false;
 
@@ -6291,7 +6291,7 @@ void CCefView_Private::OnFileConvertToEditor(const int& nError)
 
 			m_oConverterToEditor.m_sComparingFile = L"";
 
-			// если по урлу - то файл временный
+			// if by url - then file is temporary
 			if (m_nComparingFileType == 1)
 				NSFile::CFileBinary::Remove(m_sComparingFile);
 
@@ -6517,7 +6517,7 @@ void CCefView::load(const std::wstring& urlInputSrc)
 {
 	std::wstring urlInput = urlInputSrc;
 
-	// заглушка, чтобы не проверять выше
+	// stub, to avoid checking above
 	NSStringUtils::string_replace(urlInput, L"//?desktop=true", L"/?desktop=true");
 
 	std::wstring sExternalSchemeName = m_pInternal->m_pManager->GetExternalSchemeName() + L":";
@@ -6583,7 +6583,7 @@ void CCefView::load(const std::wstring& urlInputSrc)
 
 	if (NSFileDownloader::IsNeedDownload(urlInput))
 	{
-		// проверяем на recent parent
+		// check for recent parent
 		std::wstring sRecentParent = L"";
 
 		std::wstring sUrlRecent = urlInput;
@@ -6615,7 +6615,7 @@ void CCefView::load(const std::wstring& urlInputSrc)
 		if (m_pInternal->m_bIsExternalCloud && GetType() == cvwtSimple)
 		{
 			//NSStringUtils::string_replace(urlInput, L"/products/files/", L"/");
-			// теперь смотрим за этим выше
+			// now we handle this above
 		}
 		else if (GetType() == cvwtEditor)
 		{
@@ -6766,7 +6766,7 @@ void CCefView::load(const std::wstring& urlInputSrc)
 		{
 			std::wstring sUrlExternal = urlInput.substr(22);
 
-			// на маке при открытии по схеме - теряется ":"
+			// on Mac when opening by scheme - ":" is lost
 			if (0 == sUrlExternal.find(L"https//"))
 				NSStringUtils::string_replace(sUrlExternal, L"https//", L"https://");
 			else if (0 == sUrlExternal.find(L"http//"))
@@ -7183,7 +7183,7 @@ void CCefView::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 	{
 		if (!this->GetModified())
 		{
-			// здесь потом делать запрос на то, сохранен ли файл. пока просто считаем что все сохранено
+			// here later make request whether file is saved. for now just assume everything is saved
 			NSEditorApi::CAscCefMenuEvent* pData = this->CreateCefEvent(ASC_MENU_EVENT_TYPE_CEF_ONCLOSE);
 
 			NSEditorApi::CAscTypeId* pDataId = new NSEditorApi::CAscTypeId();
@@ -7278,7 +7278,7 @@ void CCefView::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 
 		if (!sLocalFileSrc.empty())
 		{
-			// локальные файлы
+			// local files
 			switch (nLocalFileSrcFormat)
 			{
 			case AVS_OFFICESTUDIO_FILE_CROSSPLATFORM_PDF:
@@ -7915,7 +7915,7 @@ void CCefView::SetExternalCloud(const std::wstring& sProviderId)
 	if (L"asc" == sProviderId || L"onlyoffice" == sProviderId)
 	{
 		m_pInternal->m_bIsSSO = true;
-		// все равно заполним - и для наших облаков могут быть регулярки на editorPage
+		// fill anyway - our clouds may also have regex on editorPage
 		GetAppManager()->m_pInternal->TestExternal(sProviderId, m_pInternal->m_oExternalCloud);
 		return;
 	}
@@ -8180,7 +8180,7 @@ void CCefViewEditor::OpenLocalFile(const std::wstring& sFilePath, const int& nFi
 
 			std::wstring sExtBase = m_pInternal->m_sCloudCryptName;
 
-			// в истории версий вид ссылки такой: document.docx (data)
+			// in version history link looks like: document.docx (data)
 			std::wstring::size_type pos1 = sExtBase.rfind(L"(");
 			std::wstring::size_type pos2 = sExtBase.rfind(L")");
 			std::wstring::size_type posDot = sExtBase.rfind(L".");
@@ -8270,7 +8270,7 @@ void CCefViewEditor::OpenLocalFile(const std::wstring& sFilePath, const int& nFi
 		std::wstring sNameBase = m_pInternal->m_sCloudCryptName;
 		if (true)
 		{
-			// в истории версий вид ссылки такой: document.docx (data)
+			// in version history link looks like: document.docx (data)
 			std::wstring::size_type pos1 = sNameBase.rfind(L"(");
 			std::wstring::size_type pos2 = sNameBase.rfind(L")");
 			std::wstring::size_type posDot = sNameBase.rfind(L".");
@@ -8281,7 +8281,7 @@ void CCefViewEditor::OpenLocalFile(const std::wstring& sFilePath, const int& nFi
 					sNameBase = sNameBase.substr(0, pos1);
 			}
 
-			// нужно удалить все пробелы в конце файла
+			// need to remove all spaces at end of file
 			posDot = sNameBase.rfind(L".");
 			if (std::wstring::npos != posDot)
 			{
@@ -8662,7 +8662,7 @@ bool CCefViewEditor::IsBuilding()
 	if (m_pInternal->m_bIsBuilding)
 		return true;
 
-	// вставляем сюда и сохранение
+	// insert here and save
 	if (m_pInternal->m_oConverterFromEditor.IsWorking())
 		return true;
 
@@ -8701,8 +8701,8 @@ int CCefViewEditor::GetFileFormat(const std::wstring& sFilePath)
 		}
 	}
 
-	// формат файла по файлу
-	// если файл зашифрован (MS_OFFCRYPTO) - то определяем по расширению
+	// file format by file
+	// if file is encrypted (MS_OFFCRYPTO) - then determine by extension
 	COfficeFileFormatCheckerWrapper oChecker;
 	if (oChecker.isOfficeFile2(sFilePath))
 		return oChecker.nFileType2;
@@ -8726,8 +8726,8 @@ void CCefViewEditor::UpdatePlugins()
 // NATIVE file converter
 void CASCFileConverterToEditor::NativeViewerOpen(bool bIsEnabled)
 {
-	// вызывается из конвертера и из создания апи.
-	// такой же счетчик, как и в файлах для редактора
+	// called from converter and from api creation.
+	// same counter as in files for editor
 	if (bIsEnabled)
 	{
 		m_pView->m_pInternal->m_oNativeViewer.m_bEnabled = true;
@@ -8800,7 +8800,7 @@ void CASCFileConverterToEditor::NativeViewerOpenEnd(const std::string& sBase64)
 // CAscApplicationManager_Private
 void CAscApplicationManager_Private::ExecuteInAllFrames(const std::string& sCode)
 {
-	// вызвать код во всех view и во всех фреймах
+	// call code in all views and in all frames
 	CCefView* pView = GetViewForSystemMessages();
 	if (!pView || !pView->m_pInternal || !pView->m_pInternal->GetBrowser())
 		return;
@@ -8815,8 +8815,8 @@ void CAscApplicationManager_Private::ExecuteInAllFrames(const std::string& sCode
 
 void CAscApplicationManager_Private::ChangeEditorViewsCount()
 {
-	// событие, которое посылается во все view - когда есть подозрение на смену количества редакторов
-	// чтобы порталы узнавали о режиме криптования
+	// event that is sent to all views - when there is a suspicion of change in number of editors
+	// so that portals learn about encryption mode
 	bool bIsEditorPresent = false;
 	for (std::map<int, CCefView*>::iterator iter = m_mapViews.begin(); iter != m_mapViews.end(); iter++)
 	{

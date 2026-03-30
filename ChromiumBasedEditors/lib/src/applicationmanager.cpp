@@ -419,11 +419,11 @@ void CAscApplicationManager::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 
 		this->LockCS(LOCK_CS_SCRIPT);
 
-		// смотрим, зажат ли этот файл
+		// check if this file is locked
 		std::map<std::wstring, std::vector<CEditorFrameId>>::iterator _find = m_pInternal->m_mapLoadedScripts.find(pData->get_Destination());
 		if (_find != m_pInternal->m_mapLoadedScripts.end())
 		{
-			// он качается. нужно записать id в список тех, кто хочет получить скрипт после его загрузки
+			// it's downloading. need to add id to the list of those who want to receive the script after it loads
 			CEditorFrameId _id;
 			_id.Url = pData->get_Url();
 			_id.EditorId = pData->get_Id();
@@ -432,7 +432,7 @@ void CAscApplicationManager::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 		}
 		else
 		{
-			// смотрим, есть ли файл на диске
+			// check if file exists on disk
 			if (NSFile::CFileBinary::Exists(pData->get_Destination()))
 			{
 				CCefView* pView = this->GetViewById(pData->get_Id());
@@ -444,7 +444,7 @@ void CAscApplicationManager::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 			}
 			else
 			{
-				// создаем список ожидания
+				// create waiting list
 				std::vector<CEditorFrameId> _arr;
 				CEditorFrameId _id;
 				_id.Url = pData->get_Url();
@@ -679,7 +679,7 @@ std::wstring CAscApplicationManager::GetNewFilePath(const AscEditorType& nFileFo
 	}
 	else
 	{
-		// поддержка en-EN (в документах есть en-GB и en-US)
+		// support for en-EN (documents have en-GB and en-US)
 		sPrefix = L"en-US/";
 	}
 
@@ -864,7 +864,7 @@ void CAscApplicationManager::SetApplication(CApplicationCEF* pApp)
 {
 	m_pInternal->m_pApplication = pApp;
 
-	// создаем все папки, если надо
+	// create all folders if needed
 	if (!NSDirectory::Exists(m_oSettings.recover_path))
 		NSDirectory::CreateDirectories(m_oSettings.recover_path);
 }
@@ -895,8 +895,8 @@ NSFonts::IApplicationFonts* CAscApplicationManager::GetApplicationFonts()
 
 void CAscApplicationManager::StartSaveDialog(const std::wstring& sName, unsigned int nId)
 {
-	// в этой реализации - всегда отмена
-	// хочешь пользоваться - пиши враппер
+	// in this implementation - always cancel
+	// if you want to use it - write a wrapper
 	this->EndSaveDialog(L"", nId);
 }
 
@@ -1113,7 +1113,7 @@ void CAscApplicationManager::SetCryptoMode(const std::string& sPassword, const i
 	NSAscCrypto::CCryptoMode oCryptoMode;
 	oCryptoMode.Save(m_pInternal->m_cryptoKeyEnc, m_pInternal->m_cryptoKeyDec, m_pInternal->m_mapCrypto, m_oSettings.cookie_path + L"/user.data");
 
-	// не меняем режим для уже открылись
+	// don't change mode for already opened
 	// m_pInternal->SendCryptoData();
 
 	std::string sCryptoMode = "default";
@@ -1377,7 +1377,7 @@ bool CAscApplicationManager::IsUseSystemScaling()
 }
 double Core_GetMonitorScale(const unsigned int& xDpi, const unsigned int& yDpi)
 {
-	// допустимые значения: 1; 1.25; 1.5; 1.75; 2; 2.25, 2.5; 2.75, 3; 3.5; 4; 4.5; 5;
+	// allowed values: 1; 1.25; 1.5; 1.75; 2; 2.25, 2.5; 2.75, 3; 3.5; 4; 4.5; 5;
 	double dScale = (xDpi + yDpi) / (2 * 96.0);
 	int nCount = (int)((dScale + 0.125) / 0.25);
 	dScale = 0.25 * nCount;

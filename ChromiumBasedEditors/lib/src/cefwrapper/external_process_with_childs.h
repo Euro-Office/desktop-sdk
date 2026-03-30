@@ -401,7 +401,7 @@ namespace NSProcesses
 				if (!dir.empty() && dir.back() != '\\' && dir.back() != '/')
 					dir += L"\\";
 
-				// Проверяем с разными расширениями
+				// Check with different extensions
 				for (const auto& ext : extensions)
 				{
 					std::wstring test = dir + cmd + ext;

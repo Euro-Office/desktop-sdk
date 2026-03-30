@@ -77,7 +77,7 @@ public:
 
 	std::string m_strCryptoPluginAttack;
 
-	// плагин не для редактора, а для главной страницы (для системных сообщенией)
+	// plugin not for the editor, but for the main page (for system messages)
 	std::vector<CExternalPluginInfo> m_arExternals;
 	bool m_bIsSupportMultiplugins;
 
@@ -91,8 +91,8 @@ public:
 		m_bCryptoDisableForInternalCloud = false;
 		m_bCryptoDisableForExternalCloud = false;
 
-		// Возможность псевдо-обновления системных плагинов
-		// По факту подмена системного на более новый из папки пользователя
+		// Ability to pseudo-update system plugins
+		// In effect, replacing the system plugin with a newer one from the user folder
 		m_isSupportSystemUpdate = true;
 
 		m_bIsSupportMultiplugins = false;
@@ -126,7 +126,7 @@ public:
 		}
 		else
 		{
-			// Поиск плагинов в папке пользователя для возможного восстановления
+			// Search for plugins in the user folder for possible recovery
 			std::wstring sBackupDir = m_strUserDirectory + L"/backup";
 			if (NSDirectory::Exists(sBackupDir))
 			{
@@ -205,7 +205,7 @@ public:
 		NSDirectory::CopyDirectory(sTempExt, sNew);
 		NSDirectory::DeleteDirectory(sTemp);
 
-		// Изменить ссылки на v1
+		// Change links to v1
 		ReplaceHtmlUrls(sNew);
 
 		return true;
@@ -228,7 +228,7 @@ public:
 			NSDirectory::CopyDirectory(sPluginBackupDir, sPluginDir);
 			NSDirectory::DeleteDirectory(sPluginBackupDir);
 
-			// Изменить ссылки на v1
+			// Change links to v1
 			ReplaceHtmlUrls(sPluginDir);
 
 			bResult = true;
@@ -318,7 +318,7 @@ private:
 
 			if (sExt == L"html")
 			{
-				// Считаем уровень папки относитьльно локальной v1 (UserDir / PluginName / N / *.html)
+				// Calculate folder depth relative to local v1 (UserDir / PluginName / N / *.html)
 				std::wstring _sPath = sPath;
 				NSStringUtils::string_replace(_sPath, m_strUserDirectory, L"");
 				NSStringUtils::string_replace(_sPath, L"\\", L"/");
@@ -336,9 +336,9 @@ private:
 
 	std::vector<std::string> GetDirPlugins(std::wstring sDir)
 	{
-		// Системные плагины могут быть тоже обновлены, они будут в папке пользователя
-		// Нужно найти пересечения и удалить старые из списка системных
-		// TODO: пока тест, но надо отрефакторить этот класс, получать списки плагинов в конструкторе, после задания папок
+		// System plugins can also be updated, they will be in the user folder
+		// Need to find intersections and remove old ones from the system list
+		// TODO: currently a test, but this class needs refactoring - get plugin lists in constructor after setting folders
 
 		std::vector<std::string> arPlugins;
 		std::vector<std::wstring> arDir = NSDirectory::GetDirectories(sDir);
@@ -503,7 +503,7 @@ private:
 				}
 				else
 				{
-					// Получаем GUID
+					// Get GUID
 					std::string sGuid = "";
 					std::string::size_type pos1 = sJson.find("asc.{");
 					std::string::size_type pos2 = sJson.find('}', pos1);
@@ -516,7 +516,7 @@ private:
 					if (!CheckEncryption(sJson, bCheckCrypto))
 						continue;
 
-					// !!! это надо обсудить, т.к. возможны такие плагины в папке пользователя
+					// !!! this needs to be discussed, as such plugins may exist in the user folder
 					if (CheckExternal(sJson, i == 0))
 						continue;
 
@@ -529,7 +529,7 @@ private:
 
 						if (bIsBackup)
 						{
-							// устанавливаем свойство для дальнейших действий
+							// set property for further actions
 							pos2 = sConfigContent.find_last_of('}');
 							sConfigContent = sConfigContent.substr(0, pos2) + ", \"backup\": true }";
 						}

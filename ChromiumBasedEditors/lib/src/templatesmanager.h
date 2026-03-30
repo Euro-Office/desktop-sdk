@@ -279,7 +279,7 @@ public:
 		std::wstring sTemplateLog = m_pManager->m_oSettings.templates_cache_info_path + L"/templates.log";
 		std::vector<std::string> arTemplates;
 
-		// читаем "старый" набор шаблонов
+		// read "old" template set
 		if (true)
 		{
 			NSFile::CFileBinary oFile;
@@ -332,7 +332,7 @@ public:
 #endif
 		}
 
-		// читаем "новый" набор шаблонов
+		// read "new" template set
 		std::wstring sSystemTemplatesPath = m_pManager->m_oSettings.system_templates_path;
 
 		std::vector<std::wstring> arLangs;
@@ -436,7 +436,7 @@ public:
 		if (!m_pManager->m_oSettings.user_templates_path.empty())
 			NSDirectory::GetFiles2(m_pManager->m_oSettings.user_templates_path, arTemplatesPathsTmp, true);
 
-		// удаляем папки, которые не нужно парсить
+		// remove folders that don't need to be parsed
 		std::vector<std::wstring> arTemplatesPaths;
 		arTemplatesPaths.reserve(arTemplatesPathsTmp.size());
 		for (std::vector<std::wstring>::iterator i = arTemplatesPathsTmp.begin(); i != arTemplatesPathsTmp.end(); i++)
@@ -450,18 +450,18 @@ public:
 #endif
 		}
 
-		// сортируем (нужно для сравнения для старого набора)
+		// sort (needed for comparison with old set)
 		std::sort(arTemplatesPaths.begin(), arTemplatesPaths.end());
 
 		bool bIsEqual = true;
 
-		// если количество шрифтов в наборах не совпадают - то нужно перегенерировать
+		// if the number of fonts in sets doesn't match - need to regenerate
 		if (arTemplates.size() != arTemplatesPaths.size())
 			bIsEqual = false;
 
 		if (bIsEqual)
 		{
-			// если наборы не совпадают - то нужно перегенерировать
+			// if sets don't match - need to regenerate
 			int nCount = (int)arTemplates.size();
 			for (int i = 0; i < nCount; ++i)
 			{
@@ -481,7 +481,7 @@ public:
 				NSDirectory::DeleteDirectory(sOutputDir);
 			NSDirectory::CreateDirectory(sOutputDir);
 
-			// формируем новый набор шаблонов
+			// create new template set
 			NSStringUtils::CStringBuilder oTemplatesLog;
 #ifdef ONLYOFFICE_TEMPLATES_VERSION
 			oTemplatesLog.WriteString(L"ONLYOFFICE_TEMPLATES_VERSION_");

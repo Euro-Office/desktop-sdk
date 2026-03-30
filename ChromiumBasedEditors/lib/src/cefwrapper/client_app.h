@@ -66,7 +66,7 @@ static int IsForceDpiRound()
 
 	if (NULL != CAscApplicationManager::GetDpiChecker())
 	{
-		// управляем зумом
+		// we control zoom
 		return 1;
 	}
 
@@ -250,7 +250,7 @@ public:
 #if defined(_LINUX) && !defined(_MAC)
 			if (true)
 			{
-				// заглушка для АльтЛинукс
+				// workaround for ALT Linux
 				if (NSFile::CFileBinary::Exists(L"/etc/altlinux-release"))
 				{
 					command_line->AppendSwitch("--disable-lcd-text");
@@ -379,7 +379,7 @@ public:
 #if defined(_LINUX) && !defined(_MAC)
 			if (true)
 			{
-				// заглушка для АльтЛинукс
+				// workaround for ALT Linux
 				if (NSFile::CFileBinary::Exists(L"/etc/altlinux-release"))
 				{
 					command_line->AppendSwitch("--disable-lcd-text");
@@ -444,7 +444,7 @@ public:
 #if defined(_LINUX) && !defined(_MAC)
 			if (true)
 			{
-				// заглушка для АльтЛинукс
+				// workaround for ALT Linux
 				if (NSFile::CFileBinary::Exists(L"/etc/altlinux-release"))
 				{
 					command_line->AppendSwitch("--disable-lcd-text");

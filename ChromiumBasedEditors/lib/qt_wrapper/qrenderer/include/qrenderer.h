@@ -25,9 +25,9 @@ namespace NSQRenderer
 		void InitFonts(NSFonts::IApplicationFonts* pFonts);
 		void SetFontsManager(NSFonts::IFontManager* pFontsManager);
 
-		// тип рендерера-----------------------------------------------------------------------------
+		// renderer type-----------------------------------------------------------------------------
 		virtual HRESULT get_Type(LONG* lType) override;
-		//-------- Функции для работы со страницей --------------------------------------------------
+		//-------- Functions for working with page --------------------------------------------------
 		virtual HRESULT NewPage() override;
 		virtual HRESULT get_Height(double* dHeight) override;
 		virtual HRESULT put_Height(const double& dHeight) override;
@@ -72,7 +72,7 @@ namespace NSQRenderer
 		virtual HRESULT put_BrushAlpha1(const LONG& lAlpha) override;
 
 		/////////////////////////////////////////////////////////////////
-		// здесь только градиент, если таковой имеется. сеточку пока не делаем
+		// here only gradient, if any. mesh is not implemented yet
 		virtual HRESULT get_BrushColor2(LONG* lColor) override;
 		virtual HRESULT put_BrushColor2(const LONG& lColor) override;
 		virtual HRESULT get_BrushAlpha2(LONG* lAlpha) override;
@@ -105,7 +105,7 @@ namespace NSQRenderer
 		virtual HRESULT put_BrushGradientColors(LONG* lColors
 												, double* pPositions
 												, LONG nCount) override;
-		// есть дефолтная реализация
+		// has default implementation
 		// virtual void put_BrushGradInfo(const NSStructures::GradientInfo &_ginfo) override;
 
 		// font -------------------------------------------------------------------------------------
@@ -124,7 +124,7 @@ namespace NSQRenderer
 		virtual HRESULT get_FontFaceIndex(int* lFaceIndex) override;
 		virtual HRESULT put_FontFaceIndex(const int& lFaceIndex) override;
 
-		//-------- Функции для вывода текста --------------------------------------------------------
+		//-------- Functions for text output --------------------------------------------------------
 		virtual HRESULT CommandDrawTextCHAR(const LONG& c
 											, const double& x
 											, const double& y
@@ -150,11 +150,11 @@ namespace NSQRenderer
 										  , const double& w
 										  , const double& h) override;
 
-		//-------- Маркеры для команд ---------------------------------------------------------------
+		//-------- Markers for commands ---------------------------------------------------------------
 		virtual HRESULT BeginCommand(const DWORD& lType) override;
 		virtual HRESULT EndCommand(const DWORD& lType) override;
 
-		//-------- Функции для работы с Graphics Path -----------------------------------------------
+		//-------- Functions for working with Graphics Path -----------------------------------------------
 		virtual HRESULT PathCommandMoveTo(const double& x, const double& y) override;
 		virtual HRESULT PathCommandLineTo(const double& x, const double& y) override;
 		virtual HRESULT PathCommandLinesTo(double* points, const int& count) override;
@@ -202,7 +202,7 @@ namespace NSQRenderer
 										  , const double& w
 										  , const double& h) override;
 
-		//-------- Функции для вывода изображений ---------------------------------------------------
+		//-------- Functions for image output ---------------------------------------------------
 		virtual HRESULT DrawImage(IGrObject* pImage
 								  , const double& x
 								  , const double& y

@@ -2,8 +2,8 @@
 #include "./../../../../../../core/DesktopEditor/fontengine/ApplicationFontsWorker.h"
 #include "./../../../../../../core/DesktopEditor/common/File.h"
 #include "./../../../../../../core/DesktopEditor/common/Directory.h"
-#include "./../include/qrenderer.h" // рендерер
-#include "./../../include/qascprinter.h" // контекст
+#include "./../include/qrenderer.h" // renderer
+#include "./../../include/qascprinter.h" // context
 
 #ifdef SUPPORT_DRAWING_FILE
 #include "./../../../../../../core/PdfReader/PdfReader.h"
@@ -32,18 +32,18 @@
 
 #define TEST_ON_IMAGE
 
-// для теста печати файлом из js редакторов - нужен класс, который
-// конвертирует локальные картинки в абсолютные.
-// ну и также base64
-// для теста просто реализуем что-то похожее из desktopeditor
+// for testing printing files from js editors - need a class that
+// converts local images to absolute paths.
+// and also base64
+// for test we just implement something similar from desktopeditor
 class CMetafileToRenderer : public IMetafileToRenderter
 {
 private:
-    // тут копим картинки
+    // accumulate images here
     std::map<std::wstring, std::wstring> m_mapImages;
-    // временные файлы
+    // temporary files
     std::map<std::wstring, std::wstring> m_mapImagesDelete;
-    // путь к папке с картинками
+    // path to folder with images
     std::wstring m_sDocumentImagesPath;
 
 public:
@@ -63,12 +63,12 @@ public:
 public:
     virtual std::wstring GetImagePath(const std::wstring& sPath) override
     {
-        // 1) смотрим в мапе
+        // 1) look in the map
         std::map<std::wstring, std::wstring>::iterator iFind = m_mapImages.find(sPath);
         if (iFind != m_mapImages.end())
             return iFind->second;
 
-        // 2) в мапе нет. смотрим - может путь правильный совсем
+        // 2) not in the map. check if the path is completely correct
         if (NSFile::CFileBinary::Exists(sPath))
         {
             m_mapImages.insert(std::pair<std::wstring, std::wstring>(sPath, sPath));
@@ -91,10 +91,10 @@ public:
             }
         }
 
-        // 3) смотрим, может это прямая ссылка
-        // в тестовом примере не учитываем такие ссылки, чтобы не делать зависимость на kernel_network
+        // 3) check if this is a direct link
+        // in the test example we don't handle such links to avoid dependency on kernel_network
 
-        // 4) может это файл файла?
+        // 4) maybe this is a file of a file?
         if (0 == sPath.find(L"media/image") || 0 == sPath.find(L"image") ||
             0 == sPath.find(L"image/display") || 0 == sPath.find(L"display") ||
             (0 == sPath.find(L"media/")))
@@ -165,8 +165,8 @@ public:
             }
         }
 
-        // 5) может это файл темы?
-        // тоже в тестовом примере не поддерживаем темы в редакторе презентаций
+        // 5) maybe this is a theme file?
+        // also in the test example we don't support themes in the presentation editor
 
         // 6) base64?
         if (0 == sPath.find(L"data:"))
@@ -208,7 +208,7 @@ public:
             }
         }
 
-        // ошибка
+        // error
         m_mapImages.insert(std::pair<std::wstring, std::wstring>(sPath, sPath));
         return sPath;
     }
@@ -225,8 +225,8 @@ void printFirstPageOfFile(const std::wstring& sFile, NSQRenderer::CQRenderer* pR
     IOfficeDrawingFile* pReader = NULL;
     std::wstring sExt = NSFile::GetFileExtention(sFile);
 
-    // чеккер по форматам не используем - чтобы не тащить зависимость.
-    // в тестовом примере хватит и расширения
+    // we don't use format checker - to avoid pulling in dependencies.
+    // in the test example file extension is sufficient
     if (L"pdf" == sExt)
         pReader = new PdfReader::CPdfReader(pFonts);
     else if (L"xps" == sExt)
@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-    // смотрим, изменились ли шрифты в системе, или это первый запуск?
+    // check if system fonts have changed, or if this is the first run?
     CApplicationFontsWorker oWorker;
     oWorker.m_sDirectory = NSFile::GetProcessDirectory() + L"/fonts_cache";
     oWorker.m_bIsNeedThumbnails = false;
@@ -272,8 +272,8 @@ int main(int argc, char *argv[])
 
     NSFonts::IApplicationFonts* pFonts = oWorker.Check();
 
-    // путь к примеру. считаем так - если там есть pdf/xps/djvu - то берем первую страницу из этих файлов
-    // иначе - команды на печать из редактора js
+    // path to example. we assume - if there is pdf/xps/djvu - then take the first page from these files
+    // otherwise - print commands from js editor
     std::wstring sExamplePath = NSFile::GetProcessDirectory() + L"/../examples/example3";
 
 #ifdef TEST_ON_IMAGE

@@ -134,7 +134,7 @@ void QCefView_Media::OnMediaEnd(bool isFromResize)
 
 	if (isFromResize)
 	{
-		// под виндоус проблемы с ресайзом.
+		// there are resize problems on Windows.
 		QTimer::singleShot(100, this, [this]() {
 			this->resizeEvent(nullptr);
 		});

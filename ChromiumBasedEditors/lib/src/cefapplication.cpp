@@ -516,7 +516,7 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 		if (!bIsCurrentCryptoPresent && (pManager->m_pInternal->m_nCurrentCryptoMode == value.m_eType))
 			bIsCurrentCryptoPresent = 0;
 	}
-	// смотрим, есть ли плагин для выставленного режима криптования
+	// check if there's a plugin for the set encryption mode
 	if (!bIsCurrentCryptoPresent || oPlugins.m_bCryptoDisabledOnStart)
 	{
 		pManager->m_pInternal->m_nCurrentCryptoMode = NSAscCrypto::None;

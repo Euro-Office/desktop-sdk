@@ -69,7 +69,7 @@
 #ifdef CEF_2623
 #define MESSAGE_IN_BROWSER
 #else
-// с версии выше 74 - убрать определение
+// remove this definition for versions above 74
 //#define MESSAGE_IN_BROWSER
 #endif
 
@@ -178,7 +178,7 @@ public:
         m_sCachePath = sDestinationFile;
         std::wstring sUniquePath = NSFile::CFileBinary::CreateTempFileWithUniqueName(NSFile::CFileBinary::GetTempPath(), L"HTML");
 
-        // под линуксом предыдущая функция создает файл!!!
+        // on Linux the previous function creates a file!!!
         if (NSFile::CFileBinary::Exists(sUniquePath))
             NSFile::CFileBinary::Remove(sUniquePath);
 

@@ -477,7 +477,7 @@ namespace asc_client_renderer
 
 				if (dKoef < 1)
 				{
-					// слишком большие картинки не делаем
+					// don't create overly large images
 					WW = (int)(dKoef * w + 0.5);
 					HH = (int)(dKoef * h + 0.5);
 				}
@@ -642,10 +642,10 @@ namespace asc_client_renderer
 		int m_nEditorId;
 		bool* sync_command_check;
 
-		// версия редактора
+		// editor version
 		std::string m_sVersion;
 
-		// пути к папкам юзера/редактора
+		// paths to user/editor folders
 		std::wstring m_sAppData;
 		std::wstring m_sFontsData;
 		std::wstring m_sSystemPlugins;
@@ -660,27 +660,27 @@ namespace asc_client_renderer
 		std::wstring m_sLocalFileChanges;
 		std::wstring m_sLocalFileSrc;
 		bool m_bLocalIsSaved;
-		int m_nCurrentChangesIndex; // текущий индекс изменения, чтобы не парсить файл. а понять, надо ли удалять или нет быстро.
-		int m_nOpenChangesIndex;	// количество изменений, при открытии
+		int m_nCurrentChangesIndex; // current change index, to quickly determine if deletion is needed without parsing the file.
+		int m_nOpenChangesIndex;	// number of changes at opening
 
-		// печать
+		// printing
 		int m_nCurrentPrintIndex;
 		bool m_bIsPrinting;
 
-		// мап картинок по именам файлов
+		// map of images by file names
 		int m_nLocalImagesNextIndex;
 		std::map<std::wstring, std::wstring> m_mapLocalAddImages;
 
-		// мап картинок по чексумме
+		// map of images by checksum
 		CCalculatorCRC32 m_oCRC32;
 		std::map<unsigned int, std::wstring> m_mapLocalAddImagesCRC;
 
 		NSFonts::IApplicationFonts* m_pLocalApplicationFonts;
 
-		// файлы в дроп
+		// files in drop
 		std::vector<std::wstring> m_arDropFiles;
 
-		// открытие pdf, djvu, xps
+		// opening pdf, djvu, xps
 		int m_nNativeOpenFileTimerID;
 		int m_bIsNativeViewerMode;
 		std::list<CSavedPageInfo> m_arCompleteTasks;
@@ -712,11 +712,11 @@ namespace asc_client_renderer
 
 		std::wstring m_sRendererProcessVariable;
 
-		// для преобразования внутренняя ссылка => внешняя при скачивании
+		// for converting internal link => external when downloading
 		std::wstring m_sEditorPageDomain;
 		std::wstring m_sInternalEditorPageDomain;
 
-		// для печати облачных файлов (pdf/xps/djvu)
+		// for printing cloud files (pdf/xps/djvu)
 		std::wstring m_sCloudNativePrintFile;
 
 		std::string m_sViewportSettings;
@@ -897,8 +897,8 @@ namespace asc_client_renderer
 
 		bool CheckSW()
 		{
-			// функция, которая работает при включенном service worker
-			// не подменился require.js и так далее
+			// function that works when service worker is enabled
+			// require.js was not replaced and so on
 			if (!m_sVersion.empty() || m_etType != AscEditorType::etUndefined)
 				return false;
 
@@ -943,7 +943,7 @@ return undefined; \n\
 			}
 			else
 			{
-				// сначала определим тип редактора
+				// first determine the editor type
 				if (sUrl.find("documenteditor") != std::wstring::npos)
 				{
 					if (std::wstring::npos == sUrl.find("&isForm=true"))
@@ -1098,7 +1098,7 @@ else \n\
 				}
 				if (strUrl.find(L"app.js") != std::wstring::npos)
 				{
-					// сначала определим тип редактора
+					// first determine the editor type
 					if (sUrl.find("documenteditor") != std::wstring::npos)
 					{
 						if (std::wstring::npos == sUrl.find("&isForm=true"))
@@ -1122,9 +1122,9 @@ else \n\
 				retval = CefV8Value::CreateInt(0);
 				return true;
 #else
-				// 0 - грузить из облака
-				// 1 - загружен и исполнен
-				// 2 - ждать ответа
+				// 0 - load from cloud
+				// 1 - loaded and executed
+				// 2 - wait for response
 				int nResult = 0;
 				std::wstring strPath = L"";
 
@@ -1150,7 +1150,7 @@ else \n\
 					}
 					else if (strUrl.find(L"app.js") != std::wstring::npos)
 					{
-						// сначала определим тип редактора
+						// first determine the editor type
 						if (sUrl.find("documenteditor") != std::wstring::npos)
 							m_etType = Document;
 						else if (sUrl.find("presentationeditor") != std::wstring::npos)
@@ -1205,7 +1205,7 @@ else \n\
 					{
 						std::wstring sStringUrl = CefV8Context::GetCurrentContext()->GetFrame()->GetURL().ToWString();
 
-						// сначала определим тип редактора
+						// first determine the editor type
 						if (sStringUrl.find(L"documenteditor") != std::wstring::npos)
 							m_etType = Document;
 						else if (sStringUrl.find(L"presentationeditor") != std::wstring::npos)
@@ -1380,10 +1380,10 @@ else \n\
 				}
 				else
 				{
-					// ждем asc_onGetEditorPermissions
+					// waiting for asc_onGetEditorPermissions
 
-					// формат AllFonts.js изменен!!!
-					// смотрим на версию и если она старая - берем нужную версию файла
+					// AllFonts.js format has changed!!!
+					// check the version and if it's old - get the required file version
 
 					int nMajorVersion = NSVersion::GetMajorVersion(m_sVersion);
 					std::wstring sAllFontsVersion = L"";
@@ -1396,7 +1396,7 @@ else \n\
 
 					if (!sAllFontsVersion.empty())
 					{
-						// берем нужную версию
+						// get the required version
 						std::string sCode;
 						NSFile::CFileBinary::ReadAllTextUtf8A(m_sFontsData + sAllFontsVersion, sCode);
 						if (!sCode.empty())
@@ -1679,8 +1679,8 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 			}
 			else if (name == "CheckNeedWheel")
 			{
-				// это код, когда под виндоус приходило два раза. Теперь поправили
-				// для совместимости метод оставляем
+				// this is the code when under Windows the event came twice. Now it's fixed
+				// keeping the method for compatibility
 				retval = CefV8Value::CreateBool(true);
 				return true;
 			}
@@ -1781,7 +1781,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 			}
 			else if (name == "LocalStartOpen")
 			{
-				// редактор загрузился и готов к файлу
+				// editor has loaded and is ready for the file
 				CefRefPtr<CefProcessMessage> message = CefProcessMessage::Create("onlocaldocument_loadstart");
 				SEND_MESSAGE_TO_BROWSER_PROCESS(message);
 				return true;
@@ -1927,7 +1927,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 
 				if (nDeleteIndex < m_nCurrentChangesIndex)
 				{
-					// нужно удалить изменения
+					// need to delete changes
 					RemoveChanges(nDeleteIndex);
 				}
 				m_nCurrentChangesIndex = nDeleteIndex + nCount;
@@ -2026,7 +2026,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 			}
 			else if (name == "LocalFileSetSaved")
 			{
-				// saved -> unsaved перейти не может
+				// cannot transition from saved -> unsaved
 				if (!m_bLocalIsSaved)
 					m_bLocalIsSaved = arguments[0]->GetBoolValue();
 				return true;
@@ -2096,7 +2096,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 
 							if (nServerPrivateKeyVersion > NSCommon::GetEncryptedVersion())
 							{
-								// нужно сказать, что нужно обновить десктоп
+								// need to notify that the desktop app needs to be updated
 								CefRefPtr<CefProcessMessage> messageUpdateApp = CefProcessMessage::Create("on_need_update_app");
 								SEND_MESSAGE_TO_BROWSER_PROCESS(messageUpdateApp);
 							}
@@ -2105,10 +2105,10 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 						bool bIsNeedRelogin = false;
 						if (NULL == savedInfo && tmpInfo)
 						{
-							// ничего не сохранено. значит это первый логин
+							// nothing is saved. this means it's the first login
 							if (!bIsServerPrivateKeyExist)
 							{
-								// генерируем ключи!
+								// generate keys!
 								unsigned char* publicKey = NULL;
 								unsigned char* privateKey = NULL;
 								NSOpenSSL::RSA_GenerateKeys(publicKey, privateKey);
@@ -2128,7 +2128,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 
 								oApp.AddInfo(info);
 
-								// отсылаем ключи
+								// send keys
 								NSStringUtils::string_replaceA(sPublic, "\n", "&#xA");
 								std::string sCode =
 									("setTimeout(function() { window.cloudCryptoCommand && window.cloudCryptoCommand(\"encryptionKeys\", { publicKey : \"" + sPublic + "\", privateKeyEnc : \"" +
@@ -2138,7 +2138,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 							}
 							else
 							{
-								// декодируем ключ
+								// decode the key
 								std::string privateKeyEnc = U_TO_UTF8(info.PrivateKeyEnc);
 								std::string privateKey;
 
@@ -2151,10 +2151,10 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 								info.PrivateKey = NSFile::CUtf8Converter::GetUnicodeFromCharPtr(privateKey);
 								oApp.AddInfo(info);
 
-								// теперь проверим, нужно ли обновить ключ, ведь пароль у нас есть
+								// now check if we need to update the key, since we have the password
 								if (nServerPrivateKeyVersion < NSCommon::GetEncryptedVersion())
 								{
-									// обновим ключ в новом формате
+									// update the key in the new format
 									std::string privateEnc;
 									NSOpenSSL::AES_Encrypt_desktop_GCM(U_TO_UTF8(tmpInfo->m_sPassword), privateKey, privateEnc, CAscRendererProcessParams::getInstance().GetProperty("user"));
 									info.PrivateKeyEnc = NSFile::CUtf8Converter::GetUnicodeFromCharPtr(privateEnc);
@@ -2175,8 +2175,8 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 
 						if (bIsServerPrivateKeyExist && nServerPrivateKeyVersion < NSCommon::GetEncryptedVersion())
 						{
-							// нужно удалить локальную запись и перелогиниться
-							// но пока так сделать не могу, так как порталы не готовы к updateEncryptionKeys
+							// need to delete the local record and re-login
+							// but cannot do that yet because portals are not ready for updateEncryptionKeys
 
 							// TODO:
 							// oApp.RemoveInfo(info.User);
@@ -2188,7 +2188,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 							std::string sPublic = U_TO_UTF8(savedInfo->PublicKey);
 							std::string sPrivateEnc = U_TO_UTF8(savedInfo->PrivateKeyEnc);
 
-							// отсылаем ключи
+							// send keys
 							NSStringUtils::string_replaceA(sPublic, "\n", "&#xA");
 							std::string sCode =
 								("setTimeout(function() { window.cloudCryptoCommand && window.cloudCryptoCommand(\"encryptionKeys\", { publicKey : \"" + sPublic + "\", privateKeyEnc : \"" +
@@ -2203,7 +2203,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 
 						if (bIsNeedRelogin)
 						{
-							// перелогиньтесь!!!
+							// please re-login!!!
 							std::string sCode = ("setTimeout(function() { window.cloudCryptoCommand && window.cloudCryptoCommand(\"relogin\"); }, 10);");
 							CefRefPtr<CefFrame> _frame = CefV8Context::GetCurrentContext()->GetBrowser()->GetMainFrame();
 							_frame->ExecuteJavaScript(sCode, _frame->GetURL(), 0);
@@ -2256,7 +2256,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 			}
 			else if (name == "SetDropFiles")
 			{
-				// разрешения на файлы даются выше
+				// file permissions are granted above
 				CefRefPtr<CefV8Value> val = *arguments.begin();
 				int nCount = val->GetArrayLength();
 
@@ -2289,7 +2289,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 				for (std::vector<std::wstring>::iterator i = m_arDropFiles.begin(); i != m_arDropFiles.end(); i++)
 					retval->SetValue(nCurrent++, CefV8Value::CreateString(*i));
 
-				// Отдали список, чистим. Иначе всегда будем вставлять файлы с предыдущего дропа
+				// List handed over, clearing. Otherwise we will always insert files from the previous drop
 				m_arDropFiles.clear();
 
 				return true;
@@ -2551,7 +2551,7 @@ window._external_process_callback = {};\n\
 				oPlugins.m_strUserDirectory = m_sUserPlugins;
 				oPlugins.m_nCryptoMode = m_nCryptoMode;
 
-				// TODO: пока нет платных фич во всех редакторах - это неправильно
+				// TODO: while there are no paid features in all editors - this is incorrect
 				// if (!m_bEditorsCloudFeaturesCheck || m_sEditorsCloudFeatures.length() > 1)
 				//    oPlugins.m_strCryptoPluginAttack = CAscRendererProcessParams::getInstance().GetProperty("cryptoEngineId");
 				oPlugins.m_strCryptoPluginAttack = CAscRendererProcessParams::getInstance().GetProperty("cryptoEngineId");
@@ -2589,7 +2589,7 @@ window._external_process_callback = {};\n\
 				}
 				else
 				{
-					// Парсим json конфиг
+					// Parse json config
 					std::wstring sBaseUrl, sPluginName;
 					std::wstring sBackupStart = L"backup\":true";
 					std::wstring sBaseUrlStart = L"baseUrl\":\"";
@@ -2599,7 +2599,7 @@ window._external_process_callback = {};\n\
 					std::string::size_type pos1 = sData.find(sBaseUrlStart);
 					std::string::size_type pos2 = sData.find(sBaseUrlEnd, pos1 + sBaseUrlStart.length());
 
-					// Нужно восстановить плагин из папки backup
+					// Need to restore plugin from backup folder
 					if (pos != std::string::npos)
 					{
 						pos1 = sData.find(L"asc.{");
@@ -2611,7 +2611,7 @@ window._external_process_callback = {};\n\
 							bResult = oPlugins.RestorePlugin(sGuid);
 						}
 					}
-					// Установка из стора по ссылке
+					// Installation from store via link
 					else if (pos1 != std::string::npos && pos2 != std::string::npos && pos2 > pos1)
 					{
 						sBaseUrl = sData.substr(pos1 + sBaseUrlStart.length(), pos2 - pos1 - sBaseUrlStart.length());
@@ -2788,7 +2788,7 @@ window._external_process_callback = {};\n\
 				message->GetArgumentList()->SetString(1, m_sLocalFileFolder);
 				message->GetArgumentList()->SetString(2, m_sVersion);
 
-				// проверяекм на cloudCrypto
+				// check for cloudCrypto
 				std::string sCloudCryptoId = CAscRendererProcessParams::getInstance().GetProperty("cryptoEngineId");
 				if (!sCloudCryptoId.empty())
 				{
@@ -2810,7 +2810,7 @@ window._external_process_callback = {};\n\
 			}
 			else if (name == "sendToReporter")
 			{
-				// сообщение докладчику
+				// message to the presenter
 				CefRefPtr<CefProcessMessage> message = CefProcessMessage::Create("send_to_reporter");
 				message->GetArgumentList()->SetString(0, arguments[0]->GetStringValue());
 				SEND_MESSAGE_TO_BROWSER_PROCESS(message);
@@ -2818,7 +2818,7 @@ window._external_process_callback = {};\n\
 			}
 			else if (name == "sendFromReporter")
 			{
-				// сообщение от докладчика
+				// message from the presenter
 				CefRefPtr<CefProcessMessage> message = CefProcessMessage::Create("send_from_reporter");
 				message->GetArgumentList()->SetString(0, arguments[0]->GetStringValue());
 				SEND_MESSAGE_TO_BROWSER_PROCESS(message);
@@ -3474,7 +3474,7 @@ window._external_process_callback = {};\n\
 				if (!m_bIsEnableUploadCrypto)
 				{
 					m_bIsEnableUploadCrypto = true;
-					// расширяем функцию работой с генерацией паролей и сохранением их
+					// extend the function with password generation and saving functionality
 					CefRefPtr<CefFrame> curFrame = CefV8Context::GetCurrentContext()->GetFrame();
 					if (curFrame)
 					{
@@ -3784,7 +3784,7 @@ if (window.onSystemMessage2) window.onSystemMessage2(e);\n\
 				int nMode = m_nIsCryptoModeProperty;
 
 				std::string sPluginCryptoAttack = CAscRendererProcessParams::getInstance().GetProperty("cryptoEngineId");
-				if (!sPluginCryptoAttack.empty()) // и существует!!!
+				if (!sPluginCryptoAttack.empty()) // and exists!!!
 					nMode = 2;
 
 				retval = CefV8Value::CreateInt(nMode);
@@ -3973,7 +3973,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 			}
 			else if (name == "Crypto_GetLocalImageBase64")
 			{
-				// из локальной ссылки делаем base64!!! (для копирования из зашифрованного файла)
+				// convert local link to base64!!! (for copying from encrypted file)
 				std::wstring sInput = arguments[0]->GetStringValue().ToWString();
 
 				if (IsNeedDownload(sInput))
@@ -4042,13 +4042,13 @@ window.AscDesktopEditor.CallInFrame(\"" +
 			{
 				bool bIsStopPaydDesktopFeatures = false;
 
-				// проверяем облачность...
+				// check cloud status...
 				if (IsLocalFile(true))
 				{
 					bIsStopPaydDesktopFeatures = true;
 				}
 
-				// проверяем лицензию...
+				// check license...
 				if (!bIsStopPaydDesktopFeatures)
 				{
 					int nLicenceType = arguments[0]->GetIntValue();
@@ -4056,7 +4056,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 						bIsStopPaydDesktopFeatures = true;
 				}
 
-				// проверяем черный список...
+				// check blacklist...
 				if (!bIsStopPaydDesktopFeatures)
 				{
 					// check on blacklist
@@ -4106,8 +4106,8 @@ window.AscDesktopEditor.CallInFrame(\"" +
 
 				if (m_sEditorsCloudFeatures.empty())
 				{
-					// этот метод может вызваться ПОСЛЕ вызова GetInstallPlugins (если права пришли позже sdk-all)
-					// и может быть нудно застопить зря запущенный плагин
+					// this method may be called AFTER GetInstallPlugins (if permissions arrived later than sdk-all)
+					// and may need to stop a plugin that was started unnecessarily
 
 					std::string sCloudCryptoId = CAscRendererProcessParams::getInstance().GetProperty("cryptoEngineId");
 
@@ -4874,7 +4874,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 		{
 			int nNaturalIndex = m_nOpenChangesIndex + nDeleteIndex;
 
-			// на каждое изменение две кавычки)
+			// two quotes per change)
 			nNaturalIndex <<= 1;
 
 			// not cool realize
@@ -5026,7 +5026,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 
 		bool CheckAnotherLocalFile(const std::wstring& sUrl)
 		{
-			// проверяем - может картинка из соседнего файла?
+			// check if the image is from an adjacent file?
 			std::wstring sLocalFile = sUrl;
 			if (sLocalFile.find(L"file://") == 0)
 			{
@@ -5125,7 +5125,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 				std::wstring sIndex = std::to_wstring(m_nLocalImagesNextIndex++);
 				std::wstring sOutDir = m_sLocalFileFolderWithoutFile + L"/media/";
 
-				// копируем метафайл и генерируем путь для svg
+				// copy metafile and generate path for svg
 				if (pMetafile->GetType() == MetaFile::c_lMetaWmf)
 				{
 					sMeta = L"display1image" + sIndex + L".wmf";
@@ -5157,7 +5157,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 					}
 				}
 
-				// не из соседнего файла или нет свг - надо ее сделать!
+				// not from adjacent file or no svg - need to create it!
 				if (!NSFile::CFileBinary::Exists(sOutDir + sSvg))
 				{
 					std::wstring sInternalSvg = pMetafile->ConvertToSvg();
@@ -5178,7 +5178,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 				std::wstring sIndex = std::to_wstring(m_nLocalImagesNextIndex++);
 				std::wstring sOutDir = m_sLocalFileFolderWithoutFile + L"/media/";
 
-				// нужно проверить - не лежит ли рядом метафайл
+				// need to check if there is a metafile nearby
 				bool bIsLocalAnother = CheckAnotherLocalFile(sUrl);
 				if (bIsLocalAnother)
 				{
@@ -5212,7 +5212,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 
 				if (sSvg.empty())
 				{
-					// метафайла нет. свг пока не поддерживаем - конвертируем в растр
+					// no metafile. svg not supported yet - convert to raster
 					sSvg = L"image" + sIndex + L".png";
 
 					double x = 0, y = 0, w = 0, h = 0;
@@ -5226,7 +5226,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 
 					if (dKoef < 1)
 					{
-						// слишком большие картинки не делаем
+						// don't create overly large images
 						WW = (int)(dKoef * w + 0.5);
 						HH = (int)(dKoef * h + 0.5);
 					}
@@ -5259,7 +5259,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 			{
 				if (0 == sUrl.find(wchar_t('/')))
 				{
-					// нужно брать корень сайта
+					// need to take site root
 					int nPos = sBaseUrl.find(L"//");
 					if (nPos != std::wstring::npos)
 					{
@@ -5278,7 +5278,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 				}
 				else
 				{
-					// брать место урла
+					// take URL location
 					int nPos = sBaseUrl.find_last_of(wchar_t('/'));
 					if (std::wstring::npos != nPos)
 					{
@@ -5377,7 +5377,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 		IMPLEMENT_REFCOUNTING(CAscEditorNativeV8Handler);
 	};
 
-	// Класс для создания dnd-событий по типу
+	// Class for creating dnd-events by type
 	class CAscDragDrop
 	{
 	private:
@@ -5414,7 +5414,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 					NSStringUtils::string_replace(arParts[i], L"\n", L"");
 				}
 
-				// Создаём базовое событие со своим dataTransfer
+				// Create base event with custom dataTransfer
 
 				sCode = L"(function(){\
 function createDataTransferItem(a,c,d){return{kind:a,type:c,data:d,getAsFile:function(){return this.data},getAsString:function(e){e&&e(this.data)}}}function createCustomEvent(a,c,d,e,f){a=new Event(a,{bubbles:!0,cancelable:!0,composed:!0});a.dataTransfer={dropEffect:\"none\",effectAllowed:\"all\",files:[],items:[],types:[],data:{},setData:function(b,g){this.effectAllowed=\"copyMove\";this.data[b]=g;this.types.push(b);b=createDataTransferItem(\"string\",b,g);this.items.push(b)},getData:function(b){b=b.toLowerCase();\"text\"===b?b=\"text/plain\":\"html\"===b&&(b=\"text/html\");return this.data[b]}};a.x=a.pageX=a.clientX=c;a.y=a.pageY=a.clientY=d;a.screenX=e;a.screenY=f;return a}function addFileToDataTransfer(a,c,d){c=atob(c);let e=Array(c.length);for(let f=0;f<c.length;f++)e[f]=c.charCodeAt(f);c=new Uint8Array(e);d=new File([c],d);a.dataTransfer.files.push(d);d=createDataTransferItem(\"file\",\"\",d);a.dataTransfer.items.push(d)};\
@@ -5428,7 +5428,7 @@ let event = createCustomEvent(\"" + type + L"\"," + std::to_wstring(nX) + L"," +
 				if (arParts[1].length())
 					sCode += L"event.dataTransfer.setData(\"text/html\", \"" + arParts[1] + L"\");";
 
-				// Читаем файлы и добавляем в dataTransfer
+				// Read files and add to dataTransfer
 				std::wstring sDataTransferFiles = L"";
 				if (argList->GetSize() > 6)
 				{
@@ -5447,7 +5447,7 @@ let event = createCustomEvent(\"" + type + L"\"," + std::to_wstring(nX) + L"," +
 				}
 				sCode += sDataTransferFiles;
 
-				// Поиск нужного элемента по координатам и вызов события
+				// Find the required element by coordinates and trigger the event
 
 				sCode += L"let targetElem = document.elementFromPoint(" + std::to_wstring(nX) + L", " + std::to_wstring(nY) + L");\
 if (targetElem) { targetElem.dispatchEvent(event); }})();";

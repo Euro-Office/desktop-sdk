@@ -386,10 +386,10 @@ namespace NSConversions
 		{
 			if (nStride < 0)
 			{
-				// непонятное поведение QT. они неправильно работают с stride
-				// нельзя послать отрицательное значение. вернее можно - но эффекта 0
-				// при этом нельзя послать и pImage->GetData() - nStride * (nHeight - 1) с отрицательным stride
-				// поэтому делаем переворот трансформом. возможно в другой версии QT (не 5.15.2) - бага нет
+				// unclear Qt behavior. They work incorrectly with stride
+				// cannot send a negative value. Actually can - but no effect
+				// also cannot send pImage->GetData() - nStride * (nHeight - 1) with negative stride
+				// therefore we flip using transform. possibly in another Qt version (not 5.15.2) - there is no bug
 
 				nStride = -nStride;
 				pBrush->setTransform(QTransform(1, 0, 0, -1, 0, nHeight));
@@ -405,7 +405,7 @@ namespace NSConversions
 
 				oImage = QImage(data, nWidth, nHeight, nStride, QImage::Format_ARGB32, cleanupPixels2, data);
 
-				// отложенно печатается, а pImage мы уже удалим - поэтому копируем память.
+				// prints deferred, and we will delete pImage - so we copy the memory.
 				//pBrush->setTextureImage(QImage(pImage->GetData(), nWidth, nHeight, nStride, QImage::Format_ARGB32));
 			}
 		}
@@ -592,9 +592,9 @@ void NSQRenderer::CQRenderer::SetFont()
 	{
 		m_pFontManager->LoadFontFromFile(m_oFont.Path, m_oFont.FaceIndex, (float)m_oFont.Size, dDpiX, dDpiY);
 	}
-	// в этом рендерере транчформ всегда в гарфике. в текстовом всегда единичная.
-	// но это менеджер мог быть использован вне рендерера. наверное стоит завести отдельный
-	// менеджер для печати через qrenderer
+	// in this renderer transform is always in graphics. in text it's always identity.
+	// but this manager could be used outside the renderer. probably should create a separate
+	// manager for printing through qrenderer
 	m_pFontManager->SetTextMatrix(1, 0, 0, 1, 0, 0);
 
 	m_oInstalledFont = m_oFont;
@@ -2072,7 +2072,7 @@ void NSQRenderer::CQRenderer::PrepareBitBlt(const int& nRasterX, const int& nRas
 
 		if (bIsPrintToFile)
 		{
-			// обнуляем сдвиги, напечатается и в отрицательных местах
+			// reset offsets, will print in negative areas too
 			nPhysicalX = 0;
 			nPhysicalY = 0;
 		}
@@ -2086,7 +2086,7 @@ void NSQRenderer::CQRenderer::PrepareBitBlt(const int& nRasterX, const int& nRas
 	{
 		if (bIsPrintToFile)
 		{
-			// обнуляем сдвиги, напечатается и в отрицательных местах
+			// reset offsets, will print in negative areas too
 			nPhysicalX = 0;
 			nPhysicalY = 0;
 		}
@@ -2144,7 +2144,7 @@ QPen NSQRenderer::CQRenderer::pen() const
 	double dWidth = m_oPen.Size;
 	double dWidthMinSize = 1.0 / sqrt(m_oCoordTransform.determinant());
 
-	// если размер 0mm - то это однопиксельная линия
+	// if size is 0mm - then it's a single-pixel line
 	if (dWidth < 0.000001)
 		dWidth = dWidthMinSize;
 
@@ -2156,7 +2156,7 @@ QPen NSQRenderer::CQRenderer::pen() const
 	// DashStyleDot,            // dash 1 space 1
 	// DashStyleDashDot,        // dash 3 space 1 dash 1 space 1
 	// DashStyleDashDotDot,     // dash 3 space 1 dash 1 space 1 dash 1 space 1
-	// DashStyleCustom          // из массива
+	// DashStyleCustom          // from array
 	switch (m_oPen.DashStyle)
 	{
 	case (BYTE)Aggplus::DashStyle::DashStyleCustom:
@@ -2416,9 +2416,9 @@ public:
 	}
 	virtual ~CQRendererChecker() {}
 
-	// тип рендерера-----------------------------------------------------------------------------
+	// renderer type-----------------------------------------------------------------------------
 	virtual HRESULT get_Type(LONG* lType) override { return c_nQRenderer; }
-	//-------- Функции для работы со страницей --------------------------------------------------
+	//-------- Functions for working with page --------------------------------------------------
 	virtual HRESULT NewPage() override { return S_OK; }
 	virtual HRESULT get_Height(double* dHeight) { return S_OK; }
 	virtual HRESULT put_Height(const double& dHeight) { return S_OK; }
@@ -2493,7 +2493,7 @@ public:
 	virtual HRESULT get_FontFaceIndex(int* lFaceIndex) override { return S_OK; }
 	virtual HRESULT put_FontFaceIndex(const int& lFaceIndex) override { return S_OK; }
 
-	//-------- Функции для вывода текста --------------------------------------------------------
+	//-------- Functions for text output --------------------------------------------------------
 	virtual HRESULT CommandDrawTextCHAR(const LONG& c
 	                                    , const double& x
 	                                    , const double& y
@@ -2519,11 +2519,11 @@ public:
 	                                  , const double& w
 	                                  , const double& h) override { return S_OK; }
 
-	//-------- Маркеры для команд ---------------------------------------------------------------
+	//-------- Markers for commands ---------------------------------------------------------------
 	virtual HRESULT BeginCommand(const DWORD& lType) override { return S_OK; }
 	virtual HRESULT EndCommand(const DWORD& lType) override { return S_OK; }
 
-	//-------- Функции для работы с Graphics Path -----------------------------------------------
+	//-------- Functions for working with Graphics Path -----------------------------------------------
 	virtual HRESULT PathCommandMoveTo(const double& x, const double& y) override { return S_OK; }
 	virtual HRESULT PathCommandLineTo(const double& x, const double& y) override { return S_OK; }
 	virtual HRESULT PathCommandLinesTo(double* points, const int& count) override { return S_OK; }
@@ -2606,7 +2606,7 @@ public:
 	                                  , const double& w
 	                                  , const double& h) override { return S_OK; }
 
-	//-------- Функции для вывода изображений ---------------------------------------------------
+	//-------- Functions for image output ---------------------------------------------------
 	virtual HRESULT DrawImage(IGrObject* pImage
 	                          , const double& x
 	                          , const double& y

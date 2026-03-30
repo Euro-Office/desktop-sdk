@@ -181,7 +181,7 @@ public:
 
 		std::string url = request->GetURL().ToString();
 
-		// страница, которая показывается при падении процесса рендерера
+		// page shown when the renderer process crashes
 		std::string::size_type posFind = url.find("ascdesktop://crash.html");
 		if (posFind != std::string::npos)
 		{
@@ -192,7 +192,7 @@ public:
 			return true;
 		}
 
-		// страница, которая показывается при ошибке загрузки
+		// page shown when a loading error occurs
 		posFind = url.find("ascdesktop://loaderror.html");
 		if (posFind != std::string::npos)
 		{

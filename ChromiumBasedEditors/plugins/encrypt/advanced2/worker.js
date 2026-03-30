@@ -65,7 +65,7 @@
 		var encPassword = docinfo.substring(start + delimeter.length, end);
 		return window.AscDesktopEditor.CryproRSA_DecryptPrivate(this.User[0], encPassword);
 	};	
-	// генерация нового пароля
+	// generate new password
 	window.AscCrypto.CryptoWorker.createPasswordNewOld = function() {
 		function s4() {
 			return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
@@ -85,7 +85,7 @@
 		}
 		return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
 	};
-	// запрос на новый пароль
+	// request for new password
 	window.AscCrypto.CryptoWorker.createPassword = function(oldPassword)
 	{
 		var password = oldPassword;
@@ -109,7 +109,7 @@
 			
 		});
 	};
-	// шифрование изменений
+	// encrypt changes
 	window.AscCrypto.CryptoWorker.cryptInit = function(password)
 	{
 		window.AscDesktopEditor.CryptoAES_Init(password);

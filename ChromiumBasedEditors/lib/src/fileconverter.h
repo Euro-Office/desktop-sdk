@@ -99,9 +99,9 @@ public:
 
 	std::wstring m_sTemplateUrl;
 
-	// чтобы не ждать лишнего времени - грузим страницу и скрипты
-	// ОДНОВРЕМЕННО с конвертацией. поэтому нужен счетчик, чтобы запускать открытие
-	// после и конвертации и после вызова OfflineStart (js)
+	// to avoid waiting extra time - load page and scripts
+	// SIMULTANEOUSLY with conversion. therefore a counter is needed to start opening
+	// after both conversion and OfflineStart (js) call
 	int m_nCounterConvertion;
 
 	int m_nCurrentFileFormat;
@@ -374,7 +374,7 @@ public:
 	COOXMLVerifier* m_pVerifier;
 	NSFonts::IApplicationFonts* m_pFonts;
 
-	// конвертер запустился для сравнения
+	// converter started for comparison
 	std::wstring m_sComparingFile;
 
 public:
@@ -386,7 +386,7 @@ public:
 
 		m_bIsNativeOpening = false;
 
-		// перешли на новый вьюер => отключили старый
+		// switched to new viewer => disabled old one
 		m_bIsNativeSupport = false;
 
 		m_pVerifier = NULL;
@@ -484,7 +484,7 @@ public:
 				pListener->OnEvent(pEvent);
 			}
 
-			// обновили страницу. считаем, что конвертация прошла успешно
+			// page refreshed. we assume conversion completed successfully
 			m_pEvents->OnFileConvertToEditor(0);
 			return 0;
 		}
@@ -591,7 +591,7 @@ public:
 		sLocalFilePath = CorrectPathW(sLocalFilePath);
 		sDestinationPath = CorrectPathW(sDestinationPath);
 
-		// пустые файлы
+		// empty files
 		if (true)
 		{
 			NSFile::CFileBinary oFileEmptyCheck;
@@ -945,7 +945,7 @@ public:
 	bool m_bIsEditorWithChanges;
 	bool m_bIsWorking; // not m_bIsRunned
 
-	// временный путь для сохранения (чтобы делать локфайл)
+	// temporary path for saving (to create lock file)
 	NSSystem::CLocalFileLocker* m_pLocker;
 
 public:
@@ -966,8 +966,8 @@ public:
 	}
 	bool IsWorking()
 	{
-		// эта функция, чтобы знать на ONSAVE - идет ли работа.
-		// m_bIsRunThread сбросится позже
+		// this function is to know on ONSAVE - whether work is in progress.
+		// m_bIsRunThread will reset later
 		return m_bIsWorking;
 	}
 	virtual ~CASCFileConverterFromEditor()
@@ -979,8 +979,8 @@ public:
 	{
 		std::wstring sLocalFilePath = m_oInfo.m_sFileSrc;
 
-		// если true - то делаем архив 123.png.zip
-		// если false - то делаем папку 123.png
+		// if true - create archive 123.png.zip
+		// if false - create folder 123.png
 		bool bIsAddZipToRasterFormats = false;
 		std::wstring sRasterDictionaryExtract = L"";
 
@@ -1421,13 +1421,13 @@ public:
 
 		if (m_nOutputFormat == AVS_OFFICESTUDIO_FILE_OTHER_HTMLZIP)
 		{
-			// html полностью сделали на клиенте
+			// html completely made on client
 			NSFile::CFileBinary::Copy(m_sRecoverFolder + L"/EditorWithChanges.bin", m_sOutputPath);
 		}
 		else
 		{
-			// если true - то делаем архив 123.png.zip
-			// если false - то делаем папку 123.png
+			// if true - create archive 123.png.zip
+			// if false - create folder 123.png
 			bool bIsAddZipToRasterFormats = false;
 			std::wstring sRasterDictionaryExtract = L"";
 

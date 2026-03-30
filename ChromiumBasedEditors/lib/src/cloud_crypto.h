@@ -44,12 +44,12 @@
 class CCloudCrypto
 {
 public:
-    std::wstring GUID;           // идентификатор плагина для криптования
+    std::wstring GUID;           // encryption plugin identifier
     std::wstring User;
     std::wstring Email;
     std::wstring Portal;
-    std::wstring PublicKey;      // публичный ключ пользователя
-    std::wstring PrivateKeyEnc;  // зашифрованный паролем к порталу закрытый ключ
+    std::wstring PublicKey;      // user's public key
+    std::wstring PrivateKeyEnc;  // private key encrypted with portal password
 
 public:
     CCloudCrypto()
