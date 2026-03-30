@@ -6,7 +6,7 @@ const Link = ({ className, children, ...props }: LinkProps) => {
   return (
     <a
       className={cn(
-        "text-[var(--link-color)] underline cursor-pointer",
+        "text-[var(--link-color)] underline cursor-pointer leading-[20px]",
         className
       )}
       {...props}

@@ -5,6 +5,8 @@ type FieldContainerProps = {
   header: string;
   error?: string;
   isHorizontal?: boolean;
+  action?: React.ReactNode;
+  className?: string;
 };
 
 const FieldContainer = ({
@@ -12,34 +14,48 @@ const FieldContainer = ({
   header,
   error,
   isHorizontal,
+  action,
+  className,
 }: FieldContainerProps) => {
   return (
-    <div
-      className={cn(
-        "flex w-full gap-[4px]",
-        isHorizontal ? "flex-row items-center" : "flex-col"
+    <div className={cn(className, "flex flex-col w-full gap-[2px]")}>
+      {isHorizontal && action && (
+        <div className="flex justify-end w-full">{action}</div>
       )}
-    >
-      <p
-        className={cn(
-          "select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)]",
-          isHorizontal ? "w-full max-w-[160px]" : ""
-        )}
-      >
-        {header}
-      </p>
       <div
         className={cn(
-          "flex flex-col gap-[4px]",
-          isHorizontal ? "grow" : "w-full"
+          "flex w-full",
+          isHorizontal
+            ? "flex-row items-center gap-[8px]"
+            : "flex-col gap-[4px]"
         )}
       >
-        {children}
-        {error && (
-          <p className={cn("text-[var(--field-container-error-color)]")}>
-            {error}
+        {!isHorizontal ? (
+          <div className="flex justify-between items-center w-full mb-[2px]">
+            <p className="select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)]">
+              {header}
+            </p>
+            {action}
+          </div>
+        ) : (
+          <p className="select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)] w-full max-w-[160px] shrink-0">
+            {header}
           </p>
         )}
+
+        <div
+          className={cn(
+            "flex flex-col gap-[4px]",
+            isHorizontal ? "grow" : "w-full"
+          )}
+        >
+          {children}
+          {error && (
+            <p className={cn("text-[var(--field-container-error-color)]")}>
+              {error}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
