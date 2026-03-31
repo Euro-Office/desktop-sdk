@@ -15,6 +15,8 @@ import {
   isXps,
 } from "@/lib/utils";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
+import useModelsStore from "@/store/useModelsStore";
+import useServersStore from "@/store/useServersStore";
 
 const getFileIconName = (type: number): string => {
   if (isPdfForm(type)) return "pdf-form";
@@ -33,6 +35,9 @@ const ComposerActionAttachment = () => {
   const imageInputRef = React.useRef<HTMLInputElement>(null);
 
   const { addAttachmentFile, addAttachmentImage } = useAttachmentsStore();
+  const { servers, changeToolStatus, webSearchEnabled, getWebSearchEnabled } =
+    useServersStore();
+  const { extendedThinking, toggleExtendedThinking } = useModelsStore();
 
   const onOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -119,10 +124,9 @@ const ComposerActionAttachment = () => {
   const trigger = (
     <TooltipIconButton tooltip={t("Attachments")} visible={!isOpen}>
       <IconButton
-        iconName="attachment"
+        iconName="btn-zoomup"
         size={24}
         className="cursor-pointer rounded-[4px] outline-none"
-        isStroke
         isActive={isOpen}
         data-testid="attachment-button"
       />
@@ -139,13 +143,6 @@ const ComposerActionAttachment = () => {
 
   if (recentFiles.length > 0) {
     items.push({
-      text: "",
-      onClick: () => {
-        // ignore
-      },
-      isSeparator: true,
-    });
-    items.push({
       text: t("RecentFiles"),
       onClick: () => {
         // ignore
@@ -153,6 +150,51 @@ const ComposerActionAttachment = () => {
       subMenu: recentFiles,
     });
   }
+
+  items.push({
+    text: "",
+    onClick: () => {
+      // ignore
+    },
+    isSeparator: true,
+  });
+
+  items.push({
+    text: t("WebSearch"),
+    onClick: () => {
+      // ignore
+    },
+    icon: <IconButton iconName="btn-web-search" size={24} disableHover />,
+    withToggle: true,
+    toggleChecked: getWebSearchEnabled() ? webSearchEnabled : false,
+    toggleDisabled: !getWebSearchEnabled(),
+    tooltipText: getWebSearchEnabled() ? "" : t("EnableWebSearch"),
+    onToggleChange: () => {
+      const webSearchTool = servers["web-search"]?.[0];
+      if (!webSearchTool) return;
+      changeToolStatus("web-search", webSearchTool.name, !webSearchEnabled);
+      window.dispatchEvent(new CustomEvent("tools-changed"));
+    },
+  });
+
+  items.push({
+    text: t("ExtendedThinking"),
+    icon: (
+      <IconButton iconName="btn-extended-thinking" size={24} disableHover />
+    ),
+    onClick: () => {
+      // ignore
+    },
+    withToggle: true,
+    toggleChecked: extendedThinking,
+    onToggleChange: toggleExtendedThinking,
+    withAbout: true,
+    aboutContent: (
+      <p className="p-[16px] text-[11px] leading-[16px] text-[var(--text-secondary)]">
+        {t("ExtendedThinkingDescription")}
+      </p>
+    ),
+  });
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
