@@ -84,5 +84,19 @@
   "ConfigurationError": "Configuration must be placed inside 'mcpServers' property",
   "Thinking": "Reasoning",
   "ExtendedThinking": "Extended Thinking",
-  "ExtendedThinkingDescription": "This model uses advanced reasoning, which may increase costs."
+  "ExtendedThinkingDescription": "This model uses advanced reasoning, which may increase costs.",
+  "SaveAIPrompt": "Save AI Prompt",
+  "SaveAIPromptToTable": "Save AI prompt to table",
+  "NewFolder": "New folder",
+  "NewAIPromptFolder": "New AI Prompt folder",
+  "SavedPrompts": "Saved prompts",
+  "EditAIPrompt": "Edit AI Prompt",
+  "PromptName": "Name",
+  "PromptText": "Text",
+  "MoveToFolder": "Move to folder",
+  "RenameFolder": "Rename folder",
+  "DeleteFolder": "Delete folder",
+  "WantDeleteFolder": "Are you sure you want to delete this folder and all its prompts?",
+  "MoveUp": "Move up",
+  "MoveDown": "Move down"
 }

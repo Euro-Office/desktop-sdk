@@ -1,4 +1,5 @@
 import { ComposerActionAttachment } from "./ComposerActionAttachments";
+import { ComposerActionPrompts } from "./ComposerActionPrompts";
 import { SelectModel } from "./ComposerActionSelectModel";
 import { ComposerActionSend } from "./ComposerActionSend";
 import { ServersSettings } from "./ComposerActionServers";
@@ -9,6 +10,7 @@ const ComposerAction = () => {
       <div className="relative flex items-center justify-between h-[24px]">
         <div className="flex items-center gap-[12px] flex-row">
           <ComposerActionAttachment />
+          <ComposerActionPrompts />
           <ServersSettings />
         </div>
 

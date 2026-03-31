@@ -8,6 +8,9 @@ export type DropDownItemProps = {
   iconSize?: number;
   iconColor?: string;
 
+  trailingIcon?: string | React.ReactNode;
+  trailingIconSize?: number;
+
   id?: string;
   isActive?: boolean;
   isSeparator?: boolean;
@@ -18,6 +21,9 @@ export type DropDownItemProps = {
   toggleDisabled?: boolean;
 
   subMenu?: DropDownItemProps[];
+  subMenuClassName?: string;
+  subMenuIcon?: string;
+  subMenuIconSize?: number;
 
   checked?: boolean;
 

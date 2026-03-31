@@ -17,9 +17,9 @@ type ChatListItemProps = {
   setCurrentPage: (page: Page) => void;
 };
 
-const DownloadIcon = () => <Icon name="btn-save" size={16} isStroke />;
-const RenameIcon = () => <Icon name="btn-rename" size={16} />;
-const RemoveIcon = () => <Icon name="btn-remove" size={16} />;
+const DownloadIcon = () => <Icon name="btn-save" size={24} isStroke />;
+const RenameIcon = () => <Icon name="btn-rename" size={24} />;
+const RemoveIcon = () => <Icon name="btn-remove" size={24} />;
 
 const ChatListItem = ({
   thread,

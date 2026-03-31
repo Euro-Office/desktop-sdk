@@ -40,6 +40,22 @@ export type TProvider = {
   baseUrl: string;
 };
 
+export type PromptFolder = {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type Prompt = {
+  id: string;
+  name: string;
+  text: string;
+  folderId?: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type TAttachmentFile = {
   path: string;
   content: string;
