@@ -8,6 +8,7 @@
     "dev:local": "node scripts/dev.js",
     "build": "biome check --error-on-warnings ./src && tsc --noEmit && vite build && node scripts/build.js",
     "build:local": "biome check --error-on-warnings ./src && tsc --noEmit && vite build && node scripts/build.js && node scripts/move.js",
+    "build:local:nocheck": "vite build && node scripts/build.js && node scripts/move.js",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
