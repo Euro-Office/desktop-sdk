@@ -203,6 +203,15 @@
   --ai-provider-item-shadow:
     0px 1px 2px 0px #0000000f, 0px 1px 3px 0px #0000001a;
 
+  /* model card */
+  --model-card-background-color: var(--background-normal);
+  --model-card-color: var(--text-normal);
+  --model-card-description-color: var(--text-secondary);
+  --model-card-border-color: var(--border-divider);
+  --model-card-border-radius: 8px;
+  --model-card-logo-border-color: var(--border-divider);
+  --model-card-logo-border-radius: 6px;
+
   /* settings servers */
   --servers-description-color: var(--text-tertiary);
   --servers-edit-config-json-background-color: var(

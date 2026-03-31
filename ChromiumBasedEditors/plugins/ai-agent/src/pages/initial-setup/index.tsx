@@ -6,9 +6,19 @@ import { FieldContainer } from "@/components/field-container";
 import { IconButton } from "@/components/icon-button";
 import { Input } from "@/components/input";
 import { Link } from "@/components/link";
+import { ModelCard } from "@/components/model-card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 import { provider } from "@/providers";
+
+const MOCK_MODELS = [
+  { name: "ChatGPT", provider: "OpenAI" },
+  { name: "Claude", provider: "Anthropic" },
+  {
+    name: "Long-long-long-long-long-lonlong-long-long-long-long-long-long-long-long-long-long-long-long-long-long-long-long-long",
+    provider: "Qwen",
+  },
+];
 
 const providersInfo = provider.getProvidersInfo();
 
@@ -18,7 +28,7 @@ const InitialSetup = () => {
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
 
   return (
-    <div className="flex justify-center h-full w-full bg-[var(--layout-background-color)] pt-[24px]">
+    <div className="flex justify-center h-full w-full bg-[var(--layout-background-color)] py-[24px]">
       <div className="w-full max-w-[560px] flex flex-col">
         <h1 className="select-none text-[20px] font-bold leading-[28px] text-[var(--settings-header-color)] mb-[24px]">
           {t("AIModels")}
@@ -29,7 +39,7 @@ const InitialSetup = () => {
 
         <div
           className={cn(
-            "w-full p-[12px_16px] flex flex-col",
+            "w-full p-[12px_16px] flex flex-col mb-[16px]",
             "bg-[var(--model-config-card-background-color)]",
             "border-[length:var(--model-config-card-border-width)] border-[color:var(--model-config-card-border-color)]",
             "rounded-[var(--model-config-card-border-radius)]"
@@ -151,6 +161,12 @@ const InitialSetup = () => {
               <Button disabled={isDisabled}>{t("AddModel")}</Button>
             </div>
           </div>
+        </div>
+
+        <div className="flex flex-col gap-[16px]">
+          {MOCK_MODELS.map((model) => (
+            <ModelCard key={model.name} model={model} />
+          ))}
         </div>
       </div>
     </div>
