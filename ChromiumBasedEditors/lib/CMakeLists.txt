@@ -5,11 +5,11 @@ project(AscDocumentScoreProject LANGUAGES CXX C)
 # Global Variables and Options
 # ==============================================================================
 
-# Define external paths (adjust these as necessary for your environment)
+# Define external paths
 set(CORE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../core")
 set(CORE_BUILDS_BINARY_PATH "${CMAKE_CURRENT_BINARY_DIR}/bin")
 set(CORE_BUILDS_LIBRARIES_PATH "${CMAKE_CURRENT_BINARY_DIR}/lib")
-set(CORE_BUILDS_PLATFORM_PREFIX "linux_64") # Example, update dynamically if needed
+set(CORE_BUILDS_PLATFORM_PREFIX "linux_64")
 
 include(${CORE_ROOT_DIR}/common.cmake)
 
@@ -88,7 +88,6 @@ endif()
 
 
 #find_package(hunspell REQUIRED)
-# Above doesn't work, have to do manually
 find_path(HUNSPELL_INCLUDE_DIR NAMES hunspell/hunspell.h REQUIRED)
 find_library(HUNSPELL_LIBRARY NAMES hunspell-1.7 hunspell REQUIRED)
 
@@ -1100,12 +1099,6 @@ message(STATUS "SRC COUNT: ${ASCDOCUMENTSCORE_SOURCES}")
 message(STATUS "HDR COUNT: ${ASCDOCUMENTSCORE_HEADERS}")
 
 
-
-# Override visibility for wrapper sources only
-#set_source_files_properties(${DLLWRAPPER_SOURCES}
-#    PROPERTIES COMPILE_FLAGS "-fvisibility=default"
-#)
-
 target_sources(ascdocumentscore PRIVATE ${ASCDOCUMENTSCORE_HEADERS} ${ASCDOCUMENTSCORE_SOURCES} ${DLLWRAPPER_SOURCES})
 
 # ------------------------------------------------------------------------------
@@ -1115,12 +1108,10 @@ target_sources(ascdocumentscore PRIVATE ${ASCDOCUMENTSCORE_HEADERS} ${ASCDOCUMEN
 # Add Crypto & Compound dependencies
 target_link_directories(ascdocumentscore PRIVATE "${CORE_BUILDS_LIBRARIES_PATH}"
     $<$<CONFIG:Debug>:${CEF_ROOT}/Debug>
-    #$<$<CONFIG:Debug>:${CEF_ROOT}/dll-wrapper-debug/libcef_dll_wrapper>
     $<$<CONFIG:Release>:${CEF_ROOT}/Release>
-    #$<$<CONFIG:Release>:${CEF_ROOT}/dll-wrapper-release/libcef_dll_wrapper>
 )
 
-# Boost and ICU (Assuming targets exist via your core subdirectories)
+# Boost and ICU
 target_link_libraries(ascdocumentscore PUBLIC
                     hunspell::libhunspell
                     Boost::system
@@ -1158,7 +1149,6 @@ else() # Linux
     pkg_check_modules(GTK REQUIRED glib-2.0 gtk+-3.0 atk)
 
     target_compile_options(ascdocumentscore PRIVATE -fPIC)
-    #target_link_directories(ascdocumentscore PRIVATE "${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
     
     # RPATH & Linker options
     target_link_options(ascdocumentscore PRIVATE "-Wl,-rpath,$ORIGIN" "-Wl,-rpath,$ORIGIN/converter" "-Wl,--disable-new-dtags")
@@ -1192,9 +1182,7 @@ add_executable(editors_helper "${CMAKE_CURRENT_SOURCE_DIR}/helper_main.cpp" ${CO
 
 target_link_directories(editors_helper PRIVATE
     $<$<CONFIG:Debug>:${CEF_ROOT}/Debug>
-    #$<$<CONFIG:Debug>:${CEF_ROOT}/dll-wrapper-debug/libcef_dll_wrapper>
     $<$<CONFIG:Release>:${CEF_ROOT}/Release>
-    #$<$<CONFIG:Release>:${CEF_ROOT}/dll-wrapper-release/libcef_dll_wrapper>
 )
 
 target_link_libraries(editors_helper PUBLIC 
