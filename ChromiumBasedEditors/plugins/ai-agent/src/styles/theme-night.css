@@ -104,6 +104,7 @@
   --input-active-border-color: var(--background-accent-button);
   --input-active-background-color: var(--background-normal);
   --input-error-color: var(--border-error);
+  --input-border-radius: 4px;
 
   /* tabs */
   --tabs-color: var(--text-normal);

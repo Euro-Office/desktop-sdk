@@ -35,7 +35,7 @@ const ComboBox = ({
           ref={containerRef}
           data-testid={dataTestId}
           className={cn(
-            "h-[36px] rounded-[4px] ps-[12px] box-border",
+            "h-[36px] rounded-[var(--input-border-radius)] ps-[12px] box-border",
             "cursor-pointer flex items-center justify-between",
             "text-[var(--input-color)] text-[14px] leading-[16px]",
             isOpen
