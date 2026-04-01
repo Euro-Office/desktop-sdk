@@ -63,6 +63,11 @@ export const AddModelCard = () => {
       fetchModels(values.provider as ProviderType, value, values.baseUrl);
       return;
     }
+    if (field === "baseUrl") {
+      setValues((prev) => ({ ...prev, baseUrl: value }));
+      fetchModels(values.provider as ProviderType, values.apiKey, value);
+      return;
+    }
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -114,7 +119,9 @@ export const AddModelCard = () => {
         </div>
         <div className="flex flex-row gap-[12px]">
           <Button variant="default">{t("Cancel")}</Button>
-          <Button disabled={isAddDisabled}>{t("AddModel")}</Button>
+          <Button disabled={isAddDisabled} onClick={() => console.log(values)}>
+            {t("AddModel")}
+          </Button>
         </div>
       </div>
     </ModelCardShell>
