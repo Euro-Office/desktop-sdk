@@ -16,16 +16,20 @@ export interface ModelFormValues {
   profileName: string;
 }
 
+export type ModelFormErrors = Partial<Record<"key" | "url" | "name", string>>;
+
 interface ModelConfigFormProps {
   values: ModelFormValues;
   onChange: (field: keyof ModelFormValues, value: string) => void;
   models: Model[];
+  errors?: ModelFormErrors;
 }
 
 export const ModelConfigForm = ({
   values,
   onChange,
   models,
+  errors,
 }: ModelConfigFormProps) => {
   const { t } = useTranslation();
   const isFieldsDisabled = !values.provider;
@@ -65,6 +69,7 @@ export const ModelConfigForm = ({
         header={t("APIKey")}
         isHorizontal
         action={<Link href="#">{t("GetAPIKey")}</Link>}
+        error={errors?.key}
       >
         <Input
           name="key"
@@ -77,7 +82,12 @@ export const ModelConfigForm = ({
         />
       </FieldContainer>
 
-      <FieldContainer className="mb-[32px]" header={t("BaseURL")} isHorizontal>
+      <FieldContainer
+        className="mb-[32px]"
+        header={t("BaseURL")}
+        isHorizontal
+        error={errors?.url}
+      >
         <Input
           name="url"
           placeholder={t("SelectModelFirst")}
@@ -98,7 +108,11 @@ export const ModelConfigForm = ({
         />
       </FieldContainer>
 
-      <FieldContainer header={t("ProfileName")} isHorizontal>
+      <FieldContainer
+        header={t("ProfileName")}
+        isHorizontal
+        error={errors?.name}
+      >
         <Input
           name="name"
           placeholder={t("EnterName")}

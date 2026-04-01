@@ -7,8 +7,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
 import type { Model, ProviderType } from "@/lib/types";
 import { provider } from "@/providers";
+import useProfilesStore from "@/store/useProfilesStore";
 import { ModelCardShell } from "./ModelCardShell";
-import { ModelConfigForm, type ModelFormValues } from "./ModelConfigForm";
+import {
+  ModelConfigForm,
+  type ModelFormErrors,
+  type ModelFormValues,
+} from "./ModelConfigForm";
 
 const INITIAL_VALUES: ModelFormValues = {
   provider: "",
@@ -20,13 +25,20 @@ const INITIAL_VALUES: ModelFormValues = {
 
 export const AddModelCard = () => {
   const { t } = useTranslation();
+  const { addProfile, setChatProfile, profiles } = useProfilesStore();
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const [values, setValues] = useState<ModelFormValues>(INITIAL_VALUES);
   const [models, setModels] = useState<Model[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<ModelFormErrors>({});
   const fetchModelsRequestIdRef = useRef(0);
 
   const isAddDisabled =
-    !values.provider || !values.baseUrl || !values.model || !values.profileName;
+    isLoading ||
+    !values.provider ||
+    !values.baseUrl ||
+    !values.model ||
+    !values.profileName;
 
   const fetchModels = async (
     providerType: ProviderType,
@@ -47,7 +59,47 @@ export const AddModelCard = () => {
 
   const debouncedFetchModels = useDebouncedCallback(fetchModels, 500);
 
+  const handleAdd = async () => {
+    const isFirstProfile = profiles.length === 0;
+    setIsLoading(true);
+    setErrors({});
+
+    const result = await addProfile({
+      name: values.profileName,
+      providerType: values.provider as ProviderType,
+      baseUrl: values.baseUrl,
+      key: values.apiKey || undefined,
+      modelId: values.model,
+    });
+
+    setIsLoading(false);
+
+    if (result === true) {
+      if (isFirstProfile) {
+        const newProfile = useProfilesStore
+          .getState()
+          .profiles.find((p) => p.name === values.profileName);
+        if (newProfile) setChatProfile(newProfile);
+      }
+      setValues(INITIAL_VALUES);
+      setModels([]);
+    } else if (result && typeof result === "object") {
+      setErrors({ [result.field]: result.message });
+    }
+  };
+
+  const fieldToErrorKey: Partial<
+    Record<keyof ModelFormValues, keyof ModelFormErrors>
+  > = {
+    apiKey: "key",
+    baseUrl: "url",
+    profileName: "name",
+  };
+
   const handleChange = (field: keyof ModelFormValues, value: string) => {
+    const errorKey = fieldToErrorKey[field];
+    if (errorKey) setErrors((prev) => ({ ...prev, [errorKey]: undefined }));
+
     if (field === "provider") {
       const providerInfo = provider.getProviderInfo(value as ProviderType);
       const newBaseUrl = providerInfo.baseUrl ?? "";
@@ -93,6 +145,7 @@ export const AddModelCard = () => {
         values={values}
         onChange={handleChange}
         models={models}
+        errors={errors}
       />
 
       <div className="flex flex-row justify-between items-center">
@@ -131,7 +184,7 @@ export const AddModelCard = () => {
         </div>
         <div className="flex flex-row gap-[12px]">
           <Button variant="default">{t("Cancel")}</Button>
-          <Button disabled={isAddDisabled} onClick={() => console.log(values)}>
+          <Button disabled={isAddDisabled} onClick={handleAdd}>
             {t("AddModel")}
           </Button>
         </div>
