@@ -2,6 +2,7 @@ node_modules
 dist
 .env
 config.ts
+settings.local.json
 coverage
 deploy
 
