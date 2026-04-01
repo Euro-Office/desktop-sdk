@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/button";
 import { IconButton } from "@/components/icon-button";
@@ -23,6 +23,7 @@ export const AddModelCard = () => {
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const [values, setValues] = useState<ModelFormValues>(INITIAL_VALUES);
   const [models, setModels] = useState<Model[]>([]);
+  const fetchModelsRequestIdRef = useRef(0);
 
   const isAddDisabled =
     !values.provider || !values.baseUrl || !values.model || !values.profileName;
@@ -33,10 +34,12 @@ export const AddModelCard = () => {
     baseUrl: string
   ) => {
     if (!baseUrl) return;
+    const requestId = ++fetchModelsRequestIdRef.current;
     const providerInfo = provider.getProviderInfo(providerType);
     const result = await provider.getProvidersModels([
       { type: providerType, name: providerInfo.name, key: apiKey, baseUrl },
     ]);
+    if (requestId !== fetchModelsRequestIdRef.current) return;
     const fetched = result.get(providerInfo.name) ?? [];
     setModels(fetched);
     setValues((prev) => ({ ...prev, model: fetched[0]?.id ?? "" }));
