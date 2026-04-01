@@ -10,6 +10,7 @@ type ComboBoxProps = {
   className?: string;
   isError?: boolean;
   withoutBg?: boolean;
+  disabled?: boolean;
   items: DropDownItemProps[];
   "data-testid"?: string;
 };
@@ -20,6 +21,7 @@ const ComboBox = ({
   className,
   isError,
   withoutBg,
+  disabled,
   items,
   "data-testid": dataTestId,
 }: ComboBoxProps) => {
@@ -44,7 +46,7 @@ const ComboBox = ({
                 ? "hover:bg-[var(--input-hover-background-color)) hover:border-[var(--input-hover-border-color)]"
                 : "border bg-[var(--input-background-color)] border-[var(--input-border-color)] hover:bg-[var(--input-hover-background-color)] hover:border-[var(--input-hover-border-color)]",
             className,
-            items.length === 0
+            disabled || items.length === 0
               ? "cursor-not-allowed pointer-events-none opacity-50"
               : ""
           )}
