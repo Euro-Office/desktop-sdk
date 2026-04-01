@@ -4,6 +4,7 @@ import { Button } from "@/components/button";
 import { IconButton } from "@/components/icon-button";
 import { Link } from "@/components/link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
+import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
 import type { Model, ProviderType } from "@/lib/types";
 import { provider } from "@/providers";
 import { ModelCardShell } from "./ModelCardShell";
@@ -43,6 +44,8 @@ export const AddModelCard = () => {
     }
   };
 
+  const debouncedFetchModels = useDebouncedCallback(fetchModels, 500);
+
   const handleChange = (field: keyof ModelFormValues, value: string) => {
     if (field === "provider") {
       const providerInfo = provider.getProviderInfo(value as ProviderType);
@@ -60,12 +63,20 @@ export const AddModelCard = () => {
     }
     if (field === "apiKey") {
       setValues((prev) => ({ ...prev, apiKey: value }));
-      fetchModels(values.provider as ProviderType, value, values.baseUrl);
+      debouncedFetchModels(
+        values.provider as ProviderType,
+        value,
+        values.baseUrl
+      );
       return;
     }
     if (field === "baseUrl") {
       setValues((prev) => ({ ...prev, baseUrl: value }));
-      fetchModels(values.provider as ProviderType, values.apiKey, value);
+      debouncedFetchModels(
+        values.provider as ProviderType,
+        values.apiKey,
+        value
+      );
       return;
     }
     setValues((prev) => ({ ...prev, [field]: value }));
