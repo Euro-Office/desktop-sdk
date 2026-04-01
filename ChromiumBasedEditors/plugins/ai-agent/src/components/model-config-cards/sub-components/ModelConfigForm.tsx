@@ -3,6 +3,7 @@ import { ComboBox } from "@/components/combo-box";
 import { FieldContainer } from "@/components/field-container";
 import { Input } from "@/components/input";
 import { Link } from "@/components/link";
+import type { Model } from "@/lib/types";
 import { provider } from "@/providers";
 
 const providersInfo = provider.getProvidersInfo();
@@ -18,15 +19,31 @@ export interface ModelFormValues {
 interface ModelConfigFormProps {
   values: ModelFormValues;
   onChange: (field: keyof ModelFormValues, value: string) => void;
-  isDisabled?: boolean;
+  models: Model[];
 }
 
 export const ModelConfigForm = ({
   values,
   onChange,
-  isDisabled,
+  models,
 }: ModelConfigFormProps) => {
   const { t } = useTranslation();
+  const isFieldsDisabled = !values.provider;
+
+  const modelItems =
+    models.length > 0
+      ? models.map((m) => ({
+          text: m.name,
+          id: m.id,
+          onClick: () => onChange("model", m.id),
+        }))
+      : [
+          {
+            text: t("NoModelsFound"),
+            id: "no-models",
+            onClick: () => undefined,
+          },
+        ];
 
   return (
     <div className="flex flex-col mb-[48px]">
@@ -34,10 +51,11 @@ export const ModelConfigForm = ({
         <ComboBox
           className="w-full"
           placeholder={t("SelectProvider")}
+          value={providersInfo.find((p) => p.type === values.provider)?.name}
           items={providersInfo.map((p) => ({
             text: p.name,
-            id: p.name,
-            onClick: () => onChange("provider", p.name),
+            id: p.type,
+            onClick: () => onChange("provider", p.type),
           }))}
         />
       </FieldContainer>
@@ -53,7 +71,7 @@ export const ModelConfigForm = ({
           placeholder={t("EnterKey")}
           className="w-full"
           type="password"
-          disabled={isDisabled}
+          disabled={isFieldsDisabled}
           onChange={(e) => onChange("apiKey", e.target.value)}
           value={values.apiKey}
         />
@@ -64,7 +82,7 @@ export const ModelConfigForm = ({
           name="url"
           placeholder={t("SelectModelFirst")}
           className="w-full"
-          disabled={isDisabled}
+          disabled={isFieldsDisabled}
           onChange={(e) => onChange("baseUrl", e.target.value)}
           value={values.baseUrl}
         />
@@ -74,7 +92,9 @@ export const ModelConfigForm = ({
         <ComboBox
           className="w-full"
           placeholder={t("SelectModel")}
-          items={[]}
+          value={models.find((m) => m.id === values.model)?.name}
+          disabled={!values.provider}
+          items={modelItems}
         />
       </FieldContainer>
 
@@ -83,7 +103,7 @@ export const ModelConfigForm = ({
           name="name"
           placeholder={t("EnterName")}
           className="w-full"
-          disabled={isDisabled}
+          disabled={isFieldsDisabled}
           onChange={(e) => onChange("profileName", e.target.value)}
           value={values.profileName}
         />
