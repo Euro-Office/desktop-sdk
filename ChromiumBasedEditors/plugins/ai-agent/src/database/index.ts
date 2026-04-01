@@ -1,6 +1,6 @@
 class ChatDB {
   private dbName = "ChatHistory";
-  private version = 1;
+  private version = 2;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -36,6 +36,11 @@ class ChatDB {
           messagesStore.createIndex("timestamp", "timestamp", {
             unique: false,
           });
+        }
+
+        // Create profiles store
+        if (!db.objectStoreNames.contains("profiles")) {
+          db.createObjectStore("profiles", { keyPath: "id" });
         }
       };
     });

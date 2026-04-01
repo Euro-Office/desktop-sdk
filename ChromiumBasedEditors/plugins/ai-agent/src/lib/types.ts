@@ -57,3 +57,13 @@ export type TProcess = {
   end: () => void;
   start: () => void;
 };
+
+export type Profile = {
+  id: string;
+  name: string;
+  providerType: ProviderType;
+  baseUrl: string;
+  key?: string;
+  modelId: string;
+  reasoning?: boolean;
+};
