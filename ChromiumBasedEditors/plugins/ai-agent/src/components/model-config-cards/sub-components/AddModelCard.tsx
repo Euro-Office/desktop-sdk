@@ -39,9 +39,7 @@ export const AddModelCard = () => {
     ]);
     const fetched = result.get(providerInfo.name) ?? [];
     setModels(fetched);
-    if (fetched.length > 0) {
-      setValues((prev) => ({ ...prev, model: fetched[0].id }));
-    }
+    setValues((prev) => ({ ...prev, model: fetched[0]?.id ?? "" }));
   };
 
   const debouncedFetchModels = useDebouncedCallback(fetchModels, 500);
