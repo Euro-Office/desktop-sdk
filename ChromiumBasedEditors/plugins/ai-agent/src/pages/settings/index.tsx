@@ -6,7 +6,7 @@ import config from "@/config.json";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import useProviders from "@/store/useProviders";
-import { Providers } from "./sub-components/providers";
+import { Models } from "./sub-components/models";
 import { Servers } from "./sub-components/servers";
 import { Wallet } from "./sub-components/wallet";
 import { WebSearch } from "./sub-components/web-search";
@@ -77,7 +77,7 @@ const Settings = () => {
               {isWallet ? (
                 <Wallet isActive={selectedSection === item} />
               ) : (
-                <Providers isActive={selectedSection === item} />
+                <Models />
               )}
             </div>
           </div>
