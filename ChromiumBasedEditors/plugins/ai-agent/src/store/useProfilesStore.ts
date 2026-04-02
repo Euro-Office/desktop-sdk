@@ -25,6 +25,7 @@ interface ProfilesState {
   ) => Promise<boolean | TErrorData | undefined>;
   editProfile: (profile: Profile) => Promise<boolean | TErrorData | undefined>;
   deleteProfile: (id: string) => Promise<void>;
+  getProfileById: (id: string) => Profile | null;
   setDefaultChatProfile: (profile: Profile) => void;
   setSessionChatProfile: (profile: Profile | null) => void;
   fetchModelsForProfile: (
@@ -138,6 +139,8 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
     });
   },
 
+  getProfileById: (id) => get().profiles.find((p) => p.id === id) ?? null,
+
   setDefaultChatProfile: (profile) => {
     localStorage.setItem(CHAT_PROFILE_KEY, JSON.stringify(profile));
     provider.setCurrentProvider({
@@ -151,6 +154,19 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
   },
 
   setSessionChatProfile: (profile) => {
+    const fallback = profile ?? get().defaultChatProfile;
+    provider.setCurrentProvider(
+      fallback
+        ? {
+            type: fallback.providerType,
+            name: fallback.name,
+            baseUrl: fallback.baseUrl,
+            key: fallback.key,
+          }
+        : undefined
+    );
+    if (fallback)
+      provider.setCurrentProviderModel(fallback.modelId, fallback.reasoning);
     set({ sessionChatProfile: profile });
   },
 
@@ -161,5 +177,8 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
     return models.get(type) ?? [];
   },
 }));
+
+export const selectCurrentProfile = (s: ProfilesState) =>
+  s.sessionChatProfile ?? s.defaultChatProfile;
 
 export default useProfilesStore;

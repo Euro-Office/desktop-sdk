@@ -1,16 +1,16 @@
 import { ComposerPrimitive, ThreadPrimitive } from "@assistant-ui/react";
 import { IconButton } from "@/components/icon-button";
 import useMessageStore from "@/store/useMessageStore";
-import useModelsStore from "@/store/useModelsStore";
-import useProviders from "@/store/useProviders";
+import useProfilesStore, {
+  selectCurrentProfile,
+} from "@/store/useProfilesStore";
 
 const BUTTON_STYLES =
   "rounded-[4px] cursor-pointer disabled:cursor-not-allowed flex items-center justify-center bg-[var(--chat-composer-action-send-background-color)] hover:enabled:bg-[var(--chat-composer-action-send-background-hover-color)] active:enabled:bg-[var(--chat-composer-action-send-background-pressed-color)] disabled:opacity-[0.5]";
 
 const ComposerActionSend = () => {
   const { isStreamRunning } = useMessageStore();
-  const { currentModel } = useModelsStore();
-  const { currentProvider } = useProviders();
+  const currentProfile = useProfilesStore(selectCurrentProfile);
 
   return isStreamRunning ? (
     <ComposerPrimitive.Cancel asChild>
@@ -25,10 +25,7 @@ const ComposerActionSend = () => {
     </ComposerPrimitive.Cancel>
   ) : (
     <ThreadPrimitive.If running={false}>
-      <ComposerPrimitive.Send
-        asChild
-        disabled={!currentModel || !currentProvider}
-      >
+      <ComposerPrimitive.Send asChild disabled={!currentProfile}>
         <IconButton
           iconName="arrow.top"
           size={24}

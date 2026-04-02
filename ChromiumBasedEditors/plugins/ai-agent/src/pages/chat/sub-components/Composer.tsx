@@ -2,14 +2,14 @@ import { ComposerPrimitive } from "@assistant-ui/react";
 import { useTranslation } from "react-i18next";
 import { FileItem } from "@/components/file-item";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
-import useModelsStore from "@/store/useModelsStore";
-import useProviders from "@/store/useProviders";
+import useProfilesStore, {
+  selectCurrentProfile,
+} from "@/store/useProfilesStore";
 import { ComposerAction } from "./ComposerAction";
 
 const Composer = () => {
   const { attachmentFiles, attachmentImages } = useAttachmentsStore();
-  const { currentProvider } = useProviders();
-  const { currentModel } = useModelsStore();
+  const currentProfile = useProfilesStore(selectCurrentProfile);
   const { t } = useTranslation();
 
   return (
@@ -32,7 +32,7 @@ const Composer = () => {
           rows={1}
           autoFocus
           aria-label="Message input"
-          disabled={!currentProvider || !currentModel}
+          disabled={!currentProfile}
           data-testid="composer-input"
         />
         <ComposerAction />

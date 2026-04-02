@@ -11,6 +11,7 @@ export type Thread = {
   lastEditDate?: number;
   provider?: TProvider;
   model?: Model;
+  profileId?: string;
 };
 
 export type ProviderType =

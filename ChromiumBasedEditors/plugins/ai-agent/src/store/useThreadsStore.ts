@@ -7,24 +7,17 @@ import {
   touchThread,
   updateThread,
 } from "@/database/threads";
-import type { Model, Thread, TProvider } from "@/lib/types";
+import type { Thread } from "@/lib/types";
 import { convertMessagesToMd, removeSpecialCharacter } from "@/lib/utils";
-import useModelsStore from "@/store/useModelsStore";
-import useProviders from "@/store/useProviders";
+import useProfilesStore from "@/store/useProfilesStore";
 
 type UseThreadsStoreProps = {
   threadId: string;
   threads: Thread[];
 
   initThreads: () => Promise<void>;
-  insertThread: (
-    title: string,
-    opts?: { provider?: TProvider | null; model?: Model | null }
-  ) => void;
-  insertNewMessageToThread: (opts?: {
-    provider?: TProvider | null;
-    model?: Model | null;
-  }) => void;
+  insertThread: (title: string, opts?: { profileId?: string }) => void;
+  insertNewMessageToThread: (opts?: { profileId?: string }) => void;
   onSwitchToNewThread: () => void;
   onSwitchToThread: (id: string) => void;
   onDownloadThread: (id: string) => void;
@@ -33,11 +26,10 @@ type UseThreadsStoreProps = {
 };
 
 const applyThreadContextFromThread = (thread?: Thread) => {
-  const { setSessionProvider } = useProviders.getState();
-  const { setSessionModel } = useModelsStore.getState();
+  const { getProfileById, setSessionChatProfile } = useProfilesStore.getState();
+  const profile = thread?.profileId ? getProfileById(thread.profileId) : null;
 
-  setSessionProvider(thread?.provider ?? null);
-  setSessionModel(thread?.model ?? null);
+  setSessionChatProfile(profile);
 };
 
 const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
@@ -49,21 +41,15 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
 
     set({ threads });
   },
-  insertThread: (
-    title: string,
-    opts?: { provider?: TProvider | null; model?: Model | null }
-  ) => {
+  insertThread: (title: string, opts?: { profileId?: string }) => {
     const thisStore = get();
-    const provider = opts?.provider ?? null;
-    const model = opts?.model ?? null;
 
     set({
       threads: [
         {
           threadId: thisStore.threadId,
           title,
-          provider: provider ?? undefined,
-          model: model ?? undefined,
+          profileId: opts?.profileId,
           lastEditDate: Date.now(),
         },
         ...thisStore.threads,
@@ -73,21 +59,16 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
     createThread(
       thisStore.threadId,
       title,
-      provider ?? undefined,
-      model ?? undefined
+      undefined,
+      undefined,
+      opts?.profileId
     );
   },
-  insertNewMessageToThread: (opts?: {
-    provider?: TProvider | null;
-    model?: Model | null;
-  }) => {
+  insertNewMessageToThread: (opts?: { profileId?: string }) => {
     const thisStore = get();
-    const provider = opts?.provider ?? null;
-    const model = opts?.model ?? null;
 
     touchThread(thisStore.threadId, {
-      ...(opts && "provider" in opts ? { provider } : {}),
-      ...(opts && "model" in opts ? { model } : {}),
+      ...(opts && "profileId" in opts ? { profileId: opts.profileId } : {}),
     });
 
     set({
@@ -95,10 +76,9 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
         if (thread.threadId === thisStore.threadId) {
           return {
             ...thread,
-            ...(opts && "provider" in opts
-              ? { provider: provider ?? undefined }
+            ...(opts && "profileId" in opts
+              ? { profileId: opts.profileId }
               : {}),
-            ...(opts && "model" in opts ? { model: model ?? undefined } : {}),
             lastEditDate: Date.now(),
           };
         }
