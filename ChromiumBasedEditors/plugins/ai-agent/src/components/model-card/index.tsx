@@ -4,18 +4,18 @@ import { DropdownMenu } from "@/components/dropdown";
 import { IconButton } from "@/components/icon-button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { useDirection } from "@/hooks/useDirection";
+import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { provider } from "@/providers";
 
 type ModelCardProps = {
-  model: {
-    name: string;
-    provider: string;
-  };
+  profile: Profile;
   onEdit?: () => void;
   onDelete?: () => void;
 };
 
-const ModelCard = ({ model, onEdit, onDelete }: ModelCardProps) => {
+const ModelCard = ({ profile, onEdit, onDelete }: ModelCardProps) => {
+  const providerName = provider.getProviderInfo(profile.providerType).name;
   const { isRTL } = useDirection();
   const { t } = useTranslation();
 
@@ -45,10 +45,10 @@ const ModelCard = ({ model, onEdit, onDelete }: ModelCardProps) => {
           <Tooltip>
             <TooltipTrigger asChild>
               <p className="font-normal text-[14px] leading-[20px] text-[var(--model-card-color)] truncate">
-                {model?.name}
+                {profile?.name}
               </p>
             </TooltipTrigger>
-            <TooltipContent side="bottom">{model?.name}</TooltipContent>
+            <TooltipContent side="bottom">{profile?.name}</TooltipContent>
           </Tooltip>
           <p
             className={cn(
@@ -56,7 +56,7 @@ const ModelCard = ({ model, onEdit, onDelete }: ModelCardProps) => {
               isRTL ? "text-end" : ""
             )}
           >
-            {model?.provider}
+            {providerName}
           </p>
         </div>
       </div>

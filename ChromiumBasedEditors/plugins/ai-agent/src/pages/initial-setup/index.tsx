@@ -3,18 +3,11 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/button";
 import { ModelCard } from "@/components/model-card";
 import { AddModelCard } from "@/components/model-config-cards";
-
-const MOCK_MODELS = [
-  { name: "ChatGPT", provider: "OpenAI" },
-  { name: "Claude", provider: "Anthropic" },
-  {
-    name: "Long-long-long-long-long-lonlong-long-long-long-long-long-long-long-long-long-long-long-long-long-long-long-long-long",
-    provider: "Qwen",
-  },
-];
+import useProfilesStore from "@/store/useProfilesStore";
 
 const InitialSetup = () => {
   const { t } = useTranslation();
+  const { profiles } = useProfilesStore();
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
 
   return (
@@ -39,8 +32,8 @@ const InitialSetup = () => {
         )}
 
         <div className="flex flex-col gap-[16px]">
-          {MOCK_MODELS.map((model) => (
-            <ModelCard key={model.name} model={model} />
+          {profiles.map((profile) => (
+            <ModelCard key={profile.id} profile={profile} />
           ))}
         </div>
       </div>
