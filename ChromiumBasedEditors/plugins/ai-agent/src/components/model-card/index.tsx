@@ -7,15 +7,16 @@ import { useDirection } from "@/hooks/useDirection";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { provider } from "@/providers";
+import { DeleteProfileDialog } from "./DeleteProfileDialog";
 
 type ModelCardProps = {
   profile: Profile;
   onEdit?: () => void;
-  onDelete?: () => void;
 };
 
-const ModelCard = ({ profile, onEdit, onDelete }: ModelCardProps) => {
+const ModelCard = ({ profile, onEdit }: ModelCardProps) => {
   const providerName = provider.getProviderInfo(profile.providerType).name;
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const { isRTL } = useDirection();
   const { t } = useTranslation();
 
@@ -87,7 +88,7 @@ const ModelCard = ({ profile, onEdit, onDelete }: ModelCardProps) => {
             {
               icon: <IconButton iconName="btn-remove" size={20} disableHover />,
               text: t("Delete"),
-              onClick: () => onDelete?.(),
+              onClick: () => setIsDeleteOpen(true),
             },
           ]}
           side={isRTL ? "left" : "right"}
@@ -96,6 +97,12 @@ const ModelCard = ({ profile, onEdit, onDelete }: ModelCardProps) => {
           containerRef={containerElement}
         />
       </div>
+      {isDeleteOpen && (
+        <DeleteProfileDialog
+          profile={profile}
+          onClose={() => setIsDeleteOpen(false)}
+        />
+      )}
     </div>
   );
 };
