@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { DropdownMenu } from "@/components/dropdown";
 import { IconButton } from "@/components/icon-button";
+import { EditModelCard } from "@/components/model-config-cards";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { useDirection } from "@/hooks/useDirection";
 import type { Profile } from "@/lib/types";
@@ -11,11 +12,11 @@ import { DeleteProfileDialog } from "./DeleteProfileDialog";
 
 type ModelCardProps = {
   profile: Profile;
-  onEdit?: () => void;
 };
 
-const ModelCard = ({ profile, onEdit }: ModelCardProps) => {
+const ModelCard = ({ profile }: ModelCardProps) => {
   const providerName = provider.getProviderInfo(profile.providerType).name;
+  const [isEditing, setIsEditing] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const { isRTL } = useDirection();
   const { t } = useTranslation();
@@ -27,6 +28,24 @@ const ModelCard = ({ profile, onEdit }: ModelCardProps) => {
   const containerRef = React.useCallback((node: HTMLDivElement | null) => {
     setContainerElement(node);
   }, []);
+
+  if (isEditing) {
+    return (
+      <>
+        <EditModelCard
+          profile={profile}
+          onClose={() => setIsEditing(false)}
+          onDelete={() => setIsDeleteOpen(true)}
+        />
+        {isDeleteOpen && (
+          <DeleteProfileDialog
+            profile={profile}
+            onClose={() => setIsDeleteOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div
@@ -76,7 +95,7 @@ const ModelCard = ({ profile, onEdit }: ModelCardProps) => {
                 />
               ),
               text: t("Edit"),
-              onClick: () => onEdit?.(),
+              onClick: () => setIsEditing(true),
             },
             {
               text: "",
