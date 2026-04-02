@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/button";
 import { ModelCard } from "@/components/model-card";
 import { AddModelCard } from "@/components/model-config-cards";
 
@@ -13,6 +15,7 @@ const MOCK_MODELS = [
 
 const InitialSetup = () => {
   const { t } = useTranslation();
+  const [isAddCardOpen, setIsAddCardOpen] = useState(false);
 
   return (
     <div className="flex justify-center h-full w-full bg-[var(--layout-background-color)] py-[24px]">
@@ -24,7 +27,16 @@ const InitialSetup = () => {
           {t("AIModelsDescription")}
         </p>
 
-        <AddModelCard />
+        {isAddCardOpen ? (
+          <AddModelCard onClose={() => setIsAddCardOpen(false)} />
+        ) : (
+          <Button
+            className="self-start mb-[16px]"
+            onClick={() => setIsAddCardOpen(true)}
+          >
+            {t("AddModel")}
+          </Button>
+        )}
 
         <div className="flex flex-col gap-[16px]">
           {MOCK_MODELS.map((model) => (

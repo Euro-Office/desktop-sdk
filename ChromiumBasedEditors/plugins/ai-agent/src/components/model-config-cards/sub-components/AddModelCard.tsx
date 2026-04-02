@@ -23,7 +23,11 @@ const INITIAL_VALUES: ModelFormValues = {
   profileName: "",
 };
 
-export const AddModelCard = () => {
+interface AddModelCardProps {
+  onClose?: () => void;
+}
+
+export const AddModelCard = ({ onClose }: AddModelCardProps) => {
   const { t } = useTranslation();
   const { addProfile, setChatProfile, profiles } = useProfilesStore();
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
@@ -83,6 +87,7 @@ export const AddModelCard = () => {
       }
       setValues(INITIAL_VALUES);
       setModels([]);
+      onClose?.();
     } else if (result && typeof result === "object") {
       setErrors({ [result.field]: result.message });
     }
@@ -183,7 +188,9 @@ export const AddModelCard = () => {
           </Tooltip>
         </div>
         <div className="flex flex-row gap-[12px]">
-          <Button variant="default">{t("Cancel")}</Button>
+          <Button variant="default" onClick={onClose}>
+            {t("Cancel")}
+          </Button>
           <Button disabled={isAddDisabled} onClick={handleAdd}>
             {t("AddModel")}
           </Button>
