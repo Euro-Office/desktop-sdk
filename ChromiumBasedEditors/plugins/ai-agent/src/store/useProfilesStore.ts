@@ -17,14 +17,16 @@ const NAME_EXISTS_ERROR = {
 
 interface ProfilesState {
   profiles: Profile[];
-  chatProfile: Profile | null;
+  defaultChatProfile: Profile | null;
+  sessionChatProfile: Profile | null;
   init: () => Promise<void>;
   addProfile: (
     data: Omit<Profile, "id">
   ) => Promise<boolean | TErrorData | undefined>;
   editProfile: (profile: Profile) => Promise<boolean | TErrorData | undefined>;
   deleteProfile: (id: string) => Promise<void>;
-  setChatProfile: (profile: Profile) => void;
+  setDefaultChatProfile: (profile: Profile) => void;
+  setSessionChatProfile: (profile: Profile | null) => void;
   fetchModelsForProfile: (
     type: Profile["providerType"],
     baseUrl: string,
@@ -34,7 +36,7 @@ interface ProfilesState {
 
 const useProfilesStore = create<ProfilesState>()((set, get) => ({
   profiles: [],
-  chatProfile: (() => {
+  defaultChatProfile: (() => {
     const saved = localStorage.getItem(CHAT_PROFILE_KEY);
 
     if (!saved) return null;
@@ -51,6 +53,7 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
 
     return parsed;
   })(),
+  sessionChatProfile: null,
 
   init: async () => {
     const profiles = await readAllProfiles();
@@ -70,9 +73,11 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
     });
 
     if (typeof checkResult === "boolean" && checkResult) {
+      const isFirst = get().profiles.length === 0;
       const newProfile: Profile = { ...data, id: crypto.randomUUID() };
       await createProfile(newProfile);
       set((state) => ({ profiles: [...state.profiles, newProfile] }));
+      if (isFirst) get().setDefaultChatProfile(newProfile);
       return true;
     } else {
       return checkResult;
@@ -100,7 +105,7 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
           p.id === profile.id ? profile : p
         );
 
-        if (state.chatProfile?.id === profile.id) {
+        if (state.defaultChatProfile?.id === profile.id) {
           localStorage.setItem(CHAT_PROFILE_KEY, JSON.stringify(profile));
           provider.setCurrentProvider({
             type: profile.providerType,
@@ -109,7 +114,7 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
             key: profile.key,
           });
           provider.setCurrentProviderModel(profile.modelId, profile.reasoning);
-          return { profiles, chatProfile: profile };
+          return { profiles, defaultChatProfile: profile };
         }
 
         return { profiles };
@@ -124,16 +129,16 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
     await dbDeleteProfile(id);
     set((state) => {
       const profiles = state.profiles.filter((p) => p.id !== id);
-      if (state.chatProfile?.id === id) {
+      if (state.defaultChatProfile?.id === id) {
         localStorage.removeItem(CHAT_PROFILE_KEY);
         provider.setCurrentProvider(undefined);
-        return { profiles, chatProfile: null };
+        return { profiles, defaultChatProfile: null };
       }
       return { profiles };
     });
   },
 
-  setChatProfile: (profile) => {
+  setDefaultChatProfile: (profile) => {
     localStorage.setItem(CHAT_PROFILE_KEY, JSON.stringify(profile));
     provider.setCurrentProvider({
       type: profile.providerType,
@@ -142,7 +147,11 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
       key: profile.key,
     });
     provider.setCurrentProviderModel(profile.modelId, profile.reasoning);
-    set({ chatProfile: profile });
+    set({ defaultChatProfile: profile });
+  },
+
+  setSessionChatProfile: (profile) => {
+    set({ sessionChatProfile: profile });
   },
 
   fetchModelsForProfile: async (type, baseUrl, key) => {

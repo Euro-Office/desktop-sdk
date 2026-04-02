@@ -29,7 +29,7 @@ interface AddModelCardProps {
 
 export const AddModelCard = ({ onClose }: AddModelCardProps) => {
   const { t } = useTranslation();
-  const { addProfile, setChatProfile, profiles } = useProfilesStore();
+  const { addProfile } = useProfilesStore();
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const [values, setValues] = useState<ModelFormValues>(INITIAL_VALUES);
   const [models, setModels] = useState<Model[]>([]);
@@ -64,7 +64,6 @@ export const AddModelCard = ({ onClose }: AddModelCardProps) => {
   const debouncedFetchModels = useDebouncedCallback(fetchModels, 500);
 
   const handleAdd = async () => {
-    const isFirstProfile = profiles.length === 0;
     setIsLoading(true);
     setErrors({});
 
@@ -79,12 +78,6 @@ export const AddModelCard = ({ onClose }: AddModelCardProps) => {
     setIsLoading(false);
 
     if (result === true) {
-      if (isFirstProfile) {
-        const newProfile = useProfilesStore
-          .getState()
-          .profiles.find((p) => p.name === values.profileName);
-        if (newProfile) setChatProfile(newProfile);
-      }
       setValues(INITIAL_VALUES);
       setModels([]);
       onClose?.();
