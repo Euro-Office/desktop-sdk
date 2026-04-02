@@ -11,8 +11,8 @@ type RouterState = {
 };
 
 const useRouter = create<RouterState>((set) => ({
-  // currentPage: "chat",
-  currentPage: "initial-setup",
+  currentPage: "chat",
+  // currentPage: "initial-setup",
   setCurrentPage: (page: Page) => set({ currentPage: page }),
   goToChat: () => set({ currentPage: "chat" }),
   goToSettings: () => set({ currentPage: "settings" }),
