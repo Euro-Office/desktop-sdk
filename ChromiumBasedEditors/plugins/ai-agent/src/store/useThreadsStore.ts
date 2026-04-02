@@ -18,6 +18,7 @@ type UseThreadsStoreProps = {
   initThreads: () => Promise<void>;
   insertThread: (title: string, opts?: { profileId?: string }) => void;
   insertNewMessageToThread: (opts?: { profileId?: string }) => void;
+  migrateThreadFromProviderModelToProfile: (thread: Thread) => Thread;
   onSwitchToNewThread: () => void;
   onSwitchToThread: (id: string) => void;
   onDownloadThread: (id: string) => void;
@@ -31,6 +32,10 @@ const applyThreadContextFromThread = (thread?: Thread) => {
 
   setSessionChatProfile(profile);
 };
+
+const needsMigrationToProfile = (
+  thread: Thread | undefined
+): thread is Thread => !!(thread?.provider || thread?.model);
 
 const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
   threadId: crypto.randomUUID(),
@@ -64,6 +69,42 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
       opts?.profileId
     );
   },
+  migrateThreadFromProviderModelToProfile: (thread) => {
+    const { provider, model, ...rest } = thread;
+    const { profiles, defaultChatProfile } = useProfilesStore.getState();
+
+    const matched =
+      profiles.find(
+        (p) =>
+          p.providerType === provider?.type &&
+          p.baseUrl === provider?.baseUrl &&
+          p.modelId === model?.id &&
+          p.key === provider?.key
+      ) ??
+      profiles.find(
+        (p) =>
+          p.providerType === provider?.type &&
+          p.baseUrl === provider?.baseUrl &&
+          p.modelId === model?.id
+      ) ??
+      defaultChatProfile;
+
+    const migratedThread: Thread = { ...rest, profileId: matched?.id };
+
+    set((state) => ({
+      threads: state.threads.map((t) =>
+        t.threadId === thread.threadId ? migratedThread : t
+      ),
+    }));
+
+    touchThread(thread.threadId, {
+      profileId: matched?.id ?? null,
+      provider: null,
+      model: null,
+    });
+
+    return migratedThread;
+  },
   insertNewMessageToThread: (opts?: { profileId?: string }) => {
     const thisStore = get();
 
@@ -91,8 +132,12 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
     set({ threadId: crypto.randomUUID() });
   },
   onSwitchToThread: (id: string) => {
-    const thisStore = get();
-    const thread = thisStore.threads.find((t) => t.threadId === id);
+    const { threads, migrateThreadFromProviderModelToProfile } = get();
+    let thread = threads.find((t) => t.threadId === id);
+
+    if (needsMigrationToProfile(thread)) {
+      thread = migrateThreadFromProviderModelToProfile(thread);
+    }
 
     applyThreadContextFromThread(thread);
     set({ threadId: id });
