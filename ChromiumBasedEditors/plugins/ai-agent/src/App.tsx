@@ -19,6 +19,7 @@ import EmptyScreen from "./pages/empty-screen";
 import InitialSetup from "./pages/initial-setup";
 import Settings from "./pages/settings";
 import useMessageStore from "./store/useMessageStore";
+import useProfilesStore from "./store/useProfilesStore.ts";
 import useProviders from "./store/useProviders";
 import useRouter from "./store/useRouter";
 import useServersStore from "./store/useServersStore";
@@ -34,6 +35,7 @@ const App = () => {
   const { providers, fetchProvidersModels } = useProviders();
   const { currentPage } = useRouter();
   const { manageToolData } = useServersStore();
+  const { profiles } = useProfilesStore();
 
   useThread({
     isReady,
@@ -82,7 +84,7 @@ const App = () => {
     },
   });
 
-  if (currentPage !== "settings" && !providers.length && !messages.length)
+  if (currentPage !== "settings" && !profiles.length && !messages.length)
     return (
       <Layout>
         <EmptyScreen />
