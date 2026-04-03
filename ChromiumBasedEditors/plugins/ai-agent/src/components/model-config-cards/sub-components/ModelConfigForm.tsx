@@ -41,8 +41,13 @@ export const ModelConfigForm = ({
   }));
 
   return (
-    <div className="flex flex-col mb-[48px]">
-      <FieldContainer className="mb-[10px]" header={t("Provider")} isHorizontal>
+    <div className="flex flex-col mb-[26px]">
+      <FieldContainer
+        header={t("Provider")}
+        isHorizontal
+        reserveErrorSpace={false}
+        className="mb-[10px]"
+      >
         <ComboBox
           className="w-full"
           placeholder={t("SelectProvider")}
@@ -56,7 +61,7 @@ export const ModelConfigForm = ({
       </FieldContainer>
 
       <FieldContainer
-        className="mb-[32px]"
+        className="mb-[10px]"
         header={t("APIKey")}
         isHorizontal
         action={<Link href="#">{t("GetAPIKey")}</Link>}
@@ -74,7 +79,7 @@ export const ModelConfigForm = ({
       </FieldContainer>
 
       <FieldContainer
-        className="mb-[32px]"
+        className="mb-[10px]"
         header={t("BaseURL")}
         isHorizontal
         error={errors?.url}
@@ -89,7 +94,7 @@ export const ModelConfigForm = ({
         />
       </FieldContainer>
 
-      <FieldContainer className="mb-[32px]" header={t("Model")} isHorizontal>
+      <FieldContainer className="mb-[10px]" header={t("Model")} isHorizontal>
         <ComboBox
           className="w-full"
           placeholder={t("SelectModel")}

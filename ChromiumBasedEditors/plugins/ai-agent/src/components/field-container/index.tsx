@@ -6,6 +6,7 @@ type FieldContainerProps = {
   header: string;
   error?: string;
   isHorizontal?: boolean;
+  reserveErrorSpace?: boolean;
   action?: React.ReactNode;
   className?: string;
 };
@@ -13,7 +14,7 @@ type FieldContainerProps = {
 const ErrorBlock = ({ error }: { error: string }) => (
   <Tooltip>
     <TooltipTrigger asChild>
-      <p className="text-[var(--field-container-error-color)] truncate">
+      <p className="text-[var(--field-container-error-color)] leading-[20px] truncate">
         {error}
       </p>
     </TooltipTrigger>
@@ -32,6 +33,7 @@ const FieldContainer = ({
   header,
   error,
   isHorizontal,
+  reserveErrorSpace = true,
   action,
   className,
 }: FieldContainerProps) => {
@@ -62,18 +64,20 @@ const FieldContainer = ({
         )}
 
         <div
-          className={cn(
-            "flex flex-col gap-[4px] overflow-hidden",
-            isHorizontal ? "grow" : "w-full"
-          )}
+          className={cn("overflow-hidden", isHorizontal ? "grow" : "w-full")}
         >
           {children}
-          {!isHorizontal && error && <ErrorBlock error={error} />}
         </div>
       </div>
-      {isHorizontal && error && (
-        <div className="pl-[168px] overflow-hidden">
-          <ErrorBlock error={error} />
+      {(reserveErrorSpace || error) && (
+        <div
+          className={cn(
+            "overflow-hidden",
+            reserveErrorSpace && "h-[20px]",
+            isHorizontal && "pl-[168px]"
+          )}
+        >
+          {error && <ErrorBlock error={error} />}
         </div>
       )}
     </div>
