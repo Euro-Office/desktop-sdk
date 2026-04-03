@@ -10,6 +10,23 @@ type FieldContainerProps = {
   className?: string;
 };
 
+const ErrorBlock = ({ error }: { error: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <p className="text-[var(--field-container-error-color)] truncate">
+        {error}
+      </p>
+    </TooltipTrigger>
+    <TooltipContent
+      className="max-w-[350px] break-words"
+      side="bottom"
+      align="start"
+    >
+      {error}
+    </TooltipContent>
+  </Tooltip>
+);
+
 const FieldContainer = ({
   children,
   header,
@@ -51,24 +68,14 @@ const FieldContainer = ({
           )}
         >
           {children}
-          {error && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <p className="text-[var(--field-container-error-color)] truncate">
-                  {error}
-                </p>
-              </TooltipTrigger>
-              <TooltipContent
-                className="max-w-[350px] break-words"
-                side="bottom"
-                align="start"
-              >
-                {error}
-              </TooltipContent>
-            </Tooltip>
-          )}
+          {!isHorizontal && error && <ErrorBlock error={error} />}
         </div>
       </div>
+      {isHorizontal && error && (
+        <div className="pl-[168px] overflow-hidden">
+          <ErrorBlock error={error} />
+        </div>
+      )}
     </div>
   );
 };
