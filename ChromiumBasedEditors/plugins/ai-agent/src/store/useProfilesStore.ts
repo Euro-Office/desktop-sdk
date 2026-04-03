@@ -6,7 +6,7 @@ import {
   updateProfile,
 } from "@/database/profiles";
 import { CHAT_PROFILE_KEY, DEEP_MODE_KEY } from "@/lib/constants";
-import type { Model, Profile } from "@/lib/types";
+import type { Profile } from "@/lib/types";
 import { provider } from "@/providers";
 import type { TErrorData } from "@/providers/base";
 
@@ -31,11 +31,6 @@ interface ProfilesState {
   setDefaultChatProfile: (profile: Profile) => void;
   setSessionChatProfile: (profile: Profile | null) => void;
   toggleExtendedThinking: () => void;
-  fetchModelsForProfile: (
-    type: Profile["providerType"],
-    baseUrl: string,
-    key?: string
-  ) => Promise<Model[]>;
 }
 
 const useProfilesStore = create<ProfilesState>()((set, get) => ({
@@ -172,13 +167,6 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
     if (fallback)
       provider.setCurrentProviderModel(fallback.modelId, fallback.reasoning);
     set({ sessionChatProfile: profile });
-  },
-
-  fetchModelsForProfile: async (type, baseUrl, key) => {
-    const models = await provider.getProvidersModels([
-      { type, name: "", baseUrl, key },
-    ]);
-    return models.get(type) ?? [];
   },
 
   extendedThinking: (() => {
