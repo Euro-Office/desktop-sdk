@@ -1,3 +1,4 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 type FieldContainerProps = {
@@ -45,15 +46,26 @@ const FieldContainer = ({
 
         <div
           className={cn(
-            "flex flex-col gap-[4px]",
+            "flex flex-col gap-[4px] overflow-hidden",
             isHorizontal ? "grow" : "w-full"
           )}
         >
           {children}
           {error && (
-            <p className={cn("text-[var(--field-container-error-color)]")}>
-              {error}
-            </p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="text-[var(--field-container-error-color)] truncate">
+                  {error}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent
+                className="max-w-[350px] break-words"
+                side="bottom"
+                align="start"
+              >
+                {error}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>

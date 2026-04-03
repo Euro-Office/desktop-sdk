@@ -24,7 +24,7 @@ const Settings = () => {
   const profiles = useProfilesStore((s) => s.profiles);
 
   const aiSettingsTab = (
-    <div className="flex flex-col gap-[16px] select-none">
+    <div className="flex flex-col gap-[16px] select-none max-w-full">
       {showWallet ? (
         <div>
           <h3 className="font-bold text-[20px] leading-[28px] text-[var(--settings-header-color)]">
@@ -53,7 +53,7 @@ const Settings = () => {
                 />
               </div>
             ) : null}
-            <div className="select-none flex flex-col gap-[12px]">
+            <div className="select-none flex flex-col gap-[12px] w-full">
               <div className="flex flex-col gap-[4px] ">
                 {showWallet ? (
                   <h2
@@ -88,7 +88,7 @@ const Settings = () => {
 
   return (
     <div className="flex justify-center">
-      <div className="flex flex-col gap-[16px] box-border max-w-[640px] w-[640px] mx-[32px] mt-[32px]">
+      <div className="flex flex-col gap-[16px] box-border max-w-[640px] w-[640px] mx-[32px] mt-[32px] overflow-hidden">
         <h1 className="select-none font-bold text-[20px] leading-[28px] text-[var(--settings-header-color)]">
           {t("Settings")}
         </h1>
