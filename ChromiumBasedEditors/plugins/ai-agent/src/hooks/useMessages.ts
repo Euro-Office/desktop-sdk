@@ -11,7 +11,6 @@ import { provider, type SendMessageReturnType } from "@/providers";
 import server from "@/servers";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
 import useMessageStore from "@/store/useMessageStore";
-import useModelsStore from "@/store/useModelsStore";
 import useProfilesStore, {
   selectCurrentProfile,
 } from "@/store/useProfilesStore";
@@ -48,7 +47,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     clearAttachmentImages,
   } = useAttachmentsStore();
   const currentProfile = useProfilesStore(selectCurrentProfile);
-  const { extendedThinking } = useModelsStore();
+  const extendedThinking = useProfilesStore((s) => s.extendedThinking);
 
   const threadIdRef = useRef(threadId);
 

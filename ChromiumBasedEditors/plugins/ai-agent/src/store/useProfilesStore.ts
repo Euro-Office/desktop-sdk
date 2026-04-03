@@ -5,7 +5,7 @@ import {
   readAllProfiles,
   updateProfile,
 } from "@/database/profiles";
-import { CHAT_PROFILE_KEY } from "@/lib/constants";
+import { CHAT_PROFILE_KEY, DEEP_MODE_KEY } from "@/lib/constants";
 import type { Model, Profile } from "@/lib/types";
 import { provider } from "@/providers";
 import type { TErrorData } from "@/providers/base";
@@ -19,6 +19,7 @@ interface ProfilesState {
   profiles: Profile[];
   defaultChatProfile: Profile | null;
   sessionChatProfile: Profile | null;
+  extendedThinking: boolean;
   init: () => Promise<void>;
   addProfile: (
     data: Omit<Profile, "id">
@@ -28,6 +29,7 @@ interface ProfilesState {
   getProfileById: (id: string) => Profile | null;
   setDefaultChatProfile: (profile: Profile) => void;
   setSessionChatProfile: (profile: Profile | null) => void;
+  toggleExtendedThinking: () => void;
   fetchModelsForProfile: (
     type: Profile["providerType"],
     baseUrl: string,
@@ -175,6 +177,20 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
       { type, name: "", baseUrl, key },
     ]);
     return models.get(type) ?? [];
+  },
+
+  extendedThinking: (() => {
+    const saved = localStorage.getItem(DEEP_MODE_KEY);
+    if (!saved) return false;
+    return JSON.parse(saved);
+  })(),
+
+  toggleExtendedThinking: () => {
+    set((state) => {
+      const next = !state.extendedThinking;
+      localStorage.setItem(DEEP_MODE_KEY, JSON.stringify(next));
+      return { extendedThinking: next };
+    });
   },
 }));
 
