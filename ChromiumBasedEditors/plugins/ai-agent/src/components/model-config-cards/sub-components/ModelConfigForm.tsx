@@ -34,20 +34,11 @@ export const ModelConfigForm = ({
   const { t } = useTranslation();
   const isFieldsDisabled = !values.provider;
 
-  const modelItems =
-    models.length > 0
-      ? models.map((m) => ({
-          text: m.name,
-          id: m.id,
-          onClick: () => onChange("model", m.id),
-        }))
-      : [
-          {
-            text: t("NoModelsFound"),
-            id: "no-models",
-            onClick: () => undefined,
-          },
-        ];
+  const modelItems = models.map((m) => ({
+    text: m.name,
+    id: m.id,
+    onClick: () => onChange("model", m.id),
+  }));
 
   return (
     <div className="flex flex-col mb-[48px]">
@@ -103,7 +94,7 @@ export const ModelConfigForm = ({
           className="w-full"
           placeholder={t("SelectModel")}
           value={models.find((m) => m.id === values.model)?.name}
-          disabled={!values.provider}
+          disabled={!values.provider || models.length === 0}
           items={modelItems}
         />
       </FieldContainer>
