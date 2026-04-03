@@ -20,7 +20,6 @@ import InitialSetup from "./pages/initial-setup";
 import Settings from "./pages/settings";
 import useMessageStore from "./store/useMessageStore";
 import useProfilesStore from "./store/useProfilesStore.ts";
-import useProviders from "./store/useProviders";
 import useRouter from "./store/useRouter";
 import useServersStore from "./store/useServersStore";
 
@@ -32,7 +31,6 @@ const App = () => {
   const [isManageToolOpen, setIsManageToolOpen] = useState(false);
 
   const { messages, stopMessage } = useMessageStore();
-  const { providers, fetchProvidersModels } = useProviders();
   const { currentPage } = useRouter();
   const { manageToolData } = useServersStore();
   const { profiles } = useProfilesStore();
@@ -52,10 +50,6 @@ const App = () => {
   const { onNew, convertMessage, approveToolCall, denyToolCall } = useMessages({
     isReady,
   });
-
-  useEffect(() => {
-    if (providers.length) fetchProvidersModels();
-  }, [providers.length, fetchProvidersModels]);
 
   useEffect(() => {
     if (manageToolData) setIsManageToolOpen(true);

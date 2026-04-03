@@ -5,7 +5,7 @@ import { Tabs } from "@/components/tabs";
 import config from "@/config.json";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
-import useProviders from "@/store/useProviders";
+import useProfilesStore from "@/store/useProfilesStore";
 import { Models } from "./sub-components/models";
 import { Servers } from "./sub-components/servers";
 import { Wallet } from "./sub-components/wallet";
@@ -21,7 +21,7 @@ const Settings = () => {
     showWallet ? "wallet" : "providers"
   );
 
-  const { providers } = useProviders();
+  const profiles = useProfilesStore((s) => s.profiles);
 
   const aiSettingsTab = (
     <div className="flex flex-col gap-[16px] select-none">
@@ -103,13 +103,13 @@ const Settings = () => {
               value: "mcp-servers",
               label: t("MCPServers"),
               content: <Servers />,
-              disabled: !providers.length,
+              disabled: !profiles.length,
             },
             {
               value: "web-search",
               label: t("WebSearch"),
               content: <WebSearch />,
-              disabled: !providers.length,
+              disabled: !profiles.length,
             },
           ]}
         />

@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { provider } from "@/providers";
-import useProviders from "@/store/useProviders";
+import useProfilesStore, {
+  selectCurrentProfile,
+} from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
 
 type UseServersProps = {
@@ -9,7 +11,7 @@ type UseServersProps = {
 
 const useServers = ({ isReady }: UseServersProps) => {
   const { initServers, getTools, tools } = useServersStore();
-  const { currentProvider } = useProviders();
+  const currentProfile = useProfilesStore(selectCurrentProfile);
 
   useEffect(() => {
     if (!isReady) return;
@@ -43,10 +45,10 @@ const useServers = ({ isReady }: UseServersProps) => {
   }, [getTools]);
 
   useEffect(() => {
-    if (!tools || !currentProvider) return;
+    if (!tools || !currentProfile) return;
 
     provider.setCurrentProviderTools(tools);
-  }, [tools, currentProvider]);
+  }, [tools, currentProfile]);
 
   return {};
 };
