@@ -27,6 +27,7 @@ interface ProfilesState {
   editProfile: (profile: Profile) => Promise<boolean | TErrorData | undefined>;
   deleteProfile: (id: string) => Promise<void>;
   getProfileById: (id: string) => Profile | null;
+  getProfileByName: (name: string, ignoreCase?: boolean) => Profile | null;
   setDefaultChatProfile: (profile: Profile) => void;
   setSessionChatProfile: (profile: Profile | null) => void;
   toggleExtendedThinking: () => void;
@@ -142,6 +143,10 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
   },
 
   getProfileById: (id) => get().profiles.find((p) => p.id === id) ?? null,
+  getProfileByName: (name, ignoreCase) =>
+    get().profiles.find((p) =>
+      ignoreCase ? p.name.toLowerCase() === name.toLowerCase() : p.name === name
+    ) ?? null,
 
   setDefaultChatProfile: (profile) => {
     localStorage.setItem(CHAT_PROFILE_KEY, JSON.stringify(profile));
