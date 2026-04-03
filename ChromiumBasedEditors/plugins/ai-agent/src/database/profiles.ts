@@ -1,6 +1,22 @@
 import type { Profile } from "@/lib/types";
 import { chatDB } from "./index";
 
+export const createProfiles = async (profiles: Profile[]): Promise<void> => {
+  const db = chatDB.getDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(["profiles"], "readwrite");
+    const store = transaction.objectStore("profiles");
+
+    for (const profile of profiles) {
+      store.put(profile);
+    }
+
+    transaction.onerror = () => reject(transaction.error);
+    transaction.oncomplete = () => resolve();
+  });
+};
+
 export const createProfile = async (profile: Profile): Promise<void> => {
   const db = chatDB.getDB();
 

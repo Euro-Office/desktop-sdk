@@ -14,6 +14,7 @@ import useMessages from "./hooks/useMessages";
 import useProfiles from "./hooks/useProfiles";
 import useServers from "./hooks/useServers";
 import useThread from "./hooks/useThreads";
+import { migrateProvidersToProfiles } from "./lib/migrateProvidersToProfiles";
 import Thread from "./pages/chat";
 import EmptyScreen from "./pages/empty-screen";
 import InitialSetup from "./pages/initial-setup";
@@ -56,7 +57,10 @@ const App = () => {
   }, [manageToolData]);
 
   useEffect(() => {
-    initChatDB().then(() => setIsReady(true));
+    initChatDB().then(async () => {
+      await migrateProvidersToProfiles();
+      setIsReady(true);
+    });
 
     return () => {
       chatDB.close();
