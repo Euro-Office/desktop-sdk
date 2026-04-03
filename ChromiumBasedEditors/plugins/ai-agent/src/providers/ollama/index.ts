@@ -34,19 +34,13 @@ class OllamaProvider extends OpenAIProvider {
   getProviderModels = async (data: TData): Promise<Model[]> => {
     // Ollama doesn't require an API key, use a dummy value
     const client = this.createClient("ollama", data.url);
+    const response = await client.models.list();
 
-    try {
-      const response = await client.models.list();
-
-      return response.data.map((model) => ({
-        id: model.id,
-        name: ollamaInfo.modelNames[model.id] || model.id,
-        provider: "ollama" as const,
-      }));
-    } catch (error) {
-      console.error("Failed to fetch Ollama models:", error);
-      return [];
-    }
+    return response.data.map((model) => ({
+      id: model.id,
+      name: ollamaInfo.modelNames[model.id] || model.id,
+      provider: "ollama" as const,
+    }));
   };
 }
 

@@ -216,34 +216,29 @@ class MistralProvider extends AbstractBaseProvider<Tool, Messages, Mistral> {
 
   getProviderModels = async (data: TData): Promise<Model[]> => {
     const client = createClient(data.apiKey, data.url);
+    const response = await client.models.list();
+    const models = response.data ?? [];
 
-    try {
-      const response = await client.models.list();
-      const models = response.data ?? [];
+    const result: Model[] = [];
 
-      const result: Model[] = [];
+    for (const model of models) {
+      const matchesFilter =
+        mistralInfo.modelFilters.length === 0 ||
+        mistralInfo.modelFilters.some((f) => model.id?.includes(f));
 
-      for (const model of models) {
-        const matchesFilter =
-          mistralInfo.modelFilters.length === 0 ||
-          mistralInfo.modelFilters.some((f) => model.id?.includes(f));
+      if (!matchesFilter) continue;
 
-        if (!matchesFilter) continue;
+      const displayName =
+        mistralInfo.modelNames[model.id ?? ""] ?? model.id ?? "Unknown";
 
-        const displayName =
-          mistralInfo.modelNames[model.id ?? ""] ?? model.id ?? "Unknown";
-
-        result.push({
-          id: model.id ?? "",
-          name: displayName,
-          provider: "mistral" as const,
-        });
-      }
-
-      return result;
-    } catch {
-      return [];
+      result.push({
+        id: model.id ?? "",
+        name: displayName,
+        provider: "mistral" as const,
+      });
     }
+
+    return result;
   };
 }
 

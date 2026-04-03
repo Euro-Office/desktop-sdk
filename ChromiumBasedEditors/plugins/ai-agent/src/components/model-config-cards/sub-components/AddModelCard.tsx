@@ -50,12 +50,24 @@ export const AddModelCard = ({ onClose }: AddModelCardProps) => {
     baseUrl: string
   ) => {
     if (!baseUrl) return;
+    setErrors({});
     const requestId = ++fetchModelsRequestIdRef.current;
     const providerInfo = provider.getProviderInfo(providerType);
-    const result = await provider.getProvidersModels([
-      { type: providerType, name: providerInfo.name, key: apiKey, baseUrl },
-    ]);
+    const { models: result, errors: fetchErrors } =
+      await provider.getProvidersModels([
+        { type: providerType, name: providerInfo.name, key: apiKey, baseUrl },
+      ]);
     if (requestId !== fetchModelsRequestIdRef.current) return;
+    const fetchError = fetchErrors.get(providerInfo.name);
+    if (fetchError) {
+      setErrors((prev) => ({
+        ...prev,
+        [fetchError.field]: fetchError.message,
+      }));
+      setModels([]);
+      setValues((prev) => ({ ...prev, model: "" }));
+      return;
+    }
     const fetched = result.get(providerInfo.name) ?? [];
     setModels(fetched);
     setValues((prev) => ({ ...prev, model: fetched[0]?.id ?? "" }));

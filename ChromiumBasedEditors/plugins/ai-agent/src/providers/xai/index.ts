@@ -14,34 +14,30 @@ class XAIProvider extends OpenAIProvider {
   getProviderModels = async (data: TData): Promise<Model[]> => {
     const client = this.createClient(data.apiKey, data.url || xaiInfo.baseUrl);
 
-    try {
-      const response = (await client.models.list()).data;
+    const response = (await client.models.list()).data;
 
-      const models: Model[] =
-        xaiInfo.modelFilters.length > 0
-          ? response
-              .filter((model) => xaiInfo.modelFilters.includes(model.id))
-              .map((model) => {
-                const baseName = xaiInfo.modelNames[model.id] || model.id;
+    const models: Model[] =
+      xaiInfo.modelFilters.length > 0
+        ? response
+            .filter((model) => xaiInfo.modelFilters.includes(model.id))
+            .map((model) => {
+              const baseName = xaiInfo.modelNames[model.id] || model.id;
 
-                return {
-                  id: model.id,
-                  name: baseName,
-                  provider: "xai" as const,
-                  reasoning: model.id.includes("reasoning"),
-                };
-              })
-          : response.map((model) => ({
-              id: model.id,
-              name: model.id,
-              provider: "xai" as const,
-              reasoning: model.id.includes("reasoning"),
-            }));
+              return {
+                id: model.id,
+                name: baseName,
+                provider: "xai" as const,
+                reasoning: model.id.includes("reasoning"),
+              };
+            })
+        : response.map((model) => ({
+            id: model.id,
+            name: model.id,
+            provider: "xai" as const,
+            reasoning: model.id.includes("reasoning"),
+          }));
 
-      return models.reverse();
-    } catch {
-      return [];
-    }
+    return models.reverse();
   };
 }
 
