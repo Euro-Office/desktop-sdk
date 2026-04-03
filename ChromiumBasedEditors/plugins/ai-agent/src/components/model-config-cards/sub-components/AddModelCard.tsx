@@ -50,6 +50,14 @@ export const AddModelCard = ({ onClose }: AddModelCardProps) => {
     baseUrl: string
   ) => {
     if (!baseUrl) return;
+    try {
+      new URL(baseUrl);
+    } catch {
+      setErrors((prev) => ({ ...prev, url: t("InvalidUrl") }));
+      setModels([]);
+      setValues((prev) => ({ ...prev, model: "" }));
+      return;
+    }
     setErrors({});
     const requestId = ++fetchModelsRequestIdRef.current;
     const providerInfo = provider.getProviderInfo(providerType);

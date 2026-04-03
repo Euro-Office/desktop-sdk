@@ -54,6 +54,13 @@ export const EditModelCard = ({
     baseUrl: string
   ) => {
     if (!baseUrl) return;
+    try {
+      new URL(baseUrl);
+    } catch {
+      setErrors((prev) => ({ ...prev, url: t("InvalidUrl") }));
+      setModels([]);
+      return;
+    }
     setErrors({});
     const requestId = ++fetchModelsRequestIdRef.current;
     const providerInfo = provider.getProviderInfo(providerType);
