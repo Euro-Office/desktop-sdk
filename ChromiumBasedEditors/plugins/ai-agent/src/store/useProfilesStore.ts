@@ -40,28 +40,25 @@ interface ProfilesState {
 
 const useProfilesStore = create<ProfilesState>()((set, get) => ({
   profiles: [],
-  defaultChatProfile: (() => {
-    const saved = localStorage.getItem(CHAT_PROFILE_KEY);
-
-    if (!saved) return null;
-
-    const parsed: Profile = JSON.parse(saved);
-
-    provider.setCurrentProvider({
-      type: parsed.providerType,
-      name: parsed.name,
-      baseUrl: parsed.baseUrl,
-      key: parsed.key,
-    });
-    provider.setCurrentProviderModel(parsed.modelId, parsed.reasoning);
-
-    return parsed;
-  })(),
+  defaultChatProfile: null,
   sessionChatProfile: null,
 
   init: async () => {
     const profiles = await readAllProfiles();
     set({ profiles });
+
+    const saved = localStorage.getItem(CHAT_PROFILE_KEY);
+    if (saved) {
+      const parsed: Profile = JSON.parse(saved);
+      const matched = profiles.find((p) => p.id === parsed.id);
+      if (matched) {
+        get().setDefaultChatProfile(matched);
+        return;
+      }
+    }
+
+    const first = profiles[0];
+    if (first) get().setDefaultChatProfile(first);
   },
 
   addProfile: async (data) => {
