@@ -80,6 +80,14 @@ export const EditModelCard = ({
     }
     const fetched = result.get(providerInfo.name) ?? [];
     setModels(fetched);
+    const firstModel = fetched[0];
+    setValues((prev) => ({
+      ...prev,
+      model: firstModel?.id ?? "",
+      ...(firstModel && {
+        profileName: `${providerInfo.name} - ${firstModel.name}`,
+      }),
+    }));
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: fetch models once on mount using initial profile values
