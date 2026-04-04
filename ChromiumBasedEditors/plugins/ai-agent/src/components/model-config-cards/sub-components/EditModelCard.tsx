@@ -12,6 +12,7 @@ interface EditModelCardProps {
   profile: Profile;
   onClose: () => void;
   onDelete: () => void;
+  isHorizontal?: boolean;
 }
 
 const profileToFormValues = (p: Profile): ModelFormValues => ({
@@ -26,6 +27,7 @@ export const EditModelCard = ({
   profile,
   onClose,
   onDelete,
+  isHorizontal,
 }: EditModelCardProps) => {
   const { t } = useTranslation();
   const { editProfile } = useProfilesStore();
@@ -98,6 +100,7 @@ export const EditModelCard = ({
         onChange={handleChange}
         models={models}
         errors={errors}
+        isHorizontal={isHorizontal}
       />
 
       <div className="flex flex-row justify-between items-center">

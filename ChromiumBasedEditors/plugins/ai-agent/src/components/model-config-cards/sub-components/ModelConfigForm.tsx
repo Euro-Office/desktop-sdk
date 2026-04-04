@@ -23,6 +23,7 @@ interface ModelConfigFormProps {
   onChange: (field: keyof ModelFormValues, value: string) => void;
   models: Model[];
   errors?: ModelFormErrors;
+  isHorizontal?: boolean;
 }
 
 export const ModelConfigForm = ({
@@ -30,6 +31,7 @@ export const ModelConfigForm = ({
   onChange,
   models,
   errors,
+  isHorizontal,
 }: ModelConfigFormProps) => {
   const { t } = useTranslation();
   const isFieldsDisabled = !values.provider;
@@ -44,9 +46,9 @@ export const ModelConfigForm = ({
     <div className="flex flex-col mb-[26px]">
       <FieldContainer
         header={t("Provider")}
-        isHorizontal
+        isHorizontal={isHorizontal}
         reserveErrorSpace={false}
-        className="mb-[10px]"
+        className={isHorizontal ? "mb-[10px]" : "mb-[16px]"}
       >
         <ComboBox
           className="w-full"
@@ -61,9 +63,10 @@ export const ModelConfigForm = ({
       </FieldContainer>
 
       <FieldContainer
-        className="mb-[10px]"
+        className={isHorizontal ? "mb-[10px]" : "mb-[16px]"}
         header={t("APIKey")}
-        isHorizontal
+        isHorizontal={isHorizontal}
+        reserveErrorSpace={isHorizontal}
         action={<Link href="#">{t("GetAPIKey")}</Link>}
         error={errors?.key}
       >
@@ -79,9 +82,10 @@ export const ModelConfigForm = ({
       </FieldContainer>
 
       <FieldContainer
-        className="mb-[10px]"
+        className={isHorizontal ? "mb-[10px]" : "mb-[16px]"}
         header={t("BaseURL")}
-        isHorizontal
+        isHorizontal={isHorizontal}
+        reserveErrorSpace={isHorizontal}
         error={errors?.url}
       >
         <Input
@@ -94,7 +98,12 @@ export const ModelConfigForm = ({
         />
       </FieldContainer>
 
-      <FieldContainer className="mb-[10px]" header={t("Model")} isHorizontal>
+      <FieldContainer
+        className={isHorizontal ? "mb-[10px]" : "mb-[16px]"}
+        header={t("Model")}
+        isHorizontal={isHorizontal}
+        reserveErrorSpace={isHorizontal}
+      >
         <ComboBox
           className="w-full"
           placeholder={t("SelectModel")}
@@ -105,8 +114,10 @@ export const ModelConfigForm = ({
       </FieldContainer>
 
       <FieldContainer
+        className={isHorizontal ? undefined : "mb-[16px]"}
         header={t("ProfileName")}
-        isHorizontal
+        isHorizontal={isHorizontal}
+        reserveErrorSpace={isHorizontal}
         error={errors?.name}
       >
         <Input

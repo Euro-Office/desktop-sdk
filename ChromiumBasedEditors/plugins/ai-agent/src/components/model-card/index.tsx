@@ -36,6 +36,7 @@ const ModelCard = ({ profile }: ModelCardProps) => {
           profile={profile}
           onClose={() => setIsEditing(false)}
           onDelete={() => setIsDeleteOpen(true)}
+          isHorizontal
         />
         {isDeleteOpen && (
           <DeleteProfileDialog

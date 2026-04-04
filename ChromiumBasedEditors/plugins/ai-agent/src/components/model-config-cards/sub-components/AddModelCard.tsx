@@ -20,9 +20,10 @@ const INITIAL_VALUES: ModelFormValues = {
 
 interface AddModelCardProps {
   onClose?: () => void;
+  isHorizontal?: boolean;
 }
 
-export const AddModelCard = ({ onClose }: AddModelCardProps) => {
+export const AddModelCard = ({ onClose, isHorizontal }: AddModelCardProps) => {
   const { t } = useTranslation();
   const { addProfile } = useProfilesStore();
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
@@ -73,6 +74,7 @@ export const AddModelCard = ({ onClose }: AddModelCardProps) => {
         onChange={handleChange}
         models={models}
         errors={errors}
+        isHorizontal={isHorizontal}
       />
 
       <div className="flex flex-row justify-between items-center">

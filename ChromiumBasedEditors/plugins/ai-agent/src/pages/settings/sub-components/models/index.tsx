@@ -13,7 +13,7 @@ export const Models = () => {
   return (
     <div className="flex flex-col gap-[16px] select-none">
       {isAddCardOpen ? (
-        <AddModelCard onClose={() => setIsAddCardOpen(false)} />
+        <AddModelCard onClose={() => setIsAddCardOpen(false)} isHorizontal />
       ) : (
         <Button className="self-start" onClick={() => setIsAddCardOpen(true)}>
           {t("AddModel")}

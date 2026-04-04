@@ -21,7 +21,7 @@ const InitialSetup = () => {
         </p>
 
         {isAddCardOpen ? (
-          <AddModelCard onClose={() => setIsAddCardOpen(false)} />
+          <AddModelCard onClose={() => setIsAddCardOpen(false)} isHorizontal />
         ) : (
           <Button
             className="self-start mb-[16px]"
