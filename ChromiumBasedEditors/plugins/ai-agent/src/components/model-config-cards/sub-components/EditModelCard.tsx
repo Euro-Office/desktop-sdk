@@ -151,6 +151,20 @@ export const EditModelCard = ({
       );
       return;
     }
+    if (field === "model") {
+      const modelObj = models.find((m) => m.id === value);
+      const providerInfo = provider.getProviderInfo(
+        values.provider as ProviderType
+      );
+      setValues((prev) => ({
+        ...prev,
+        model: value,
+        ...(modelObj && {
+          profileName: `${providerInfo.name} - ${modelObj.name}`,
+        }),
+      }));
+      return;
+    }
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 

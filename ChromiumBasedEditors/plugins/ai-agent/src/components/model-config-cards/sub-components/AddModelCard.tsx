@@ -78,7 +78,14 @@ export const AddModelCard = ({ onClose }: AddModelCardProps) => {
     }
     const fetched = result.get(providerInfo.name) ?? [];
     setModels(fetched);
-    setValues((prev) => ({ ...prev, model: fetched[0]?.id ?? "" }));
+    const firstModel = fetched[0];
+    setValues((prev) => ({
+      ...prev,
+      model: firstModel?.id ?? "",
+      ...(firstModel && {
+        profileName: `${providerInfo.name} - ${firstModel.name}`,
+      }),
+    }));
   };
 
   const debouncedFetchModels = useDebouncedCallback(fetchModels, 500);
@@ -148,6 +155,20 @@ export const AddModelCard = ({ onClose }: AddModelCardProps) => {
         values.apiKey,
         value
       );
+      return;
+    }
+    if (field === "model") {
+      const modelObj = models.find((m) => m.id === value);
+      const providerInfo = provider.getProviderInfo(
+        values.provider as ProviderType
+      );
+      setValues((prev) => ({
+        ...prev,
+        model: value,
+        ...(modelObj && {
+          profileName: `${providerInfo.name} - ${modelObj.name}`,
+        }),
+      }));
       return;
     }
     setValues((prev) => ({ ...prev, [field]: value }));
