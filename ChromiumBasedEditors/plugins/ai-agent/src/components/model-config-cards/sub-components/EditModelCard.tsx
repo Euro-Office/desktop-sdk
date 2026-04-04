@@ -1,17 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/button";
 import { Icon } from "@/components/icon";
-import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
-import type { Model, Profile, ProviderType } from "@/lib/types";
-import { provider } from "@/providers";
+import type { Profile, ProviderType } from "@/lib/types";
 import useProfilesStore from "@/store/useProfilesStore";
+import { useModelForm } from "../hooks/useModelForm";
 import { ModelCardShell } from "./ModelCardShell";
-import {
-  ModelConfigForm,
-  type ModelFormErrors,
-  type ModelFormValues,
-} from "./ModelConfigForm";
+import { ModelConfigForm, type ModelFormValues } from "./ModelConfigForm";
 
 interface EditModelCardProps {
   profile: Profile;
@@ -35,146 +30,24 @@ export const EditModelCard = ({
   const { t } = useTranslation();
   const { editProfile } = useProfilesStore();
   const initialValues = profileToFormValues(profile);
-  const [values, setValues] = useState<ModelFormValues>(initialValues);
-  const [models, setModels] = useState<Model[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<ModelFormErrors>({});
-  const fetchModelsRequestIdRef = useRef(0);
 
-  const isSaveDisabled =
-    isLoading ||
-    !values.provider ||
-    !values.baseUrl ||
-    !values.model ||
-    !values.profileName;
-
-  const fetchModels = async (
-    providerType: ProviderType,
-    apiKey: string,
-    baseUrl: string
-  ) => {
-    if (!baseUrl) return;
-    try {
-      new URL(baseUrl);
-    } catch {
-      setErrors((prev) => ({ ...prev, url: t("InvalidUrl") }));
-      setModels([]);
-      return;
-    }
-    setErrors({});
-    const requestId = ++fetchModelsRequestIdRef.current;
-    const providerInfo = provider.getProviderInfo(providerType);
-    const { models: result, errors: fetchErrors } =
-      await provider.getProvidersModels([
-        { type: providerType, name: providerInfo.name, key: apiKey, baseUrl },
-      ]);
-    if (requestId !== fetchModelsRequestIdRef.current) return;
-    const fetchError = fetchErrors.get(providerInfo.name);
-    if (fetchError) {
-      setErrors((prev) => ({
-        ...prev,
-        [fetchError.field]: fetchError.message,
-      }));
-      setModels([]);
-      return;
-    }
-    const fetched = result.get(providerInfo.name) ?? [];
-    setModels(fetched);
-    const firstModel = fetched[0];
-    setValues((prev) => ({
-      ...prev,
-      model: firstModel?.id ?? "",
-      ...(firstModel && {
-        profileName: `${providerInfo.name} - ${firstModel.name}`,
-      }),
-    }));
-  };
+  const {
+    values,
+    setIsLoading,
+    errors,
+    setErrors,
+    isFormValid,
+    fetchModels,
+    handleChange,
+    models,
+  } = useModelForm(initialValues);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: fetch models once on mount using initial profile values
   useEffect(() => {
-    const providerInfo = provider.getProviderInfo(profile.providerType);
-    provider
-      .getProvidersModels([
-        {
-          type: profile.providerType,
-          name: providerInfo.name,
-          key: profile.key,
-          baseUrl: profile.baseUrl,
-        },
-      ])
-      .then(({ models: result, errors: fetchErrors }) => {
-        if (fetchModelsRequestIdRef.current > 0) return;
-        const fetchError = fetchErrors.get(providerInfo.name);
-        if (fetchError) {
-          setErrors({ [fetchError.field]: fetchError.message });
-          return;
-        }
-        setModels(result.get(providerInfo.name) ?? []);
-      });
+    fetchModels(profile.providerType, profile.key ?? "", profile.baseUrl, {
+      keepModelIfExists: true,
+    });
   }, []);
-
-  const debouncedFetchModels = useDebouncedCallback(fetchModels, 500);
-
-  const fieldToErrorKey: Partial<
-    Record<keyof ModelFormValues, keyof ModelFormErrors>
-  > = {
-    apiKey: "key",
-    baseUrl: "url",
-    profileName: "name",
-  };
-
-  const handleChange = (field: keyof ModelFormValues, value: string) => {
-    const errorKey = fieldToErrorKey[field];
-    if (errorKey) setErrors((prev) => ({ ...prev, [errorKey]: undefined }));
-
-    if (field === "provider") {
-      const providerInfo = provider.getProviderInfo(value as ProviderType);
-      const newBaseUrl = providerInfo.baseUrl ?? "";
-
-      setValues((prev) => ({
-        ...prev,
-        provider: value,
-        baseUrl: newBaseUrl,
-        model: "",
-      }));
-      setModels([]);
-      fetchModels(value as ProviderType, values.apiKey, newBaseUrl);
-      return;
-    }
-    if (field === "apiKey") {
-      setValues((prev) => ({ ...prev, apiKey: value }));
-      debouncedFetchModels(
-        values.provider as ProviderType,
-        value,
-        values.baseUrl
-      );
-      return;
-    }
-    if (field === "baseUrl") {
-      setValues((prev) => ({ ...prev, baseUrl: value }));
-      debouncedFetchModels(
-        values.provider as ProviderType,
-        values.apiKey,
-        value
-      );
-      return;
-    }
-    if (field === "model") {
-      const modelObj = models.find((m) => m.id === value);
-      const providerInfo = provider.getProviderInfo(
-        values.provider as ProviderType
-      );
-      setValues((prev) => ({
-        ...prev,
-        model: value,
-        ...(modelObj && {
-          profileName: `${providerInfo.name} - ${modelObj.name}`,
-        }),
-      }));
-      return;
-    }
-    setValues((prev) => ({ ...prev, [field]: value }));
-  };
 
   const handleSave = async () => {
     const hasChanges = (
@@ -236,7 +109,7 @@ export const EditModelCard = ({
           <Button variant="default" onClick={onClose}>
             {t("Cancel")}
           </Button>
-          <Button disabled={isSaveDisabled} onClick={handleSave}>
+          <Button disabled={!isFormValid} onClick={handleSave}>
             {t("SaveChanges")}
           </Button>
         </div>
