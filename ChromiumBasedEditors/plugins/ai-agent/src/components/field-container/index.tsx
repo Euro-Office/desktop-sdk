@@ -33,7 +33,7 @@ const FieldContainer = ({
   header,
   error,
   isHorizontal,
-  reserveErrorSpace = true,
+  reserveErrorSpace,
   action,
   className,
 }: FieldContainerProps) => {
