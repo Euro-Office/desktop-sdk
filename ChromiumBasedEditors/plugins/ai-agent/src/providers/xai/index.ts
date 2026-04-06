@@ -16,26 +16,12 @@ class XAIProvider extends OpenAIProvider {
 
     const response = (await client.models.list()).data;
 
-    const models: Model[] =
-      xaiInfo.modelFilters.length > 0
-        ? response
-            .filter((model) => xaiInfo.modelFilters.includes(model.id))
-            .map((model) => {
-              const baseName = xaiInfo.modelNames[model.id] || model.id;
-
-              return {
-                id: model.id,
-                name: baseName,
-                provider: "xai" as const,
-                reasoning: model.id.includes("reasoning"),
-              };
-            })
-        : response.map((model) => ({
-            id: model.id,
-            name: model.id,
-            provider: "xai" as const,
-            reasoning: model.id.includes("reasoning"),
-          }));
+    const models: Model[] = response.map((model) => ({
+      id: model.id,
+      name: xaiInfo.modelNames[model.id] || model.id,
+      provider: "xai" as const,
+      reasoning: model.id.includes("reasoning"),
+    }));
 
     return models.reverse();
   };

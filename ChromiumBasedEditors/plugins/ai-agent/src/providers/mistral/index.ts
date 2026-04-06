@@ -222,12 +222,6 @@ class MistralProvider extends AbstractBaseProvider<Tool, Messages, Mistral> {
     const result: Model[] = [];
 
     for (const model of models) {
-      const matchesFilter =
-        mistralInfo.modelFilters.length === 0 ||
-        mistralInfo.modelFilters.some((f) => model.id?.includes(f));
-
-      if (!matchesFilter) continue;
-
       const displayName =
         mistralInfo.modelNames[model.id ?? ""] ?? model.id ?? "Unknown";
 

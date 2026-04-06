@@ -1,11 +1,6 @@
 export const mistralInfo = {
   name: "Mistral",
   baseUrl: "https://api.mistral.ai",
-  modelFilters: [
-    "mistral-large-latest",
-    "mistral-medium-latest",
-    "mistral-small-latest",
-  ] as string[],
   modelNames: {
     "mistral-large-latest": "Mistral Large",
     "mistral-medium-latest": "Mistral Medium",

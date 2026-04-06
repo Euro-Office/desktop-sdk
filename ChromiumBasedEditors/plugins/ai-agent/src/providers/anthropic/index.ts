@@ -268,11 +268,6 @@ class AnthropicProvider extends AbstractBaseProvider<
     const result: Model[] = [];
 
     for (const model of models) {
-      const matchesFilter = anthropicInfo.modelFilters.some((f) =>
-        model.id.includes(f)
-      );
-      if (!matchesFilter) continue;
-
       const displayName =
         anthropicInfo.modelNames[model.id] || model.display_name;
 

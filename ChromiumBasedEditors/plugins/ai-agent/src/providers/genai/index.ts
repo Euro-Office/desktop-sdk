@@ -298,13 +298,11 @@ class GenAIProvider extends AbstractBaseProvider<
       for (const model of page) {
         const modelId = model.name?.replace("models/", "") ?? "";
 
-        if (genaiInfo.modelFilters.includes(modelId)) {
-          models.push({
-            id: modelId,
-            name: genaiInfo.modelNames[modelId] || model.displayName || modelId,
-            provider: "genai" as const,
-          });
-        }
+        models.push({
+          id: modelId,
+          name: genaiInfo.modelNames[modelId] || model.displayName || modelId,
+          provider: "genai" as const,
+        });
       }
 
       if (!pager.hasNextPage()) break;
