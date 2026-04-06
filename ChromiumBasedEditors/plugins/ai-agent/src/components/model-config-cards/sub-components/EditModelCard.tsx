@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/button";
 import { Icon } from "@/components/icon";
+import { ProviderLogo } from "@/components/provider-logo";
 import type { Profile, ProviderType } from "@/lib/types";
 import useProfilesStore from "@/store/useProfilesStore";
 import { useModelForm } from "../hooks/useModelForm";
@@ -89,7 +90,7 @@ export const EditModelCard = ({
       </h3>
 
       <div className="flex flex-row items-center gap-[12px] mb-[16px]">
-        <div className="w-[32px] h-[32px] shrink-0 rounded-[var(--model-card-logo-border-radius)] border border-[var(--model-card-logo-border-color)]" />
+        <ProviderLogo providerType={values.provider as ProviderType} />
         <p className="text-[14px] leading-[20px] text-[var(--text-color)] truncate">
           {values.profileName}
         </p>
