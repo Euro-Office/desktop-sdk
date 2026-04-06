@@ -9,6 +9,7 @@ type FieldContainerProps = {
   reserveErrorSpace?: boolean;
   action?: React.ReactNode;
   className?: string;
+  headerClassName?: string;
 };
 
 const ErrorBlock = ({ error }: { error: string }) => (
@@ -36,6 +37,7 @@ const FieldContainer = ({
   reserveErrorSpace,
   action,
   className,
+  headerClassName,
 }: FieldContainerProps) => {
   return (
     <div className={cn(className, "flex flex-col w-full gap-[2px]")}>
@@ -52,13 +54,23 @@ const FieldContainer = ({
       >
         {!isHorizontal ? (
           <div className="flex justify-between items-center w-full mb-[2px]">
-            <p className="select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)]">
+            <p
+              className={cn(
+                "select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)]",
+                headerClassName
+              )}
+            >
               {header}
             </p>
             {action}
           </div>
         ) : (
-          <p className="select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)] w-full max-w-[160px] shrink-0">
+          <p
+            className={cn(
+              "select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)] w-full max-w-[160px] shrink-0",
+              headerClassName
+            )}
+          >
             {header}
           </p>
         )}

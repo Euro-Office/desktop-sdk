@@ -6,6 +6,7 @@ import config from "@/config.json";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import useProfilesStore from "@/store/useProfilesStore";
+import { ModelAssignment } from "./sub-components/model-assignment";
 import { Models } from "./sub-components/models";
 import { Servers } from "./sub-components/servers";
 import { Wallet } from "./sub-components/wallet";
@@ -98,6 +99,12 @@ const Settings = () => {
               value: "ai-settings",
               label: t("Connection"),
               content: aiSettingsTab,
+            },
+            {
+              value: "model-assignment",
+              label: t("ModelAssignment"),
+              content: <ModelAssignment />,
+              disabled: !profiles.length,
             },
             {
               value: "mcp-servers",
