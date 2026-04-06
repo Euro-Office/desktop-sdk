@@ -31,7 +31,7 @@ class TogetherProvider extends OpenAIProvider {
 
     return models.map((model: { id: string }) => ({
       id: model.id,
-      name: togetherInfo.modelNames[model.id] || model.id,
+      name: model.id,
       provider: "together" as const,
     }));
   };

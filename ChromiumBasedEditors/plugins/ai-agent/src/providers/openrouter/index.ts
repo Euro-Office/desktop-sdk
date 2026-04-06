@@ -51,7 +51,7 @@ class OpenRouterProvider extends OpenAIProvider {
 
     return response.map((model) => ({
       id: model.id,
-      name: openrouterInfo.modelNames[model.id] || model.id.toUpperCase(),
+      name: model.id,
       provider: "openrouter" as const,
       reasoning: openrouterInfo.reasoningModels.includes(model.id),
     }));

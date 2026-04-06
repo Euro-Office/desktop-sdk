@@ -425,12 +425,9 @@ class OpenAIProvider extends AbstractBaseProvider<
     const response: OpenAIModel[] = (await client.models.list()).data;
 
     return response.map((model) => {
-      const baseName =
-        openaiInfo.modelNames[model.id] || model.id.toUpperCase();
-
       return {
         id: `${model.id}`,
-        name: baseName,
+        name: model.id,
         provider: "openai" as const,
         reasoning: openaiInfo.reasoningModels.includes(model.id),
       };

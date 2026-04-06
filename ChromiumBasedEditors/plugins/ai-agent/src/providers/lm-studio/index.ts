@@ -47,7 +47,7 @@ class LMStudioProvider extends OpenAIProvider {
 
     return response.data.map((model) => ({
       id: model.id,
-      name: lmStudioInfo.modelNames[model.id] || model.id,
+      name: model.id,
       provider: "lm-studio" as const,
     }));
   };

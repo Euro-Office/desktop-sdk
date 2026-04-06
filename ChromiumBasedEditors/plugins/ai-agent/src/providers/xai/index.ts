@@ -18,7 +18,7 @@ class XAIProvider extends OpenAIProvider {
 
     const models: Model[] = response.map((model) => ({
       id: model.id,
-      name: xaiInfo.modelNames[model.id] || model.id,
+      name: model.id,
       provider: "xai" as const,
       reasoning: model.id.includes("reasoning"),
     }));

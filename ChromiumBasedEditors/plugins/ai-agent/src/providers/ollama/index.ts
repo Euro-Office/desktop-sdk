@@ -38,7 +38,7 @@ class OllamaProvider extends OpenAIProvider {
 
     return response.data.map((model) => ({
       id: model.id,
-      name: ollamaInfo.modelNames[model.id] || model.id,
+      name: model.id,
       provider: "ollama" as const,
     }));
   };

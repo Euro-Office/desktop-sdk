@@ -300,7 +300,7 @@ class GenAIProvider extends AbstractBaseProvider<
 
         models.push({
           id: modelId,
-          name: genaiInfo.modelNames[modelId] || model.displayName || modelId,
+          name: model.displayName || modelId,
           provider: "genai" as const,
         });
       }

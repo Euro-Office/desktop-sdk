@@ -268,12 +268,9 @@ class AnthropicProvider extends AbstractBaseProvider<
     const result: Model[] = [];
 
     for (const model of models) {
-      const displayName =
-        anthropicInfo.modelNames[model.id] || model.display_name;
-
       result.push({
         id: model.id,
-        name: displayName,
+        name: model.display_name,
         provider: "anthropic" as const,
         reasoning: anthropicInfo.thinkingModels.some((t) =>
           model.id.includes(t)

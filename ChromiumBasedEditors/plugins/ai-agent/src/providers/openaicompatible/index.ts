@@ -26,7 +26,7 @@ class OpenAICompatibleProvider extends OpenAIProvider {
 
     return response.data.map((model) => ({
       id: model.id,
-      name: openaicompatibleInfo.modelNames[model.id] || model.id,
+      name: model.id,
       provider: "openaicompatible" as const,
     }));
   };
