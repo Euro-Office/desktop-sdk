@@ -41,6 +41,7 @@ const ModelAssignment = () => {
           isHorizontal
           reserveErrorSpace={false}
           className="mb-[24px]"
+          icon="ask-ai"
         >
           <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
         </FieldContainer>
@@ -50,6 +51,7 @@ const ModelAssignment = () => {
           isHorizontal
           reserveErrorSpace={false}
           className="mb-[24px]"
+          icon="summarization"
         >
           <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
         </FieldContainer>
@@ -59,6 +61,7 @@ const ModelAssignment = () => {
           isHorizontal
           reserveErrorSpace={false}
           className="mb-[24px]"
+          icon="translation"
         >
           <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
         </FieldContainer>
@@ -68,6 +71,7 @@ const ModelAssignment = () => {
           isHorizontal
           reserveErrorSpace={false}
           className="mb-[24px]"
+          icon="text-analysis-ai"
         >
           <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
         </FieldContainer>
@@ -77,6 +81,7 @@ const ModelAssignment = () => {
           isHorizontal
           reserveErrorSpace={false}
           className="mb-[24px]"
+          icon="image-generation"
         >
           <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
         </FieldContainer>
@@ -86,6 +91,7 @@ const ModelAssignment = () => {
           isHorizontal
           reserveErrorSpace={false}
           className="mb-[24px]"
+          icon="ocr"
         >
           <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
         </FieldContainer>
@@ -95,6 +101,7 @@ const ModelAssignment = () => {
           isHorizontal
           reserveErrorSpace={false}
           className="mb-[24px]"
+          icon="vision-ai"
         >
           <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
         </FieldContainer>

@@ -1,9 +1,11 @@
+import { Icon } from "@/components/icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 type FieldContainerProps = {
   children: React.ReactNode;
   header: string;
+  icon?: string;
   error?: string;
   isHorizontal?: boolean;
   reserveErrorSpace?: boolean;
@@ -32,6 +34,7 @@ const ErrorBlock = ({ error }: { error: string }) => (
 const FieldContainer = ({
   children,
   header,
+  icon,
   error,
   isHorizontal,
   reserveErrorSpace,
@@ -54,6 +57,22 @@ const FieldContainer = ({
       >
         {!isHorizontal ? (
           <div className="flex justify-between items-center w-full mb-[2px]">
+            <div className="flex items-center gap-[8px]">
+              {icon && <Icon name={icon} size={20} />}
+              <p
+                className={cn(
+                  "select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)]",
+                  headerClassName
+                )}
+              >
+                {header}
+              </p>
+            </div>
+            {action}
+          </div>
+        ) : (
+          <div className="flex items-center gap-[8px] w-full max-w-[160px] shrink-0">
+            {icon && <Icon name={icon} size={20} />}
             <p
               className={cn(
                 "select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)]",
@@ -62,17 +81,7 @@ const FieldContainer = ({
             >
               {header}
             </p>
-            {action}
           </div>
-        ) : (
-          <p
-            className={cn(
-              "select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)] w-full max-w-[160px] shrink-0",
-              headerClassName
-            )}
-          >
-            {header}
-          </p>
         )}
 
         <div
