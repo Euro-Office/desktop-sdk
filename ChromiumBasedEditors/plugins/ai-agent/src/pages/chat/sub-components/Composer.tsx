@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import { FileItem } from "@/components/file-item";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
 import useProfilesStore, {
-  selectCurrentProfile,
+  selectCurrentChatProfile,
 } from "@/store/useProfilesStore";
 import { ComposerAction } from "./ComposerAction";
 
 const Composer = () => {
   const { attachmentFiles, attachmentImages } = useAttachmentsStore();
-  const currentProfile = useProfilesStore(selectCurrentProfile);
+  const currentProfile = useProfilesStore(selectCurrentChatProfile);
   const { t } = useTranslation();
 
   return (

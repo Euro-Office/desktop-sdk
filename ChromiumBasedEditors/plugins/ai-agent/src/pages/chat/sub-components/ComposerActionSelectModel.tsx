@@ -5,13 +5,13 @@ import type { Profile } from "@/lib/types";
 import { provider } from "@/providers";
 import useMessageStore from "@/store/useMessageStore";
 import useProfilesStore, {
-  selectCurrentProfile,
+  selectCurrentChatProfile,
 } from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
 
 const SelectModel = () => {
   const { profiles, setSessionChatProfile } = useProfilesStore();
-  const currentProfile = useProfilesStore(selectCurrentProfile);
+  const currentProfile = useProfilesStore(selectCurrentChatProfile);
   const { tools } = useServersStore();
   const { messages } = useMessageStore();
   const { t } = useTranslation();

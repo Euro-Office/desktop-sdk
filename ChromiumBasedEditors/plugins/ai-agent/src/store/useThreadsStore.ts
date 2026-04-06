@@ -71,7 +71,8 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
   },
   migrateThreadFromProviderModelToProfile: (thread) => {
     const { provider, model, ...rest } = thread;
-    const { profiles, defaultChatProfile } = useProfilesStore.getState();
+    const { profiles, chatProfile, defaultProfile } =
+      useProfilesStore.getState();
 
     const matched =
       profiles.find(
@@ -87,7 +88,8 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
           p.baseUrl === provider?.baseUrl &&
           p.modelId === model?.id
       ) ??
-      defaultChatProfile;
+      chatProfile ??
+      defaultProfile;
 
     const migratedThread: Thread = { ...rest, profileId: matched?.id };
 

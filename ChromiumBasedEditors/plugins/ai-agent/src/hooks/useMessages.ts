@@ -12,7 +12,7 @@ import server from "@/servers";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
 import useMessageStore from "@/store/useMessageStore";
 import useProfilesStore, {
-  selectCurrentProfile,
+  selectCurrentChatProfile,
 } from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
 import useThreadsStore from "@/store/useThreadsStore";
@@ -46,7 +46,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     attachmentImages,
     clearAttachmentImages,
   } = useAttachmentsStore();
-  const currentProfile = useProfilesStore(selectCurrentProfile);
+  const currentProfile = useProfilesStore(selectCurrentChatProfile);
   const extendedThinking = useProfilesStore((s) => s.extendedThinking);
 
   const threadIdRef = useRef(threadId);

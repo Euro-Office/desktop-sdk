@@ -2,7 +2,7 @@ import { ComposerPrimitive, ThreadPrimitive } from "@assistant-ui/react";
 import { IconButton } from "@/components/icon-button";
 import useMessageStore from "@/store/useMessageStore";
 import useProfilesStore, {
-  selectCurrentProfile,
+  selectCurrentChatProfile,
 } from "@/store/useProfilesStore";
 
 const BUTTON_STYLES =
@@ -10,7 +10,7 @@ const BUTTON_STYLES =
 
 const ComposerActionSend = () => {
   const { isStreamRunning } = useMessageStore();
-  const currentProfile = useProfilesStore(selectCurrentProfile);
+  const currentProfile = useProfilesStore(selectCurrentChatProfile);
 
   return isStreamRunning ? (
     <ComposerPrimitive.Cancel asChild>

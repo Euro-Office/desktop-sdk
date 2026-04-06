@@ -5,7 +5,17 @@ import {
   readAllProfiles,
   updateProfile,
 } from "@/database/profiles";
-import { CHAT_PROFILE_KEY, DEEP_MODE_KEY } from "@/lib/constants";
+import {
+  CHAT_PROFILE_KEY,
+  DEEP_MODE_KEY,
+  DEFAULT_PROFILE_KEY,
+  IMAGE_GENERATION_PROFILE_KEY,
+  OCR_PROFILE_KEY,
+  SUMMARIZATION_PROFILE_KEY,
+  TEXT_ANALYSIS_PROFILE_KEY,
+  TRANSLATION_PROFILE_KEY,
+  VISION_PROFILE_KEY,
+} from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 import { provider } from "@/providers";
 import type { TErrorData } from "@/providers/base";
@@ -15,9 +25,56 @@ const NAME_EXISTS_ERROR = {
   message: "Duplicate name",
 };
 
+const TASK_PROFILE_KEYS = [
+  CHAT_PROFILE_KEY,
+  SUMMARIZATION_PROFILE_KEY,
+  TRANSLATION_PROFILE_KEY,
+  TEXT_ANALYSIS_PROFILE_KEY,
+  IMAGE_GENERATION_PROFILE_KEY,
+  OCR_PROFILE_KEY,
+  VISION_PROFILE_KEY,
+] as const;
+
+function loadProfileById(profiles: Profile[], key: string): Profile | null {
+  const id = localStorage.getItem(key);
+  if (!id) return null;
+  const found = profiles.find((p) => p.id === id);
+  if (!found) {
+    localStorage.removeItem(key);
+    return null;
+  }
+  return found;
+}
+
+function applyCurrentChatProvider(
+  sessionChatProfile: Profile | null,
+  chatProfile: Profile | null,
+  defaultProfile: Profile | null
+) {
+  const active = sessionChatProfile ?? chatProfile ?? defaultProfile;
+  if (active) {
+    provider.setCurrentProvider({
+      type: active.providerType,
+      name: active.name,
+      baseUrl: active.baseUrl,
+      key: active.key,
+    });
+    provider.setCurrentProviderModel(active.modelId, active.reasoning);
+  } else {
+    provider.setCurrentProvider(undefined);
+  }
+}
+
 interface ProfilesState {
   profiles: Profile[];
-  defaultChatProfile: Profile | null;
+  defaultProfile: Profile | null;
+  chatProfile: Profile | null;
+  summarizationProfile: Profile | null;
+  translationProfile: Profile | null;
+  textAnalysisProfile: Profile | null;
+  imageGenerationProfile: Profile | null;
+  ocrProfile: Profile | null;
+  visionProfile: Profile | null;
   sessionChatProfile: Profile | null;
   extendedThinking: boolean;
   init: () => Promise<void>;
@@ -28,32 +85,73 @@ interface ProfilesState {
   deleteProfile: (id: string) => Promise<void>;
   getProfileById: (id: string) => Profile | null;
   getProfileByName: (name: string, ignoreCase?: boolean) => Profile | null;
-  setDefaultChatProfile: (profile: Profile) => void;
+  setDefaultProfile: (profile: Profile) => void;
+  setChatProfile: (profile: Profile | null) => void;
+  setSummarizationProfile: (profile: Profile | null) => void;
+  setTranslationProfile: (profile: Profile | null) => void;
+  setTextAnalysisProfile: (profile: Profile | null) => void;
+  setImageGenerationProfile: (profile: Profile | null) => void;
+  setOcrProfile: (profile: Profile | null) => void;
+  setVisionProfile: (profile: Profile | null) => void;
   setSessionChatProfile: (profile: Profile | null) => void;
   toggleExtendedThinking: () => void;
 }
 
 const useProfilesStore = create<ProfilesState>()((set, get) => ({
   profiles: [],
-  defaultChatProfile: null,
+  defaultProfile: null,
+  chatProfile: null,
+  summarizationProfile: null,
+  translationProfile: null,
+  textAnalysisProfile: null,
+  imageGenerationProfile: null,
+  ocrProfile: null,
+  visionProfile: null,
   sessionChatProfile: null,
 
   init: async () => {
     const profiles = (await readAllProfiles()).reverse();
     set({ profiles });
 
-    const saved = localStorage.getItem(CHAT_PROFILE_KEY);
-    if (saved) {
-      const parsed: Profile = JSON.parse(saved);
-      const matched = profiles.find((p) => p.id === parsed.id);
-      if (matched) {
-        get().setDefaultChatProfile(matched);
-        return;
-      }
+    const defaultProfile =
+      loadProfileById(profiles, DEFAULT_PROFILE_KEY) ?? profiles[0] ?? null;
+
+    if (defaultProfile) {
+      localStorage.setItem(DEFAULT_PROFILE_KEY, defaultProfile.id);
     }
 
-    const first = profiles[0];
-    if (first) get().setDefaultChatProfile(first);
+    const chatProfile = loadProfileById(profiles, CHAT_PROFILE_KEY);
+    const summarizationProfile = loadProfileById(
+      profiles,
+      SUMMARIZATION_PROFILE_KEY
+    );
+    const translationProfile = loadProfileById(
+      profiles,
+      TRANSLATION_PROFILE_KEY
+    );
+    const textAnalysisProfile = loadProfileById(
+      profiles,
+      TEXT_ANALYSIS_PROFILE_KEY
+    );
+    const imageGenerationProfile = loadProfileById(
+      profiles,
+      IMAGE_GENERATION_PROFILE_KEY
+    );
+    const ocrProfile = loadProfileById(profiles, OCR_PROFILE_KEY);
+    const visionProfile = loadProfileById(profiles, VISION_PROFILE_KEY);
+
+    set({
+      defaultProfile,
+      chatProfile,
+      summarizationProfile,
+      translationProfile,
+      textAnalysisProfile,
+      imageGenerationProfile,
+      ocrProfile,
+      visionProfile,
+    });
+
+    applyCurrentChatProvider(null, chatProfile, defaultProfile);
   },
 
   addProfile: async (data) => {
@@ -73,7 +171,7 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
       const newProfile: Profile = { ...data, id: crypto.randomUUID() };
       await createProfile(newProfile);
       set((state) => ({ profiles: [newProfile, ...state.profiles] }));
-      if (isFirst) get().setDefaultChatProfile(newProfile);
+      if (isFirst) get().setDefaultProfile(newProfile);
       return true;
     } else {
       return checkResult;
@@ -101,19 +199,39 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
           p.id === profile.id ? profile : p
         );
 
-        if (state.defaultChatProfile?.id === profile.id) {
-          localStorage.setItem(CHAT_PROFILE_KEY, JSON.stringify(profile));
-          provider.setCurrentProvider({
-            type: profile.providerType,
-            name: profile.name,
-            baseUrl: profile.baseUrl,
-            key: profile.key,
-          });
-          provider.setCurrentProviderModel(profile.modelId, profile.reasoning);
-          return { profiles, defaultChatProfile: profile };
-        }
+        const updateIfMatch = (p: Profile | null) =>
+          p?.id === profile.id ? profile : p;
 
-        return { profiles };
+        const defaultProfile = updateIfMatch(state.defaultProfile);
+        const chatProfile = updateIfMatch(state.chatProfile);
+        const summarizationProfile = updateIfMatch(state.summarizationProfile);
+        const translationProfile = updateIfMatch(state.translationProfile);
+        const textAnalysisProfile = updateIfMatch(state.textAnalysisProfile);
+        const imageGenerationProfile = updateIfMatch(
+          state.imageGenerationProfile
+        );
+        const ocrProfile = updateIfMatch(state.ocrProfile);
+        const visionProfile = updateIfMatch(state.visionProfile);
+        const sessionChatProfile = updateIfMatch(state.sessionChatProfile);
+
+        applyCurrentChatProvider(
+          sessionChatProfile,
+          chatProfile,
+          defaultProfile
+        );
+
+        return {
+          profiles,
+          defaultProfile,
+          chatProfile,
+          summarizationProfile,
+          translationProfile,
+          textAnalysisProfile,
+          imageGenerationProfile,
+          ocrProfile,
+          visionProfile,
+          sessionChatProfile,
+        };
       });
       return true;
     } else {
@@ -125,12 +243,71 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
     await dbDeleteProfile(id);
     set((state) => {
       const profiles = state.profiles.filter((p) => p.id !== id);
-      if (state.defaultChatProfile?.id === id) {
-        localStorage.removeItem(CHAT_PROFILE_KEY);
-        provider.setCurrentProvider(undefined);
-        return { profiles, defaultChatProfile: null };
+
+      const clearIfMatch = (
+        p: Profile | null,
+        key: (typeof TASK_PROFILE_KEYS)[number]
+      ): Profile | null => {
+        if (p?.id === id) {
+          localStorage.removeItem(key);
+          return null;
+        }
+        return p;
+      };
+
+      const chatProfile = clearIfMatch(state.chatProfile, CHAT_PROFILE_KEY);
+      const summarizationProfile = clearIfMatch(
+        state.summarizationProfile,
+        SUMMARIZATION_PROFILE_KEY
+      );
+      const translationProfile = clearIfMatch(
+        state.translationProfile,
+        TRANSLATION_PROFILE_KEY
+      );
+      const textAnalysisProfile = clearIfMatch(
+        state.textAnalysisProfile,
+        TEXT_ANALYSIS_PROFILE_KEY
+      );
+      const imageGenerationProfile = clearIfMatch(
+        state.imageGenerationProfile,
+        IMAGE_GENERATION_PROFILE_KEY
+      );
+      const ocrProfile = clearIfMatch(state.ocrProfile, OCR_PROFILE_KEY);
+      const visionProfile = clearIfMatch(
+        state.visionProfile,
+        VISION_PROFILE_KEY
+      );
+      const sessionChatProfile =
+        state.sessionChatProfile?.id === id ? null : state.sessionChatProfile;
+
+      let defaultProfile = state.defaultProfile;
+
+      // set next default profile if current deleted
+      if (state.defaultProfile?.id === id) {
+        const nextDefault = profiles[0] ?? null;
+
+        if (nextDefault) {
+          localStorage.setItem(DEFAULT_PROFILE_KEY, nextDefault.id);
+        } else {
+          localStorage.removeItem(DEFAULT_PROFILE_KEY);
+        }
+        defaultProfile = nextDefault;
       }
-      return { profiles };
+
+      applyCurrentChatProvider(sessionChatProfile, chatProfile, defaultProfile);
+
+      return {
+        profiles,
+        defaultProfile,
+        chatProfile,
+        summarizationProfile,
+        translationProfile,
+        textAnalysisProfile,
+        imageGenerationProfile,
+        ocrProfile,
+        visionProfile,
+        sessionChatProfile,
+      };
     });
   },
 
@@ -140,33 +317,97 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
       ignoreCase ? p.name.toLowerCase() === name.toLowerCase() : p.name === name
     ) ?? null,
 
-  setDefaultChatProfile: (profile) => {
-    localStorage.setItem(CHAT_PROFILE_KEY, JSON.stringify(profile));
-    provider.setCurrentProvider({
-      type: profile.providerType,
-      name: profile.name,
-      baseUrl: profile.baseUrl,
-      key: profile.key,
+  setDefaultProfile: (profile) => {
+    localStorage.setItem(DEFAULT_PROFILE_KEY, profile.id);
+    set((state) => {
+      applyCurrentChatProvider(
+        state.sessionChatProfile,
+        state.chatProfile,
+        profile
+      );
+      return { defaultProfile: profile };
     });
-    provider.setCurrentProviderModel(profile.modelId, profile.reasoning);
-    set({ defaultChatProfile: profile });
+  },
+
+  setChatProfile: (profile) => {
+    if (profile) {
+      localStorage.setItem(CHAT_PROFILE_KEY, profile.id);
+    } else {
+      localStorage.removeItem(CHAT_PROFILE_KEY);
+    }
+    set((state) => {
+      applyCurrentChatProvider(
+        state.sessionChatProfile,
+        profile,
+        state.defaultProfile
+      );
+      return { chatProfile: profile };
+    });
+  },
+
+  setSummarizationProfile: (profile) => {
+    if (profile) {
+      localStorage.setItem(SUMMARIZATION_PROFILE_KEY, profile.id);
+    } else {
+      localStorage.removeItem(SUMMARIZATION_PROFILE_KEY);
+    }
+    set({ summarizationProfile: profile });
+  },
+
+  setTranslationProfile: (profile) => {
+    if (profile) {
+      localStorage.setItem(TRANSLATION_PROFILE_KEY, profile.id);
+    } else {
+      localStorage.removeItem(TRANSLATION_PROFILE_KEY);
+    }
+    set({ translationProfile: profile });
+  },
+
+  setTextAnalysisProfile: (profile) => {
+    if (profile) {
+      localStorage.setItem(TEXT_ANALYSIS_PROFILE_KEY, profile.id);
+    } else {
+      localStorage.removeItem(TEXT_ANALYSIS_PROFILE_KEY);
+    }
+    set({ textAnalysisProfile: profile });
+  },
+
+  setImageGenerationProfile: (profile) => {
+    if (profile) {
+      localStorage.setItem(IMAGE_GENERATION_PROFILE_KEY, profile.id);
+    } else {
+      localStorage.removeItem(IMAGE_GENERATION_PROFILE_KEY);
+    }
+    set({ imageGenerationProfile: profile });
+  },
+
+  setOcrProfile: (profile) => {
+    if (profile) {
+      localStorage.setItem(OCR_PROFILE_KEY, profile.id);
+    } else {
+      localStorage.removeItem(OCR_PROFILE_KEY);
+    }
+    set({ ocrProfile: profile });
+  },
+
+  setVisionProfile: (profile) => {
+    if (profile) {
+      localStorage.setItem(VISION_PROFILE_KEY, profile.id);
+    } else {
+      localStorage.removeItem(VISION_PROFILE_KEY);
+    }
+    set({ visionProfile: profile });
   },
 
   setSessionChatProfile: (profile) => {
-    const fallback = profile ?? get().defaultChatProfile;
-    provider.setCurrentProvider(
-      fallback
-        ? {
-            type: fallback.providerType,
-            name: fallback.name,
-            baseUrl: fallback.baseUrl,
-            key: fallback.key,
-          }
-        : undefined
-    );
-    if (fallback)
-      provider.setCurrentProviderModel(fallback.modelId, fallback.reasoning);
-    set({ sessionChatProfile: profile });
+    set((state) => {
+      applyCurrentChatProvider(
+        profile,
+        state.chatProfile,
+        state.defaultProfile
+      );
+      return { sessionChatProfile: profile };
+    });
   },
 
   extendedThinking: (() => {
@@ -184,7 +425,7 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
   },
 }));
 
-export const selectCurrentProfile = (s: ProfilesState) =>
-  s.sessionChatProfile ?? s.defaultChatProfile;
+export const selectCurrentChatProfile = (s: ProfilesState) =>
+  s.sessionChatProfile ?? s.chatProfile ?? s.defaultProfile;
 
 export default useProfilesStore;

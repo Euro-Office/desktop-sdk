@@ -1,12 +1,49 @@
 import { useTranslation } from "react-i18next";
 import { ComboBox } from "@/components/combo-box";
 import { FieldContainer } from "@/components/field-container";
-import { provider } from "@/providers";
-
-const providersInfo = provider.getProvidersInfo();
+import type { Profile } from "@/lib/types";
+import useProfilesStore from "@/store/useProfilesStore";
 
 const ModelAssignment = () => {
   const { t } = useTranslation();
+  const {
+    profiles,
+    defaultProfile,
+    chatProfile,
+    summarizationProfile,
+    translationProfile,
+    textAnalysisProfile,
+    imageGenerationProfile,
+    ocrProfile,
+    visionProfile,
+    setDefaultProfile,
+    setChatProfile,
+    setSummarizationProfile,
+    setTranslationProfile,
+    setTextAnalysisProfile,
+    setImageGenerationProfile,
+    setOcrProfile,
+    setVisionProfile,
+  } = useProfilesStore();
+
+  const defaultItems = profiles.map((p) => ({
+    text: p.name,
+    id: p.id,
+    onClick: () => setDefaultProfile(p),
+  }));
+
+  const taskItems = (setter: (p: Profile | null) => void) => [
+    {
+      text: t("DefaultModel"),
+      id: "default",
+      onClick: () => setter(null),
+    },
+    ...profiles.map((p) => ({
+      text: p.name,
+      id: p.id,
+      onClick: () => setter(p),
+    })),
+  ];
 
   return (
     <div className="w-[full] max-w-[480px]">
@@ -24,11 +61,8 @@ const ModelAssignment = () => {
           <ComboBox
             className="w-full"
             placeholder={t("SelectProvider")}
-            items={providersInfo.map((p) => ({
-              text: p.name,
-              id: p.type,
-              onClick: () => undefined,
-            }))}
+            value={defaultProfile?.name ?? ""}
+            items={defaultItems}
           />
         </FieldContainer>
 
@@ -43,7 +77,11 @@ const ModelAssignment = () => {
           className="mb-[24px]"
           icon="ask-ai"
         >
-          <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
+          <ComboBox
+            className="w-full"
+            value={chatProfile?.name ?? t("DefaultModel")}
+            items={taskItems(setChatProfile)}
+          />
         </FieldContainer>
 
         <FieldContainer
@@ -53,7 +91,11 @@ const ModelAssignment = () => {
           className="mb-[24px]"
           icon="summarization"
         >
-          <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
+          <ComboBox
+            className="w-full"
+            value={summarizationProfile?.name ?? t("DefaultModel")}
+            items={taskItems(setSummarizationProfile)}
+          />
         </FieldContainer>
 
         <FieldContainer
@@ -63,7 +105,11 @@ const ModelAssignment = () => {
           className="mb-[24px]"
           icon="translation"
         >
-          <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
+          <ComboBox
+            className="w-full"
+            value={translationProfile?.name ?? t("DefaultModel")}
+            items={taskItems(setTranslationProfile)}
+          />
         </FieldContainer>
 
         <FieldContainer
@@ -73,7 +119,11 @@ const ModelAssignment = () => {
           className="mb-[24px]"
           icon="text-analysis-ai"
         >
-          <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
+          <ComboBox
+            className="w-full"
+            value={textAnalysisProfile?.name ?? t("DefaultModel")}
+            items={taskItems(setTextAnalysisProfile)}
+          />
         </FieldContainer>
 
         <FieldContainer
@@ -83,7 +133,11 @@ const ModelAssignment = () => {
           className="mb-[24px]"
           icon="image-generation"
         >
-          <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
+          <ComboBox
+            className="w-full"
+            value={imageGenerationProfile?.name ?? t("DefaultModel")}
+            items={taskItems(setImageGenerationProfile)}
+          />
         </FieldContainer>
 
         <FieldContainer
@@ -93,7 +147,11 @@ const ModelAssignment = () => {
           className="mb-[24px]"
           icon="ocr"
         >
-          <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
+          <ComboBox
+            className="w-full"
+            value={ocrProfile?.name ?? t("DefaultModel")}
+            items={taskItems(setOcrProfile)}
+          />
         </FieldContainer>
 
         <FieldContainer
@@ -103,7 +161,11 @@ const ModelAssignment = () => {
           className="mb-[24px]"
           icon="vision-ai"
         >
-          <ComboBox className="w-full" value={t("DefaultModel")} items={[]} />
+          <ComboBox
+            className="w-full"
+            value={visionProfile?.name ?? t("DefaultModel")}
+            items={taskItems(setVisionProfile)}
+          />
         </FieldContainer>
       </div>
     </div>

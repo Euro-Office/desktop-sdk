@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { provider } from "@/providers";
 import useProfilesStore, {
-  selectCurrentProfile,
+  selectCurrentChatProfile,
 } from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
 
@@ -11,7 +11,7 @@ type UseServersProps = {
 
 const useServers = ({ isReady }: UseServersProps) => {
   const { initServers, getTools, tools } = useServersStore();
-  const currentProfile = useProfilesStore(selectCurrentProfile);
+  const currentProfile = useProfilesStore(selectCurrentChatProfile);
 
   useEffect(() => {
     if (!isReady) return;

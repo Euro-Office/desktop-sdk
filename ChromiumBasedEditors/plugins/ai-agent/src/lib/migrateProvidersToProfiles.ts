@@ -1,8 +1,8 @@
 import { createProfiles } from "@/database/profiles";
 import {
-  CHAT_PROFILE_KEY,
   CURRENT_MODEL_KEY,
   CURRENT_PROVIDER_KEY,
+  DEFAULT_PROFILE_KEY,
   PROVIDERS_LOCAL_STORAGE_KEY,
 } from "@/lib/constants";
 import type { Model, Profile, ProviderType, TProvider } from "@/lib/types";
@@ -209,7 +209,10 @@ export async function migrateProvidersToProfiles(): Promise<void> {
 
     const createdProfiles = profilesToCreate;
 
-    if (createdProfiles.length > 0 && !localStorage.getItem(CHAT_PROFILE_KEY)) {
+    if (
+      createdProfiles.length > 0 &&
+      !localStorage.getItem(DEFAULT_PROFILE_KEY)
+    ) {
       let defaultProfile = createdProfiles[0];
 
       if (currentProvider && currentModel) {
@@ -223,7 +226,7 @@ export async function migrateProvidersToProfiles(): Promise<void> {
         if (matched) defaultProfile = matched;
       }
 
-      localStorage.setItem(CHAT_PROFILE_KEY, JSON.stringify(defaultProfile));
+      localStorage.setItem(DEFAULT_PROFILE_KEY, defaultProfile.id);
     }
 
     localStorage.removeItem(PROVIDERS_LOCAL_STORAGE_KEY);
