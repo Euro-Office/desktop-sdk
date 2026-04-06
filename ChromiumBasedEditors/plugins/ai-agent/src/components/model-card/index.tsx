@@ -5,6 +5,7 @@ import { IconButton } from "@/components/icon-button";
 import { EditModelCard } from "@/components/model-config-cards";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { useDirection } from "@/hooks/useDirection";
+import { getProviderImageSrc } from "@/lib/images";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { provider } from "@/providers";
@@ -61,7 +62,14 @@ const ModelCard = ({ profile }: ModelCardProps) => {
           isRTL ? "flex-row-reverse" : "flex-row"
         )}
       >
-        <div className="w-[32px] h-[32px] rounded-[var(--model-card-logo-border-radius)] border border-[var(--model-card-logo-border-color)] shrink-0" />
+        <div className="flex items-center justify-center w-[32px] h-[32px] rounded-[var(--model-card-logo-border-radius)] border border-[var(--model-card-logo-border-color)] shrink-0">
+          <img
+            src={getProviderImageSrc(profile.providerType)}
+            alt="model logo"
+            width={18}
+            height={18}
+          />
+        </div>
         <div className="flex flex-col overflow-hidden">
           <Tooltip>
             <TooltipTrigger asChild>

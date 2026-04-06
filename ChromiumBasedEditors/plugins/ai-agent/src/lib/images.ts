@@ -68,17 +68,27 @@ const formatsSvgMap = import.meta.glob<string>("../assets/formats/*.svg", {
   query: "?url",
 }) as ImageMap;
 
+const providersImageMap = import.meta.glob<string>(
+  "../assets/providers/*.png",
+  {
+    eager: true,
+    import: "default",
+  }
+) as ImageMap;
+
 export const lightImages = buildCollections({
   ...lightImageMap,
   ...svgImageMap,
   ...formatsPngMap,
   ...formatsSvgMap,
+  ...providersImageMap,
 });
 export const darkImages = buildCollections({
   ...darkImageMap,
   ...svgImageMap,
   ...formatsPngMap,
   ...formatsSvgMap,
+  ...providersImageMap,
 });
 
 type ThemeType = "light" | "dark";
@@ -108,4 +118,19 @@ export const getImageSrc = (
     src: match.src,
     isSvg: match.scale === VECTOR_IMAGE_SCALE,
   };
+};
+
+import type { ProviderType } from "./types";
+
+const FALLBACK_PROVIDER = "openai";
+
+export const getProviderImageSrc = (
+  providerType: ProviderType,
+  theme: ThemeType = "light",
+  scale: number = 1
+): string => {
+  const providerName =
+    providerType === "anthropic" ? "anthropic" : FALLBACK_PROVIDER;
+
+  return getImageSrc(providerName, theme, scale)?.src || "";
 };
