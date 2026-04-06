@@ -39,7 +39,7 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
   sessionChatProfile: null,
 
   init: async () => {
-    const profiles = await readAllProfiles();
+    const profiles = (await readAllProfiles()).reverse();
     set({ profiles });
 
     const saved = localStorage.getItem(CHAT_PROFILE_KEY);
@@ -72,7 +72,7 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
       const isFirst = get().profiles.length === 0;
       const newProfile: Profile = { ...data, id: crypto.randomUUID() };
       await createProfile(newProfile);
-      set((state) => ({ profiles: [...state.profiles, newProfile] }));
+      set((state) => ({ profiles: [newProfile, ...state.profiles] }));
       if (isFirst) get().setDefaultChatProfile(newProfile);
       return true;
     } else {
