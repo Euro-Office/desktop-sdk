@@ -18,6 +18,7 @@
   "AddProvider": "Add provider",
   "Connection": "Connection",
   "MCPServers": "MCP Servers",
+  "MCPServersDescription": "Configure and add MCP servers and enable their tools for the AI Chat.",
   "ModelAssignment": "Model Assignment",
   "ModelAssignmentDescription": "Assign AI models to different tasks to customize performance and cost.",
   "DefaultModel": "Default model",

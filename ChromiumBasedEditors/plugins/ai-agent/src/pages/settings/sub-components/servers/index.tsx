@@ -20,7 +20,7 @@ const Servers = () => {
             isRTL ? "text-end" : ""
           )}
         >
-          {t("CustomServersDescription")}
+          {t("MCPServersDescription")}
         </p>
         <div className={cn("flex", isRTL ? "justify-end" : "justify-start")}>
           <Button className="w-fit" onClick={() => setIsOpen(true)}>
