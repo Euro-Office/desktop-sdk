@@ -6,7 +6,6 @@ const IconButton = ({
   iconName,
   size,
   isStroke,
-  isTransform,
   isActive,
   className,
   insideElement,
@@ -60,7 +59,6 @@ const IconButton = ({
         name={iconName}
         size={size}
         isStroke={isStroke}
-        isTransform={isTransform}
         color={color}
         noColor={noColor}
         width={width}

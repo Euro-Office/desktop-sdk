@@ -18,7 +18,7 @@ const AvailableTools = () => {
 
   const { servers, tools, webSearchEnabled } = useServersStore();
 
-  const [allToolsCount, setAllToolsCount] = React.useState<number>(
+  const [_, setAllToolsCount] = React.useState<number>(
     webSearchEnabled ? tools.length - 2 : tools.length
   );
 
@@ -41,26 +41,20 @@ const AvailableTools = () => {
     : tools.length >= MAX_TOOL_COUNT;
 
   return (
-    <div className="w-[640px] h-[560px] border border-[var(--servers-available-tools-border-color)] rounded-[8px] flex flex-col">
+    <div className="w-full max-h-[560px] border border-[var(--servers-available-tools-border-color)] rounded-[8px] flex flex-col">
       <div
         className={cn(
-          "min-h-[44px] h-[44px] flex items-center justify-between px-[16px] border-b border-[var(--servers-available-tools-border-color)]",
+          "min-h-[40px] h-[40px] flex items-center justify-between px-[16px]",
           isRTL ? "flex-row-reverse" : ""
         )}
       >
-        <p className="font-bold text-[14px] leading-[20px] text-[var(--servers-available-tools-header-color)]">
-          {t("AvailableTools")}
-        </p>
-        <p className="font-normal text-[14px] leading-[20px] text-[var(--servers-available-tools-sub-header-color)]">
-          <span className="text-[var(--servers-available-tools-current-tool-color)]">
-            {allToolsCount}
-          </span>
-          /{MAX_TOOL_COUNT} {t("Tools")}
+        <p className="font-bold leading-[20px] text-[var(--servers-available-tools-header-color)]">
+          {t("Permissions")}
         </p>
       </div>
       <div
         dir={isRTL ? "rtl" : "ltr"}
-        className="flex flex-col gap-[8px] pt-[12px] pb-[16px] px-[8px] overflow-y-auto"
+        className="flex flex-col gap-[8px] pt-[4px] pb-[8px] px-[8px] overflow-y-auto"
       >
         <AvailableToolsItem
           name="desktop-editor"

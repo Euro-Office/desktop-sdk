@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { DropdownMenu } from "@/components/dropdown";
+import { Icon } from "@/components/icon";
 import { IconButton } from "@/components/icon-button";
 import { Loader } from "@/components/loader";
 import { ToggleButton } from "@/components/toggle-button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { useDirection } from "@/hooks/useDirection";
 import type { TMCPItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -153,10 +153,9 @@ const AvailableToolsItem = ({
         className={cn(
           "h-[36px] px-[8px] rounded-[4px] flex items-center justify-between",
           isLoadingAction ? "" : "cursor-pointer",
-          opened
-            ? "bg-[var(--servers-available-tools-item-active-background-color)]"
-            : "bg-[var(--servers-available-tools-item-background-color)]",
-          !isLoading && !opened
+          "bg-[var(--servers-available-tools-item-background-color)]",
+          "active:bg-[var(--servers-available-tools-item-active-background-color)]",
+          !isLoading
             ? "hover:bg-[var(--servers-available-tools-item-hover-background-color)]"
             : ""
         )}
@@ -166,17 +165,17 @@ const AvailableToolsItem = ({
         }}
       >
         <div className="flex items-center gap-[8px]">
-          <IconButton
-            iconName="arrow.right"
-            size={24}
-            width={8}
-            height={8}
-            disableHover
-            isStroke
-            isTransform={opened}
-            className={isRTL ? "rotate-180" : ""}
-          />
-          <p className="text-[var(--servers-available-tools-item-name-color)]">
+          <div
+            className="flex items-center justify-center w-[12px] h-full"
+            style={{
+              transform: isRTL
+                ? `rotate(${opened ? 180 : 90}deg)`
+                : `rotate(${opened ? 0 : -90}deg)`,
+            }}
+          >
+            <Icon name="chevron" width={6} height={3} isStroke />
+          </div>
+          <p className="text-[var(--servers-available-tools-item-name-color)] font-bold">
             {name}
           </p>
           {!isLoadingAction && isStoped ? (
@@ -187,14 +186,6 @@ const AvailableToolsItem = ({
               noColor
             />
           ) : null}
-          {isLoading ? null : (
-            <p className="font-normal text-[14px] text-[var(--servers-available-tools-sub-header-color)]">
-              <span className="text-[var(--servers-available-tools-current-tool-color)]">
-                {mcpItems.filter((tool) => tool.enabled).length}
-              </span>
-              /{mcpItems.length} {t("ToolsEnabled")}
-            </p>
-          )}
         </div>
         <div ref={containerRef}>
           {isLoadingAction ? (
@@ -220,24 +211,20 @@ const AvailableToolsItem = ({
         </div>
       </div>
       {opened ? (
-        <div className="flex flex-col gap-[12px] mt-[4px]">
+        <div className="flex flex-col gap-[8px] mt-[4px]">
           {mcpItems.map((tool) => {
-            const description = isSystem
-              ? `${tool.description?.split(". ")[0]}.`
-              : tool.description;
             return (
               <div
                 key={tool.name}
                 className={cn(
-                  "rounded-[4px] cursor-pointer flex flex-col hover:bg-[var(--servers-available-tools-item-hover-background-color)]",
-                  isRTL ? "pr-[40px] pl-[8px]" : "pl-[40px] pr-[8px]"
+                  "rounded-[4px] cursor-pointer flex flex-col hover:bg-[var(--servers-available-tools-item-hover-background-color)] ps-[28px] pe-[8px] h-[32px]"
                 )}
                 onClick={() => {
                   changeToolStatus(name, tool.name, !tool.enabled);
                 }}
               >
-                <div className="flex items-center justify-between w-full">
-                  <p className="text-[var(--servers-available-tools-item-name-color)]">
+                <div className="flex items-center justify-between w-full h-full">
+                  <p className="text-[var(--servers-available-tools-item-name-color)] leading-[20px]">
                     {tool.name}
                   </p>
                   <ToggleButton
@@ -248,26 +235,6 @@ const AvailableToolsItem = ({
                     }}
                   />
                 </div>
-                {description && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <p
-                        className="text-[13px] leading-[18px] line-clamp-2 text-[var(--servers-available-tools-sub-header-color)]"
-                        style={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                        }}
-                      >
-                        {description}
-                      </p>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <div className="max-w-[300px]">{description}</div>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
               </div>
             );
           })}

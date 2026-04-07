@@ -11,7 +11,6 @@ type IconProps = {
   color?: string;
   noColor?: boolean;
   className?: string;
-  isTransform?: boolean;
 };
 
 const Icon = ({
@@ -23,7 +22,6 @@ const Icon = ({
   color,
   noColor,
   className,
-  isTransform,
 }: IconProps) => {
   const w = width ?? size;
   const h = height ?? size;
@@ -62,7 +60,7 @@ const Icon = ({
     return (
       <ReactSVG
         src={image.src}
-        className={`flex items-center justify-center ${isTransform ? "rotate-90" : ""} ${className || ""}`}
+        className={`flex items-center justify-center ${className || ""}`}
         beforeInjection={handleBeforeInjection}
         style={{ width: w, height: h }}
       />
@@ -73,7 +71,7 @@ const Icon = ({
     <img
       src={image.src}
       alt={name}
-      className={`${isTransform ? "rotate-90" : ""} ${className || ""}`}
+      className={className}
       style={{ width: w, height: h }}
     />
   );

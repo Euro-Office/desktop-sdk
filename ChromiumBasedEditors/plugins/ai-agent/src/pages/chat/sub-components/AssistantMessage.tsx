@@ -54,7 +54,7 @@ const ThinkingMarkdownText = ({
               width={8}
               height={8}
               isStroke
-              isTransform={!isCollapsed}
+              className={!isCollapsed ? "rotate-90" : ""}
             />
           </div>
           {!isCollapsed && (
