@@ -98,6 +98,7 @@
   "NoModelsAvailable": "Provider not available",
   "CheckInfo": "AI Chat can make mistakes. Check important info.",
   "ConfigurationError": "Configuration must be placed inside 'mcpServers' property",
+  "LocalServersNotSupportedInWebEditor": "Local MCP servers are not supported in the web editor. Please use HTTP servers only.",
   "Thinking": "Reasoning",
   "ExtendedThinking": "Extended Thinking",
   "ExtendedThinkingDescription": "This model uses advanced reasoning, which may increase costs.",

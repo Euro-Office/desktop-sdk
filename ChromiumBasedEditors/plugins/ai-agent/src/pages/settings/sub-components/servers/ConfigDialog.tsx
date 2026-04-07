@@ -6,6 +6,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/button";
 import { Dialog, DialogContent } from "@/components/dialog";
+import { isDesktopEditor } from "@/lib/utils";
 import useServersStore from "@/store/useServersStore";
 
 import "./ConfigDialog.css";
@@ -30,6 +31,17 @@ const ConfigDialog = ({ open, onClose }: ConfigDialogProps) => {
       try {
         const parsed = JSON.parse(jsonString);
         if (parsed.mcpServers) {
+          if (
+            !isDesktopEditor() &&
+            Object.values(
+              parsed.mcpServers as Record<string, Record<string, unknown>>
+            ).some((config) => typeof config.url !== "string")
+          ) {
+            setIsValidJson(false);
+            setError(t("LocalServersNotSupportedInWebEditor"));
+            return false;
+          }
+
           setIsValidJson(true);
           setError("");
           return true;
