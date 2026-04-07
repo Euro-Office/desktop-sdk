@@ -1,12 +1,12 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { ModelAssignment } from "@/components/model-assignment";
 import { RadioButton } from "@/components/radio-button";
 import { Tabs } from "@/components/tabs";
 import config from "@/config.json";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import useProfilesStore from "@/store/useProfilesStore";
-import { ModelAssignment } from "./sub-components/model-assignment";
 import { Models } from "./sub-components/models";
 import { Servers } from "./sub-components/servers";
 import { Wallet } from "./sub-components/wallet";
@@ -103,7 +103,11 @@ const Settings = () => {
             {
               value: "model-assignment",
               label: t("ModelAssignment"),
-              content: <ModelAssignment />,
+              content: (
+                <div className="max-w-[480px]">
+                  <ModelAssignment />
+                </div>
+              ),
               disabled: !profiles.length,
             },
             {

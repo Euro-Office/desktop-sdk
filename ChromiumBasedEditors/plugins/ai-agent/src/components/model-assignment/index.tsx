@@ -46,7 +46,7 @@ const ModelAssignment = () => {
   ];
 
   return (
-    <div className="w-[full] max-w-[480px]">
+    <div className="w-full">
       <p className="font-normal leading-[20px] text-[var(--settings-description-color)] mb-[32px]">
         {t("ModelAssignmentDescription")}
       </p>
