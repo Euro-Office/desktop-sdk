@@ -5,6 +5,7 @@ import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import AvailableTools from "./AvailableTools";
 import ConfigDialog from "./ConfigDialog";
+import ToolsCounter from "./ToolsCounter";
 
 type ServersProps = {
   variant?: "tab" | "page";
@@ -38,9 +39,17 @@ const Servers = ({ variant = "tab" }: ServersProps) => {
           </Button>
         </div>
         {variant === "page" ? (
-          <p className="font-bold leading-[16px] text-[var(--servers-available-tools-header-color)] mb-[12px]">
-            {t("Permissions")}
-          </p>
+          <div
+            className={cn(
+              "flex items-center justify-between mb-[12px]",
+              isRTL ? "flex-row-reverse" : ""
+            )}
+          >
+            <p className="font-bold leading-[16px] text-[var(--servers-available-tools-header-color)]">
+              {t("Permissions")}
+            </p>
+            <ToolsCounter />
+          </div>
         ) : null}
         <AvailableTools withHeader={variant === "tab"} />
       </div>

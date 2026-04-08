@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import client from "@/servers";
 import useServersStore from "@/store/useServersStore";
 import AvailableToolsItem from "./AvailableToolsItem";
+import ToolsCounter from "./ToolsCounter";
 
 type AvailableToolsProps = {
   withHeader?: boolean;
@@ -21,14 +22,6 @@ const AvailableTools = ({ withHeader = true }: AvailableToolsProps) => {
   const [customServers, setCustomServers] = React.useState({});
 
   const { servers, tools, webSearchEnabled } = useServersStore();
-
-  const [_, setAllToolsCount] = React.useState<number>(
-    webSearchEnabled ? tools.length - 2 : tools.length
-  );
-
-  React.useEffect(() => {
-    setAllToolsCount(webSearchEnabled ? tools.length - 2 : tools.length);
-  }, [tools.length, webSearchEnabled]);
 
   React.useEffect(() => {
     setCustomServers(client.getCustomServers());
@@ -56,6 +49,7 @@ const AvailableTools = ({ withHeader = true }: AvailableToolsProps) => {
           <p className="font-bold leading-[20px] text-[var(--servers-available-tools-header-color)]">
             {t("Permissions")}
           </p>
+          <ToolsCounter />
         </div>
       ) : null}
       <div
