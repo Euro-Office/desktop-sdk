@@ -10,14 +10,11 @@ import type { TMCPItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import client from "@/servers";
 import useServersStore from "@/store/useServersStore";
-import DeleteServerDialog from "./DeleteServerDialog";
-import LogsDialog from "./LogsDialog";
 
 type AvailableToolsItemProps = {
   name: string;
   mcpItems: TMCPItem[];
   isLoading: boolean;
-  isSystem: boolean;
   disableEnable: boolean;
 };
 
@@ -25,7 +22,6 @@ const AvailableToolsItem = ({
   name,
   mcpItems,
   isLoading,
-  isSystem,
   disableEnable,
 }: AvailableToolsItemProps) => {
   const { t } = useTranslation();
@@ -33,9 +29,7 @@ const AvailableToolsItem = ({
 
   const [opened, setOpened] = React.useState(false);
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
-  const [openLogsDialog, setOpenLogsDialog] = React.useState(false);
   const [isStoped, setIsStoped] = React.useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -56,8 +50,6 @@ const AvailableToolsItem = ({
         changeToolStatus(name, tool.name, false);
       });
   }, [mcpItems, name, changeToolStatus]);
-
-  const openLogs = useCallback(() => setOpenLogsDialog(true), []);
 
   React.useEffect(() => {
     if (isLoading) setOpened(false);
@@ -81,71 +73,16 @@ const AvailableToolsItem = ({
         {
           text: t("EnableAllTools"),
           onClick: onEnableAllTools,
-          withSpace: !isSystem,
         },
         {
           text: t("DisableAllTools"),
           onClick: onDisableAllTools,
-          withSpace: !isSystem,
-        }
-      );
-      if (!isSystem) {
-        items.push({
-          text: "",
-          onClick: () => {
-            /* ignore */
-          },
-          isSeparator: true,
-        });
-      }
-    }
-
-    if (!isSystem) {
-      items.push(
-        {
-          icon: (
-            <IconButton iconName="btn-reset" size={20} disableHover isStroke />
-          ),
-          text: t("Restart"),
-          onClick: () => client.restartCustomServer(name),
-        },
-        {
-          icon: (
-            <IconButton
-              iconName="btn-menu-navigation"
-              size={20}
-              disableHover
-              isStroke
-            />
-          ),
-          text: t("Logs"),
-          onClick: openLogs,
-        },
-        {
-          text: "",
-          onClick: () => {
-            /* ignore */
-          },
-          isSeparator: true,
-        },
-        {
-          icon: <IconButton iconName="btn-remove" size={20} disableHover />,
-          text: t("Delete"),
-          onClick: () => setDeleteDialogOpen(true),
         }
       );
     }
 
     return items;
-  }, [
-    mcpItems.length,
-    isSystem,
-    name,
-    t,
-    onEnableAllTools,
-    onDisableAllTools,
-    openLogs,
-  ]);
+  }, [mcpItems.length, t, onEnableAllTools, onDisableAllTools]);
 
   return (
     <div dir={isRTL ? "rtl" : "ltr"} className="flex flex-col">
@@ -239,19 +176,6 @@ const AvailableToolsItem = ({
             );
           })}
         </div>
-      ) : null}
-      {openLogsDialog ? (
-        <LogsDialog
-          type={name}
-          open={openLogsDialog}
-          onClose={() => setOpenLogsDialog(false)}
-        />
-      ) : null}
-      {deleteDialogOpen ? (
-        <DeleteServerDialog
-          name={name}
-          onClose={() => setDeleteDialogOpen(false)}
-        />
       ) : null}
     </div>
   );

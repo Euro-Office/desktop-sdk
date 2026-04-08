@@ -69,7 +69,6 @@ const AvailableTools = ({ withHeader = true }: AvailableToolsProps) => {
           name="desktop-editor"
           mcpItems={servers["desktop-editor"] ?? []}
           isLoading={false}
-          isSystem
           disableEnable={disableEnable}
         />
         {Object.keys(customServers).map((type) => (
@@ -78,7 +77,6 @@ const AvailableTools = ({ withHeader = true }: AvailableToolsProps) => {
             name={type}
             mcpItems={servers[type] ?? []}
             isLoading={!servers[type]?.length}
-            isSystem={false}
             disableEnable={disableEnable}
           />
         ))}
