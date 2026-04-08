@@ -41,7 +41,7 @@ const AvailableTools = () => {
     : tools.length >= MAX_TOOL_COUNT;
 
   return (
-    <div className="w-full max-h-[560px] border border-[var(--servers-available-tools-border-color)] rounded-[8px] flex flex-col">
+    <div className="w-full max-h-[560px] border-[length:var(--servers-available-tools-border-width)] border-[var(--servers-available-tools-border-color)] rounded-[var(--servers-available-tools-border-radius)] flex flex-col">
       <div
         className={cn(
           "min-h-[40px] h-[40px] flex items-center justify-between px-[16px]",

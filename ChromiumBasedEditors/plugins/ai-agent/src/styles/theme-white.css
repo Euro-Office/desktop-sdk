@@ -224,6 +224,9 @@
   --servers-edit-config-buttons-border-color: var(--border-divider);
 
   --servers-available-tools-border-color: var(--border-divider);
+  --servers-available-tools-border-width: 1px;
+  --servers-available-tools-border-radius: 8px;
+  --servers-available-tools-item-border-radius: 4px;
   --servers-available-tools-header-color: var(--text-normal);
   --servers-available-tools-item-name-color: var(--text-normal);
   --servers-available-tools-sub-header-color: var(--text-tertiary);
