@@ -3,6 +3,7 @@ import { ComboBox } from "@/components/combo-box";
 import { FieldContainer } from "@/components/field-container";
 import { Input } from "@/components/input";
 import { Link } from "@/components/link";
+import { getApiKeyLink } from "@/lib/apiKeyLinks";
 import type { Model } from "@/lib/types";
 import { provider } from "@/providers";
 
@@ -67,7 +68,15 @@ export const ModelConfigForm = ({
         header={t("APIKey")}
         isHorizontal={isHorizontal}
         reserveErrorSpace={isHorizontal}
-        action={<Link href="#">{t("GetAPIKey")}</Link>}
+        action={
+          getApiKeyLink(values.provider) ? (
+            <Link href={getApiKeyLink(values.provider)} target="_blank">
+              {t("GetAPIKey")}
+            </Link>
+          ) : (
+            <div className="h-[20px]" />
+          )
+        }
         error={errors?.key}
       >
         <Input
