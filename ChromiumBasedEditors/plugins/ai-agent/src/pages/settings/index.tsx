@@ -2,13 +2,13 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { ModelAssignment } from "@/components/model-assignment";
 import { RadioButton } from "@/components/radio-button";
+import { Servers } from "@/components/servers";
 import { Tabs } from "@/components/tabs";
 import config from "@/config.json";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import useProfilesStore from "@/store/useProfilesStore";
 import { Models } from "./sub-components/models";
-import { Servers } from "./sub-components/servers";
 import { Wallet } from "./sub-components/wallet";
 import { WebSearch } from "./sub-components/web-search";
 
@@ -113,7 +113,11 @@ const Settings = () => {
             {
               value: "mcp-servers",
               label: t("MCPServers"),
-              content: <Servers />,
+              content: (
+                <div className="max-w-[480px] mt-[16px]">
+                  <Servers />
+                </div>
+              ),
               disabled: !profiles.length,
             },
             {

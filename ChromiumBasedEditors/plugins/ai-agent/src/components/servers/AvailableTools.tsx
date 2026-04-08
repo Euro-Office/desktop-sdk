@@ -10,7 +10,11 @@ import client from "@/servers";
 import useServersStore from "@/store/useServersStore";
 import AvailableToolsItem from "./AvailableToolsItem";
 
-const AvailableTools = () => {
+type AvailableToolsProps = {
+  withHeader?: boolean;
+};
+
+const AvailableTools = ({ withHeader = true }: AvailableToolsProps) => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
 
@@ -42,19 +46,24 @@ const AvailableTools = () => {
 
   return (
     <div className="w-full max-h-[560px] border-[length:var(--servers-available-tools-border-width)] border-[var(--servers-available-tools-border-color)] rounded-[var(--servers-available-tools-border-radius)] flex flex-col">
-      <div
-        className={cn(
-          "min-h-[40px] h-[40px] flex items-center justify-between px-[16px]",
-          isRTL ? "flex-row-reverse" : ""
-        )}
-      >
-        <p className="font-bold leading-[20px] text-[var(--servers-available-tools-header-color)]">
-          {t("Permissions")}
-        </p>
-      </div>
+      {withHeader ? (
+        <div
+          className={cn(
+            "min-h-[40px] h-[40px] flex items-center justify-between px-[16px]",
+            isRTL ? "flex-row-reverse" : ""
+          )}
+        >
+          <p className="font-bold leading-[20px] text-[var(--servers-available-tools-header-color)]">
+            {t("Permissions")}
+          </p>
+        </div>
+      ) : null}
       <div
         dir={isRTL ? "rtl" : "ltr"}
-        className="flex flex-col gap-[8px] pt-[4px] pb-[8px] px-[8px] overflow-y-auto"
+        className={cn(
+          "flex flex-col gap-[8px] pb-[8px] px-[8px] overflow-y-auto",
+          withHeader ? "pt-[4px]" : "pt-[8px]"
+        )}
       >
         <AvailableToolsItem
           name="desktop-editor"
