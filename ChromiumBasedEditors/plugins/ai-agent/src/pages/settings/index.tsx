@@ -97,7 +97,7 @@ const Settings = () => {
           items={[
             {
               value: "ai-settings",
-              label: t("Connection"),
+              label: t("AIModels"),
               content: aiSettingsTab,
             },
             {
