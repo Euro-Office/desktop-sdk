@@ -4,13 +4,13 @@ import { ModelAssignment } from "@/components/model-assignment";
 import { RadioButton } from "@/components/radio-button";
 import { Servers } from "@/components/servers";
 import { Tabs } from "@/components/tabs";
+import { WebSearch } from "@/components/web-search";
 import config from "@/config.json";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import useProfilesStore from "@/store/useProfilesStore";
 import { Models } from "./sub-components/models";
 import { Wallet } from "./sub-components/wallet";
-import { WebSearch } from "./sub-components/web-search";
 
 const showWallet = config.showWallet;
 
@@ -123,7 +123,11 @@ const Settings = () => {
             {
               value: "web-search",
               label: t("WebSearch"),
-              content: <WebSearch />,
+              content: (
+                <div className="max-w-[480px] mt-[16px]">
+                  <WebSearch />
+                </div>
+              ),
               disabled: !profiles.length,
             },
           ]}

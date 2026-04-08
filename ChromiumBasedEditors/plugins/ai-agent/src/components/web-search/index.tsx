@@ -9,7 +9,11 @@ import { getApiKeyLink } from "@/lib/apiKeyLinks";
 import { cn } from "@/lib/utils";
 import client from "@/servers";
 
-const WebSearch = () => {
+type WebSearchProps = {
+  variant?: "tab" | "page";
+};
+
+const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
 
@@ -33,8 +37,15 @@ const WebSearch = () => {
     }
   }, [selectedProvider, apiKey]);
 
+  const isPage = variant === "page";
+
   return (
-    <div className="flex flex-col gap-[16px] mt-[16px] w-full max-w-[480px]">
+    <div
+      className={cn(
+        "flex flex-col w-full",
+        isPage ? "gap-[24px]" : "gap-[16px]"
+      )}
+    >
       <p
         className={cn(
           "font-normal text-[14px] leading-[20px] text-[var(--servers-description-color)]",
@@ -44,7 +55,7 @@ const WebSearch = () => {
         {t("WebSearchDescription")}
       </p>
       <div className="flex flex-col gap-[16px]">
-        <FieldContainer header={t("WebSearchEngine")}>
+        <FieldContainer header={t("WebSearchEngine")} isHorizontal={isPage}>
           <ComboBox
             className="w-full"
             value={selectedProvider || t("SelectEngine")}
@@ -59,6 +70,7 @@ const WebSearch = () => {
         </FieldContainer>
         <FieldContainer
           header={t("APIKey")}
+          isHorizontal={isPage}
           action={
             getApiKeyLink(selectedProvider) ? (
               <Link href={getApiKeyLink(selectedProvider)} target="_blank">
@@ -70,6 +82,7 @@ const WebSearch = () => {
           <Input
             className="w-full"
             type="password"
+            placeholder={t("EnterKey")}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             onBlur={handleApiKeyBlur}
