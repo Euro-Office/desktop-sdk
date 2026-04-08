@@ -5,6 +5,7 @@ import { FieldContainer } from "@/components/field-container";
 import { Input } from "@/components/input";
 import { Link } from "@/components/link";
 import { useDirection } from "@/hooks/useDirection";
+import { getApiKeyLink } from "@/lib/apiKeyLinks";
 import { cn } from "@/lib/utils";
 import client from "@/servers";
 
@@ -58,7 +59,13 @@ const WebSearch = () => {
         </FieldContainer>
         <FieldContainer
           header={t("APIKey")}
-          action={<Link href="#">{t("GetAPIKey")}</Link>}
+          action={
+            getApiKeyLink(selectedProvider) ? (
+              <Link href={getApiKeyLink(selectedProvider)} target="_blank">
+                {t("GetAPIKey")}
+              </Link>
+            ) : undefined
+          }
         >
           <Input
             className="w-full"
