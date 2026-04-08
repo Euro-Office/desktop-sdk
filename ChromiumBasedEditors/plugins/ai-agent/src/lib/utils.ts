@@ -90,3 +90,7 @@ export const isVisio = (type: number) => {
 export const isDesktopEditor = (): boolean => {
   return "AscDesktopEditor" in window;
 };
+
+export const isExternalProcessAvailable = (): boolean => {
+  return "ExternalProcess" in window;
+};
