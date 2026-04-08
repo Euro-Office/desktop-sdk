@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ComboBox } from "@/components/combo-box";
 import { FieldContainer } from "@/components/field-container";
 import { Input } from "@/components/input";
+import { Link } from "@/components/link";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import client from "@/servers";
@@ -32,7 +33,7 @@ const WebSearch = () => {
   }, [selectedProvider, apiKey]);
 
   return (
-    <div className="flex flex-col gap-[16px] mt-[16px]">
+    <div className="flex flex-col gap-[16px] mt-[16px] w-full max-w-[480px]">
       <p
         className={cn(
           "font-normal text-[14px] leading-[20px] text-[var(--servers-description-color)]",
@@ -44,7 +45,7 @@ const WebSearch = () => {
       <div className="flex flex-col gap-[16px]">
         <FieldContainer header={t("WebSearchEngine")}>
           <ComboBox
-            className="w-[260px]"
+            className="w-full"
             value={selectedProvider || t("SelectEngine")}
             items={[
               {
@@ -55,9 +56,12 @@ const WebSearch = () => {
             ]}
           />
         </FieldContainer>
-        <FieldContainer header={t("APIKey")}>
+        <FieldContainer
+          header={t("APIKey")}
+          action={<Link href="#">{t("GetAPIKey")}</Link>}
+        >
           <Input
-            className="w-[260px]"
+            className="w-full"
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
