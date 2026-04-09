@@ -9,8 +9,8 @@ import config from "@/config.json";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
 import useCloudsStore from "@/store/useCloudsStore";
-import useWalletStore from "@/store/useWalletStore";
 import useProfilesStore from "@/store/useProfilesStore";
+import useWalletStore from "@/store/useWalletStore";
 import { Models } from "./sub-components/models";
 import { Wallet } from "./sub-components/wallet";
 
