@@ -5,6 +5,7 @@ const WEB_SEARCH_DATA = "webSearchProviderData";
 export type WebSearchData = {
   provider: string;
   key: string;
+  isCloudProvider?: boolean;
 } | null;
 
 class WebSearch {
@@ -45,6 +46,34 @@ class WebSearch {
   };
 
   webSearch = async (args: Record<string, unknown>) => {
+    if (this.webSearchData?.isCloudProvider) {
+      try {
+        const searchUrl = new URL(
+          "/api/2.0/ai/web-search/v1/search",
+          this.webSearchData.provider
+        );
+        const response = await fetch(`onlyoffice-proxy://${searchUrl.href}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.webSearchData.key}`,
+          },
+          body: JSON.stringify({ query: args.query }),
+        });
+
+        if (!response.ok) {
+          return JSON.stringify({
+            error: response.status,
+            message: `Network error: ${response.status}`,
+          });
+        }
+
+        return JSON.stringify(await response.json());
+      } catch (e) {
+        console.error("WebSearch error:", e);
+        return JSON.stringify({ error: e });
+      }
+    }
     if (this.webSearchData?.provider === "Exa") {
       try {
         const response = await fetch(
@@ -86,6 +115,34 @@ class WebSearch {
   };
 
   webCrawling = async (args: Record<string, unknown>) => {
+    if (this.webSearchData?.isCloudProvider) {
+      try {
+        const crawlUrl = new URL(
+          "/api/2.0/ai/web-search/v1/contents",
+          this.webSearchData.provider
+        );
+        const response = await fetch(`onlyoffice-proxy://${crawlUrl.href}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.webSearchData.key}`,
+          },
+          body: JSON.stringify({ urls: args.urls }),
+        });
+
+        if (!response.ok) {
+          return JSON.stringify({
+            error: response.status,
+            message: `Network error: ${response.status}`,
+          });
+        }
+
+        return JSON.stringify(await response.json());
+      } catch (e) {
+        console.error(e);
+        return JSON.stringify({ error: e });
+      }
+    }
     if (this.webSearchData?.provider === "Exa") {
       try {
         const response = await fetch(

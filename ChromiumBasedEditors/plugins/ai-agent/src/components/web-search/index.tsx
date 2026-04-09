@@ -8,6 +8,7 @@ import { useDirection } from "@/hooks/useDirection";
 import { getApiKeyLink } from "@/lib/apiKeyLinks";
 import { cn } from "@/lib/utils";
 import client from "@/servers";
+import useCloudsStore from "@/store/useCloudsStore";
 
 type WebSearchProps = {
   variant?: "tab" | "page";
@@ -16,9 +17,11 @@ type WebSearchProps = {
 const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
+  const { clouds } = useCloudsStore();
 
   const [selectedProvider, setSelectedProvider] = React.useState<string>("Exa");
   const [apiKey, setApiKey] = React.useState<string>("");
+  const [isCloudProvider, setIsCloudProvider] = React.useState(false);
 
   React.useEffect(() => {
     const data = client.getWebSearchData();
@@ -26,6 +29,7 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
     if (data) {
       setSelectedProvider(data.provider);
       setApiKey(data.key);
+      setIsCloudProvider(data.isCloudProvider ?? false);
     }
   }, []);
 
@@ -38,6 +42,38 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
   }, [selectedProvider, apiKey]);
 
   const isPage = variant === "page";
+
+  const providerItems = [
+    ...clouds.map((cloud) => ({
+      text: new URL(cloud.url).hostname,
+      id: cloud.url,
+      onClick: () => {
+        setSelectedProvider(cloud.url);
+        setApiKey(cloud.data.apiKey);
+        setIsCloudProvider(true);
+        client.setWebSearchData({
+          provider: cloud.url,
+          key: cloud.data.apiKey,
+          isCloudProvider: true,
+        });
+      },
+    })),
+    {
+      text: "Exa",
+      id: "Exa",
+      onClick: () => {
+        setSelectedProvider("Exa");
+        setApiKey("");
+        setIsCloudProvider(false);
+        client.setWebSearchData(null);
+      },
+    },
+  ];
+
+  const selectedProviderText =
+    isCloudProvider && selectedProvider
+      ? new URL(selectedProvider).hostname
+      : selectedProvider || t("SelectEngine");
 
   return (
     <div
@@ -58,21 +94,15 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
         <FieldContainer header={t("WebSearchEngine")} isHorizontal={isPage}>
           <ComboBox
             className="w-full"
-            value={selectedProvider || t("SelectEngine")}
-            items={[
-              {
-                text: "Exa",
-                id: "Exa",
-                onClick: () => setSelectedProvider("Exa"),
-              },
-            ]}
+            value={selectedProviderText}
+            items={providerItems}
           />
         </FieldContainer>
         <FieldContainer
           header={t("APIKey")}
           isHorizontal={isPage}
           action={
-            getApiKeyLink(selectedProvider) ? (
+            !isCloudProvider && getApiKeyLink(selectedProvider) ? (
               <Link href={getApiKeyLink(selectedProvider)} target="_blank">
                 {t("GetAPIKey")}
               </Link>
@@ -85,8 +115,8 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
             placeholder={t("EnterKey")}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            onBlur={handleApiKeyBlur}
-            disabled={!selectedProvider}
+            onBlur={isCloudProvider ? undefined : handleApiKeyBlur}
+            disabled={!selectedProvider || isCloudProvider}
           />
         </FieldContainer>
       </div>
