@@ -5,7 +5,6 @@ export type IconButtonProps = {
   size: number;
   color?: string;
   isStroke?: boolean;
-  isTransform?: boolean;
   isActive?: boolean;
   insideElement?: boolean;
   disableHover?: boolean;

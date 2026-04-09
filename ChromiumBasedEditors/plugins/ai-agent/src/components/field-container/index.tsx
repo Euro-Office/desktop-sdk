@@ -1,26 +1,105 @@
+import { Icon } from "@/components/icon";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { cn } from "@/lib/utils";
 
 type FieldContainerProps = {
   children: React.ReactNode;
   header: string;
+  icon?: string;
   error?: string;
+  isHorizontal?: boolean;
+  reserveErrorSpace?: boolean;
+  action?: React.ReactNode;
+  className?: string;
+  headerClassName?: string;
 };
 
-const FieldContainer = ({ children, header, error }: FieldContainerProps) => {
+const ErrorBlock = ({ error }: { error: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <p className="text-[var(--field-container-error-color)] leading-[20px] truncate">
+        {error}
+      </p>
+    </TooltipTrigger>
+    <TooltipContent
+      className="max-w-[350px] break-words"
+      side="bottom"
+      align="start"
+    >
+      {error}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const FieldContainer = ({
+  children,
+  header,
+  icon,
+  error,
+  isHorizontal,
+  reserveErrorSpace,
+  action,
+  className,
+  headerClassName,
+}: FieldContainerProps) => {
   return (
-    <div className={cn("flex flex-col gap-[4px]")}>
-      <p
+    <div className={cn(className, "flex flex-col w-full gap-[2px]")}>
+      {isHorizontal && action && (
+        <div className="flex justify-end w-full">{action}</div>
+      )}
+      <div
         className={cn(
-          "select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)]"
+          "flex w-full",
+          isHorizontal
+            ? "flex-row items-center gap-[8px]"
+            : "flex-col gap-[4px]"
         )}
       >
-        {header}
-      </p>
-      {children}
-      {error && (
-        <p className={cn("text-[var(--field-container-error-color)]")}>
-          {error}
-        </p>
+        {!isHorizontal ? (
+          <div className="flex justify-between items-center w-full mb-[2px]">
+            <div className="flex items-center gap-[8px]">
+              {icon && <Icon name={icon} size={20} />}
+              <p
+                className={cn(
+                  "select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)]",
+                  headerClassName
+                )}
+              >
+                {header}
+              </p>
+            </div>
+            {action}
+          </div>
+        ) : (
+          <div className="flex items-center gap-[8px] w-full max-w-[160px] shrink-0">
+            {icon && <Icon name={icon} size={20} />}
+            <p
+              className={cn(
+                "select-none text-[14px] leading-[20px] text-[var(--field-container-header-color)]",
+                headerClassName
+              )}
+            >
+              {header}
+            </p>
+          </div>
+        )}
+
+        <div
+          className={cn("overflow-hidden", isHorizontal ? "grow" : "w-full")}
+        >
+          {children}
+        </div>
+      </div>
+      {(reserveErrorSpace || error) && (
+        <div
+          className={cn(
+            "overflow-hidden",
+            reserveErrorSpace && "h-[20px]",
+            isHorizontal && "pl-[168px]"
+          )}
+        >
+          {error && <ErrorBlock error={error} />}
+        </div>
       )}
     </div>
   );

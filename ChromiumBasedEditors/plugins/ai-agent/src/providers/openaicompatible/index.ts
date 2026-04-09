@@ -22,19 +22,13 @@ class OpenAICompatibleProvider extends OpenAIProvider {
 
   getProviderModels = async (data: TData): Promise<Model[]> => {
     const client = this.createClient(data.apiKey, data.url);
+    const response = await client.models.list();
 
-    try {
-      const response = await client.models.list();
-
-      return response.data.map((model) => ({
-        id: model.id,
-        name: openaicompatibleInfo.modelNames[model.id] || model.id,
-        provider: "openaicompatible" as const,
-      }));
-    } catch (error) {
-      console.error("Failed to fetch OpenAI Compatible models:", error);
-      return [];
-    }
+    return response.data.map((model) => ({
+      id: model.id,
+      name: model.id,
+      provider: "openaicompatible" as const,
+    }));
   };
 }
 

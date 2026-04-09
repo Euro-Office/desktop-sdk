@@ -11,13 +11,16 @@ import { Layout } from "./components/layout";
 import { ManageToolDialog } from "./components/manage-tool-dialog";
 import { chatDB, initChatDB } from "./database";
 import useMessages from "./hooks/useMessages";
+import useProfiles from "./hooks/useProfiles";
 import useServers from "./hooks/useServers";
 import useThread from "./hooks/useThreads";
+import { migrateProvidersToProfiles } from "./lib/migrateProvidersToProfiles";
 import Thread from "./pages/chat";
 import EmptyScreen from "./pages/empty-screen";
+import InitialSetup from "./pages/initial-setup";
 import Settings from "./pages/settings";
 import useMessageStore from "./store/useMessageStore";
-import useProviders from "./store/useProviders";
+import useProfilesStore from "./store/useProfilesStore.ts";
 import useRouter from "./store/useRouter";
 import useServersStore from "./store/useServersStore";
 
@@ -29,9 +32,9 @@ const App = () => {
   const [isManageToolOpen, setIsManageToolOpen] = useState(false);
 
   const { messages, stopMessage } = useMessageStore();
-  const { providers, fetchProvidersModels } = useProviders();
   const { currentPage } = useRouter();
   const { manageToolData } = useServersStore();
+  const { profiles } = useProfilesStore();
 
   useThread({
     isReady,
@@ -41,20 +44,23 @@ const App = () => {
     isReady,
   });
 
-  const { onNew, convertMessage, approveToolCall, denyToolCall } = useMessages({
+  useProfiles({
     isReady,
   });
 
-  useEffect(() => {
-    if (providers.length) fetchProvidersModels();
-  }, [providers.length, fetchProvidersModels]);
+  const { onNew, convertMessage, approveToolCall, denyToolCall } = useMessages({
+    isReady,
+  });
 
   useEffect(() => {
     if (manageToolData) setIsManageToolOpen(true);
   }, [manageToolData]);
 
   useEffect(() => {
-    initChatDB().then(() => setIsReady(true));
+    initChatDB().then(async () => {
+      await migrateProvidersToProfiles();
+      setIsReady(true);
+    });
 
     return () => {
       chatDB.close();
@@ -76,7 +82,7 @@ const App = () => {
     },
   });
 
-  if (currentPage !== "settings" && !providers.length && !messages.length)
+  if (currentPage !== "settings" && !profiles.length && !messages.length)
     return (
       <Layout>
         <EmptyScreen />
@@ -86,7 +92,13 @@ const App = () => {
   return (
     <Layout>
       <AssistantRuntimeProvider runtime={runtime}>
-        {currentPage === "settings" ? <Settings /> : <Thread />}
+        {currentPage === "settings" ? (
+          <Settings />
+        ) : currentPage === "initial-setup" ? (
+          <InitialSetup />
+        ) : (
+          <Thread />
+        )}
       </AssistantRuntimeProvider>
       {isManageToolOpen ? (
         <ManageToolDialog

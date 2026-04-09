@@ -1,15 +1,16 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { ModelAssignment } from "@/components/model-assignment";
 import { RadioButton } from "@/components/radio-button";
+import { Servers } from "@/components/servers";
 import { Tabs } from "@/components/tabs";
+import { WebSearch } from "@/components/web-search";
 import config from "@/config.json";
 import { useDirection } from "@/hooks/useDirection";
 import { cn } from "@/lib/utils";
-import useProviders from "@/store/useProviders";
-import { Providers } from "./sub-components/providers";
-import { Servers } from "./sub-components/servers";
+import useProfilesStore from "@/store/useProfilesStore";
+import { Models } from "./sub-components/models";
 import { Wallet } from "./sub-components/wallet";
-import { WebSearch } from "./sub-components/web-search";
 
 const showWallet = config.showWallet;
 
@@ -21,10 +22,10 @@ const Settings = () => {
     showWallet ? "wallet" : "providers"
   );
 
-  const { providers } = useProviders();
+  const profiles = useProfilesStore((s) => s.profiles);
 
   const aiSettingsTab = (
-    <div className="flex flex-col gap-[16px] select-none">
+    <div className="flex flex-col gap-[16px] select-none max-w-full">
       {showWallet ? (
         <div>
           <h3 className="font-bold text-[20px] leading-[28px] text-[var(--settings-header-color)]">
@@ -53,7 +54,7 @@ const Settings = () => {
                 />
               </div>
             ) : null}
-            <div className="select-none flex flex-col gap-[12px]">
+            <div className="select-none flex flex-col gap-[12px] w-full">
               <div className="flex flex-col gap-[4px] ">
                 {showWallet ? (
                   <h2
@@ -77,7 +78,7 @@ const Settings = () => {
               {isWallet ? (
                 <Wallet isActive={selectedSection === item} />
               ) : (
-                <Providers isActive={selectedSection === item} />
+                <Models />
               )}
             </div>
           </div>
@@ -88,7 +89,7 @@ const Settings = () => {
 
   return (
     <div className="flex justify-center">
-      <div className="flex flex-col gap-[16px] box-border max-w-[640px] w-[640px] mx-[32px] mt-[32px]">
+      <div className="flex flex-col gap-[16px] box-border max-w-[640px] w-[640px] mx-[32px] mt-[32px] overflow-hidden">
         <h1 className="select-none font-bold text-[20px] leading-[28px] text-[var(--settings-header-color)]">
           {t("Settings")}
         </h1>
@@ -96,20 +97,38 @@ const Settings = () => {
           items={[
             {
               value: "ai-settings",
-              label: t("Connection"),
+              label: t("AIModels"),
               content: aiSettingsTab,
+            },
+            {
+              value: "model-assignment",
+              label: t("ModelAssignment"),
+              content: (
+                <div className="max-w-[480px]">
+                  <ModelAssignment />
+                </div>
+              ),
+              disabled: !profiles.length,
             },
             {
               value: "mcp-servers",
               label: t("MCPServers"),
-              content: <Servers />,
-              disabled: !providers.length,
+              content: (
+                <div className="max-w-[480px] mt-[16px]">
+                  <Servers />
+                </div>
+              ),
+              disabled: !profiles.length,
             },
             {
               value: "web-search",
               label: t("WebSearch"),
-              content: <WebSearch />,
-              disabled: !providers.length,
+              content: (
+                <div className="max-w-[480px] mt-[16px]">
+                  <WebSearch />
+                </div>
+              ),
+              disabled: !profiles.length,
             },
           ]}
         />

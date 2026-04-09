@@ -11,8 +11,9 @@ import { provider, type SendMessageReturnType } from "@/providers";
 import server from "@/servers";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
 import useMessageStore from "@/store/useMessageStore";
-import useModelsStore from "@/store/useModelsStore";
-import useProviders from "@/store/useProviders";
+import useProfilesStore, {
+  selectCurrentChatProfile,
+} from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
 import useThreadsStore from "@/store/useThreadsStore";
 
@@ -45,8 +46,8 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     attachmentImages,
     clearAttachmentImages,
   } = useAttachmentsStore();
-  const { currentProvider } = useProviders();
-  const { currentModel, extendedThinking } = useModelsStore();
+  const currentProfile = useProfilesStore(selectCurrentChatProfile);
+  const extendedThinking = useProfilesStore((s) => s.extendedThinking);
 
   const threadIdRef = useRef(threadId);
 
@@ -239,7 +240,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
 
   const onNew = async (message: AppendMessage) => {
     if (!provider) return;
-    if (!currentProvider || !currentModel) return;
+    if (!currentProfile) return;
     if (message.content[0].type !== "text") return;
 
     let fileContent: FileMessagePart[] = [];
@@ -313,16 +314,10 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
       provider.createChatName(textForTitle).then(async (title) => {
         if (!title) return;
 
-        insertThread(title, {
-          provider: currentProvider,
-          model: currentModel,
-        });
+        insertThread(title, { profileId: currentProfile?.id });
       });
     } else {
-      insertNewMessageToThread({
-        provider: currentProvider,
-        model: currentModel,
-      });
+      insertNewMessageToThread({ profileId: currentProfile?.id });
 
       const createMessages = async () => {
         await createMessage(threadId, crypto.randomUUID(), userMessage);

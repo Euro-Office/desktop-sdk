@@ -424,19 +424,14 @@ class OpenAIProvider extends AbstractBaseProvider<
     const client = this.createClient(data.apiKey, data.url);
     const response: OpenAIModel[] = (await client.models.list()).data;
 
-    return response
-      .filter((model) => openaiInfo.modelFilters.includes(model.id))
-      .map((model) => {
-        const baseName =
-          openaiInfo.modelNames[model.id] || model.id.toUpperCase();
-
-        return {
-          id: `${model.id}`,
-          name: baseName,
-          provider: "openai" as const,
-          reasoning: openaiInfo.reasoningModels.includes(model.id),
-        };
-      });
+    return response.map((model) => {
+      return {
+        id: `${model.id}`,
+        name: model.id,
+        provider: "openai" as const,
+        reasoning: openaiInfo.reasoningModels.includes(model.id),
+      };
+    });
   };
 }
 

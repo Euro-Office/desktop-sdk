@@ -22,13 +22,13 @@ const ToggleButton = ({
     "data-[state=checked]:hover:enabled:bg-[var(--toggle-button-background-hover-color)]";
 
   // Size styles
-  const sizeStyles = "w-[24px] h-[14px]";
+  const sizeStyles = "w-[30px] h-[16px]";
 
   // Thumb styles
   const thumbBaseStyles =
     "pointer-events-none inline-block rounded-full bg-[var(--toggle-button-circle-color)] ring-0 transition-transform duration-200 ease-in-out";
   const thumbSizeStyles =
-    "w-[10px] h-[10px] translate-x-[1px] data-[state=checked]:translate-x-[10px]";
+    "w-[12px] h-[12px] translate-x-[0px] data-[state=checked]:translate-x-[14px]";
 
   return (
     <div className="flex items-center gap-2">

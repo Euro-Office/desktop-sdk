@@ -11,6 +11,7 @@ export type Thread = {
   lastEditDate?: number;
   provider?: TProvider;
   model?: Model;
+  profileId?: string;
 };
 
 export type ProviderType =
@@ -72,4 +73,14 @@ export type TProcess = {
   onprocess: (type: number, message: string) => void;
   end: () => void;
   start: () => void;
+};
+
+export type Profile = {
+  id: string;
+  name: string;
+  providerType: ProviderType;
+  baseUrl: string;
+  key?: string;
+  modelId: string;
+  reasoning?: boolean;
 };

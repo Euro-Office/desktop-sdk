@@ -1,7 +1,8 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { CURRENT_MODEL_KEY } from "@/lib/constants";
 import type { Model, ProviderType, TMCPItem, TProvider } from "@/lib/types";
-import type { TData } from "./base";
+import type { TData, TErrorData } from "./base";
+import { mapFetchError } from "./errors";
 import { SYSTEM_PROMPT } from "./prompts";
 import {
   type BaseProvider,
@@ -149,6 +150,7 @@ class Provider {
 
   getProvidersModels = async (providers: TProvider[]) => {
     const models = new Map<string, Model[]>();
+    const errors = new Map<string, TErrorData>();
 
     const validProviders = providers.filter((p) => getProvider(p.type));
 
@@ -162,18 +164,16 @@ class Provider {
 
     const fetchedModels = await Promise.allSettled(actions);
 
-    validProviders.forEach((provider, index) => {
-      const model = fetchedModels[index];
-      if (
-        model.status === "fulfilled" &&
-        model.value &&
-        model.value.length > 0
-      ) {
-        models.set(provider.name, model.value);
+    validProviders.forEach((prov, index) => {
+      const result = fetchedModels[index];
+      if (result.status === "fulfilled" && result.value.length > 0) {
+        models.set(prov.name, result.value);
+      } else if (result.status === "rejected") {
+        errors.set(prov.name, mapFetchError(result.reason, !!prov.key));
       }
     });
 
-    return models;
+    return { models, errors };
   };
 }
 

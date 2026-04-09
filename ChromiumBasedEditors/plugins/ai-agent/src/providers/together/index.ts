@@ -29,15 +29,11 @@ class TogetherProvider extends OpenAIProvider {
 
     const models = await response.json();
 
-    return models
-      .filter((model: { id: string }) =>
-        togetherInfo.modelFilters.includes(model.id)
-      )
-      .map((model: { id: string }) => ({
-        id: model.id,
-        name: togetherInfo.modelNames[model.id] || model.id,
-        provider: "together" as const,
-      }));
+    return models.map((model: { id: string }) => ({
+      id: model.id,
+      name: model.id,
+      provider: "together" as const,
+    }));
   };
 }
 

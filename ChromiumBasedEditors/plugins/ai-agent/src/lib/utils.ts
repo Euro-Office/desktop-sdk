@@ -86,3 +86,11 @@ export const isPdfForm = (type: number) => {
 export const isVisio = (type: number) => {
   return !!(type & 0x4000);
 };
+
+export const isDesktopEditor = (): boolean => {
+  return "AscDesktopEditor" in window;
+};
+
+export const isExternalProcessAvailable = (): boolean => {
+  return "ExternalProcess" in window;
+};
