@@ -1,17 +1,6 @@
 import { create } from "zustand";
-import {
-  createPromptFolder,
-  deletePromptFolder,
-  readAllPromptFolders,
-  updatePromptFolder,
-} from "@/database/prompt-folders";
-import {
-  createPrompt,
-  deletePrompt,
-  readAllPrompts,
-  updatePrompt,
-} from "@/database/prompts";
 import type { Prompt, PromptFolder } from "@/lib/types";
+import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 
 type UsePromptsStoreProps = {
   prompts: Prompt[];
@@ -36,9 +25,10 @@ const usePromptsStore = create<UsePromptsStoreProps>((set, get) => ({
   folders: [],
 
   initPrompts: async () => {
+    const storage = getStorageInstance();
     const [prompts, folders] = await Promise.all([
-      readAllPrompts(),
-      readAllPromptFolders(),
+      storage.prompts.getAll(),
+      storage.promptFolders.getAll(),
     ]);
     set({ prompts, folders });
   },
@@ -58,7 +48,7 @@ const usePromptsStore = create<UsePromptsStoreProps>((set, get) => ({
     };
 
     set({ prompts: [prompt, ...get().prompts] });
-    createPrompt(prompt).catch(console.error);
+    getStorageInstance().prompts.create(prompt).catch(console.error);
   },
 
   editPrompt: (id, updates) => {
@@ -76,12 +66,12 @@ const usePromptsStore = create<UsePromptsStoreProps>((set, get) => ({
         };
       }),
     });
-    updatePrompt(id, updates).catch(console.error);
+    getStorageInstance().prompts.update(id, updates).catch(console.error);
   },
 
   removePrompt: (id) => {
     set({ prompts: get().prompts.filter((p) => p.id !== id) });
-    deletePrompt(id).catch(console.error);
+    getStorageInstance().prompts.delete(id).catch(console.error);
   },
 
   addFolder: (name: string) => {
@@ -91,7 +81,7 @@ const usePromptsStore = create<UsePromptsStoreProps>((set, get) => ({
     const folder: PromptFolder = { id, name, createdAt: now, updatedAt: now };
 
     set({ folders: [folder, ...get().folders] });
-    createPromptFolder(folder).catch(console.error);
+    getStorageInstance().promptFolders.create(folder).catch(console.error);
     return id;
   },
 
@@ -102,7 +92,7 @@ const usePromptsStore = create<UsePromptsStoreProps>((set, get) => ({
         return { ...f, name, updatedAt: Date.now() };
       }),
     });
-    updatePromptFolder(id, name).catch(console.error);
+    getStorageInstance().promptFolders.update(id, name).catch(console.error);
   },
 
   removeFolder: (id) => {
@@ -110,7 +100,7 @@ const usePromptsStore = create<UsePromptsStoreProps>((set, get) => ({
       folders: get().folders.filter((f) => f.id !== id),
       prompts: get().prompts.filter((p) => p.folderId !== id),
     });
-    deletePromptFolder(id).catch(console.error);
+    getStorageInstance().promptFolders.delete(id).catch(console.error);
   },
 }));
 

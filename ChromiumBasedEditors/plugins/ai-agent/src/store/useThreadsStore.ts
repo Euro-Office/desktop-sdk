@@ -1,16 +1,9 @@
 import { create } from "zustand";
-import { deleteMessagesInThread, readMessages } from "@/database/messages";
-import {
-  createThread,
-  deleteThread,
-  readAllThreads,
-  touchThread,
-  updateThread,
-} from "@/database/threads";
 import type { Thread } from "@/lib/types";
 import { convertMessagesToMd, removeSpecialCharacter } from "@/lib/utils";
 import useMessageStore from "@/store/useMessageStore";
 import useProfilesStore from "@/store/useProfilesStore";
+import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 
 type UseThreadsStoreProps = {
   threadId: string;
@@ -44,7 +37,8 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
   threads: [],
 
   initThreads: async () => {
-    const threads = await readAllThreads();
+    const storage = getStorageInstance();
+    const threads = await storage.threads.getAll();
 
     set({ threads });
   },
@@ -63,7 +57,8 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
       ],
     });
 
-    createThread(
+    const storage = getStorageInstance();
+    storage.threads.create(
       thisStore.threadId,
       title,
       undefined,
@@ -101,7 +96,8 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
       ),
     }));
 
-    touchThread(thread.threadId, {
+    const storage = getStorageInstance();
+    storage.threads.touch(thread.threadId, {
       profileId: matched?.id ?? null,
       provider: null,
       model: null,
@@ -112,7 +108,8 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
   insertNewMessageToThread: (opts?: { profileId?: string }) => {
     const thisStore = get();
 
-    touchThread(thisStore.threadId, {
+    const storage = getStorageInstance();
+    storage.threads.touch(thisStore.threadId, {
       ...(opts && "profileId" in opts ? { profileId: opts.profileId } : {}),
     });
 
@@ -149,7 +146,8 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
   onDownloadThread: async (id: string) => {
     const thisStore = get();
     const thread = thisStore.threads.find((t) => t.threadId === id);
-    const messages = await readMessages(id);
+    const storage = getStorageInstance();
+    const messages = await storage.messages.getByThread(id);
 
     const title = removeSpecialCharacter(thread?.title || "Chat Export");
 
@@ -178,7 +176,8 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
       }),
     });
 
-    updateThread(id, title);
+    const storage = getStorageInstance();
+    storage.threads.update(id, title);
   },
   onDeleteThread: (id: string) => {
     const thisStore = get();
@@ -187,12 +186,14 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
       thisStore.onSwitchToNewThread();
     }
     set({ threads: thisStore.threads.filter((t) => t.threadId !== id) });
-    deleteThread(id);
+    const storage = getStorageInstance();
+    storage.messages.deleteByThread(id).then(() => storage.threads.delete(id));
   },
   onClearThreadHistory: async (id: string) => {
     const thisStore = get();
 
-    await deleteMessagesInThread(id);
+    const storage = getStorageInstance();
+    await storage.messages.deleteByThread(id);
 
     if (thisStore.threadId === id) {
       const { clearMessages } = useMessageStore.getState();

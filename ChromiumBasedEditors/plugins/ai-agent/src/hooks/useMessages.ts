@@ -5,8 +5,6 @@ import type {
   ThreadMessageLike,
 } from "@assistant-ui/react";
 import { useEffect, useRef } from "react";
-import { createMessage, updateMessage } from "@/database/messages";
-import { getThread } from "@/database/metadata";
 import { provider, type SendMessageReturnType } from "@/providers";
 import server from "@/servers";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
@@ -16,6 +14,7 @@ import useProfilesStore, {
 } from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
 import useThreadsStore from "@/store/useThreadsStore";
+import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 
 type UseMessagesProps = {
   isReady: boolean;
@@ -152,7 +151,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
       const updatedMessage = { ...msg, content: updatedContent };
 
       updateLastMessage(updatedMessage);
-      updateMessage(messageUID, updatedMessage);
+      getStorageInstance().messages.update(messageUID, updatedMessage);
 
       if (!provider) return;
 
@@ -226,10 +225,10 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
         if (!initedMessage) {
           if (!afterToolCall) setIsRequestRunning(true);
           addMessage(message);
-          createMessage(threadId, messageUID, message);
+          getStorageInstance().messages.create(threadId, messageUID, message);
           initedMessage = true;
         } else {
-          updateMessage(messageUID, message);
+          getStorageInstance().messages.update(messageUID, message);
 
           if (threadIdRef.current === threadId) {
             updateLastMessage(message);
@@ -279,7 +278,8 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
       attachments: message.attachments,
     };
 
-    const existingThread = await getThread(threadId);
+    const storage = getStorageInstance();
+    const existingThread = await storage.threads.getById(threadId);
 
     if (!existingThread) {
       let textForTitle = "";
@@ -305,11 +305,11 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
         // Skip messages with errors
         if (msg.status?.type === "incomplete" && msg.status?.error) continue;
 
-        await createMessage(threadId, crypto.randomUUID(), msg);
+        await storage.messages.create(threadId, crypto.randomUUID(), msg);
       }
 
       // Save the new user message
-      await createMessage(threadId, crypto.randomUUID(), userMessage);
+      await storage.messages.create(threadId, crypto.randomUUID(), userMessage);
 
       provider.createChatName(textForTitle).then(async (title) => {
         if (!title) return;
@@ -319,11 +319,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     } else {
       insertNewMessageToThread({ profileId: currentProfile?.id });
 
-      const createMessages = async () => {
-        await createMessage(threadId, crypto.randomUUID(), userMessage);
-      };
-
-      createMessages();
+      storage.messages.create(threadId, crypto.randomUUID(), userMessage);
     }
 
     addMessage(userMessage);
