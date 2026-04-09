@@ -85,13 +85,13 @@ export const EditModelCard = ({
 
   return (
     <ModelCardShell>
-      <h3 className="select-none text-[15px] font-bold leading-[20px] text-[var(--text-color)] mb-[12px]">
+      <h3 className="select-none text-[15px] font-bold leading-[20px] text-[var(--text-normal)] mb-[12px]">
         {t("EditAIModel")}
       </h3>
 
       <div className="flex flex-row items-center gap-[12px] mb-[16px]">
         <ProviderLogo providerType={values.provider as ProviderType} />
-        <p className="text-[14px] leading-[20px] text-[var(--text-color)] truncate">
+        <p className="text-[14px] leading-[20px] text-[var(--text-normal)] truncate">
           {values.profileName}
         </p>
       </div>
