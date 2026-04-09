@@ -1,7 +1,7 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { create } from "zustand";
-import { readMessages } from "@/database/messages";
 import { provider } from "@/providers";
+import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 
 type UseMessageStoreProps = {
   messages: ThreadMessageLike[];
@@ -22,7 +22,8 @@ const useMessageStore = create<UseMessageStoreProps>((set, get) => ({
   isStreamRunning: false,
   isRequestRunning: false,
   fetchPrevMessages: async (threadId: string) => {
-    const messages = await readMessages(threadId);
+    const storage = getStorageInstance();
+    const messages = await storage.messages.getByThread(threadId);
 
     set({ messages });
 

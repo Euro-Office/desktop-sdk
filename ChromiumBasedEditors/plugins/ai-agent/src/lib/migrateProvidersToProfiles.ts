@@ -1,4 +1,3 @@
-import { createProfiles } from "@/database/profiles";
 import {
   CURRENT_MODEL_KEY,
   CURRENT_PROVIDER_KEY,
@@ -6,6 +5,7 @@ import {
   PROVIDERS_LOCAL_STORAGE_KEY,
 } from "@/lib/constants";
 import type { Model, Profile, ProviderType, TProvider } from "@/lib/types";
+import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 
 type MigrationModel = {
   id: string;
@@ -205,7 +205,8 @@ export async function migrateProvidersToProfiles(): Promise<void> {
 
     profilesToCreate.sort((a, b) => a.name.localeCompare(b.name));
 
-    await createProfiles(profilesToCreate);
+    const storage = getStorageInstance();
+    await storage.profiles.createMany(profilesToCreate);
 
     const createdProfiles = profilesToCreate;
 

@@ -1,11 +1,5 @@
 import { create } from "zustand";
 import {
-  createProfile,
-  deleteProfile as dbDeleteProfile,
-  readAllProfiles,
-  updateProfile,
-} from "@/database/profiles";
-import {
   CHAT_PROFILE_KEY,
   DEEP_MODE_KEY,
   DEFAULT_PROFILE_KEY,
@@ -19,6 +13,7 @@ import {
 import type { Profile } from "@/lib/types";
 import { provider } from "@/providers";
 import type { TErrorData } from "@/providers/base";
+import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 
 const NAME_EXISTS_ERROR = {
   field: "name" as const,
@@ -110,7 +105,8 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
   sessionChatProfile: null,
 
   init: async () => {
-    const profiles = (await readAllProfiles()).reverse();
+    const storage = getStorageInstance();
+    const profiles = (await storage.profiles.getAll()).reverse();
     set({ profiles });
 
     const defaultProfile =
@@ -168,8 +164,9 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
 
     if (typeof checkResult === "boolean" && checkResult) {
       const isFirst = get().profiles.length === 0;
+      const storage = getStorageInstance();
       const newProfile: Profile = { ...data, id: crypto.randomUUID() };
-      await createProfile(newProfile);
+      await storage.profiles.create(newProfile);
       set((state) => ({ profiles: [newProfile, ...state.profiles] }));
       if (isFirst) get().setDefaultProfile(newProfile);
       return true;
@@ -193,7 +190,8 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
     });
 
     if (typeof checkResult === "boolean" && checkResult) {
-      await updateProfile(profile);
+      const storage = getStorageInstance();
+      await storage.profiles.update(profile);
       set((state) => {
         const profiles = state.profiles.map((p) =>
           p.id === profile.id ? profile : p
@@ -240,7 +238,8 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
   },
 
   deleteProfile: async (id) => {
-    await dbDeleteProfile(id);
+    const storage = getStorageInstance();
+    await storage.profiles.delete(id);
     set((state) => {
       const profiles = state.profiles.filter((p) => p.id !== id);
 

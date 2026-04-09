@@ -7,9 +7,10 @@ import {
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
 import { useEffect, useState } from "react";
+import { StorageProvider } from "../npm_lib/storage/context";
+import type { StorageAdapter } from "../npm_lib/storage/types";
 import { Layout } from "./components/layout";
 import { ManageToolDialog } from "./components/manage-tool-dialog";
-import { chatDB, initChatDB } from "./database";
 import useMessages from "./hooks/useMessages";
 import useProfiles from "./hooks/useProfiles";
 import useServers from "./hooks/useServers";
@@ -27,7 +28,20 @@ import useServersStore from "./store/useServersStore";
 
 import "./i18n";
 
-const App = () => {
+interface AppProps {
+  /** Custom storage backend. If omitted, IndexedDBStorage is used */
+  storage?: StorageAdapter;
+}
+
+const App = ({ storage }: AppProps) => {
+  return (
+    <StorageProvider storage={storage}>
+      <AppInner />
+    </StorageProvider>
+  );
+};
+
+const AppInner = () => {
   const [isReady, setIsReady] = useState(false);
 
   const [isManageToolOpen, setIsManageToolOpen] = useState(false);
@@ -60,14 +74,7 @@ const App = () => {
 
   useEffect(() => {
     fetchClouds();
-    initChatDB().then(async () => {
-      await migrateProvidersToProfiles();
-      setIsReady(true);
-    });
-
-    return () => {
-      chatDB.close();
-    };
+    migrateProvidersToProfiles().then(() => setIsReady(true));
   }, [fetchClouds]);
 
   const runtime = useExternalStoreRuntime<ThreadMessageLike>({

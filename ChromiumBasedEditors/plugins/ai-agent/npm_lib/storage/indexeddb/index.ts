@@ -1,7 +1,32 @@
-class ChatDB {
+import type { StorageAdapter } from "../types";
+import { IndexedDBMessagesStorage } from "./messages";
+import { IndexedDBProfilesStorage } from "./profiles";
+import { IndexedDBPromptFoldersStorage, IndexedDBPromptsStorage } from "./prompts";
+import { IndexedDBThreadsStorage } from "./threads";
+
+export class IndexedDBStorage implements StorageAdapter {
   private dbName = "ChatHistory";
-  private version = 2;
+  private version = 3;
   private db: IDBDatabase | null = null;
+
+  threads: IndexedDBThreadsStorage;
+  messages: IndexedDBMessagesStorage;
+  profiles: IndexedDBProfilesStorage;
+  prompts: IndexedDBPromptsStorage;
+  promptFolders: IndexedDBPromptFoldersStorage;
+
+  constructor() {
+    const getDB = () => {
+      if (!this.db) throw new Error("Database not initialized");
+      return this.db;
+    };
+
+    this.messages = new IndexedDBMessagesStorage(getDB);
+    this.threads = new IndexedDBThreadsStorage(getDB);
+    this.profiles = new IndexedDBProfilesStorage(getDB);
+    this.prompts = new IndexedDBPromptsStorage(getDB);
+    this.promptFolders = new IndexedDBPromptFoldersStorage(getDB, this.prompts);
+  }
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -10,14 +35,12 @@ class ChatDB {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         this.db = request.result;
-
         resolve();
       };
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        // Create threads store
         if (!db.objectStoreNames.contains("threads")) {
           const threadsStore = db.createObjectStore("threads", {
             keyPath: "threadId",
@@ -27,7 +50,6 @@ class ChatDB {
           });
         }
 
-        // Create messages store
         if (!db.objectStoreNames.contains("messages")) {
           const messagesStore = db.createObjectStore("messages", {
             keyPath: "id",
@@ -38,7 +60,6 @@ class ChatDB {
           });
         }
 
-        // Create prompts store
         if (!db.objectStoreNames.contains("prompts")) {
           const promptsStore = db.createObjectStore("prompts", {
             keyPath: "id",
@@ -51,7 +72,6 @@ class ChatDB {
           });
         }
 
-        // Create prompt folders store
         if (!db.objectStoreNames.contains("promptFolders")) {
           const foldersStore = db.createObjectStore("promptFolders", {
             keyPath: "id",
@@ -61,17 +81,11 @@ class ChatDB {
           });
         }
 
-        // Create profiles store
         if (!db.objectStoreNames.contains("profiles")) {
           db.createObjectStore("profiles", { keyPath: "id" });
         }
       };
     });
-  }
-
-  getDB(): IDBDatabase {
-    if (!this.db) throw new Error("Database not initialized");
-    return this.db;
   }
 
   async close(): Promise<void> {
@@ -81,9 +95,3 @@ class ChatDB {
     }
   }
 }
-
-// Export singleton instance
-export const chatDB = new ChatDB();
-
-// Initialize function
-export const initChatDB = () => chatDB.init();
