@@ -22,6 +22,7 @@ const profileToFormValues = (p: Profile): ModelFormValues => ({
   baseUrl: p.baseUrl,
   model: p.modelId,
   profileName: p.name,
+  isCloudProvider: p.isCloudProvider,
 });
 
 export const EditModelCard = ({
@@ -49,6 +50,7 @@ export const EditModelCard = ({
   useEffect(() => {
     fetchModels(profile.providerType, profile.key ?? "", profile.baseUrl, {
       keepModelIfExists: true,
+      isCloudProvider: profile.isCloudProvider,
     });
   }, []);
 
@@ -72,6 +74,7 @@ export const EditModelCard = ({
       baseUrl: values.baseUrl,
       key: values.apiKey || undefined,
       modelId: values.model,
+      isCloudProvider: values.isCloudProvider,
     });
 
     setIsLoading(false);

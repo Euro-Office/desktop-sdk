@@ -14,6 +14,7 @@ export interface ModelFormValues {
   baseUrl: string;
   model: string;
   profileName: string;
+  isCloudProvider?: boolean;
 }
 
 export type ModelFormErrors = Partial<Record<"key" | "url" | "name", string>>;
@@ -22,6 +23,7 @@ export type ProviderSelection = {
   type: ProviderType;
   baseUrl: string;
   apiKey?: string;
+  isCloudProvider?: boolean;
 };
 
 const providersInfo = provider.getProvidersInfo();
@@ -50,13 +52,14 @@ export const ModelConfigForm = ({
 
   const providerItems = [
     ...clouds.map((cloud) => ({
-      text: cloud.url,
+      text: new URL(cloud.url).hostname,
       id: cloud.url,
       onClick: () =>
         onChange("provider", {
           type: "onlyoffice" as ProviderType,
           baseUrl: cloud.url,
           apiKey: cloud.data.apiKey,
+          isCloudProvider: true,
         }),
     })),
     ...providersInfo.map((p) => ({
@@ -71,7 +74,9 @@ export const ModelConfigForm = ({
   ];
 
   const selectedProviderText =
-    clouds.find((c) => c.url === values.baseUrl)?.url ??
+    (values.isCloudProvider && values.baseUrl
+      ? new URL(values.baseUrl).hostname
+      : undefined) ??
     providersInfo.find((p) => p.type === values.provider)?.name;
 
   const modelItems = models.map((m) => ({

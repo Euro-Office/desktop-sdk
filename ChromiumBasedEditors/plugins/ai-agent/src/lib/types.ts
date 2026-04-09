@@ -84,4 +84,5 @@ export type Profile = {
   key?: string;
   modelId: string;
   reasoning?: boolean;
+  isCloudProvider?: boolean;
 };

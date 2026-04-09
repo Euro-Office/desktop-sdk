@@ -57,6 +57,7 @@ export const AddModelCard = ({
       baseUrl: values.baseUrl,
       key: values.apiKey || undefined,
       modelId: values.model,
+      isCloudProvider: values.isCloudProvider,
     });
 
     setIsLoading(false);

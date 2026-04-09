@@ -28,7 +28,7 @@ export const useModelForm = (initialValues: ModelFormValues) => {
     providerType: ProviderType,
     apiKey: string,
     baseUrl: string,
-    options?: { keepModelIfExists?: boolean }
+    options?: { keepModelIfExists?: boolean; isCloudProvider?: boolean }
   ) => {
     if (!baseUrl) return;
     try {
@@ -60,6 +60,10 @@ export const useModelForm = (initialValues: ModelFormValues) => {
     const fetched = result.get(providerInfo.name) ?? [];
     setModels(fetched);
 
+    const displayName = options?.isCloudProvider
+      ? new URL(baseUrl).hostname
+      : providerInfo.name;
+
     setValues((prev) => {
       if (options?.keepModelIfExists) {
         const currentExists = fetched.some((m) => m.id === prev.model);
@@ -70,7 +74,7 @@ export const useModelForm = (initialValues: ModelFormValues) => {
         ...prev,
         model: firstModel?.id ?? "",
         ...(firstModel && {
-          profileName: `${providerInfo.name} - ${firstModel.name}`,
+          profileName: `${displayName} - ${firstModel.name}`,
         }),
       };
     });
@@ -94,16 +98,24 @@ export const useModelForm = (initialValues: ModelFormValues) => {
     if (errorKey) setErrors((prev) => ({ ...prev, [errorKey]: undefined }));
 
     if (field === "provider") {
-      const { type, baseUrl: newBaseUrl, apiKey } = value as ProviderSelection;
+      const {
+        type,
+        baseUrl: newBaseUrl,
+        apiKey,
+        isCloudProvider,
+      } = value as ProviderSelection;
       setValues((prev) => ({
         ...prev,
         provider: type,
         baseUrl: newBaseUrl,
         model: "",
+        isCloudProvider: isCloudProvider ?? false,
         ...(apiKey !== undefined && { apiKey }),
       }));
       setModels([]);
-      fetchModels(type, apiKey ?? values.apiKey, newBaseUrl);
+      fetchModels(type, apiKey ?? values.apiKey, newBaseUrl, {
+        isCloudProvider,
+      });
       return;
     }
     if (field === "apiKey") {
@@ -111,7 +123,10 @@ export const useModelForm = (initialValues: ModelFormValues) => {
       debouncedFetchModels(
         values.provider as ProviderType,
         value,
-        values.baseUrl
+        values.baseUrl,
+        {
+          isCloudProvider: values.isCloudProvider,
+        }
       );
       return;
     }
@@ -120,7 +135,10 @@ export const useModelForm = (initialValues: ModelFormValues) => {
       debouncedFetchModels(
         values.provider as ProviderType,
         values.apiKey,
-        value
+        value,
+        {
+          isCloudProvider: values.isCloudProvider,
+        }
       );
       return;
     }
@@ -129,11 +147,14 @@ export const useModelForm = (initialValues: ModelFormValues) => {
       const providerInfo = provider.getProviderInfo(
         values.provider as ProviderType
       );
+      const displayName = values.isCloudProvider
+        ? new URL(values.baseUrl).hostname
+        : providerInfo.name;
       setValues((prev) => ({
         ...prev,
         model: value,
         ...(modelObj && {
-          profileName: `${providerInfo.name} - ${modelObj.name}`,
+          profileName: `${displayName} - ${modelObj.name}`,
         }),
       }));
       return;
