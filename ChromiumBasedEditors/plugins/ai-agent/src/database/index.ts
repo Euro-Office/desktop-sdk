@@ -59,7 +59,8 @@ class ChatDB {
           foldersStore.createIndex("createdAt", "createdAt", {
             unique: false,
           });
-          
+        }
+
         // Create profiles store
         if (!db.objectStoreNames.contains("profiles")) {
           db.createObjectStore("profiles", { keyPath: "id" });
