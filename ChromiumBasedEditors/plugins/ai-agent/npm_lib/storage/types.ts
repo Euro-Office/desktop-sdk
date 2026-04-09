@@ -1,5 +1,5 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-import type { Model, Profile, Prompt, PromptFolder, Thread, TProvider } from "../../src/lib/types";
+import type { Model, Profile, Prompt, PromptFolder, Thread, TProvider } from "../types";
 
 export interface ThreadsStorage {
   /** Create a new thread and persist it to storage */

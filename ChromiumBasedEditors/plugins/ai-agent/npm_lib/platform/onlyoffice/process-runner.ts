@@ -1,4 +1,4 @@
-import type { TProcess } from "../../../src/lib/types";
+import type { TProcess } from "../../types";
 import type { PlatformProcessRunner } from "../types";
 
 export class OnlyOfficeProcessRunner implements PlatformProcessRunner {

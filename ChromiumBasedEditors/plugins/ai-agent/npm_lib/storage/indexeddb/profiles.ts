@@ -1,4 +1,4 @@
-import type { Profile } from "../../../src/lib/types";
+import type { Profile } from "../../types";
 import type { ProfilesStorage } from "../types";
 
 export class IndexedDBProfilesStorage implements ProfilesStorage {

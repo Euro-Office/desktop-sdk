@@ -1,4 +1,4 @@
-import type { Prompt, PromptFolder } from "../../../src/lib/types";
+import type { Prompt, PromptFolder } from "../../types";
 import type { PromptFoldersStorage, PromptsStorage } from "../types";
 
 export class IndexedDBPromptsStorage implements PromptsStorage {

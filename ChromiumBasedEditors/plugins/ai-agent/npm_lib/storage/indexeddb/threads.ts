@@ -1,4 +1,4 @@
-import type { Model, Thread, TProvider } from "../../../src/lib/types";
+import type { Model, Thread, TProvider } from "../../types";
 import type { ThreadsStorage } from "../types";
 
 export class IndexedDBThreadsStorage implements ThreadsStorage {

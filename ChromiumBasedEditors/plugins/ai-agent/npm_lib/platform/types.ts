@@ -1,4 +1,4 @@
-import type { TMCPItem, TProcess } from "../../src/lib/types";
+import type { TMCPItem, TProcess } from "../types";
 
 export interface PlatformFileOperations {
   /** Show a native file picker dialog and return the selected file path, or null if cancelled */

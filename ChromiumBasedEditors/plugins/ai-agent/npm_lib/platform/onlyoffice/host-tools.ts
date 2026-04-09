@@ -1,4 +1,4 @@
-import type { TMCPItem } from "../../../src/lib/types";
+import type { TMCPItem } from "../../types";
 import type { PlatformHostTools } from "../types";
 
 export class OnlyOfficeHostTools implements PlatformHostTools {
