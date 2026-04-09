@@ -3,46 +3,39 @@ import { useTranslation } from "react-i18next";
 import { useDirection } from "@/hooks/useDirection";
 import useRouter from "@/store/useRouter";
 import useThemeStore from "@/store/useThemeStore";
+import { usePlatform } from "../../../npm_lib/platform/context";
 import { ChatList } from "./sub-components/ChatList";
 import { Navigation } from "./sub-components/Header";
-
-const getSystemTheme = (system: "dark" | "light") => {
-  if (system === "dark") {
-    return "theme-night";
-  }
-
-  return "theme-white";
-};
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { currentPage } = useRouter();
   const { themeId, setThemeId } = useThemeStore();
+  const platform = usePlatform();
 
   const { i18n } = useTranslation();
   const { isRTL } = useDirection();
 
   React.useLayoutEffect(() => {
-    if (window.RendererProcessVariable) {
-      i18n.changeLanguage(window.RendererProcessVariable.lang);
-    }
+    i18n.changeLanguage(platform.env.locale);
 
-    window.on_update_plugin_info = (info) => {
+    const unsubscribe = platform.env.onEnvironmentChange?.((info) => {
       if (info.lang) {
         i18n.changeLanguage(info.lang);
       }
 
       if (info.theme) {
         if (info.theme === "theme-system") {
-          const resolvedTheme = getSystemTheme(
-            window.RendererProcessVariable.theme.system as "dark" | "light"
-          );
-          setThemeId(resolvedTheme);
+          const resolved =
+            platform.env.systemTheme === "dark" ? "theme-night" : "theme-white";
+          setThemeId(resolved);
         } else {
           setThemeId(info.theme);
         }
       }
-    };
-  }, [i18n, setThemeId]);
+    });
+
+    return () => unsubscribe?.();
+  }, [i18n, setThemeId, platform]);
 
   const isHistory = currentPage === "history";
 

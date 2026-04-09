@@ -15,6 +15,7 @@ import { ToolFallback } from "@/components/tool-fallback";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
 import { convertMessagesToMd, getMessageTitleFromMd } from "@/lib/utils";
 import useMessageStore from "@/store/useMessageStore";
+import { usePlatform } from "../../../../npm_lib/platform/context";
 
 const ThinkingMarkdownText = ({
   text,
@@ -84,25 +85,22 @@ const AssistantActionBar = () => {
   const { t } = useTranslation();
 
   const { isStreamRunning, messages } = useMessageStore();
+  const platform = usePlatform();
 
   const message = useMessage();
 
   if (message.status?.type === "incomplete" && message.status?.error) return;
 
-  const onDownload = () => {
+  const onDownload = async () => {
+    if (!platform.file) return;
+
     const parentMessage = messages[Number(message.parentId)];
 
     const mdValue = convertMessagesToMd([parentMessage, message]);
 
     const title = getMessageTitleFromMd(mdValue);
 
-    window.AscDesktopEditor.SaveFilenameDialog(`${title}.docx`, (path) => {
-      if (!path) return;
-
-      window.AscDesktopEditor.saveAndOpen(mdValue, 0x5c, path, 0x41, (code) => {
-        if (!code) console.log("Conversion error");
-      });
-    });
+    await platform.file.saveAsFile(mdValue, `${title}.docx`);
   };
 
   return (

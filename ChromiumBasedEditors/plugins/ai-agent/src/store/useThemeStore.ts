@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getPlatformInstance } from "../../npm_lib/platform/platform-holder";
 
 const DARK_THEMES = [
   "theme-dark",
@@ -22,23 +23,13 @@ const getThemeType = (themeId: string): ThemeType =>
     : "light";
 
 const getInitialThemeId = (): string => {
-  if (typeof window === "undefined" || !window.RendererProcessVariable) {
-    return "theme-light";
-  }
-
-  const { theme } = window.RendererProcessVariable;
-
-  if (theme.id === "theme-system") {
-    return theme.system === "dark" ? "theme-night" : "theme-white";
-  }
-
-  return theme.id;
+  const platform = getPlatformInstance();
+  return platform?.env.theme ?? "theme-light";
 };
 
 const getInitialScale = (): number => {
-  if (typeof window === "undefined") return 1;
-  // macOS handles scaling differently, always use 1x
-  return window.devicePixelRatio || 1;
+  const platform = getPlatformInstance();
+  return platform?.env.devicePixelRatio ?? 1;
 };
 
 const useThemeStore = create<ThemeStore>((set) => {

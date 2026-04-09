@@ -1,4 +1,5 @@
 import type { TMCPItem } from "@/lib/types";
+import { getPlatformInstance } from "../../npm_lib/platform/platform-holder";
 
 export class DesktopEditorTool {
   private tools: TMCPItem[];
@@ -17,32 +18,19 @@ export class DesktopEditorTool {
   };
 
   callTools = async (name: string, args: Record<string, unknown>) => {
-    const newArgs = { ...args };
+    const platform = getPlatformInstance();
+    if (!platform?.hostTools) return "{}";
 
-    const result = await window.AscDesktopEditor?.callToolFunction(
-      name,
-      JSON.stringify(newArgs)
-    );
-
-    return result;
+    return platform.hostTools.callTool(name, args);
   };
 
   initTools = () => {
+    const platform = getPlatformInstance();
+    if (!platform?.hostTools) return;
+
     try {
-      const stringFunctions: string =
-        window.AscDesktopEditor?.getToolFunctions() ?? "";
-
-      const parsedTools = (
-        JSON.parse(stringFunctions) as (TMCPItem & {
-          parameters: Record<string, unknown>;
-        })[]
-      ).map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        inputSchema: tool.parameters,
-      }));
-
-      this.setTools(parsedTools);
+      const tools = platform.hostTools.getTools();
+      this.setTools(tools);
     } catch (error) {
       console.error("Error parsing tools:", error);
     }
