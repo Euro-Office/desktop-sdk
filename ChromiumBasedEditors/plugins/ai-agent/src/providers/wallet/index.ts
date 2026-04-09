@@ -8,6 +8,8 @@ import type { TData, TErrorData } from "../base";
 import { OpenAIProvider } from "../openai";
 import { walletInfo } from "./info";
 
+const ONLYOFFICE_PROVIDER_ID = -1;
+
 type WalletModel = {
   modelId: string;
   providerId: number;
@@ -21,7 +23,7 @@ class WalletProvider extends OpenAIProvider {
 
   setProvider = (provider: TProvider): void => {
     const baseUrl = provider.baseUrl.replace(/\/+$/, "");
-    const walletUrl = `${baseUrl}/api/2.0/ai/openai/235/v1`;
+    const walletUrl = `${baseUrl}/api/2.0/ai/openai/${ONLYOFFICE_PROVIDER_ID}/v1`;
 
     this.provider = provider;
     this.client = this.createClient(provider.key, walletUrl);
@@ -169,7 +171,7 @@ class WalletProvider extends OpenAIProvider {
       : {};
 
     const response = await fetch(
-      `onlyoffice-proxy://${baseUrl}/api/2.0/ai/chats/models?provider=-1`,
+      `onlyoffice-proxy://${baseUrl}/api/2.0/ai/chats/models?provider=${ONLYOFFICE_PROVIDER_ID}`,
       { headers }
     );
 
