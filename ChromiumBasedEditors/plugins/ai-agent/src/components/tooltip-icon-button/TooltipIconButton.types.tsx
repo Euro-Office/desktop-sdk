@@ -1,7 +1,7 @@
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 export type TooltipIconButtonProps = ComponentPropsWithoutRef<"div"> & {
-  tooltip: string;
+  tooltip: string | ReactNode;
   side?: "top" | "bottom" | "left" | "right";
   visible?: boolean;
 };

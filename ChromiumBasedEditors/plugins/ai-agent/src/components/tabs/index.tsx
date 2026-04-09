@@ -21,7 +21,7 @@ const Tabs = ({
     >
       <TabsPrimitive.List
         className={cn(
-          "w-full inline-flex h-[32px] gap-[20px] items-center border-b-[1px] border-[var(--tabs-border-color)]",
+          "inline-flex h-[24px] items-center",
           isRTL ? "flex-row-reverse" : ""
         )}
       >
@@ -31,9 +31,10 @@ const Tabs = ({
             value={item.value}
             disabled={item.disabled}
             className={cn(
-              "font-normal text-[14px] leading-[20px] text-[var(--tabs-color)] cursor-pointer pb-[3px] relative",
-              "hover:enabled:data-[state=inactive]:after:content-[''] hover:enabled:data-[state=inactive]:after:absolute hover:enabled:data-[state=inactive]:after:bottom-[-5px] hover:enabled:data-[state=inactive]:after:left-1/2 hover:enabled:data-[state=inactive]:after:transform hover:enabled:data-[state=inactive]:after:-translate-x-1/2 hover:enabled:data-[state=inactive]:after:w-[24px] hover:enabled:data-[state=inactive]:after:h-[4px] hover:enabled:data-[state=inactive]:after:bg-[var(--tabs-hover-border-color)] hover:enabled:data-[state=inactive]:after:rounded-t-[3px]",
-              "data-[state=active]:font-bold data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-[-5px] data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-[4px] data-[state=active]:after:bg-[var(--tabs-active-border-color)] data-[state=active]:after:rounded-t-[3px]",
+              "font-semibold text-[13px] leading-[20px] cursor-pointer px-[12px] h-[24px] border-[length:var(--tabs-border-width)] border-[color:var(--tabs-border-color)] border-solid -ml-px first:ml-0 transition-colors",
+              "text-[var(--text-secondary)] bg-[var(--background-normal)]",
+              "data-[state=active]:text-[var(--text-normal)] data-[state=active]:bg-[var(--highlight-button-hover)]",
+              "first:rounded-l-[var(--tabs-border-radius)] last:rounded-r-[var(--tabs-border-radius)]",
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
           >

@@ -43,19 +43,13 @@ class LMStudioProvider extends OpenAIProvider {
 
   getProviderModels = async (data: TData): Promise<Model[]> => {
     const client = this.createClient("lm-studio", data.url);
+    const response = await client.models.list();
 
-    try {
-      const response = await client.models.list();
-
-      return response.data.map((model) => ({
-        id: model.id,
-        name: lmStudioInfo.modelNames[model.id] || model.id,
-        provider: "lm-studio" as const,
-      }));
-    } catch (error) {
-      console.error("Failed to fetch LM Studio models:", error);
-      return [];
-    }
+    return response.data.map((model) => ({
+      id: model.id,
+      name: model.id,
+      provider: "lm-studio" as const,
+    }));
   };
 }
 

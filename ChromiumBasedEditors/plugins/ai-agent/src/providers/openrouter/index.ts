@@ -49,14 +49,12 @@ class OpenRouterProvider extends OpenAIProvider {
     const client = this.createClient(data.apiKey, data.url);
     const response = (await client.models.list()).data;
 
-    return response
-      .filter((model) => openrouterInfo.modelFilters.includes(model.id))
-      .map((model) => ({
-        id: model.id,
-        name: openrouterInfo.modelNames[model.id] || model.id.toUpperCase(),
-        provider: "openrouter" as const,
-        reasoning: openrouterInfo.reasoningModels.includes(model.id),
-      }));
+    return response.map((model) => ({
+      id: model.id,
+      name: model.id,
+      provider: "openrouter" as const,
+      reasoning: openrouterInfo.reasoningModels.includes(model.id),
+    }));
   };
 }
 

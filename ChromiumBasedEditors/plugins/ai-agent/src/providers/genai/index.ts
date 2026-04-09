@@ -283,40 +283,33 @@ class GenAIProvider extends AbstractBaseProvider<
   };
 
   getProviderModels = async (data: TData): Promise<Model[]> => {
-    try {
-      const checkClient = new GoogleGenAI({
-        apiKey: data.apiKey ?? "",
-        httpOptions: data.url ? { baseUrl: data.url } : undefined,
-      });
+    const checkClient = new GoogleGenAI({
+      apiKey: data.apiKey ?? "",
+      httpOptions: data.url ? { baseUrl: data.url } : undefined,
+    });
 
-      const models: Model[] = [];
-      const pager = await checkClient.models.list();
+    const models: Model[] = [];
+    const pager = await checkClient.models.list();
 
-      // Collect models from all pages
-      let page = await pager.page;
+    // Collect models from all pages
+    let page = await pager.page;
 
-      while (page.length > 0) {
-        for (const model of page) {
-          const modelId = model.name?.replace("models/", "") ?? "";
+    while (page.length > 0) {
+      for (const model of page) {
+        const modelId = model.name?.replace("models/", "") ?? "";
 
-          if (genaiInfo.modelFilters.includes(modelId)) {
-            models.push({
-              id: modelId,
-              name:
-                genaiInfo.modelNames[modelId] || model.displayName || modelId,
-              provider: "genai" as const,
-            });
-          }
-        }
-
-        if (!pager.hasNextPage()) break;
-        page = await pager.nextPage();
+        models.push({
+          id: modelId,
+          name: model.displayName || modelId,
+          provider: "genai" as const,
+        });
       }
 
-      return models;
-    } catch {
-      return [];
+      if (!pager.hasNextPage()) break;
+      page = await pager.nextPage();
     }
+
+    return models;
   };
 }
 

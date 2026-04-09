@@ -2,13 +2,12 @@ node_modules
 dist
 .env
 config.ts
+settings.local.json
 coverage
 
-# # Ignore built JS and CSS files in target directory
-# {9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}/*.js
-# {9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}/*.css
-# {9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}/assets/
-# {9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}/*.svg
+# Ignore built JS and CSS files in deploy directory
+deploy/{9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}/*.js
+deploy/{9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}/*.css
 
 scripts/dev.js
 

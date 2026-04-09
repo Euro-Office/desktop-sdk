@@ -14,6 +14,7 @@ type UseMessageStoreProps = {
   updateLastMessage: (message: ThreadMessageLike) => void;
   fetchPrevMessages: (threadId: string) => Promise<void>;
   stopMessage: () => void;
+  clearMessages: () => void;
 };
 
 const useMessageStore = create<UseMessageStoreProps>((set, get) => ({
@@ -60,6 +61,10 @@ const useMessageStore = create<UseMessageStoreProps>((set, get) => ({
 
     thisStore.setIsStreamRunning(false);
     provider.stopMessage();
+  },
+  clearMessages: () => {
+    set({ messages: [] });
+    provider.setCurrentProviderPrevMessages([]);
   },
 }));
 

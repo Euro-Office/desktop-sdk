@@ -83,3 +83,28 @@ export const getErrorCode = (error: unknown): string | number | undefined => {
   }
   return undefined;
 };
+
+/**
+ * Map a caught fetch/SDK error to a TErrorData for display in the UI.
+ */
+export const mapFetchError = (
+  error: unknown,
+  hasApiKey?: boolean
+): TErrorData => {
+  const status = getErrorStatus(error);
+
+  if (
+    status === 0 ||
+    (error && typeof error === "object" && "cause" in error)
+  ) {
+    return ProviderErrors.connectionFailed();
+  }
+  if (status === 401) {
+    return ProviderErrors.invalidKey(extractErrorMessage(error));
+  }
+  if (status === 404) {
+    return ProviderErrors.invalidUrl();
+  }
+
+  return hasApiKey ? ProviderErrors.invalidKey() : ProviderErrors.emptyKey();
+};

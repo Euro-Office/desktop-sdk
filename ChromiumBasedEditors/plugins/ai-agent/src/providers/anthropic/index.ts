@@ -263,36 +263,22 @@ class AnthropicProvider extends AbstractBaseProvider<
 
   getProviderModels = async (data: TData): Promise<Model[]> => {
     const client = createClient(data.apiKey, data.url);
+    const { data: models } = await client.models.list();
 
-    try {
-      const { data: models } = await client.models.list();
+    const result: Model[] = [];
 
-      const result: Model[] = [];
-
-      for (const model of models) {
-        const matchesFilter = anthropicInfo.modelFilters.some((f) =>
-          model.id.includes(f)
-        );
-        if (!matchesFilter) continue;
-
-        const displayName =
-          anthropicInfo.modelNames[model.id] || model.display_name;
-
-        // Add regular model
-        result.push({
-          id: model.id,
-          name: displayName,
-          provider: "anthropic" as const,
-          reasoning: anthropicInfo.thinkingModels.some((t) =>
-            model.id.includes(t)
-          ),
-        });
-      }
-
-      return result;
-    } catch {
-      return [];
+    for (const model of models) {
+      result.push({
+        id: model.id,
+        name: model.display_name,
+        provider: "anthropic" as const,
+        reasoning: anthropicInfo.thinkingModels.some((t) =>
+          model.id.includes(t)
+        ),
+      });
     }
+
+    return result;
   };
 }
 

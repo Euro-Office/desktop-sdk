@@ -14,12 +14,13 @@ type ChatListItemProps = {
   onSwitchToThread: (threadId: string) => void;
   onRenameThread: (threadId: string, newTitle: string) => void;
   onDownloadThread: (threadId: string) => void;
+  onClearThreadHistory: (threadId: string) => void;
   setCurrentPage: (page: Page) => void;
 };
 
-const DownloadIcon = () => <Icon name="btn-save" size={16} isStroke />;
-const RenameIcon = () => <Icon name="btn-rename" size={16} />;
-const RemoveIcon = () => <Icon name="btn-remove" size={16} />;
+const DownloadIcon = () => <Icon name="btn-save" size={24} isStroke />;
+const RenameIcon = () => <Icon name="btn-rename" size={24} />;
+const RemoveIcon = () => <Icon name="btn-remove" size={24} />;
 
 const ChatListItem = ({
   thread,
@@ -27,6 +28,7 @@ const ChatListItem = ({
   onSwitchToThread,
   onRenameThread,
   onDownloadThread,
+  onClearThreadHistory,
   setCurrentPage,
 }: ChatListItemProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -80,6 +82,11 @@ const ChatListItem = ({
 
   const onRenameClick = () => {
     setIsRenameInputVisible(true);
+    setIsOpen(false);
+  };
+
+  const onClearHistoryClick = () => {
+    onClearThreadHistory(thread.threadId);
     setIsOpen(false);
   };
 
@@ -144,6 +151,10 @@ const ChatListItem = ({
               }
               items={[
                 {
+                  text: t("Open"),
+                  onClick: onSwitchToThreadAction,
+                },
+                {
                   icon: <DownloadIcon />,
                   text: t("Save"),
                   onClick: onDownloadClick,
@@ -157,6 +168,15 @@ const ChatListItem = ({
                   icon: <RemoveIcon />,
                   text: t("Delete"),
                   onClick: onDeleteClick,
+                },
+                {
+                  text: "",
+                  isSeparator: true,
+                  onClick: () => undefined,
+                },
+                {
+                  text: t("ClearHistory"),
+                  onClick: onClearHistoryClick,
                 },
               ]}
               side="right"

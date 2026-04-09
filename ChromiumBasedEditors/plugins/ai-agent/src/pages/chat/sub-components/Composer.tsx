@@ -2,19 +2,27 @@ import { ComposerPrimitive } from "@assistant-ui/react";
 import { useTranslation } from "react-i18next";
 import { FileItem } from "@/components/file-item";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
-import useModelsStore from "@/store/useModelsStore";
-import useProviders from "@/store/useProviders";
+import useProfilesStore, {
+  selectCurrentChatProfile,
+} from "@/store/useProfilesStore";
 import { ComposerAction } from "./ComposerAction";
+import { SelectModel } from "./ComposerActionSelectModel";
 
 const Composer = () => {
   const { attachmentFiles, attachmentImages } = useAttachmentsStore();
-  const { currentProvider } = useProviders();
-  const { currentModel } = useModelsStore();
+  const currentProfile = useProfilesStore(selectCurrentChatProfile);
   const { t } = useTranslation();
 
   return (
     <div className="relative mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-[8px] px-[var(--thread-padding-x)] pb-[16px]">
       <ComposerPrimitive.Root className="composer-root relative flex w-full flex-col gap-[16px] rounded-[16px] border px-[24px] py-[16px] box-border">
+        <div className="flex items-center gap-[4px]">
+          <span className="text-[14px] leading-[20px] text-[var(--text-tertiary)] select-none">
+            {t("Ask")}
+          </span>
+          <SelectModel />
+        </div>
+
         {attachmentFiles.length || attachmentImages.length ? (
           <div className="flex flex-row gap-[8px] overflow-x-auto">
             {attachmentFiles.map((file) => (
@@ -32,7 +40,7 @@ const Composer = () => {
           rows={1}
           autoFocus
           aria-label="Message input"
-          disabled={!currentProvider || !currentModel}
+          disabled={!currentProfile}
           data-testid="composer-input"
         />
         <ComposerAction />

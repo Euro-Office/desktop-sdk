@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import { DropdownMenu } from "@/components/dropdown";
 import { IconButton } from "@/components/icon-button";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
-import useModelsStore from "@/store/useModelsStore";
+import useProfilesStore from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
 
 const ServersSettings = () => {
   const { servers, changeToolStatus, webSearchEnabled, getWebSearchEnabled } =
     useServersStore();
-  const { extendedThinking, toggleExtendedThinking } = useModelsStore();
+  const { extendedThinking, toggleExtendedThinking } = useProfilesStore();
 
   const [isOpen, setIsOpen] = useState(false);
 

@@ -28,6 +28,17 @@ const Navigation = () => {
             data-testid="new-chat-button"
           />
         </TooltipIconButton>
+        <TooltipIconButton tooltip={t("ChatHistory")}>
+          <IconButton
+            iconName="btn-list-search"
+            size={24}
+            isActive={currentPage === "history"}
+            onClick={() =>
+              setCurrentPage(currentPage === "history" ? "chat" : "history")
+            }
+            data-testid="chat-history-button"
+          />
+        </TooltipIconButton>
       </div>
       <TooltipIconButton tooltip={t("Settings")}>
         <IconButton

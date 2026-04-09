@@ -1,6 +1,6 @@
 class ChatDB {
   private dbName = "ChatHistory";
-  private version = 1;
+  private version = 2;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -36,6 +36,34 @@ class ChatDB {
           messagesStore.createIndex("timestamp", "timestamp", {
             unique: false,
           });
+        }
+
+        // Create prompts store
+        if (!db.objectStoreNames.contains("prompts")) {
+          const promptsStore = db.createObjectStore("prompts", {
+            keyPath: "id",
+          });
+          promptsStore.createIndex("createdAt", "createdAt", {
+            unique: false,
+          });
+          promptsStore.createIndex("folderId", "folderId", {
+            unique: false,
+          });
+        }
+
+        // Create prompt folders store
+        if (!db.objectStoreNames.contains("promptFolders")) {
+          const foldersStore = db.createObjectStore("promptFolders", {
+            keyPath: "id",
+          });
+          foldersStore.createIndex("createdAt", "createdAt", {
+            unique: false,
+          });
+        }
+
+        // Create profiles store
+        if (!db.objectStoreNames.contains("profiles")) {
+          db.createObjectStore("profiles", { keyPath: "id" });
         }
       };
     });

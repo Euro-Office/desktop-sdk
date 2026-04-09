@@ -693,6 +693,8 @@ namespace asc_client_renderer
 
 		bool m_bIsDebugMode;
 
+		bool m_bDisableAI;
+
 		bool m_bIsEnableUploadCrypto;
 
 		NSCriticalSection::CRITICAL_SECTION m_oCompleteTasksCS;
@@ -762,6 +764,8 @@ namespace asc_client_renderer
 			m_bIsMacrosesSupport = true;
 			m_bIsPluginsSupport = true;
 
+			m_bDisableAI = false;
+
 			CheckDefaults();
 
 			if (!g_pLocalResolver.is_init())
@@ -817,6 +821,9 @@ namespace asc_client_renderer
 
 			m_sLocalFileFolderWithoutFile = default_params.GetValueW("recovery_file_folder");
 
+			m_bDisableAI = (default_params.GetValue("disable-ai") == "1") ? true : false;
+			if (m_bDisableAI)
+				CPluginsManager::DisableAI();
 #if 0
 		default_params.Print();
 #endif
@@ -5068,6 +5075,16 @@ window.AscDesktopEditor.CallInFrame(\"" +
 					m_mapLocalAddImagesCRC.insert(std::pair<unsigned int, std::wstring>(nCRC32, sRet));
 
 				CBgraFrame::RemoveOrientation(m_sLocalFileFolderWithoutFile + L"/media/" + sRet);
+				return sRet;
+			}
+			if (oChecker.eFileType == _CXIMAGE_FORMAT_GIF)
+			{
+				std::wstring sRet = L"image" + std::to_wstring(m_nLocalImagesNextIndex++) + L".gif";
+				NSFile::CFileBinary::Copy(sUrl, m_sLocalFileFolderWithoutFile + L"/media/" + sRet);
+				m_mapLocalAddImages.insert(std::pair<std::wstring, std::wstring>(sUrlMap, sRet));
+				if (0 != nCRC32)
+					m_mapLocalAddImagesCRC.insert(std::pair<unsigned int, std::wstring>(nCRC32, sRet));
+
 				return sRet;
 			}
 			if (oChecker.eFileType == _CXIMAGE_FORMAT_SVG)

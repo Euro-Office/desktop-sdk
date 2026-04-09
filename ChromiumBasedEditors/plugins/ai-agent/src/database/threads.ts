@@ -7,7 +7,8 @@ export const createThread = async (
   threadId: string,
   title: string,
   provider?: TProvider,
-  model?: Model
+  model?: Model,
+  profileId?: string
 ): Promise<void> => {
   const db = chatDB.getDB();
   const threadData: Thread = {
@@ -16,6 +17,7 @@ export const createThread = async (
     lastEditDate: Date.now(),
     provider,
     model,
+    profileId,
   };
 
   return new Promise((resolve, reject) => {
@@ -100,7 +102,11 @@ export const updateThread = async (
 // Update thread's lastEditDate (for when messages are added)
 export const touchThread = async (
   threadId: string,
-  updates?: { provider?: TProvider | null; model?: Model | null }
+  updates?: {
+    provider?: TProvider | null;
+    model?: Model | null;
+    profileId?: string | null;
+  }
 ): Promise<void> => {
   const db = chatDB.getDB();
 
@@ -125,6 +131,9 @@ export const touchThread = async (
           : {}),
         ...(updates && "model" in updates
           ? { model: updates.model ?? undefined }
+          : {}),
+        ...(updates && "profileId" in updates
+          ? { profileId: updates.profileId ?? undefined }
           : {}),
         lastEditDate: Date.now(),
       };

@@ -50,7 +50,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     };
   }, [i18n, setThemeId, fetchClouds]);
 
-  const isSettings = currentPage === "settings";
+  const isHistory = currentPage === "history";
 
   return (
     <div
@@ -66,8 +66,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           className="flex flex-row flex-1"
           style={{ height: "calc(100vh - 56px)" }}
         >
-          {!isSettings ? <ChatList /> : null}
-          <div className="w-full">{children}</div>
+          {isHistory ? <ChatList /> : <div className="w-full">{children}</div>}
         </div>
       </main>
     </div>

@@ -104,12 +104,17 @@
   --input-active-border-color: var(--background-accent-button);
   --input-active-background-color: var(--background-normal);
   --input-error-color: var(--border-error);
+  --input-border-radius: 4px;
 
   /* tabs */
+  --tabs-border-width: 1px;
+  --tabs-border-radius: 4px;
   --tabs-color: var(--text-normal);
   --tabs-border-color: var(--border-divider);
   --tabs-hover-border-color: var(--checkbox-border-normal);
   --tabs-active-border-color: var(--background-accent-button);
+  --tabs-list-background-color: var(--background-normal-element);
+  --tabs-active-background-color: var(--background-normal);
 
   /* modal dialog */
   --modal-dialog-background-color: var(--background-normal);
@@ -159,6 +164,16 @@
   --tooltip-border-color: var(--border-divider);
   --tooltip-shadow: 0px 1px 4px -1px #00000033;
 
+  /* link */
+  --link-color: var(--text-tertiary);
+  --link-primary-color: var(--background-accent-button);
+
+  /* model-config-card */
+  --model-config-card-border-color: var(--border-divider);
+  --model-config-card-border-radius: 8px;
+  --model-config-card-border-width: 1px;
+  --model-config-card-background-color: var(--layout-background-color);
+
   /* loader */
   --loader-border-color: var(--background-accent-button);
 
@@ -192,6 +207,15 @@
   --ai-provider-item-shadow:
     0px 1px 2px 0px #0000000f, 0px 1px 3px 0px #0000001a;
 
+  /* model card */
+  --model-card-background-color: var(--background-normal);
+  --model-card-color: var(--text-normal);
+  --model-card-description-color: var(--text-secondary);
+  --model-card-border-color: var(--border-divider);
+  --model-card-border-radius: 8px;
+  --model-card-logo-border-color: var(--border-divider);
+  --model-card-logo-border-radius: 6px;
+
   /* settings servers */
   --servers-description-color: var(--text-tertiary);
   --servers-edit-config-json-background-color: var(
@@ -204,6 +228,9 @@
   --servers-edit-config-buttons-border-color: var(--border-divider);
 
   --servers-available-tools-border-color: var(--border-divider);
+  --servers-available-tools-border-width: 1px;
+  --servers-available-tools-border-radius: 8px;
+  --servers-available-tools-item-border-radius: 4px;
   --servers-available-tools-header-color: var(--text-normal);
   --servers-available-tools-item-name-color: var(--text-normal);
   --servers-available-tools-sub-header-color: var(--text-tertiary);

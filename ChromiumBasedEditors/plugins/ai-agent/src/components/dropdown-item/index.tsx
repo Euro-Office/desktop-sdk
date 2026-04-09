@@ -11,7 +11,7 @@ import type { DropDownItemProps } from "./DropDownItem.types";
 const DropDownItem = ({
   text,
   icon,
-  iconSize = 16,
+  iconSize = 24,
   onClick,
   isActive,
   isSeparator,
@@ -19,7 +19,12 @@ const DropDownItem = ({
   toggleChecked,
   onToggleChange,
   toggleDisabled,
+  trailingIcon,
+  trailingIconSize = 16,
   subMenu,
+  subMenuClassName,
+  subMenuIcon,
+  subMenuIconSize,
   checked,
   tooltipText,
   withSpace,
@@ -88,7 +93,22 @@ const DropDownItem = ({
       mouseY >= submenuRect.top &&
       mouseY <= submenuRect.bottom;
 
-    if (!isInsideItem && !isInsideSubmenu) {
+    // Don't close if mouse is inside a nested dropdown (e.g. context menu from 3-dots)
+    // Exclude the submenu itself and any ancestor dropdown that contains this item
+    const nestedDropdowns = document.querySelectorAll(".dropdown-menu");
+    const isInsideNestedDropdown = Array.from(nestedDropdowns).some((el) => {
+      if (el === submenuRef.current) return false;
+      if (el.contains(itemRef.current)) return false;
+      const rect = el.getBoundingClientRect();
+      return (
+        mouseX >= rect.left &&
+        mouseX <= rect.right &&
+        mouseY >= rect.top &&
+        mouseY <= rect.bottom
+      );
+    });
+
+    if (!isInsideItem && !isInsideSubmenu && !isInsideNestedDropdown) {
       setIsSubMenuOpen(false);
       window.removeEventListener("mousemove", handleMouseMove);
     }
@@ -140,7 +160,7 @@ const DropDownItem = ({
       )}
       onSelect={withToggle ? (e) => e.preventDefault() : onSelect}
       onClick={withToggle ? handleToggleClick : undefined}
-      onMouseEnter={handleMouseEnter}
+      onMouseEnter={subMenuIcon ? undefined : handleMouseEnter}
       ref={itemRef}
       dir={isRTL ? "rtl" : "ltr"}
     >
@@ -153,11 +173,22 @@ const DropDownItem = ({
         <span
           className={cn(
             "truncate font-normal text-[14px] leading-[20px] text-[var(--drop-down-menu-item-color)]",
-            withSpace ? "ms-[28px]" : ""
+            withSpace ? "ms-[28px]" : "",
+            trailingIcon ? "flex-1" : ""
           )}
         >
           {text}
         </span>
+        {trailingIcon && typeof trailingIcon === "string" ? (
+          <IconButton
+            iconName={trailingIcon}
+            size={trailingIconSize}
+            disableHover
+            isStroke
+          />
+        ) : (
+          (trailingIcon ?? null)
+        )}
         {withAbout ? (
           <Tooltip open={isAboutOpen}>
             <TooltipTrigger asChild>
@@ -176,25 +207,27 @@ const DropDownItem = ({
       </div>
 
       {subMenu ? (
-        <DropdownMenu
-          trigger={
-            <IconButton
-              iconName="arrow.right"
-              size={12}
-              insideElement
-              isStroke
-              className={isRTL ? "rotate-180" : ""}
-            />
-          }
-          items={subMenu}
-          side={submenuSide}
-          align="start"
-          sideOffset={submenuOffset}
-          open={isSubMenuOpen}
-          contentClassName="mt-[-15px] max-w-[300px]"
-          containerRef={itemRef.current}
-          dropdownRef={submenuRef}
-        />
+        <div onClick={subMenuIcon ? (e) => e.stopPropagation() : undefined}>
+          <DropdownMenu
+            trigger={
+              <IconButton
+                iconName={subMenuIcon ?? "arrow.right"}
+                size={subMenuIconSize ?? 12}
+                insideElement
+                isStroke={!subMenuIcon}
+                className={!subMenuIcon && isRTL ? "rotate-180" : ""}
+              />
+            }
+            items={subMenu}
+            side={submenuSide}
+            align="start"
+            sideOffset={submenuOffset}
+            open={subMenuIcon ? undefined : isSubMenuOpen}
+            contentClassName={`mt-[-15px] max-w-[300px] ${subMenuClassName || ""}`}
+            containerRef={itemRef.current}
+            dropdownRef={submenuRef}
+          />
+        </div>
       ) : null}
       {checked ? (
         <IconButton iconName="checked" size={16} disableHover isStroke />

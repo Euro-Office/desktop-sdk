@@ -11,6 +11,7 @@ export type Thread = {
   lastEditDate?: number;
   provider?: TProvider;
   model?: Model;
+  profileId?: string;
 };
 
 export type ProviderType =
@@ -41,6 +42,22 @@ export type TProvider = {
   baseUrl: string;
 };
 
+export type PromptFolder = {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type Prompt = {
+  id: string;
+  name: string;
+  text: string;
+  folderId?: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type TAttachmentFile = {
   path: string;
   content: string;
@@ -57,4 +74,14 @@ export type TProcess = {
   onprocess: (type: number, message: string) => void;
   end: () => void;
   start: () => void;
+};
+
+export type Profile = {
+  id: string;
+  name: string;
+  providerType: ProviderType;
+  baseUrl: string;
+  key?: string;
+  modelId: string;
+  reasoning?: boolean;
 };
