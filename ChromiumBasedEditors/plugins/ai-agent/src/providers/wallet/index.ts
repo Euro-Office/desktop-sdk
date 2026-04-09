@@ -3,7 +3,8 @@ import type {
   ChatCompletionSystemMessageParam,
 } from "openai/resources/chat/completions";
 import type { Model, TProvider } from "@/lib/types";
-import type { TData } from "../base";
+import { getErrorCode, ProviderErrors } from "@/providers/errors.ts";
+import type { TData, TErrorData } from "../base";
 import { OpenAIProvider } from "../openai";
 import { walletInfo } from "./info";
 
@@ -168,7 +169,7 @@ class WalletProvider extends OpenAIProvider {
       : {};
 
     const response = await fetch(
-      `onlyoffice-proxy://${baseUrl}/api/2.0/ai/chats/models?provider=235`,
+      `onlyoffice-proxy://${baseUrl}/api/2.0/ai/chats/models?provider=-1`,
       { headers }
     );
 
@@ -180,6 +181,25 @@ class WalletProvider extends OpenAIProvider {
       name: model.modelId,
       provider: "wallet" as const,
     }));
+  };
+
+  checkProvider = async (data: TData): Promise<boolean | TErrorData> => {
+    try {
+      await this.getProviderModels(data);
+      return true;
+    } catch (error) {
+      const errorCode = getErrorCode(error);
+      const isInvalidKey = errorCode === "invalid_api_key";
+      if (isInvalidKey) return ProviderErrors.invalidKey();
+
+      if (errorCode === 404) {
+        return ProviderErrors.invalidUrl();
+      }
+
+      return data.apiKey
+        ? ProviderErrors.invalidKey()
+        : ProviderErrors.emptyKey();
+    }
   };
 }
 
