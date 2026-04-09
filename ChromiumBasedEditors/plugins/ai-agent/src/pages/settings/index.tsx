@@ -1,111 +1,15 @@
-import React from "react";
 import { useTranslation } from "react-i18next";
 import { ModelAssignment } from "@/components/model-assignment";
-import { RadioButton } from "@/components/radio-button";
 import { Servers } from "@/components/servers";
 import { Tabs } from "@/components/tabs";
 import { WebSearch } from "@/components/web-search";
-import config from "@/config.json";
-import { useDirection } from "@/hooks/useDirection";
-import { cn } from "@/lib/utils";
-import useCloudsStore from "@/store/useCloudsStore";
 import useProfilesStore from "@/store/useProfilesStore";
-import useWalletStore from "@/store/useWalletStore";
 import { Models } from "./sub-components/models";
-import { Wallet } from "./sub-components/wallet";
-
-const showWallet = config.showWallet;
 
 const Settings = () => {
   const { t } = useTranslation();
-  const { isRTL } = useDirection();
-
-  const { isWalletActive, setWalletActive } = useWalletStore();
-  const { fetchClouds } = useCloudsStore();
-
-  const [selectedSection, setSelectedSection] = React.useState(
-    showWallet ? (isWalletActive ? "wallet" : "providers") : "providers"
-  );
 
   const profiles = useProfilesStore((s) => s.profiles);
-
-  React.useEffect(() => {
-    fetchClouds();
-  }, [fetchClouds]);
-
-  const onSectionChange = React.useCallback(
-    (section: string) => {
-      setSelectedSection(section);
-      if (showWallet) {
-        setWalletActive(section === "wallet");
-        if (section === "wallet") fetchClouds();
-      }
-    },
-    [setWalletActive, fetchClouds]
-  );
-
-  const aiSettingsTab = (
-    <div className="flex flex-col gap-[16px] select-none max-w-full">
-      {showWallet ? (
-        <div>
-          <h3 className="font-bold text-[20px] leading-[28px] text-[var(--settings-header-color)]">
-            {t("ChooseHowConnect")}
-          </h3>
-          <p className="text-[14px] leading-[20px] text-[var(--settings-description-color)] mt-[4px]">
-            {t("SelectHowConnect")}
-            <br />
-            {t("SelectHowConnectDescription")}
-          </p>
-        </div>
-      ) : null}
-      {(showWallet ? ["wallet", "providers"] : ["providers"]).map((item) => {
-        const isWallet = item === "wallet";
-
-        return (
-          <div
-            key={item}
-            className={cn("flex gap-[12px]", isRTL ? "justify-end" : "")}
-          >
-            {showWallet ? (
-              <div className={cn("flex items-start w-[20px] flex-shrink-0")}>
-                <RadioButton
-                  checked={selectedSection === item}
-                  onChange={() => onSectionChange(item)}
-                />
-              </div>
-            ) : null}
-            <div className="select-none flex flex-col gap-[12px] w-full">
-              <div className="flex flex-col gap-[4px] ">
-                {showWallet ? (
-                  <h2
-                    className="font-normal text-[14px] leading-[20px] text-[var(--text-normal)] cursor-pointer"
-                    onClick={() => onSectionChange(item)}
-                  >
-                    {isWallet ? t("ONLYOFFICEWallet") : t("AIProviders")}
-                  </h2>
-                ) : null}
-                <p
-                  className={cn(
-                    "text-[14px] leading-[20px] text-[var(--settings-description-color)]",
-                    isRTL ? "text-end" : ""
-                  )}
-                >
-                  {isWallet
-                    ? t("ONLYOFFICEWalletDescription")
-                    : t("AIProvidersDescription")}
-                </p>
-              </div>
-              {isWallet ? (
-                <Wallet isActive={selectedSection === item} />
-              ) : (
-                <Models />
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 
   return (
     <div className="flex justify-center">
@@ -118,7 +22,11 @@ const Settings = () => {
             {
               value: "ai-settings",
               label: t("AIModels"),
-              content: aiSettingsTab,
+              content: (
+                <div className="max-w-[480px]">
+                  <Models />
+                </div>
+              ),
             },
             {
               value: "model-assignment",
