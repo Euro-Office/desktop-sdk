@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type Page = "chat" | "settings";
+export type Page = "chat" | "settings" | "history";
 
 type RouterState = {
   currentPage: Page;

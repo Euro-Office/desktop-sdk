@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { readMessages } from "@/database/messages";
+import { deleteMessagesInThread, readMessages } from "@/database/messages";
 import {
   createThread,
   deleteThread,
@@ -9,6 +9,7 @@ import {
 } from "@/database/threads";
 import type { Model, Thread, TProvider } from "@/lib/types";
 import { convertMessagesToMd, removeSpecialCharacter } from "@/lib/utils";
+import useMessageStore from "@/store/useMessageStore";
 import useModelsStore from "@/store/useModelsStore";
 import useProviders from "@/store/useProviders";
 
@@ -30,6 +31,7 @@ type UseThreadsStoreProps = {
   onDownloadThread: (id: string) => void;
   onRenameThread: (id: string, title: string) => void;
   onDeleteThread: (id: string) => void;
+  onClearThreadHistory: (id: string) => void;
 };
 
 const applyThreadContextFromThread = (thread?: Thread) => {
@@ -159,6 +161,16 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
     }
     set({ threads: thisStore.threads.filter((t) => t.threadId !== id) });
     deleteThread(id);
+  },
+  onClearThreadHistory: async (id: string) => {
+    const thisStore = get();
+
+    await deleteMessagesInThread(id);
+
+    if (thisStore.threadId === id) {
+      const { clearMessages } = useMessageStore.getState();
+      clearMessages();
+    }
   },
 }));
 

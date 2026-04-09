@@ -1,5 +1,7 @@
 {
   "AIAgent": "AI agent",
+  "Open": "Open",
+  "ClearHistory": "Clear history",
   "AIAgentSettings": "AI agent Settings",
   "Settings": "Settings",
   "ConnectAIModel": "Connect an AI Model to Get Started",
