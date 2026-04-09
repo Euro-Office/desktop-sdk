@@ -15,7 +15,7 @@ import {
   isXps,
 } from "@/lib/utils";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
-import useModelsStore from "@/store/useModelsStore";
+import useProfilesStore from "@/store/useProfilesStore.ts";
 import useServersStore from "@/store/useServersStore";
 
 const getFileIconName = (type: number): string => {
@@ -37,7 +37,7 @@ const ComposerActionAttachment = () => {
   const { addAttachmentFile, addAttachmentImage } = useAttachmentsStore();
   const { servers, changeToolStatus, webSearchEnabled, getWebSearchEnabled } =
     useServersStore();
-  const { extendedThinking, toggleExtendedThinking } = useModelsStore();
+  const { extendedThinking, toggleExtendedThinking } = useProfilesStore();
 
   const onOpenChange = (open: boolean) => {
     setIsOpen(open);
