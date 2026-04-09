@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type {
   ModelFormErrors,
   ModelFormValues,
+  ProviderSelection,
 } from "@/components/model-config-cards/sub-components/ModelConfigForm";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
 import type { Model, ProviderType } from "@/lib/types";
@@ -85,22 +86,24 @@ export const useModelForm = (initialValues: ModelFormValues) => {
     profileName: "name",
   };
 
-  const handleChange = (field: keyof ModelFormValues, value: string) => {
+  const handleChange = (
+    field: keyof ModelFormValues,
+    value: string | ProviderSelection
+  ) => {
     const errorKey = fieldToErrorKey[field];
     if (errorKey) setErrors((prev) => ({ ...prev, [errorKey]: undefined }));
 
     if (field === "provider") {
-      const providerInfo = provider.getProviderInfo(value as ProviderType);
-      const newBaseUrl = providerInfo.baseUrl ?? "";
-
+      const { type, baseUrl: newBaseUrl, apiKey } = value as ProviderSelection;
       setValues((prev) => ({
         ...prev,
-        provider: value,
+        provider: type,
         baseUrl: newBaseUrl,
         model: "",
+        ...(apiKey !== undefined && { apiKey }),
       }));
       setModels([]);
-      fetchModels(value as ProviderType, values.apiKey, newBaseUrl);
+      fetchModels(type, apiKey ?? values.apiKey, newBaseUrl);
       return;
     }
     if (field === "apiKey") {

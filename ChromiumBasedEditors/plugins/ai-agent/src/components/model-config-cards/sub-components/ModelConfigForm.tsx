@@ -4,10 +4,9 @@ import { FieldContainer } from "@/components/field-container";
 import { Input } from "@/components/input";
 import { Link } from "@/components/link";
 import { getApiKeyLink } from "@/lib/apiKeyLinks";
-import type { Model } from "@/lib/types";
+import type { Model, ProviderType } from "@/lib/types";
 import { provider } from "@/providers";
-
-const providersInfo = provider.getProvidersInfo();
+import useCloudsStore from "@/store/useCloudsStore";
 
 export interface ModelFormValues {
   provider: string;
@@ -19,9 +18,20 @@ export interface ModelFormValues {
 
 export type ModelFormErrors = Partial<Record<"key" | "url" | "name", string>>;
 
+export type ProviderSelection = {
+  type: ProviderType;
+  baseUrl: string;
+  apiKey?: string;
+};
+
+const providersInfo = provider.getProvidersInfo();
+
 interface ModelConfigFormProps {
   values: ModelFormValues;
-  onChange: (field: keyof ModelFormValues, value: string) => void;
+  onChange: (
+    field: keyof ModelFormValues,
+    value: string | ProviderSelection
+  ) => void;
   models: Model[];
   errors?: ModelFormErrors;
   isHorizontal?: boolean;
@@ -35,7 +45,34 @@ export const ModelConfigForm = ({
   isHorizontal,
 }: ModelConfigFormProps) => {
   const { t } = useTranslation();
+  const { clouds } = useCloudsStore();
   const isFieldsDisabled = !values.provider;
+
+  const providerItems = [
+    ...clouds.map((cloud) => ({
+      text: cloud.url,
+      id: cloud.url,
+      onClick: () =>
+        onChange("provider", {
+          type: "onlyoffice" as ProviderType,
+          baseUrl: cloud.url,
+          apiKey: cloud.data.apiKey,
+        }),
+    })),
+    ...providersInfo.map((p) => ({
+      text: p.name,
+      id: p.type,
+      onClick: () =>
+        onChange("provider", {
+          type: p.type as ProviderType,
+          baseUrl: p.baseUrl,
+        }),
+    })),
+  ];
+
+  const selectedProviderText =
+    clouds.find((c) => c.url === values.baseUrl)?.url ??
+    providersInfo.find((p) => p.type === values.provider)?.name;
 
   const modelItems = models.map((m) => ({
     text: m.name,
@@ -54,12 +91,8 @@ export const ModelConfigForm = ({
         <ComboBox
           className="w-full"
           placeholder={t("SelectProvider")}
-          value={providersInfo.find((p) => p.type === values.provider)?.name}
-          items={providersInfo.map((p) => ({
-            text: p.name,
-            id: p.type,
-            onClick: () => onChange("provider", p.type),
-          }))}
+          value={selectedProviderText}
+          items={providerItems}
         />
       </FieldContainer>
 
