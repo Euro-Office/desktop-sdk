@@ -26,7 +26,7 @@ export type ProviderType =
   | "xai"
   | "lm-studio"
   | "mistral"
-  | "wallet";
+  | "onlyoffice";
 
 export type Model = {
   id: string;

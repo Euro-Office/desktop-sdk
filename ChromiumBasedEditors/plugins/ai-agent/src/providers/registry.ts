@@ -5,6 +5,7 @@ import { type GenAIProvider, genaiProvider } from "./genai";
 import { type LMStudioProvider, lmStudioProvider } from "./lm-studio";
 import { type MistralProvider, mistralProvider } from "./mistral";
 import { type OllamaProvider, ollamaProvider } from "./ollama";
+import { type OnlyOfficeProvider, onlyOfficeProvider } from "./onlyoffice";
 import { type OpenAIProvider, openaiProvider } from "./openai";
 import {
   type OpenAICompatibleProvider,
@@ -12,7 +13,6 @@ import {
 } from "./openaicompatible";
 import { type OpenRouterProvider, openrouterProvider } from "./openrouter";
 import { type TogetherProvider, togetherProvider } from "./together";
-import { type WalletProvider, walletProvider } from "./wallet";
 import { type XAIProvider, xaiProvider } from "./xai";
 
 export type BaseProvider =
@@ -27,7 +27,7 @@ export type BaseProvider =
   | XAIProvider
   | LMStudioProvider
   | MistralProvider
-  | WalletProvider;
+  | OnlyOfficeProvider;
 
 /**
  * Registry mapping provider types to their singleton instances.
@@ -45,7 +45,7 @@ export const providerRegistry: Record<ProviderType, BaseProvider> = {
   xai: xaiProvider,
   "lm-studio": lmStudioProvider,
   mistral: mistralProvider,
-  wallet: walletProvider,
+  onlyoffice: onlyOfficeProvider,
 };
 
 /**

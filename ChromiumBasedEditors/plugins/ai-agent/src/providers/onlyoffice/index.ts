@@ -6,30 +6,30 @@ import type { Model, TProvider } from "@/lib/types";
 import { getErrorCode, ProviderErrors } from "@/providers/errors.ts";
 import type { TData, TErrorData } from "../base";
 import { OpenAIProvider } from "../openai";
-import { walletInfo } from "./info";
+import { onlyOfficeInfo } from "./info";
 
 const ONLYOFFICE_PROVIDER_ID = -1;
 
-type WalletModel = {
+type OnlyOfficeModel = {
   modelId: string;
   providerId: number;
   providerTitle: string;
 };
 
-class WalletProvider extends OpenAIProvider {
-  getName = (): string => walletInfo.name;
+class OnlyOfficeProvider extends OpenAIProvider {
+  getName = (): string => onlyOfficeInfo.name;
 
-  getBaseUrl = (): string => walletInfo.baseUrl;
+  getBaseUrl = (): string => onlyOfficeInfo.baseUrl;
 
   setProvider = (provider: TProvider): void => {
     const baseUrl = provider.baseUrl.replace(/\/+$/, "");
-    const walletUrl = `${baseUrl}/api/2.0/ai/openai/${ONLYOFFICE_PROVIDER_ID}/v1`;
+    const onlyOfficeUrl = `${baseUrl}/api/2.0/ai/openai/${ONLYOFFICE_PROVIDER_ID}/v1`;
 
     this.provider = provider;
-    this.client = this.createClient(provider.key, walletUrl);
+    this.client = this.createClient(provider.key, onlyOfficeUrl);
 
     if (provider.key) this.setApiKey(provider.key);
-    this.setUrl(walletUrl);
+    this.setUrl(onlyOfficeUrl);
   };
 
   async getStream(
@@ -93,12 +93,12 @@ class WalletProvider extends OpenAIProvider {
       } catch (e) {
         if (e instanceof SyntaxError) {
           throw new Error(
-            `Wallet API error (${res.status}): ${text.slice(0, 200)}`
+            `ONLYOFFICE API error (${res.status}): ${text.slice(0, 200)}`
           );
         }
         throw e;
       }
-      throw new Error(`Wallet API error: ${res.status}`);
+      throw new Error(`ONLYOFFICE API error: ${res.status}`);
     }
 
     const reader = res.body.getReader();
@@ -139,7 +139,7 @@ class WalletProvider extends OpenAIProvider {
                 // Handle error responses inside SSE
                 if (parsed.error) {
                   throw new Error(
-                    parsed.error.message || "Unknown wallet error"
+                    parsed.error.message || "Unknown ONLYOFFICE error"
                   );
                 }
 
@@ -176,12 +176,12 @@ class WalletProvider extends OpenAIProvider {
     );
 
     const json = await response.json();
-    const models: WalletModel[] = json.response ?? json;
+    const models: OnlyOfficeModel[] = json.response ?? json;
 
     return models.map((model) => ({
       id: model.modelId,
       name: model.modelId,
-      provider: "wallet" as const,
+      provider: "onlyoffice" as const,
     }));
   };
 
@@ -205,6 +205,6 @@ class WalletProvider extends OpenAIProvider {
   };
 }
 
-const walletProvider = new WalletProvider();
+const onlyOfficeProvider = new OnlyOfficeProvider();
 
-export { WalletProvider, walletProvider };
+export { OnlyOfficeProvider, onlyOfficeProvider };
