@@ -34,6 +34,7 @@ export type BaseProvider =
  * This eliminates switch statements throughout the codebase.
  */
 export const providerRegistry: Record<ProviderType, BaseProvider> = {
+  onlyoffice: onlyOfficeProvider,
   anthropic: anthropicProvider,
   ollama: ollamaProvider,
   openai: openaiProvider,
@@ -45,7 +46,6 @@ export const providerRegistry: Record<ProviderType, BaseProvider> = {
   xai: xaiProvider,
   "lm-studio": lmStudioProvider,
   mistral: mistralProvider,
-  onlyoffice: onlyOfficeProvider,
 };
 
 /**
