@@ -1,7 +1,10 @@
-import type { StorageAdapter } from "../types";
+import type { StorageAdapter } from "../../../npm_lib/storage/types";
 import { IndexedDBMessagesStorage } from "./messages";
 import { IndexedDBProfilesStorage } from "./profiles";
-import { IndexedDBPromptFoldersStorage, IndexedDBPromptsStorage } from "./prompts";
+import {
+  IndexedDBPromptFoldersStorage,
+  IndexedDBPromptsStorage,
+} from "./prompts";
 import { IndexedDBThreadsStorage } from "./threads";
 
 export class IndexedDBStorage implements StorageAdapter {

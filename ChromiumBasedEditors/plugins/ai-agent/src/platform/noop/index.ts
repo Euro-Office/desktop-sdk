@@ -1,4 +1,4 @@
-import type { PlatformAdapter } from "../types";
+import type { PlatformAdapter } from "../../../npm_lib/platform/types";
 
 export class NoopPlatform implements PlatformAdapter {
   file = null;

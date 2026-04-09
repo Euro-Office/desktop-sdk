@@ -6,11 +6,13 @@ import {
   type ThreadMessageLike,
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { isDesktopEditor } from "@/lib/utils";
+import { NoopPlatform } from "@/platform/noop";
+import { OnlyOfficePlatform } from "@/platform/onlyoffice";
+import { IndexedDBStorage } from "@/storage/indexeddb";
 import { PlatformProvider } from "../npm_lib/platform/context";
-import type { PlatformAdapter } from "../npm_lib/platform/types";
 import { StorageProvider } from "../npm_lib/storage/context";
-import type { StorageAdapter } from "../npm_lib/storage/types";
 import { Layout } from "./components/layout";
 import { ManageToolDialog } from "./components/manage-tool-dialog";
 import useMessages from "./hooks/useMessages";
@@ -29,14 +31,13 @@ import useServersStore from "./store/useServersStore";
 
 import "./i18n";
 
-interface AppProps {
-  /** Custom storage backend. If omitted, IndexedDBStorage is used */
-  storage?: StorageAdapter;
-  /** Custom platform adapter. If omitted, auto-detects OnlyOffice or falls back to Noop */
-  platform?: PlatformAdapter;
-}
+const App = () => {
+  const storage = useMemo(() => new IndexedDBStorage(), []);
+  const platform = useMemo(
+    () => (isDesktopEditor() ? new OnlyOfficePlatform() : new NoopPlatform()),
+    []
+  );
 
-const App = ({ storage, platform }: AppProps) => {
   return (
     <PlatformProvider platform={platform}>
       <StorageProvider storage={storage}>

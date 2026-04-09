@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { StorageAdapter } from "./types";
-import { IndexedDBStorage } from "./indexeddb";
 import { setStorageInstance } from "./storage-holder";
 
 const StorageContext = createContext<StorageAdapter | null>(null);
@@ -13,8 +12,8 @@ export function useStorage(): StorageAdapter {
 }
 
 interface StorageProviderProps {
-  /** Custom storage implementation. If omitted, IndexedDBStorage is used */
-  storage?: StorageAdapter;
+  /** Storage implementation. Required — no default provided */
+  storage: StorageAdapter;
   children: React.ReactNode;
 }
 
@@ -23,28 +22,23 @@ interface StorageProviderProps {
  * Renders children only after storage.init() completes.
  * Also sets the global storage-holder so Zustand stores can access it.
  */
-export function StorageProvider({ storage: externalStorage, children }: StorageProviderProps) {
-  const storageInstance = useMemo(
-    () => externalStorage ?? new IndexedDBStorage(),
-    [externalStorage],
-  );
-
+export function StorageProvider({ storage, children }: StorageProviderProps) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    setStorageInstance(storageInstance);
+    setStorageInstance(storage);
 
-    storageInstance.init().then(() => setIsReady(true));
+    storage.init().then(() => setIsReady(true));
 
     return () => {
-      storageInstance.close();
+      storage.close();
     };
-  }, [storageInstance]);
+  }, [storage]);
 
   if (!isReady) return null;
 
   return (
-    <StorageContext.Provider value={storageInstance}>
+    <StorageContext.Provider value={storage}>
       {children}
     </StorageContext.Provider>
   );

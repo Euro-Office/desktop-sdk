@@ -1,4 +1,4 @@
-import type { PlatformAdapter } from "../types";
+import type { PlatformAdapter } from "../../../npm_lib/platform/types";
 import { OnlyOfficeEnvironment } from "./environment";
 import { OnlyOfficeFileOps } from "./file-ops";
 import { OnlyOfficeHostTools } from "./host-tools";

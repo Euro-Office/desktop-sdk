@@ -1,11 +1,12 @@
-import type { TMCPItem } from "../../types";
-import type { PlatformHostTools } from "../types";
+import type { TMCPItem } from "@/lib/types";
+import type { PlatformHostTools } from "../../../npm_lib/platform/types";
 
 export class OnlyOfficeHostTools implements PlatformHostTools {
   getTools(): TMCPItem[] {
     try {
-      // biome-ignore lint/suspicious/noExplicitAny: ONLYOFFICE global API
-      const stringFunctions: string = (window as any).AscDesktopEditor?.getToolFunctions() ?? "";
+      const stringFunctions: string =
+        // biome-ignore lint/suspicious/noExplicitAny: ONLYOFFICE global API
+        (window as any).AscDesktopEditor?.getToolFunctions() ?? "";
       const parsed = JSON.parse(stringFunctions) as (TMCPItem & {
         parameters: Record<string, unknown>;
       })[];
@@ -24,7 +25,7 @@ export class OnlyOfficeHostTools implements PlatformHostTools {
     // biome-ignore lint/suspicious/noExplicitAny: ONLYOFFICE global API
     const result = await (window as any).AscDesktopEditor?.callToolFunction(
       name,
-      JSON.stringify(args),
+      JSON.stringify(args)
     );
     return result ?? "{}";
   }

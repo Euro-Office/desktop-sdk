@@ -1,4 +1,4 @@
-import type { PlatformEnvironment } from "../types";
+import type { PlatformEnvironment } from "../../../npm_lib/platform/types";
 
 export class OnlyOfficeEnvironment implements PlatformEnvironment {
   get theme(): string {
@@ -30,10 +30,13 @@ export class OnlyOfficeEnvironment implements PlatformEnvironment {
   }
 
   onEnvironmentChange(
-    callback: (info: { theme?: string; lang?: string }) => void,
+    callback: (info: { theme?: string; lang?: string }) => void
   ): () => void {
     // biome-ignore lint/suspicious/noExplicitAny: ONLYOFFICE global API
-    (window as any).on_update_plugin_info = (info: { theme?: string; lang?: string }) => {
+    (window as any).on_update_plugin_info = (info: {
+      theme?: string;
+      lang?: string;
+    }) => {
       callback(info);
     };
 

@@ -1,5 +1,5 @@
-import type { Profile } from "../../types";
-import type { ProfilesStorage } from "../types";
+import type { Profile } from "@/lib/types";
+import type { ProfilesStorage } from "../../../npm_lib/storage/types";
 
 export class IndexedDBProfilesStorage implements ProfilesStorage {
   constructor(private getDB: () => IDBDatabase) {}

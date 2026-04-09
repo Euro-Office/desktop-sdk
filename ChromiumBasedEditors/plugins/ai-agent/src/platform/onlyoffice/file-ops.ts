@@ -1,29 +1,29 @@
-import type { PlatformFileOperations } from "../types";
+import type { PlatformFileOperations } from "../../../npm_lib/platform/types";
 
 declare const window: {
   AscDesktopEditor: {
     OpenFilenameDialog: (
       initialPath: string,
       multiSelect: boolean,
-      callback: (path: string | null) => void,
+      callback: (path: string | null) => void
     ) => void;
     convertFileExternal: (
       path: string,
       format: number,
-      callback: (content: string) => void,
+      callback: (content: string) => void
     ) => void;
     getOfficeFileType: (path: string) => number;
     callToolFunction: (name: string, args?: string) => Promise<string>;
     SaveFilenameDialog: (
       fileName: string,
-      callback: (path: string | null) => void,
+      callback: (path: string | null) => void
     ) => void;
     saveAndOpen: (
       content: string,
       inputFormat: number,
       path: string,
       outputFormat: number,
-      callback: (code: number) => void,
+      callback: (code: number) => void
     ) => void;
     openTemplate: (path: string, name: string) => void;
   };
@@ -61,7 +61,9 @@ export class OnlyOfficeFileOps implements PlatformFileOperations {
   }
 
   async getRecentFiles(): Promise<string> {
-    return window.AscDesktopEditor.callToolFunction("recent_files_reader") ?? "{}";
+    return (
+      window.AscDesktopEditor.callToolFunction("recent_files_reader") ?? "{}"
+    );
   }
 
   async saveAsFile(content: string, defaultName: string): Promise<void> {
