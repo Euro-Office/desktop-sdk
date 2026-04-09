@@ -106,6 +106,8 @@
   --input-error-color: var(--border-error);
 
   /* tabs */
+  --tabs-border-width: 1px;
+  --tabs-border-radius: 4px;
   --tabs-color: var(--text-normal);
   --tabs-border-color: var(--border-divider);
   --tabs-hover-border-color: var(--checkbox-border-normal);
