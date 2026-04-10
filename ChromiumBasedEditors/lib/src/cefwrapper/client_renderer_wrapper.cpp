@@ -67,6 +67,202 @@
 #include "include/cef_runnable.h"
 #endif
 
+class CCloudInfo
+{
+public:
+	struct KeyInfo
+	{
+		std::wstring id;
+		std::wstring value;
+	};
+
+	struct PortalInfo
+	{
+		std::wstring url;
+		std::vector<KeyInfo> keys;
+	};
+
+public:
+	CCloudInfo()
+	{
+	}
+
+	bool Load(const std::wstring& sFilePath)
+	{
+		m_portals.clear();
+
+		XmlUtils::CXmlNode oRoot;
+		if (!oRoot.FromXmlFile(sFilePath))
+			return false;
+
+		std::vector<XmlUtils::CXmlNode> oChildren;
+		if (!oRoot.GetChilds(oChildren))
+			return true;
+
+		for (auto& child : oChildren)
+		{
+			if (!child.IsValid())
+				continue;
+
+			PortalInfo pi;
+			pi.url = child.GetAttribute(L"url");
+
+			std::vector<XmlUtils::CXmlNode> oKeys = child.GetNodes(L"key");
+			for (auto& keyNode : oKeys)
+			{
+				KeyInfo ki;
+				ki.id    = keyNode.GetAttribute(L"id");
+				ki.value = keyNode.GetAttribute(L"value");
+				pi.keys.push_back(std::move(ki));
+			}
+
+			m_portals.push_back(std::move(pi));
+		}
+
+		return true;
+	}
+
+	bool Save(const std::wstring& sFilePath) const
+	{
+		std::wstring xml = L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<portals>\n";
+
+		for (const auto& portal : m_portals)
+		{
+			xml += L"  <portal url=\"" + portal.url + L"\">\n";
+			for (const auto& key : portal.keys)
+			{
+				xml += L"    <key id=\"" + key.id + L"\" value=\"" + key.value + L"\" />\n";
+			}
+			xml += L"  </portal>\n";
+		}
+
+		xml += L"</portals>";
+
+		if (NSFile::CFileBinary::Exists(sFilePath))
+			NSFile::CFileBinary::Remove(sFilePath);
+
+		NSFile::CFileBinary oFile;
+		if (!oFile.CreateFileW(sFilePath))
+			return false;
+
+		std::string sUtf8 = U_TO_UTF8(xml);
+		oFile.WriteFile((const BYTE*)sUtf8.c_str(), (DWORD)sUtf8.size());
+		oFile.CloseFile();
+		return true;
+	}
+
+	void AddKey(const std::wstring& portalUrl, const std::wstring& keyId, const std::wstring& keyValue)
+	{
+		for (auto& portal : m_portals)
+		{
+			if (portal.url == portalUrl)
+			{
+				for (auto& key : portal.keys)
+				{
+					if (key.id == keyId)
+					{
+						key.value = keyValue;
+						return;
+					}
+				}
+				portal.keys.push_back({keyId, keyValue});
+				return;
+			}
+		}
+
+		PortalInfo pi;
+		pi.url = portalUrl;
+		pi.keys.push_back({keyId, keyValue});
+		m_portals.push_back(std::move(pi));
+	}
+
+	CefRefPtr<CefV8Value> GetAsV8Value(const std::wstring& rawPortal, const std::wstring& frameUrl) const
+	{
+		std::wstring portal = NormalizePortal(rawPortal);
+
+		if (!portal.empty())
+		{
+			for (const auto& pi : m_portals)
+			{
+				if (pi.url.find(portal) == std::wstring::npos)
+					continue;
+
+				CefRefPtr<CefV8Value> arr = CefV8Value::CreateArray((int)pi.keys.size());
+				int idx = 0;
+				for (const auto& ki : pi.keys)
+				{
+	#ifdef CEF_2623
+					CefRefPtr<CefV8Value> obj = CefV8Value::CreateObject(NULL);
+	#else
+					CefRefPtr<CefV8Value> obj = CefV8Value::CreateObject(nullptr, nullptr);
+	#endif
+					obj->SetValue("id", CefV8Value::CreateString(ki.id), V8_PROPERTY_ATTRIBUTE_NONE);
+					arr->SetValue(idx++, obj);
+				}
+				return arr;
+			}
+
+			return CefV8Value::CreateArray(0);
+		}
+
+		CefRefPtr<CefV8Value> arr = CefV8Value::CreateArray((int)m_portals.size());
+		int portalIdx = 0;
+
+		for (const auto& pi : m_portals)
+		{
+	#ifdef CEF_2623
+			CefRefPtr<CefV8Value> portalObj = CefV8Value::CreateObject(NULL);
+	#else
+			CefRefPtr<CefV8Value> portalObj = CefV8Value::CreateObject(nullptr, nullptr);
+	#endif
+			portalObj->SetValue("url", CefV8Value::CreateString(pi.url), V8_PROPERTY_ATTRIBUTE_NONE);
+
+			CefRefPtr<CefV8Value> keysArr = CefV8Value::CreateArray((int)pi.keys.size());
+			int keyIdx = 0;
+
+			for (const auto& ki : pi.keys)
+			{
+	#ifdef CEF_2623
+				CefRefPtr<CefV8Value> keyObj = CefV8Value::CreateObject(NULL);
+	#else
+				CefRefPtr<CefV8Value> keyObj = CefV8Value::CreateObject(nullptr, nullptr);
+	#endif
+				keyObj->SetValue("id", CefV8Value::CreateString(ki.id), V8_PROPERTY_ATTRIBUTE_NONE);
+
+				if (frameUrl.find(L"onlyoffice://") == 0)
+					keyObj->SetValue("value", CefV8Value::CreateString(ki.value), V8_PROPERTY_ATTRIBUTE_NONE);
+
+				keysArr->SetValue(keyIdx++, keyObj);
+			}
+
+			portalObj->SetValue("keys", keysArr, V8_PROPERTY_ATTRIBUTE_NONE);
+			arr->SetValue(portalIdx++, portalObj);
+		}
+
+		return arr;
+	}
+
+	const std::vector<PortalInfo>& GetPortals() const
+	{
+		return m_portals;
+	}
+
+private:
+	static std::wstring NormalizePortal(const std::wstring& rawPortal)
+	{
+		std::wstring result = rawPortal;
+		std::wstring::size_type pos = result.find(L"://");
+		if (pos != std::wstring::npos)
+			result = result.substr(pos + 3);
+		pos = result.rfind(L"/");
+		if (pos != std::wstring::npos)
+			result = result.substr(0, pos);
+		return result;
+	}
+
+	std::vector<PortalInfo> m_portals;
+};
+
 std::wstring GetTmpFileFromBase64(const std::string& sData, const std::wstring& sTmpFolder)
 {
 	if (sData.empty())
@@ -2066,6 +2262,22 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 				{
 					std::wstring sCloudCryptoGuid = CPluginsManager::GetStringValueW(sArg, "cryptoEngineId");
 
+					if (true)
+					{
+						std::string sApiKey = CPluginsManager::GetObjectValue(sArg, "apiKey");
+						std::wstring sApiKeyId = CPluginsManager::GetStringValueW(sApiKey, "id");
+						std::wstring sApiKeyValue = CPluginsManager::GetStringValueW(sApiKey, "key");
+
+						if (!sApiKeyId.empty() && !sApiKeyValue.empty())
+						{
+							CCloudInfo info;
+							std::wstring sInfoPath = m_sUserPlugins + L"/cloud_info.xml";
+							info.Load(sInfoPath);
+							info.AddKey(CPluginsManager::GetStringValueW(sArg, "domain"), sApiKeyId, sApiKeyValue);
+							info.Save(sInfoPath);
+						}
+					}
+
 					if (!sCloudCryptoGuid.empty())
 					{
 						CCloudCryptoDesktop info;
@@ -2537,6 +2749,33 @@ if (!window._external_process_callback) {\n\
 window._external_process_callback = {};\n\
 }\n\
 }";
+
+						sCode += "\
+(function() {\
+var _cloudsCallbacks = {};\
+var _cloudsCallbackId = 0;\
+\
+window.AscDesktopEditor.getClouds = function() {\
+return new Promise(function(resolve) {\
+var id = 'clouds_' + (++_cloudsCallbackId);\
+_cloudsCallbacks[id] = resolve;\
+\
+window.AscDesktopEditor._sendCloudsRequest(id);\
+});\
+};\
+\
+window._onCloudsResult = function(id, json) {\
+var resolve = _cloudsCallbacks[id];\
+if (resolve) {\
+delete _cloudsCallbacks[id];\
+try {\
+resolve(JSON.parse(json));\
+} catch(e) {\
+resolve([]);\
+}\
+}\
+};\
+})()";
 
 						_frame->ExecuteJavaScript(sCode, _frame->GetURL(), 0);
 					}
@@ -4865,6 +5104,109 @@ window.AscDesktopEditor.CallInFrame(\"" +
 				retval = CefV8Value::CreateInt(nFileType);
 				return true;
 			}
+			else if (name == "getCloudKeys")
+			{
+				CCloudInfo info;
+
+				std::wstring sKeyFiles = m_sUserPlugins + L"/cloud_info.xml";
+				if (!info.Load(sKeyFiles))
+				{
+					retval = CefV8Value::CreateArray(0);
+					return true;
+				}
+
+				std::wstring portal = (arguments.size() >= 1)
+					? arguments[0]->GetStringValue().ToWString()
+					: L"";
+
+				std::wstring frameUrl =  CefV8Context::GetCurrentContext()->GetFrame()->GetURL().ToWString();
+
+				retval = info.GetAsV8Value(portal, frameUrl);
+				return true;
+			}
+			else if (name == "_sendCloudsRequest")
+			{
+				std::string sCallbackId = arguments[0]->GetStringValue().ToString();
+
+				CefRefPtr<CefBrowser> browser = CefV8Context::GetCurrentContext()->GetBrowser();
+				CefRefPtr<CefFrame> callerFrame = CefV8Context::GetCurrentContext()->GetFrame();
+				CefRefPtr<CefFrame> mainFrame = browser->GetMainFrame();
+
+				int64 callerFrameId = callerFrame->GetIdentifier();
+
+				std::string sCode = "\
+(function() {\
+var result = '[]';\
+try { result = JSON.stringify(PortalsStore.portals()); } catch(e) {}\
+window.AscDesktopEditor._onGetCloudsResponse(" + std::to_string(callerFrameId) + ", \"" + sCallbackId + "\", result);\
+})();";
+
+				mainFrame->ExecuteJavaScript(sCode, mainFrame->GetURL(), 0);
+
+				retval = CefV8Value::CreateUndefined();
+				return true;
+			}
+			else if (name == "_onGetCloudsResponse")
+			{
+				int64 targetFrameId = (int64)arguments[0]->GetDoubleValue();
+				std::string sCallbackId = arguments[1]->GetStringValue().ToString();
+				std::string sJson = arguments[2]->GetStringValue().ToString();
+
+				CefRefPtr<CefBrowser> browser =
+					CefV8Context::GetCurrentContext()->GetBrowser();
+				CefRefPtr<CefFrame> targetFrame = browser->GetFrame(targetFrameId);
+
+				if (targetFrame)
+				{
+					std::string sEscaped;
+					for (size_t i = 0; i < sJson.size(); ++i)
+					{
+						char c = sJson[i];
+						if (c == '\\') sEscaped += "\\\\";
+						else if (c == '"') sEscaped += "\\\"";
+						else if (c == '\n') sEscaped += "\\n";
+						else if (c == '\r') sEscaped += "\\r";
+						else sEscaped += c;
+					}
+
+					std::string sCode =
+						"if (window._onCloudsResult) {"
+						"  window._onCloudsResult(\"" + sCallbackId + "\", "
+							"\"" + sEscaped + "\");"
+						"}";
+
+					targetFrame->ExecuteJavaScript(sCode, targetFrame->GetURL(), 0);
+				}
+
+				retval = CefV8Value::CreateUndefined();
+				return true;
+			}
+			else if (name == "updateClouds")
+			{
+				CefRefPtr<CefBrowser> browser = CefV8Context::GetCurrentContext()->GetBrowser();
+
+				std::vector<int64> ids;
+				browser->GetFrameIdentifiers(ids);
+
+				for (std::vector<int64>::iterator i = ids.begin(); i != ids.end(); i++)
+				{
+					CefRefPtr<CefFrame> _frame = browser->GetFrame(*i);
+					_frame->ExecuteJavaScript("window.onUpdateClouds && window.onUpdateClouds();", _frame->GetURL(), 0);
+				}
+
+				return true;
+			}
+			else if (name == "addCloud")
+			{
+				CefRefPtr<CefBrowser> browser = CefV8Context::GetCurrentContext()->GetBrowser();
+				CefRefPtr<CefFrame> _frame = browser->GetMainFrame();
+
+				if (_frame)
+					_frame->ExecuteJavaScript("window.AscDesktopEditor.onclickaddportal && window.AscDesktopEditor.onclickaddportal();", _frame->GetURL(), 0);
+
+				return true;
+			}
+
 
 			// Function does not exist.
 			return false;
@@ -5496,7 +5838,7 @@ if (targetElem) { targetElem.dispatchEvent(event); }})();";
 
 			CefRefPtr<CefV8Handler> handler = pWrapper;
 
-#define EXTEND_METHODS_COUNT 197
+#define EXTEND_METHODS_COUNT 202
 			const char* methods[EXTEND_METHODS_COUNT] = {
 				"Copy",
 				"Paste",
@@ -5771,6 +6113,14 @@ if (targetElem) { targetElem.dispatchEvent(event); }})();";
 				"_saveAndOpen",
 
 				"getOfficeFileType",
+
+				"getCloudKeys",
+
+				"_sendCloudsRequest",
+				"_onGetCloudsResponse",
+
+				"updateClouds",
+				"addCloud",
 
 				NULL};
 
