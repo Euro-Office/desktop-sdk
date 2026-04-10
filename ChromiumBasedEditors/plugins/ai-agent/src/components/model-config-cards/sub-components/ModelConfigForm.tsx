@@ -5,9 +5,9 @@ import { Input } from "@/components/input";
 import { Link } from "@/components/link";
 import { getApiKeyLink } from "@/lib/apiKeyLinks";
 import type { Model } from "@/lib/types";
-import { provider } from "@/providers";
+import { getProviderInstance } from "../../../../npm_lib/providers/provider-holder";
 
-const providersInfo = provider.getProvidersInfo();
+const providersInfo = getProviderInstance().getProvidersInfo();
 
 export interface ModelFormValues {
   provider: string;

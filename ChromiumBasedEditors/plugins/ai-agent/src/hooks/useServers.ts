@@ -1,9 +1,9 @@
 import { useEffect } from "react";
-import { provider } from "@/providers";
 import useProfilesStore, {
   selectCurrentChatProfile,
 } from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
+import { getProviderInstance } from "../../npm_lib/providers/provider-holder";
 import { useToolsContext } from "../../npm_lib/tools/context";
 
 type UseServersProps = {
@@ -54,7 +54,7 @@ const useServers = ({ isReady }: UseServersProps) => {
   useEffect(() => {
     if (!tools || !currentProfile) return;
 
-    provider.setCurrentProviderTools(tools);
+    getProviderInstance().setCurrentProviderTools(tools);
   }, [tools, currentProfile]);
 
   return {};

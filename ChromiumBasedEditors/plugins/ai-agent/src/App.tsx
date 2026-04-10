@@ -12,6 +12,8 @@ import { NoopPlatform } from "@/platform/noop";
 import { OnlyOfficePlatform } from "@/platform/onlyoffice";
 import { IndexedDBStorage } from "@/storage/indexeddb";
 import { PlatformProvider, usePlatform } from "../npm_lib/platform/context";
+import Provider from "../npm_lib/providers";
+import { setProviderInstance } from "../npm_lib/providers/provider-holder";
 import { StorageProvider } from "../npm_lib/storage/context";
 import { ToolsProvider } from "../npm_lib/tools/context";
 import type { HostToolGroup } from "../npm_lib/tools/types";
@@ -39,6 +41,13 @@ const App = () => {
     () => (isDesktopEditor() ? new OnlyOfficePlatform() : new NoopPlatform()),
     []
   );
+
+  // Create Provider instance and set global holder
+  useMemo(() => {
+    const p = new Provider();
+    setProviderInstance(p);
+    return p;
+  }, []);
 
   return (
     <PlatformProvider platform={platform}>

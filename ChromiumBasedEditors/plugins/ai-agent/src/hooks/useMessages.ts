@@ -5,7 +5,6 @@ import type {
   ThreadMessageLike,
 } from "@assistant-ui/react";
 import { useEffect, useRef } from "react";
-import { provider, type SendMessageReturnType } from "@/providers";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
 import useMessageStore from "@/store/useMessageStore";
 import useProfilesStore, {
@@ -13,6 +12,8 @@ import useProfilesStore, {
 } from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
 import useThreadsStore from "@/store/useThreadsStore";
+import type { SendMessageReturnType } from "../../npm_lib/providers";
+import { getProviderInstance } from "../../npm_lib/providers/provider-holder";
 import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 import { getServersInstance } from "../../npm_lib/tools/tools-holder";
 
@@ -153,12 +154,11 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
       updateLastMessage(updatedMessage);
       getStorageInstance().messages.update(messageUID, updatedMessage);
 
-      if (!provider) return;
-
-      const streamAfterToolCall = provider.sendMessageAfterToolCall(
-        updatedMessage,
-        extendedThinking
-      );
+      const streamAfterToolCall =
+        getProviderInstance().sendMessageAfterToolCall(
+          updatedMessage,
+          extendedThinking
+        );
 
       if (streamAfterToolCall) {
         handleStream(streamAfterToolCall, true, messageUID);
@@ -238,7 +238,6 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
   };
 
   const onNew = async (message: AppendMessage) => {
-    if (!provider) return;
     if (!currentProfile) return;
     if (message.content[0].type !== "text") return;
 
@@ -311,11 +310,13 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
       // Save the new user message
       await storage.messages.create(threadId, crypto.randomUUID(), userMessage);
 
-      provider.createChatName(textForTitle).then(async (title) => {
-        if (!title) return;
+      getProviderInstance()
+        .createChatName(textForTitle)
+        .then(async (title) => {
+          if (!title) return;
 
-        insertThread(title, { profileId: currentProfile?.id });
-      });
+          insertThread(title, { profileId: currentProfile?.id });
+        });
     } else {
       insertNewMessageToThread({ profileId: currentProfile?.id });
 
@@ -324,7 +325,10 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
 
     addMessage(userMessage);
 
-    const stream = provider.sendMessage([userMessage], extendedThinking);
+    const stream = getProviderInstance().sendMessage(
+      [userMessage],
+      extendedThinking
+    );
 
     if (stream) handleStream(stream);
   };
