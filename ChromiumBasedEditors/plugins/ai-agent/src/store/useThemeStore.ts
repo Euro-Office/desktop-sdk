@@ -13,8 +13,10 @@ type ThemeStore = {
   themeId: string;
   themeType: ThemeType;
   scale: number;
+  initialized: boolean;
   setThemeId: (id: string) => void;
   setScale: (scale: number) => void;
+  initFromPlatform: () => void;
 };
 
 const getThemeType = (themeId: string): ThemeType =>
@@ -22,32 +24,33 @@ const getThemeType = (themeId: string): ThemeType =>
     ? "dark"
     : "light";
 
-const getInitialThemeId = (): string => {
-  const platform = getPlatformInstance();
-  return platform?.env.theme ?? "theme-light";
-};
+const useThemeStore = create<ThemeStore>((set, get) => ({
+  themeId: "theme-light",
+  themeType: "light",
+  scale: 1,
+  initialized: false,
 
-const getInitialScale = (): number => {
-  const platform = getPlatformInstance();
-  return platform?.env.devicePixelRatio ?? 1;
-};
+  setThemeId: (id: string) =>
+    set({
+      themeId: id,
+      themeType: getThemeType(id),
+    }),
 
-const useThemeStore = create<ThemeStore>((set) => {
-  const initialThemeId = getInitialThemeId();
+  setScale: (scale: number) => set({ scale }),
 
-  return {
-    themeId: initialThemeId,
-    themeType: getThemeType(initialThemeId),
-    scale: getInitialScale(),
+  initFromPlatform: () => {
+    if (get().initialized) return;
+    const platform = getPlatformInstance();
+    if (!platform) return;
 
-    setThemeId: (id: string) =>
-      set({
-        themeId: id,
-        themeType: getThemeType(id),
-      }),
-
-    setScale: (scale: number) => set({ scale }),
-  };
-});
+    const themeId = platform.env.theme;
+    set({
+      themeId,
+      themeType: getThemeType(themeId),
+      scale: platform.env.devicePixelRatio,
+      initialized: true,
+    });
+  },
+}));
 
 export default useThemeStore;

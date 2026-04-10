@@ -60,20 +60,17 @@ const ComposerActionAttachment = () => {
 
   const selectLocalFile = async () => {
     if (!platform.file) return;
-    const result = await platform.file.pickFile();
-    if (!result) return;
+    const files = await platform.file.pickFiles();
+    if (!files) return;
 
-    // ONLYOFFICE returns array for multi-select
-    const files = Array.isArray(result) ? result : [result];
     for (const file of files.slice(0, 6)) {
-      const filePath = typeof file === "string" ? file : file.path;
-      const type = platform.file.getFileType(filePath);
+      const type = platform.file.getFileType(file.path);
       const isSpreadsheetFile = isSpreadsheet(type);
       const content = await platform.file.convertFileToText(
-        filePath,
+        file.path,
         isSpreadsheetFile ? 260 : 69
       );
-      addAttachmentFile({ path: filePath, content: content || "", type });
+      addAttachmentFile({ path: file.path, content: content || "", type });
     }
   };
 

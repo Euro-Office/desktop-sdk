@@ -9,8 +9,11 @@ import { Navigation } from "./sub-components/Header";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { currentPage } = useRouter();
-  const { themeId, setThemeId } = useThemeStore();
+  const { themeId, setThemeId, initFromPlatform } = useThemeStore();
   const platform = usePlatform();
+
+  // Initialize theme from platform on first render (after PlatformProvider is mounted)
+  initFromPlatform();
 
   const { i18n } = useTranslation();
   const { isRTL } = useDirection();

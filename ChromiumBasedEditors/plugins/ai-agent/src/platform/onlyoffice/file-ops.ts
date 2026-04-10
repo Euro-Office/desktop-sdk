@@ -5,12 +5,12 @@ declare const window: {
     OpenFilenameDialog: (
       initialPath: string,
       multiSelect: boolean,
-      callback: (path: string | null) => void
+      callback: (path: string | string[] | null) => void
     ) => void;
     convertFileExternal: (
       path: string,
       format: number,
-      callback: (content: string) => void
+      callback: (data: { content: ArrayBuffer }) => void
     ) => void;
     getOfficeFileType: (path: string) => number;
     callToolFunction: (name: string, args?: string) => Promise<string>;
@@ -30,29 +30,43 @@ declare const window: {
 };
 
 export class OnlyOfficeFileOps implements PlatformFileOperations {
-  async pickFile(): Promise<{ path: string; name: string } | null> {
+  async pickFiles(): Promise<{ path: string; name: string }[] | null> {
     return new Promise((resolve) => {
-      window.AscDesktopEditor.OpenFilenameDialog("", true, (path) => {
-        if (!path) {
+      window.AscDesktopEditor.OpenFilenameDialog("", true, (result) => {
+        if (!result) {
           resolve(null);
           return;
         }
-        const name = path.split("/").pop() ?? path;
-        resolve({ path, name });
+
+        const paths = Array.isArray(result) ? result : [result];
+        resolve(
+          paths.map((p) => ({
+            path: p,
+            name: p.includes("\\")
+              ? (p.split("\\").pop() ?? p)
+              : (p.split("/").pop() ?? p),
+          }))
+        );
       });
     });
   }
 
   async pickImage(): Promise<{ name: string; base64: string } | null> {
-    // Images are handled through the same file picker in ONLYOFFICE
-    return this.pickFile() as Promise<{ name: string; base64: string } | null>;
+    // Images in ONLYOFFICE are handled through HTML input, not this method
+    return null;
   }
 
   async convertFileToText(path: string, format: number): Promise<string> {
     return new Promise((resolve) => {
-      window.AscDesktopEditor.convertFileExternal(path, format, (content) => {
-        resolve(content);
-      });
+      window.AscDesktopEditor.convertFileExternal(
+        path,
+        format,
+        (data: { content: ArrayBuffer }) => {
+          const uint8Array = new Uint8Array(data.content);
+          const textDecoder = new TextDecoder("utf-8");
+          resolve(textDecoder.decode(uint8Array));
+        }
+      );
     });
   }
 

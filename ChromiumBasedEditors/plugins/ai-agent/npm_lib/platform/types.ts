@@ -1,8 +1,8 @@
 import type { TMCPItem, TProcess } from "../types";
 
 export interface PlatformFileOperations {
-  /** Show a native file picker dialog and return the selected file path, or null if cancelled */
-  pickFile(): Promise<{ path: string; name: string } | null>;
+  /** Show a native file picker dialog and return selected file paths, or null if cancelled */
+  pickFiles(): Promise<{ path: string; name: string }[] | null>;
 
   /** Show a native image picker dialog and return the image as base64, or null if cancelled */
   pickImage(): Promise<{ name: string; base64: string } | null>;

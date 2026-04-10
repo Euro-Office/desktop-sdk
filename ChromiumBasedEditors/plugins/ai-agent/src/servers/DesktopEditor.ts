@@ -6,7 +6,6 @@ export class DesktopEditorTool {
 
   constructor() {
     this.tools = [];
-    this.initTools();
   }
 
   setTools = (tools: TMCPItem[]) => {
@@ -14,6 +13,18 @@ export class DesktopEditorTool {
   };
 
   getTools = () => {
+    // Re-fetch tools from platform every time, since platform may not be
+    // available at construction time (singleton created at module import)
+    const platform = getPlatformInstance();
+    if (platform?.hostTools) {
+      try {
+        const tools = platform.hostTools.getTools();
+        this.setTools(tools);
+      } catch (error) {
+        console.error("Error parsing tools:", error);
+      }
+    }
+
     return [...this.tools];
   };
 
@@ -22,17 +33,5 @@ export class DesktopEditorTool {
     if (!platform?.hostTools) return "{}";
 
     return platform.hostTools.callTool(name, args);
-  };
-
-  initTools = () => {
-    const platform = getPlatformInstance();
-    if (!platform?.hostTools) return;
-
-    try {
-      const tools = platform.hostTools.getTools();
-      this.setTools(tools);
-    } catch (error) {
-      console.error("Error parsing tools:", error);
-    }
   };
 }
