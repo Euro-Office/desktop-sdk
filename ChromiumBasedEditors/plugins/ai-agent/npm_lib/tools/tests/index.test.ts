@@ -67,14 +67,17 @@ const {
 });
 
 // Mock the dependencies
-vi.mock("../DesktopEditor", () => ({
-  DesktopEditorTool: class {
-    getTools = desktopEditorGetToolsMock;
-    callTools = desktopEditorCallToolsMock;
+vi.mock("../sources/HostToolSource", () => ({
+  HostToolSource: class {
+    getToolsByGroup = desktopEditorGetToolsMock;
+    callTool = desktopEditorCallToolsMock;
+    getGroupIds = () => ["desktop-editor"];
+    isAutoAllow = () => true;
+    setGroups = () => {};
   },
 }));
 
-vi.mock("../WebSearch", () => ({
+vi.mock("../sources/WebSearch", () => ({
   WebSearch: class {
     getTools = webSearchGetToolsMock;
     callTools = webSearchCallToolsMock;
@@ -84,7 +87,7 @@ vi.mock("../WebSearch", () => ({
   },
 }));
 
-vi.mock("../CustomServers", () => ({
+vi.mock("../sources/CustomServers", () => ({
   CustomServers: class {
     getTools = customServersGetToolsMock;
     callToolFromMCP = customServersCallToolMock;
@@ -100,16 +103,21 @@ vi.mock("../CustomServers", () => ({
 }));
 
 // Import after mocks
-import servers from "../index";
+import Servers from "../servers";
 
 describe("Servers", () => {
+  let servers: InstanceType<typeof Servers>;
+
   beforeEach(() => {
+    servers = new Servers();
     vi.clearAllMocks();
     localStorageMock.clear();
 
     // Setup default mock return values
-    desktopEditorGetToolsMock.mockResolvedValue([{ name: "desktop_tool" }]);
-    desktopEditorCallToolsMock.mockReturnValue("desktop result");
+    desktopEditorGetToolsMock.mockReturnValue({
+      "desktop-editor": [{ name: "desktop_tool" }],
+    });
+    desktopEditorCallToolsMock.mockResolvedValue("desktop result");
     webSearchGetToolsMock.mockResolvedValue([{ name: "web_search" }]);
     webSearchCallToolsMock.mockResolvedValue("search result");
     webSearchGetDataMock.mockReturnValue({ provider: "test", key: "test-key" });
@@ -140,6 +148,13 @@ describe("Servers", () => {
     it("should return true for tools in allowAlways list", () => {
       servers.setAllowAlways(true, "custom", "mytool");
       expect(servers.checkAllowAlways("custom", "mytool")).toBe(true);
+    });
+
+    it("should return true for host tool group with auto-allow", () => {
+      // "desktop-editor" is mocked as a group ID, isAutoAllow returns true
+      expect(servers.checkAllowAlways("desktop-editor", "read_file")).toBe(
+        true
+      );
     });
   });
 

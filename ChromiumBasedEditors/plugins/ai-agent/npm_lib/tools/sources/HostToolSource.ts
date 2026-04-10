@@ -61,9 +61,8 @@ export class HostToolSource {
     if (!group) return false;
 
     const tool = group.tools.find((t) => t.name === toolName);
-    return (
-      tool?.requireApproval === false || tool?.requireApproval === undefined
-    );
+    if (!tool) return false;
+    return !tool.requireApproval;
   }
 
   /** Get all group IDs */

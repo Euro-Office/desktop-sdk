@@ -1,7 +1,7 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Model, TProvider } from "../types";
-import { provider } from "../index";
+import Provider from "../index";
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -82,7 +82,10 @@ vi.mock("../registry", () => ({
 }));
 
 describe("Provider", () => {
+  let provider: InstanceType<typeof Provider>;
+
   beforeEach(() => {
+    provider = new Provider();
     localStorageMock.clear();
     vi.clearAllMocks();
     provider.setCurrentProvider(undefined);
@@ -632,7 +635,7 @@ describe("Provider", () => {
         },
       ];
 
-      const models = await provider.getProvidersModels(providers);
+      const { models } = await provider.getProvidersModels(providers);
 
       expect(models.size).toBeGreaterThan(0);
     });
@@ -653,14 +656,14 @@ describe("Provider", () => {
         },
       ];
 
-      const models = await provider.getProvidersModels(providers);
+      const { models } = await provider.getProvidersModels(providers);
 
       // Should only have models from valid provider
       expect(models.has("Invalid")).toBe(false);
     });
 
     it("should handle empty providers array", async () => {
-      const models = await provider.getProvidersModels([]);
+      const { models } = await provider.getProvidersModels([]);
 
       expect(models.size).toBe(0);
     });
@@ -681,7 +684,7 @@ describe("Provider", () => {
         registry.providerRegistry.openai.getProviderModels
       ).mockRejectedValue(new Error("Network error"));
 
-      const models = await provider.getProvidersModels(providers);
+      const { models } = await provider.getProvidersModels(providers);
 
       // Should handle error gracefully
       expect(models.has("OpenAI")).toBe(false);

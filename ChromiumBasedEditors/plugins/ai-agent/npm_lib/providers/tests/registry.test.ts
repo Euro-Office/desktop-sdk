@@ -5,6 +5,8 @@ import {
   getSupportedProviderTypes,
   isValidProviderType,
   providerRegistry,
+  registerProvider,
+  unregisterProvider,
 } from "../registry";
 
 describe("Provider Registry", () => {
@@ -147,6 +149,50 @@ describe("Provider Registry", () => {
       const registryKeys = Object.keys(providerRegistry);
 
       expect(types).toEqual(registryKeys);
+    });
+  });
+
+  describe("registerProvider / unregisterProvider", () => {
+    const mockProvider = {
+      getName: () => "Custom",
+      getBaseUrl: () => "https://custom.ai",
+      setProvider: () => {},
+      checkProvider: async () => true,
+      getProviderModels: async () => [],
+      sendMessage: async function* () {},
+    } as unknown as import("../registry").BaseProvider;
+
+    afterEach(() => {
+      unregisterProvider("custom-llm");
+    });
+
+    it("should register a custom provider", () => {
+      registerProvider("custom-llm", mockProvider);
+      expect(getProvider("custom-llm")).toBe(mockProvider);
+    });
+
+    it("should make custom provider appear in supported types", () => {
+      registerProvider("custom-llm", mockProvider);
+      expect(getSupportedProviderTypes()).toContain("custom-llm");
+    });
+
+    it("should make custom provider valid", () => {
+      registerProvider("custom-llm", mockProvider);
+      expect(isValidProviderType("custom-llm")).toBe(true);
+    });
+
+    it("should unregister a custom provider", () => {
+      registerProvider("custom-llm", mockProvider);
+      unregisterProvider("custom-llm");
+      expect(getProvider("custom-llm")).toBeUndefined();
+      expect(isValidProviderType("custom-llm")).toBe(false);
+    });
+
+    it("should not affect builtin providers", () => {
+      registerProvider("custom-llm", mockProvider);
+      expect(getProvider("anthropic")).toBeDefined();
+      unregisterProvider("custom-llm");
+      expect(getProvider("anthropic")).toBeDefined();
     });
   });
 });

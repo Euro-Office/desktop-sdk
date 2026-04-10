@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CustomServers } from "../CustomServers";
+import { CustomServers } from "../sources/CustomServers";
 
 // =============================================================================
 // Mock Setup
@@ -44,6 +44,19 @@ const mockWindow = {
 
 vi.stubGlobal("window", mockWindow);
 vi.stubGlobal("fetch", mockFetch);
+
+// Mock platform holder to return a process runner that uses MockExternalProcess
+vi.mock("../../platform/platform-holder", () => ({
+  getPlatformInstance: () => ({
+    process: {
+      createProcess: (cmd: string, env?: Record<string, string>) => {
+        const p = new MockExternalProcess(cmd, env ?? {});
+        return p;
+      },
+      isAvailable: () => true,
+    },
+  }),
+}));
 
 // Helper to create mock fetch response with text() method
 const createMockResponse = (data: unknown, ok = true) => ({

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { WebSearch, type WebSearchData } from "../WebSearch";
+import { WebSearch, type WebSearchData } from "../sources/WebSearch";
 
 // =============================================================================
 // Mock Setup

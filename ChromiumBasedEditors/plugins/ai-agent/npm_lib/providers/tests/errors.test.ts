@@ -3,6 +3,7 @@ import {
   extractErrorMessage,
   getErrorCode,
   getErrorStatus,
+  mapFetchError,
   ProviderErrors,
 } from "../errors";
 
@@ -249,5 +250,37 @@ describe("getErrorCode", () => {
     expect(getErrorCode({ code: "insufficient_quota" })).toBe(
       "insufficient_quota"
     );
+  });
+});
+
+describe("mapFetchError", () => {
+  it("should return connectionFailed for status 0", () => {
+    const result = mapFetchError({ status: 0 });
+    expect(result.field).toBe("url");
+  });
+
+  it("should return connectionFailed for error with cause", () => {
+    const result = mapFetchError({ cause: new Error("network") });
+    expect(result.field).toBe("url");
+  });
+
+  it("should return invalidKey for status 401", () => {
+    const result = mapFetchError({ status: 401, message: "Unauthorized" });
+    expect(result.field).toBe("key");
+  });
+
+  it("should return invalidUrl for status 404", () => {
+    const result = mapFetchError({ status: 404 });
+    expect(result.field).toBe("url");
+  });
+
+  it("should return invalidKey when hasApiKey and unknown status", () => {
+    const result = mapFetchError({ status: 500 }, true);
+    expect(result.field).toBe("key");
+  });
+
+  it("should return emptyKey when no apiKey and unknown status", () => {
+    const result = mapFetchError({ status: 500 }, false);
+    expect(result.field).toBe("key");
   });
 });
