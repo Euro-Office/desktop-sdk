@@ -64,6 +64,7 @@ export {
   ThreadsService,
   ProfilesService,
   ServersService,
+  ChatEngine,
 } from "./services";
 export type {
   PromptUpdates,
@@ -71,6 +72,8 @@ export type {
   ProfilesInitResult,
   ToolsListResult,
   ChangeToolStatusResult,
+  ChatEvent,
+  ToolCallData,
 } from "./services";
 
 // --- Providers ---
