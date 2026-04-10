@@ -1,3 +1,4 @@
 export type { HostTool, HostToolGroup, ToolSource } from "./types";
-export { ToolsProvider, useHostTools } from "./context";
-export { default as servers } from "./servers";
+export { ToolsProvider, useToolsContext } from "./context";
+export { default as Servers } from "./servers";
+export { getServersInstance, setServersInstance } from "./tools-holder";

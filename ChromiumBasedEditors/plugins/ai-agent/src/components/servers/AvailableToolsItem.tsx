@@ -8,8 +8,8 @@ import { ToggleButton } from "@/components/toggle-button";
 import { useDirection } from "@/hooks/useDirection";
 import type { TMCPItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import client from "@/servers";
 import useServersStore from "@/store/useServersStore";
+import { getServersInstance } from "../../../npm_lib/tools/tools-holder";
 
 type AvailableToolsItemProps = {
   name: string;
@@ -57,7 +57,7 @@ const AvailableToolsItem = ({
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setIsStoped(client.getCustomServersStoped().includes(name));
+      setIsStoped(getServersInstance().getCustomServersStoped().includes(name));
     }, 1000);
 
     return () => clearInterval(interval);

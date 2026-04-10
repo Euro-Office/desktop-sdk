@@ -1,11 +1,10 @@
 import { useEffect } from "react";
 import { provider } from "@/providers";
-import server from "@/servers";
 import useProfilesStore, {
   selectCurrentChatProfile,
 } from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
-import { useHostTools } from "../../npm_lib/tools/context";
+import { useToolsContext } from "../../npm_lib/tools/context";
 
 type UseServersProps = {
   isReady: boolean;
@@ -14,13 +13,13 @@ type UseServersProps = {
 const useServers = ({ isReady }: UseServersProps) => {
   const { initServers, getTools, tools } = useServersStore();
   const currentProfile = useProfilesStore(selectCurrentChatProfile);
-  const { hostToolGroups } = useHostTools();
+  const { servers, hostToolGroups } = useToolsContext();
 
-  // Sync host tool groups into the Servers singleton
+  // Sync host tool groups into servers
   useEffect(() => {
-    server.hostToolSource.setGroups(hostToolGroups);
+    servers.hostToolSource.setGroups(hostToolGroups);
     getTools();
-  }, [hostToolGroups, getTools]);
+  }, [servers, hostToolGroups, getTools]);
 
   useEffect(() => {
     if (!isReady) return;

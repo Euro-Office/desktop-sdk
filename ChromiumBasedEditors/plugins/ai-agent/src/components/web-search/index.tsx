@@ -7,7 +7,7 @@ import { Link } from "@/components/link";
 import { useDirection } from "@/hooks/useDirection";
 import { getApiKeyLink } from "@/lib/apiKeyLinks";
 import { cn } from "@/lib/utils";
-import client from "@/servers";
+import { getServersInstance } from "../../../npm_lib/tools/tools-holder";
 
 type WebSearchProps = {
   variant?: "tab" | "page";
@@ -21,7 +21,7 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
   const [apiKey, setApiKey] = React.useState<string>("");
 
   React.useEffect(() => {
-    const data = client.getWebSearchData();
+    const data = getServersInstance().getWebSearchData();
 
     if (data) {
       setSelectedProvider(data.provider);
@@ -31,9 +31,12 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
 
   const handleApiKeyBlur = React.useCallback(() => {
     if (selectedProvider && apiKey) {
-      client.setWebSearchData({ provider: selectedProvider, key: apiKey });
+      getServersInstance().setWebSearchData({
+        provider: selectedProvider,
+        key: apiKey,
+      });
     } else {
-      client.setWebSearchData(null);
+      getServersInstance().setWebSearchData(null);
     }
   }, [selectedProvider, apiKey]);
 

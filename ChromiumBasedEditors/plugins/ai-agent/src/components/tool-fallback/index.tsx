@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/icon";
 import { useDirection } from "@/hooks/useDirection";
-import server from "@/servers";
+import { getServersInstance } from "../../../npm_lib/tools/tools-holder";
 import { IconButton } from "../icon-button";
 import { Loader } from "../loader";
 
@@ -35,7 +35,7 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
     }
   }, [isResultCopied]);
 
-  const type = server.getServerType(toolName);
+  const type = getServersInstance().getServerType(toolName);
   const name = toolName.replace(`${type}_`, "");
 
   const isLoading = result === undefined;

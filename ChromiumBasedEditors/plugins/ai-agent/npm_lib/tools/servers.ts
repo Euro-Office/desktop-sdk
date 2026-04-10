@@ -149,6 +149,4 @@ class Servers {
   };
 }
 
-const servers = new Servers();
-
-export default servers;
+export default Servers;

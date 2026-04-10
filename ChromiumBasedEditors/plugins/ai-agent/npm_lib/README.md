@@ -25,10 +25,21 @@ npm_lib/
 │   ├── storage-holder.ts       # Global holder for Zustand stores
 │   └── index.ts                # Re-exports
 │
-└── platform/
-    ├── types.ts                # PlatformAdapter interface + sub-interfaces
-    ├── context.tsx             # PlatformProvider + usePlatform() hook
-    ├── platform-holder.ts      # Global holder for Zustand stores
+├── platform/
+│   ├── types.ts                # PlatformAdapter interface + sub-interfaces
+│   ├── context.tsx             # PlatformProvider + usePlatform() hook
+│   ├── platform-holder.ts      # Global holder for Zustand stores
+│   └── index.ts                # Re-exports
+│
+└── tools/
+    ├── types.ts                # HostTool, HostToolGroup, ToolSource interfaces
+    ├── context.tsx             # ToolsProvider + useToolsContext() hook
+    ├── servers.ts              # Servers aggregator class
+    ├── tools-holder.ts         # Global holder for Zustand stores
+    ├── sources/
+    │   ├── HostToolSource.ts   # Wraps HostToolGroup[] from host
+    │   ├── WebSearch.ts        # Exa API web search
+    │   └── CustomServers.ts    # MCP STDIO/HTTP servers
     └── index.ts                # Re-exports
 ```
 
@@ -139,6 +150,89 @@ Global singleton holder. Same pattern as storage-holder — needed because Zusta
 
 ---
 
+### tools/ — Unified Tool System
+
+Manages all tool sources: host-provided tools, web search, and MCP servers. Contains both interfaces and runtime logic (WebSearch, CustomServers, Servers aggregator).
+
+#### Key Types
+
+| Type | Description |
+|------|-------------|
+| `HostTool` | A single tool the host exposes to the AI model (name, description, inputSchema, handler, requireApproval) |
+| `HostToolGroup` | A named group of host tools displayed as a section in the UI (id, name, tools) |
+| `ToolSource` | Interface for any tool provider (id, getTools, callTool, autoAllow) |
+
+#### Tool Sources (in `sources/`)
+
+| Source | File | Description |
+|--------|------|-------------|
+| `HostToolSource` | `sources/HostToolSource.ts` | Wraps `HostToolGroup[]` from the host. Replaces the old `DesktopEditorTool` |
+| `WebSearch` | `sources/WebSearch.ts` | Exa API web search (web_search + web_crawling tools). Available when configured with provider + key |
+| `CustomServers` | `sources/CustomServers.ts` | MCP servers via JSON-RPC 2.0. HTTP servers always work, STDIO only if `platform.process` is available |
+
+#### Servers Class (`servers.ts`)
+
+Central aggregator that combines all tool sources. Manages:
+- Tool aggregation from all sources via `getTools()`
+- Tool call routing via `callTools(type, name, args)`
+- Server type detection via `getServerType(name)`
+- Allow-always permissions for tool approval
+- MCP server lifecycle (start, restart, delete)
+- Web search configuration
+
+#### ToolsProvider
+
+React context provider. Creates a `Servers` instance and manages its lifecycle.
+
+```tsx
+<ToolsProvider hostToolGroups={myToolGroups}>
+  {children}
+</ToolsProvider>
+```
+
+- Creates `Servers` instance on mount
+- Sets global tools-holder so Zustand stores can access it
+- Syncs `hostToolGroups` into `Servers.hostToolSource`
+- Exposes `servers` and `hostToolGroups` via `useToolsContext()`
+
+#### tools-holder.ts
+
+Global holder for the `Servers` instance. Same pattern as storage-holder and platform-holder — bridge for Zustand stores and non-React code.
+
+#### Tool Approval Flow
+
+- **Host tools** with `requireApproval: false` (default) → auto-allow
+- **Host tools** with `requireApproval: true` → ManageToolDialog approval UI
+- **MCP tools** → approval via ManageToolDialog (can be "always allowed")
+- **Web search tools** → always auto-allow
+
+#### How Host Tools Work
+
+The host passes `HostToolGroup[]` via `ToolsProvider`. Each group appears as a section in the tools UI (like "Desktop Editor", "CRM Tools"). Tools within a group are prefixed with `{group.id}_` for uniqueness.
+
+```tsx
+const hostTools: HostToolGroup[] = [
+  {
+    id: "desktop-editor",
+    name: "Desktop Editor",
+    tools: [
+      {
+        name: "insert_text",
+        description: "Insert text at cursor",
+        inputSchema: { type: "object", properties: { text: { type: "string" } } },
+        handler: async (args) => editor.insertText(args.text),
+      },
+    ],
+  },
+];
+
+<ToolsProvider hostToolGroups={hostTools}>
+  <App />
+</ToolsProvider>
+```
+
+---
+
 ## Usage by Host
 
 ### ONLYOFFICE Plugin (current)
@@ -188,6 +282,6 @@ const myPlatform: PlatformAdapter = {
 ## Rules
 
 1. **No imports from `src/`** — npm_lib must be fully self-contained
-2. **No concrete implementations** — only interfaces, types, contexts, holders
+2. **No host-specific implementations** — interfaces, types, contexts, holders, and core runtime logic (tools, servers). No `window.*` calls, no IndexedDB, no ONLYOFFICE API
 3. **All providers require explicit props** — no auto-detection, no defaults
 4. **Holders exist for Zustand** — React context is the primary mechanism, holders are a bridge for non-React code

@@ -6,7 +6,6 @@ import type {
 } from "@assistant-ui/react";
 import { useEffect, useRef } from "react";
 import { provider, type SendMessageReturnType } from "@/providers";
-import server from "@/servers";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
 import useMessageStore from "@/store/useMessageStore";
 import useProfilesStore, {
@@ -15,6 +14,7 @@ import useProfilesStore, {
 import useServersStore from "@/store/useServersStore";
 import useThreadsStore from "@/store/useThreadsStore";
 import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
+import { getServersInstance } from "../../npm_lib/tools/tools-holder";
 
 type UseMessagesProps = {
   isReady: boolean;
@@ -78,7 +78,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
 
     const toolName = toolCall.toolName;
 
-    const type = server.getServerType(toolName);
+    const type = getServersInstance().getServerType(toolName);
     const name = toolName.replace(`${type}_`, "");
 
     if (allowAlways) {
@@ -129,7 +129,7 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
 
     const toolName = toolCall.toolName;
 
-    const type = server.getServerType(toolName);
+    const type = getServersInstance().getServerType(toolName);
     const name = toolName.replace(`${type}_`, "");
 
     if (checkAllowAlways(type, name) || accept || deny) {
