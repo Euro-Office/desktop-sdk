@@ -644,7 +644,7 @@ describe("OpenAIProvider", () => {
   // ==========================================================================
 
   describe("getProviderModels", () => {
-    it("should return filtered and mapped models", async () => {
+    it("should return all models mapped with provider type", async () => {
       modelsListMock.mockResolvedValue({
         data: [{ id: "gpt-4.1" }, { id: "gpt-5" }, { id: "other-model" }],
       });
@@ -654,12 +654,12 @@ describe("OpenAIProvider", () => {
         url: "https://api.openai.com/v1",
       });
 
-      // Should filter to only models in openaiInfo.modelFilters
+      expect(result).toHaveLength(3);
       expect(result.every((m) => m.provider === "openai")).toBe(true);
-      expect(result.map((m) => m.id)).not.toContain("other-model");
+      expect(result.map((m) => m.id)).toContain("other-model");
     });
 
-    it("should use modelNames mapping for display names", async () => {
+    it("should use model.id as name", async () => {
       modelsListMock.mockResolvedValue({
         data: [{ id: "gpt-4.1" }],
       });
@@ -669,14 +669,31 @@ describe("OpenAIProvider", () => {
         url: "https://api.openai.com/v1",
       });
 
-      if (result.length > 0) {
-        expect(result[0].name).toBe(openaiInfo.modelNames["gpt-4.1"]);
-      }
+      expect(result[0].name).toBe("gpt-4.1");
     });
 
-    it("should return empty array when no models match filters", async () => {
+    it("should mark reasoning models", async () => {
       modelsListMock.mockResolvedValue({
-        data: [{ id: "unknown-model-1" }, { id: "unknown-model-2" }],
+        data: [
+          { id: "gpt-4.1" },
+          { id: "gpt-5.2-2025-12-11" },
+        ],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.openai.com/v1",
+      });
+
+      const regular = result.find((m) => m.id === "gpt-4.1");
+      const reasoning = result.find((m) => m.id === "gpt-5.2-2025-12-11");
+      expect(regular?.reasoning).toBe(false);
+      expect(reasoning?.reasoning).toBe(true);
+    });
+
+    it("should return empty array when response has no models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [],
       });
 
       const result = await provider.getProviderModels({
@@ -685,27 +702,6 @@ describe("OpenAIProvider", () => {
       });
 
       expect(result).toEqual([]);
-    });
-
-    it("should fallback to uppercased model id when not in modelNames", async () => {
-      // Add a model to filters that's not in modelNames (for testing fallback)
-      const originalFilters = openaiInfo.modelFilters;
-      openaiInfo.modelFilters = [...originalFilters, "test-model-without-name"];
-
-      modelsListMock.mockResolvedValue({
-        data: [{ id: "test-model-without-name" }],
-      });
-
-      const result = await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "https://api.openai.com/v1",
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("TEST-MODEL-WITHOUT-NAME");
-
-      // Restore original filters
-      openaiInfo.modelFilters = originalFilters;
     });
   });
 

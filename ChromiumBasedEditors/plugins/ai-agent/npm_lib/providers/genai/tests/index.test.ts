@@ -228,19 +228,19 @@ describe("checkProvider", () => {
 });
 
 describe("getProviderModels", () => {
-  it("should return empty array on error", async () => {
+  it("should throw on error", async () => {
     mockList.mockRejectedValue(new Error("API error"));
     const provider = new GenAIProvider();
 
-    const result = await provider.getProviderModels({
-      apiKey: "invalid",
-      url: "",
-    });
-
-    expect(result).toEqual([]);
+    await expect(
+      provider.getProviderModels({
+        apiKey: "invalid",
+        url: "",
+      })
+    ).rejects.toThrow("API error");
   });
 
-  it("should return models matching filters", async () => {
+  it("should return all models mapped correctly", async () => {
     mockList.mockResolvedValue({
       page: Promise.resolve([
         { name: "models/gemini-3-pro-preview", displayName: "Gemini 3 Pro" },
@@ -256,22 +256,26 @@ describe("getProviderModels", () => {
       url: "",
     });
 
-    expect(result).toHaveLength(1);
+    expect(result).toHaveLength(2);
     expect(result[0].id).toBe("gemini-3-pro-preview");
+    expect(result[0].name).toBe("Gemini 3 Pro");
+    expect(result[1].id).toBe("unknown-model");
+    expect(result[1].name).toBe("Unknown");
+    expect(result.every((m) => m.provider === "genai")).toBe(true);
   });
 
   it("should paginate through all pages", async () => {
     let callCount = 0;
     const nextPageMock = vi.fn().mockResolvedValue([
       {
-        name: "models/gemini-3-flash-preview",
-        displayName: "Gemini 3 Flash",
+        name: "models/model-page-2",
+        displayName: "Model Page 2",
       },
     ]);
 
     mockList.mockResolvedValue({
       page: Promise.resolve([
-        { name: "models/gemini-3-pro-preview", displayName: "Gemini 3 Pro" },
+        { name: "models/model-page-1", displayName: "Model Page 1" },
       ]),
       hasNextPage: () => {
         callCount++;
