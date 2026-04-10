@@ -72,7 +72,12 @@ class WebSearch {
           });
         }
 
-        return JSON.stringify(await response.json());
+        const parsedData = await response.json();
+        const data = parsedData.error
+          ? { error: parsedData.error }
+          : parsedData.results;
+
+        return JSON.stringify({ data });
       } catch (e) {
         console.error("WebSearch error:", e);
         return JSON.stringify({ error: e });
@@ -146,7 +151,12 @@ class WebSearch {
           });
         }
 
-        return JSON.stringify(await response.json());
+        const parsedData = await response.json();
+        const data = parsedData.error
+          ? { error: parsedData.error }
+          : parsedData.results;
+
+        return JSON.stringify({ data });
       } catch (e) {
         console.error(e);
         return JSON.stringify({ error: e });
