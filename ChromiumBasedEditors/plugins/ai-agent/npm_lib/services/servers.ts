@@ -1,6 +1,6 @@
-import type { TMCPItem } from "../types";
 import { getSettingsInstance } from "../settings/settings-holder";
 import { getServersInstance } from "../tools/tools-holder";
+import type { TMCPItem } from "../types";
 
 const MAX_TOOL_COUNT = 100;
 const MAX_TOOL_COUNT_WITH_WEB_SEARCH = MAX_TOOL_COUNT + 2;
@@ -110,9 +110,7 @@ export class ServersService {
       const serverToolsWithStatus = serverTools.map((t, index) => {
         if (
           tools.length + index >=
-          (webSearchEnabled
-            ? MAX_TOOL_COUNT_WITH_WEB_SEARCH
-            : MAX_TOOL_COUNT)
+          (webSearchEnabled ? MAX_TOOL_COUNT_WITH_WEB_SEARCH : MAX_TOOL_COUNT)
         ) {
           disabledTools[type].push(t.name);
           return { ...t, enabled: false };
@@ -191,9 +189,7 @@ export class ServersService {
       if (type === "web-search") {
         newDisabledTools[type] = servers[type].map((t) => t.name);
         newWebSearchEnabled = false;
-        newTools = currentState.tools.filter(
-          (t) => !t.name.includes(type)
-        );
+        newTools = currentState.tools.filter((t) => !t.name.includes(type));
       } else {
         newTools = currentState.tools.filter(
           (t) => t.name !== `${type}_${name}`

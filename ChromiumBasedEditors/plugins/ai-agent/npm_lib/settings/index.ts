@@ -1,6 +1,6 @@
-export type { SettingsAdapter } from "./types";
+export { SettingsProvider, useSettings } from "./context";
 export {
   getSettingsInstance,
   setSettingsInstance,
 } from "./settings-holder";
-export { SettingsProvider, useSettings } from "./context";
+export type { SettingsAdapter } from "./types";

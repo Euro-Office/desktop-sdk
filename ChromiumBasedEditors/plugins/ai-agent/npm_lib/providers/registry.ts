@@ -28,7 +28,9 @@ export type BuiltinProvider =
   | MistralProvider;
 
 // biome-ignore lint/suspicious/noExplicitAny: custom providers can have any generic params
-export type BaseProvider = BuiltinProvider | import("./base").AbstractBaseProvider<any, any, any>;
+export type BaseProvider =
+  | BuiltinProvider
+  | import("./base").AbstractBaseProvider<any, any, any>;
 
 /**
  * Built-in registry mapping provider types to their singleton instances.
@@ -55,7 +57,10 @@ const customProviders: Map<string, BaseProvider> = new Map();
 /**
  * Register a custom provider at runtime.
  */
-export const registerProvider = (type: string, provider: BaseProvider): void => {
+export const registerProvider = (
+  type: string,
+  provider: BaseProvider
+): void => {
   customProviders.set(type, provider);
 };
 

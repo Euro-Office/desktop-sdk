@@ -1,8 +1,8 @@
-import type { Profile } from "../types";
 import type { TErrorData } from "../providers/base";
 import { getProviderInstance } from "../providers/provider-holder";
 import { getSettingsInstance } from "../settings/settings-holder";
 import { getStorageInstance } from "../storage/storage-holder";
+import type { Profile } from "../types";
 
 const NAME_EXISTS_ERROR = {
   field: "name" as const,
@@ -61,9 +61,7 @@ export class ProfilesService {
     const profiles = (await storage.profiles.getAll()).reverse();
 
     const defaultProfile =
-      this.loadProfileById(profiles, keys.defaultKey) ??
-      profiles[0] ??
-      null;
+      this.loadProfileById(profiles, keys.defaultKey) ?? profiles[0] ?? null;
 
     if (defaultProfile) {
       settings.set(keys.defaultKey, defaultProfile.id);
@@ -81,8 +79,7 @@ export class ProfilesService {
     data: Omit<Profile, "id">,
     existingProfiles: Profile[]
   ): Promise<
-    | { success: true; profile: Profile }
-    | { success: false; error: TErrorData }
+    { success: true; profile: Profile } | { success: false; error: TErrorData }
   > {
     const nameExists = existingProfiles.some(
       (p) => p.name.toLowerCase() === data.name.toLowerCase()
@@ -109,10 +106,7 @@ export class ProfilesService {
   async editProfile(
     profile: Profile,
     existingProfiles: Profile[]
-  ): Promise<
-    | { success: true }
-    | { success: false; error: TErrorData }
-  > {
+  ): Promise<{ success: true } | { success: false; error: TErrorData }> {
     const nameExists = existingProfiles.some(
       (p) =>
         p.name.toLowerCase() === profile.name.toLowerCase() &&

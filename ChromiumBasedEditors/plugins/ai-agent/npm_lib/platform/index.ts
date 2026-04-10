@@ -1,9 +1,8 @@
+export { PlatformProvider, usePlatform } from "./context";
 export type {
   PlatformAdapter,
-  PlatformFileOperations,
-  PlatformProcessRunner,
   PlatformEnvironment,
+  PlatformFileOperations,
   PlatformHostTools,
+  PlatformProcessRunner,
 } from "./types";
-
-export { PlatformProvider, usePlatform } from "./context";

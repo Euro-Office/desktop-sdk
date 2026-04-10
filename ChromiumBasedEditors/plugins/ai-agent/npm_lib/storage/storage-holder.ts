@@ -13,7 +13,9 @@ export function setStorageInstance(storage: StorageAdapter): void {
 
 export function getStorageInstance(): StorageAdapter {
   if (!storageInstance) {
-    throw new Error("Storage not initialized. Call setStorageInstance() first.");
+    throw new Error(
+      "Storage not initialized. Call setStorageInstance() first."
+    );
   }
   return storageInstance;
 }

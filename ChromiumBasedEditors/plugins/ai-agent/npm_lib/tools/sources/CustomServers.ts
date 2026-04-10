@@ -1,5 +1,5 @@
-import type { TMCPItem, TProcess } from "../../types";
 import { getPlatformInstance } from "../../platform/platform-holder";
+import type { TMCPItem, TProcess } from "../../types";
 
 type THttpServer = {
   url: string;

@@ -1,89 +1,130 @@
 // --- Types ---
-export type {
-  TMCPItem,
-  Thread,
-  ProviderType,
-  Model,
-  TProvider,
-  PromptFolder,
-  Prompt,
-  TAttachmentFile,
-  TAttachmentImage,
-  TProcess,
-  Profile,
-} from "./types";
 
-// --- Storage ---
-export type {
-  StorageAdapter,
-  ThreadsStorage,
-  MessagesStorage,
-  ProfilesStorage,
-  PromptsStorage,
-  PromptFoldersStorage,
-} from "./storage/types";
-
-export { StorageProvider, useStorage } from "./storage/context";
-export { getStorageInstance, setStorageInstance } from "./storage/storage-holder";
-
+// --- Widget ---
+export { AIChatWidget, type AIChatWidgetProps } from "./AIChatWidget";
+// --- Config ---
+export type { FeatureFlags, StoreKeys } from "./config";
+export {
+  DEFAULT_FEATURE_FLAGS,
+  DEFAULT_STORE_KEYS,
+  MAX_TOOL_COUNT,
+  MAX_TOOL_COUNT_WITH_WEB_SEARCH,
+} from "./config";
+// --- Hooks ---
+export {
+  useDebouncedCallback,
+  useDirection,
+  useMessages,
+  useProfiles,
+  useServers,
+  useThread,
+} from "./hooks";
+export type { InitAIChatI18nOptions } from "./i18n";
+// --- i18n ---
+export { bundledLocales, initAIChatI18n } from "./i18n";
+export { getApiKeyLink } from "./lib/api-key-links";
+export { type DebouncedFn, debounce } from "./lib/debounce";
+export type { ImageCollections } from "./lib/images";
+export { getImageSrc, getProviderImageSrc } from "./lib/images";
+// --- Lib ---
+export {
+  cn,
+  isDesktopEditor,
+  isExternalProcessAvailable,
+  sanitizeProviderName,
+} from "./lib/utils";
+export { PlatformProvider, usePlatform } from "./platform/context";
 // --- Platform ---
 export type {
   PlatformAdapter,
-  PlatformFileOperations,
-  PlatformProcessRunner,
   PlatformEnvironment,
+  PlatformFileOperations,
   PlatformHostTools,
+  PlatformProcessRunner,
 } from "./platform/types";
-
-export { PlatformProvider, usePlatform } from "./platform/context";
-
-// --- Tools ---
-export type { HostTool, HostToolGroup, ToolSource } from "./tools/types";
-
-export { ToolsProvider, useToolsContext } from "./tools/context";
-
-// --- Settings ---
-export type { SettingsAdapter } from "./settings/types";
-
+export { default as Provider, type SendMessageReturnType } from "./providers";
+// --- Providers ---
+export { AbstractBaseProvider } from "./providers/base";
+export type { BaseProvider } from "./providers/registry";
+export {
+  getProvider,
+  getSupportedProviderTypes,
+  isValidProviderType,
+  registerProvider,
+  unregisterProvider,
+} from "./providers/registry";
+export type {
+  ChangeToolStatusResult,
+  ChatEvent,
+  ProfilesInitResult,
+  PromptUpdates,
+  TaskProfileKeys,
+  ToolCallData,
+  ToolsListResult,
+} from "./services";
+// --- Services ---
+export {
+  ChatEngine,
+  ProfilesService,
+  PromptsService,
+  ServersService,
+  ThreadsService,
+} from "./services";
 export { SettingsProvider, useSettings } from "./settings/context";
 export {
   getSettingsInstance,
   setSettingsInstance,
 } from "./settings/settings-holder";
-
+// --- Settings ---
+export type { SettingsAdapter } from "./settings/types";
+export { StorageProvider, useStorage } from "./storage/context";
+export {
+  getStorageInstance,
+  setStorageInstance,
+} from "./storage/storage-holder";
+// --- Storage ---
+export type {
+  MessagesStorage,
+  ProfilesStorage,
+  PromptFoldersStorage,
+  PromptsStorage,
+  StorageAdapter,
+  ThreadsStorage,
+} from "./storage/types";
+export type {
+  AttachmentsStoreState,
+  CreateStoresConfig,
+  MessageStoreState,
+  Page,
+  ProfilesStoreState,
+  PromptsStoreState,
+  RouterStoreState,
+  ServersStoreState,
+  Stores,
+  ThemeStoreState,
+  ThreadsStoreState,
+} from "./store";
+// --- Store ---
+export { createStores, StoresProvider, useStores } from "./store";
+export { ToolsProvider, useToolsContext } from "./tools/context";
+// --- Tools ---
+export type { HostTool, HostToolGroup, ToolSource } from "./tools/types";
+export type {
+  Model,
+  Profile,
+  Prompt,
+  PromptFolder,
+  ProviderType,
+  TAttachmentFile,
+  TAttachmentImage,
+  Thread,
+  TMCPItem,
+  TProcess,
+  TProvider,
+} from "./types";
 // --- Utils ---
 export {
   convertMessagesToMd,
   getMessageTitleFromMd,
   removeSpecialCharacter,
 } from "./utils";
-
-// --- Services ---
-export {
-  PromptsService,
-  ThreadsService,
-  ProfilesService,
-  ServersService,
-  ChatEngine,
-} from "./services";
-export type {
-  PromptUpdates,
-  TaskProfileKeys,
-  ProfilesInitResult,
-  ToolsListResult,
-  ChangeToolStatusResult,
-  ChatEvent,
-  ToolCallData,
-} from "./services";
-
-// --- Providers ---
-export { AbstractBaseProvider } from "./providers/base";
-export type { BaseProvider } from "./providers/registry";
-export {
-  registerProvider,
-  unregisterProvider,
-  getProvider,
-  getSupportedProviderTypes,
-  isValidProviderType,
-} from "./providers/registry";
-export { default as Provider, type SendMessageReturnType } from "./providers";

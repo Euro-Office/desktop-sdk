@@ -1,7 +1,7 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { describe, expect, it } from "vitest";
-import type { Model, TMCPItem, TProvider } from "../types";
 import { AbstractBaseProvider, type TData } from "../base";
+import type { Model, TMCPItem, TProvider } from "../types";
 
 // Concrete implementation for testing
 class TestProvider extends AbstractBaseProvider<

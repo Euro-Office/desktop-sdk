@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@import "./styles/themes.css";
+@import "../npm_lib/styles/themes.css";
 
 :root {
   font-family: Arial, "Segoe UI", system-ui, Avenir, Helvetica, sans-serif;

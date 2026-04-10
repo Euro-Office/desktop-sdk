@@ -45,7 +45,9 @@ export interface PlatformEnvironment {
   devicePixelRatio: number;
 
   /** Subscribe to theme/language changes from the host. Returns an unsubscribe function */
-  onEnvironmentChange?: (callback: (info: { theme?: string; lang?: string }) => void) => () => void;
+  onEnvironmentChange?: (
+    callback: (info: { theme?: string; lang?: string }) => void
+  ) => () => void;
 }
 
 export interface PlatformHostTools {

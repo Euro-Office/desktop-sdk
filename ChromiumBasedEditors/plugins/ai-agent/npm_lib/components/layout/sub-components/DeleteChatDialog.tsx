@@ -1,0 +1,66 @@
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { useDirection } from "../../../hooks/useDirection";
+import { useStores } from "../../../store/context";
+import { Button } from "../../button";
+import { Dialog, DialogContent } from "../../dialog";
+
+type DeleteChatDialogProps = {
+  id: string;
+  onClose: VoidFunction;
+};
+
+const DeleteChatDialog = ({ id, onClose }: DeleteChatDialogProps) => {
+  const { useThreadsStore } = useStores();
+  const { onDeleteThread } = useThreadsStore();
+  const { isRTL } = useDirection();
+
+  const { t } = useTranslation();
+
+  const onSubmitAction = React.useCallback(async () => {
+    await onDeleteThread(id);
+    onClose();
+  }, [id, onDeleteThread, onClose]);
+
+  // Handle keyboard events
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        onSubmitAction();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onSubmitAction]);
+
+  return (
+    <Dialog open={true}>
+      <DialogContent header={t("Warning")} onClose={onClose} withWarningIcon>
+        <div className="flex flex-col justify-between h-full">
+          <p className="select-none h-[40px] flex items-center text-[12px] leading-[16px] text-[var(--text-normal)]">
+            {t("WantDeleteChat")}
+          </p>
+          <div
+            className={
+              isRTL
+                ? "flex flex-row-reverse justify-end items-center gap-[8px] h-[48px]"
+                : "flex flex-row justify-end items-center gap-[8px] h-[48px]"
+            }
+          >
+            <Button variant="default" onClick={onClose}>
+              {t("No")}
+            </Button>
+            <Button onClick={onSubmitAction}>{t("Yes")}</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export { DeleteChatDialog };

@@ -72,9 +72,7 @@ describe("HostToolSource", () => {
 
     it("should replace existing groups", () => {
       source.setGroups(makeGroups());
-      source.setGroups([
-        { id: "new", name: "New", tools: [] },
-      ]);
+      source.setGroups([{ id: "new", name: "New", tools: [] }]);
 
       expect(source.getGroupIds()).toEqual(["new"]);
     });

@@ -1,7 +1,7 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Model, TProvider } from "../types";
 import Provider from "../index";
+import type { Model, TProvider } from "../types";
 
 // Mock localStorage
 const localStorageMock = (() => {

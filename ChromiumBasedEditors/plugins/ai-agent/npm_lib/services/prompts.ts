@@ -1,5 +1,5 @@
-import type { Prompt, PromptFolder } from "../types";
 import { getStorageInstance } from "../storage/storage-holder";
+import type { Prompt, PromptFolder } from "../types";
 
 export type PromptUpdates = {
   name?: string;
@@ -67,7 +67,11 @@ export class PromptsService {
     return folder;
   }
 
-  renameFolder(folders: PromptFolder[], id: string, name: string): PromptFolder[] {
+  renameFolder(
+    folders: PromptFolder[],
+    id: string,
+    name: string
+  ): PromptFolder[] {
     getStorageInstance().promptFolders.update(id, name).catch(console.error);
     return folders.map((f) => {
       if (f.id !== id) return f;
