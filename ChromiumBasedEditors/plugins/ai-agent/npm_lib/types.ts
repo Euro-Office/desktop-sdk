@@ -14,7 +14,7 @@ export type Thread = {
   profileId?: string;
 };
 
-export type ProviderType =
+export type BuiltinProviderType =
   | "anthropic"
   | "ollama"
   | "openai"
@@ -26,6 +26,9 @@ export type ProviderType =
   | "xai"
   | "lm-studio"
   | "mistral";
+
+/** Accepts builtin provider types with autocomplete + any custom string */
+export type ProviderType = BuiltinProviderType | (string & {});
 
 export type Model = {
   id: string;
