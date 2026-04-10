@@ -62,7 +62,7 @@ class WebSearch {
             "Content-Type": "application/json",
             Authorization: `Bearer ${this.webSearchData.key}`,
           },
-          body: JSON.stringify({ query: args.query }),
+          body: JSON.stringify({ query: args.query, numResults: 5 }),
         });
 
         if (!response.ok) {
@@ -134,7 +134,9 @@ class WebSearch {
             "Content-Type": "application/json",
             Authorization: `Bearer ${this.webSearchData.key}`,
           },
-          body: JSON.stringify({ urls: args.urls }),
+          body: JSON.stringify({
+            url: (args.urls as string[])[0],
+          }),
         });
 
         if (!response.ok) {
