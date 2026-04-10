@@ -86,4 +86,4 @@ export {
   getSupportedProviderTypes,
   isValidProviderType,
 } from "./providers/registry";
-export { provider, type SendMessageReturnType } from "./providers";
+export { default as Provider, type SendMessageReturnType } from "./providers";
