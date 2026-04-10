@@ -9,23 +9,13 @@ type CloudsState = {
   fetchClouds: () => void;
 };
 
-const devClouds: TCloud[] =
-  import.meta.env.VITE_DEV_CLOUD_URL && import.meta.env.VITE_DEV_CLOUD_API_KEY
-    ? [
-        {
-          url: import.meta.env.VITE_DEV_CLOUD_URL as string,
-          data: { apiKey: import.meta.env.VITE_DEV_CLOUD_API_KEY as string },
-        },
-      ]
-    : [];
-
 const useCloudsStore = create<CloudsState>()((set, get) => ({
   clouds: [],
   getClouds: () => get().clouds,
   setClouds: (clouds) => set({ clouds }),
   fetchClouds: () => {
     const platform = getPlatformInstance();
-    const clouds = platform?.clouds?.getClouds() ?? devClouds;
+    const clouds = platform?.clouds?.getClouds() ?? [];
     set({ clouds });
   },
 }));
