@@ -25,7 +25,8 @@ export type ProviderType =
   | "deepseek"
   | "xai"
   | "lm-studio"
-  | "mistral";
+  | "mistral"
+  | "onlyoffice";
 
 export type Model = {
   id: string;
@@ -83,4 +84,5 @@ export type Profile = {
   key?: string;
   modelId: string;
   reasoning?: boolean;
+  isCloudProvider?: boolean;
 };
