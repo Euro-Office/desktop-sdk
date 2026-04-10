@@ -1,374 +1,400 @@
-# AI Chat Library Migration Plan
+# План миграции бизнес-логики из src/ в npm_lib
 
-Превращение ai-agent плагина в NPM-библиотеку `@onlyoffice/ai-chat` с сохранением обратной совместимости.
+## Контекст
 
-## Структура npm_lib/
+В npm_lib уже вынесены: провайдеры (11), система тулов/серверов, абстракции storage и platform, типы, React-контексты и global holders. В src/ осталась бизнес-логика в Zustand-сторах, хуках и утилитах. Конкретные реализации (IndexedDB storage, ONLYOFFICE platform adapter) остаются в src/ — библиотека предоставляет только интерфейсы. Цель — сделать npm_lib самодостаточной библиотекой чата, которую можно подключить в любое приложение с минимальной обвязкой.
 
-Весь код библиотеки создаётся в папке `npm_lib/`. Плагин (`src/`) импортирует из неё. Это позволяет развивать библиотеку отдельно, не ломая текущий плагин.
+---
+
+## Что выносим (по порядку)
+
+### Фаза 0: Покрытие тестами перед рефакторингом
+
+Сейчас в src/ **ноль unit-тестов**. Все 28 test-файлов находятся в npm_lib/. Перед переездом бизнес-логики нужно покрыть тестами всё, что будет затронуто — чтобы при рефакторинге ловить регрессии.
+
+**Тестовая инфраструктура:** Vitest (уже настроен), тесты кладём рядом с кодом в `tests/` директории (как в npm_lib/).
+
+#### 0.1 Утилиты (`src/lib/utils.ts`)
+
+**Файл тестов:** `src/lib/tests/utils.test.ts`
+
+Покрыть:
+- `convertMessagesToMd()` — основной кандидат на перенос
+  - user-сообщения оборачиваются в `## heading`
+  - assistant-сообщения — plain text
+  - массив content с text, tool-call (tool-call пропускается), string content
+  - пустые сообщения, пустой массив
+- `removeSpecialCharacter()` — удаляет `\/:*"<>|?`
+- `getMessageTitleFromMd()` — первая строка без `## `, обрезка до 30 символов
+- `sanitizeProviderName()` — делегирует в removeSpecialCharacter
+
+#### 0.2 Zustand Stores
+
+Сторы тестируются без React — создаём store, вызываем actions, проверяем state. Мокаем `getStorageInstance()`, `getProviderInstance()`, `getServersInstance()`, `getPlatformInstance()`, `localStorage`.
+
+**a) `src/store/tests/useProfilesStore.test.ts`**
+
+Покрыть:
+- `init()` — загрузка профилей из storage, восстановление default/task-профилей из localStorage
+- `addProfile()` — валидация дублей имён, проверка провайдера, сохранение в storage, auto-set default для первого
+- `editProfile()` — валидация дублей, обновление каскадных task-профилей, синхронизация провайдера
+- `deleteProfile()` — каскадная очистка task-профилей, переназначение default, обновление localStorage
+- `getProfileById()`, `getProfileByName()` — поиск (case-insensitive)
+- `setDefaultProfile()`, `setChatProfile()`, `setSessionChatProfile()` — установка + синхронизация провайдера через `applyCurrentChatProvider`
+- `setSummarizationProfile()`, `setTranslationProfile()`, etc. — установка + localStorage persist
+- `toggleExtendedThinking()` — toggle + localStorage persist
+- `selectCurrentChatProfile()` — приоритет: session > chat > default
+- Хелперы: `loadProfileById()`, `applyCurrentChatProvider()`
+
+**b) `src/store/tests/useServersStore.test.ts`**
+
+Покрыть:
+- `initServers()` — парсинг конфига из localStorage, запуск серверов
+- `getTools()` — построение списка тулов с фильтрацией disabled, лимитами MAX_TOOL_COUNT, prefixing `{type}_{name}`
+  - Кейс с disabledTools в localStorage
+  - Кейс без disabledTools (первый запуск)
+  - Web search tools обрабатываются отдельно (отдельный лимит MAX_TOOL_COUNT_WITH_WEB_SEARCH)
+  - Превышение лимита → автоматический disable
+- `changeToolStatus()` — enable/disable тулов
+  - Enable: проверка лимита, обновление disabledTools, persist в localStorage
+  - Disable: добавление в disabledTools, фильтрация из tools, persist
+  - Web search: включает/выключает все тулы группы разом
+- `callTools()` — роутинг вызова: парсинг type из имени, проверка disabled, делегирование в Servers
+- `checkAllowAlways()`, `setAllowAlways()` — делегирование в Servers
+- `saveConfig()` — persist в localStorage + перезапуск серверов
+- `getConfig()` — чтение из localStorage
+- `deleteCustomServer()` — удаление + обновление конфига
+
+**c) `src/store/tests/useThreadsStore.test.ts`**
+
+Покрыть:
+- `initThreads()` — загрузка из storage
+- `insertThread()` — создание + добавление в state + persist
+- `insertNewMessageToThread()` — обновление lastEditDate + profileId + persist
+- `migrateThreadFromProviderModelToProfile()` — маппинг legacy provider/model → profileId
+  - Точное совпадение (type + baseUrl + modelId + key)
+  - Частичное совпадение (type + baseUrl + modelId)
+  - Fallback на chatProfile → defaultProfile
+  - Обновление в state + persist
+- `onSwitchToNewThread()` — сброс sessionChatProfile, новый threadId
+- `onSwitchToThread()` — переключение + миграция legacy + установка sessionChatProfile
+- `onDownloadThread()` — загрузка messages из storage + конвертация в md + вызов platform.file.saveAsFile
+- `onRenameThread()` — обновление title + persist
+- `onDeleteThread()` — каскадное удаление messages + thread + переключение если текущий
+- `onClearThreadHistory()` — удаление messages + очистка store если текущий тред
+
+**d) `src/store/tests/useMessageStore.test.ts`**
+
+Покрыть:
+- `fetchPrevMessages()` — загрузка из storage + синхронизация с провайдером
+- `addMessage()` — добавление, замена incomplete-сообщения
+- `updateLastMessage()` — обновление последнего
+- `stopMessage()` — сброс isStreamRunning + вызов provider.stopMessage()
+- `clearMessages()` — очистка + сброс prevMessages в провайдере
+
+**e) `src/store/tests/usePromptsStore.test.ts`**
+
+Покрыть:
+- `initPrompts()` — загрузка prompts + folders из storage
+- `addPrompt()` — генерация id, name из первых 15 символов, timestamps, persist
+- `editPrompt()` — частичное обновление (name, text, folderId), updatedAt bump
+- `removePrompt()` — удаление из state + persist
+- `addFolder()` — создание + persist + возврат id
+- `renameFolder()` — обновление name + updatedAt
+- `removeFolder()` — каскадное удаление folder + все промпты в нём
+
+#### 0.3 Хук useMessages (`src/hooks/useMessages.ts`)
+
+**Файл тестов:** `src/hooks/tests/useMessages.test.ts`
+
+Это самый сложный для тестирования — React хук с async generators. Тестируем через `renderHook` из `@testing-library/react`.
+
+Покрыть:
+- `onNew()` — отправка нового сообщения
+  - Создание userMessage с text content
+  - Обработка файловых вложений (FileMessagePart)
+  - Обработка image вложений (ImageMessagePart)
+  - Создание нового треда с генерацией title
+  - Обновление существующего треда
+  - Вызов provider.sendMessage() + обработка стрима
+- `handleStream()` — обработка потока ответов
+  - Первое сообщение → addMessage + persist в storage
+  - Последующие дельты → updateLastMessage + persist
+  - Окончание стрима (`isEnd`) → сброс streaming flags
+  - Incomplete status → addMessage + сброс
+  - Tool call в ответе → вызов handleToolCall
+  - Переключение треда во время стрима → прерывание
+- `handleToolCall()` — обработка вызова инструмента
+  - Auto-allow (checkAllowAlways) → вызов + продолжение стрима
+  - Требуется approval → setManageToolData
+  - Deny → "User deny tool call" result
+- `approveToolCall()` — одобрение с опцией always-allow
+- `denyToolCall()` — отказ
+
+#### 0.4 Миграция (`src/lib/migrateProvidersToProfiles.ts`)
+
+**Файл тестов:** `src/lib/tests/migrateProvidersToProfiles.test.ts`
+
+Покрыть:
+- Нет провайдеров в localStorage → ничего не делает, чистит stale keys
+- Валидные провайдеры → создание профилей для каждой пары provider×model
+- Установка default profile из текущего провайдера/модели
+- Невалидные данные (corrupted JSON, missing fields) → graceful cleanup
+- Неизвестный тип провайдера → пропуск
+- Сортировка созданных профилей по имени
+
+---
+
+### Фаза 1: SettingsAdapter + базовые утилиты
+
+#### 1.1 SettingsAdapter — абстракция над key-value хранилищем
+
+**Что:** Новый адаптер для key-value настроек. localStorage — это деталь реализации конкретного чата (как IndexedDB для storage). Библиотека работает через абстракцию.
+
+**Почему первым:** Все сервисные классы (фаза 2) зависят от settings для хранения конфигурации (выбранные профили, disabled tools, MCP конфиг, extended thinking). Без этой абстракции бизнес-логику не вынести.
+
+**Новые файлы в npm_lib:**
+- `npm_lib/settings/types.ts`:
+```ts
+export interface SettingsAdapter {
+  get(key: string): string | null;
+  set(key: string, value: string): void;
+  remove(key: string): void;
+}
+```
+- `npm_lib/settings/context.tsx` — React-контекст + хук `useSettings()`
+- `npm_lib/settings/settings-holder.ts` — глобальный holder для доступа из сервисов
+- `npm_lib/settings/index.ts` — ре-экспорт
+
+**Реализация в src/ (остаётся в src/):**
+- `src/settings/localStorage.ts` — `LocalStorageSettings implements SettingsAdapter`
+
+**Экспорт из npm_lib/index.ts:**
+```ts
+export type { SettingsAdapter } from "./settings/types";
+export { SettingsProvider, useSettings } from "./settings/context";
+export { getSettingsInstance, setSettingsInstance } from "./settings/settings-holder";
+```
+
+#### 1.2 Утилиты — только generic бизнес-логика сообщений
+
+**Что:** Только утилиты, работающие с core-типами библиотеки (сообщения, строки).
+
+**Перенести в `npm_lib/utils.ts`:**
+- `convertMessagesToMd()` — конвертация сообщений в markdown (работает с `ThreadMessageLike` — core тип)
+- `removeSpecialCharacter()` — санитизация строк (используется в ThreadsService для экспорта)
+- `getMessageTitleFromMd()` — извлечение заголовка из markdown
+
+**Что остаётся в src/lib/ (host-specific):**
+- `cn()` — tailwind merge (UI)
+- `isDesktopEditor()`, `isExternalProcessAvailable()` — проверка окружения
+- `isDocument`, `isPresentation`, `isSpreadsheet`, `isPdf`, `isDjVu`, `isXps`, `isPdfForm`, `isVisio` — типы файлов ONLYOFFICE
+- `sanitizeProviderName()` — используется только в UI компонентах
+- `migrateProvidersToProfiles.ts` — работает напрямую с localStorage, host-specific миграция
+- Все константы (`*_PROFILE_KEY`, `PROVIDERS_LOCAL_STORAGE_KEY`, etc.) — ключи localStorage, деталь реализации конкретного чата
+
+---
+
+### Фаза 2: Сервисные классы (бизнес-логика из сторов)
+
+Ключевой этап. Извлекаем чистую бизнес-логику из Zustand-сторов в сервисные классы. Zustand-сторы в src/ становятся тонкими обёртками: хранят state и делегируют операции сервисам.
+
+#### 2.1 ProfilesService (`npm_lib/services/profiles.ts`)
+
+**Извлекается из:** `src/store/useProfilesStore.ts`
+
+**Логика:**
+- `loadProfileById(profiles, key)` — загрузка профиля по ключу из settings (ключи передаются снаружи)
+- `applyCurrentChatProvider(session, chat, default)` — синхронизация провайдера
+- `addProfile(data)` — валидация имени + проверка провайдера + сохранение в storage
+- `editProfile(profile)` — валидация + обновление + каскадное обновление task-профилей
+- `deleteProfile(id, taskKeys)` — удаление + каскадная очистка task-профилей + переназначение default
+- `initProfiles(config: { defaultKey, taskKeys })` — загрузка из storage + восстановление task-назначений из settings
+- `setTaskProfile(key, profile)` — установка task-профиля с сохранением в settings
+- `selectCurrentChatProfile(session, chat, default)` — pure function
+
+**Важно:** Сервис не знает конкретные ключи настроек (`"default-profile"`, `"chat-profile"`, etc.). Ключи передаются из src/ при инициализации — это деталь реализации конкретного чата.
+
+**Зависимости:** `StorageAdapter`, `SettingsAdapter`, `Provider` (provider holder) — всё в npm_lib.
+
+#### 2.2 ServersService (`npm_lib/services/servers.ts`)
+
+**Извлекается из:** `src/store/useServersStore.ts`
+
+**Логика:**
+- `initServers(config: { serversKey, disabledToolsKey })` — загрузка MCP конфига из settings, запуск серверов
+- `buildToolsList(allTools, disabledTools)` — фильтрация, лимиты, prefixing
+- `changeToolStatus(type, name, enabled, currentTools, disabledTools)` — обновление статуса с учётом лимитов
+- `saveConfig(config)` / `getConfig()` — persistence MCP конфига через settings
+- `deleteCustomServer(name)` — удаление + обновление конфига
+- `callTools(name, args, disabledTools)` — роутинг вызова через Servers
+
+**Важно:** Ключи настроек (`"mcpServers"`, `"disabledTools"`) передаются при инициализации.
+
+**Зависимости:** `Servers` (tools holder), `SettingsAdapter` — всё в npm_lib.
+
+#### 2.3 ThreadsService (`npm_lib/services/threads.ts`)
+
+**Извлекается из:** `src/store/useThreadsStore.ts`
+
+**Логика:**
+- `createThread(threadId, title, profileId)` — создание + сохранение в storage
+- `touchThread(threadId, updates)` — обновление metadata
+- `migrateThreadToProfile(thread, profiles, chatProfile, defaultProfile)` — миграция legacy thread
+- `downloadThread(threadId, threads)` — получение сообщений + конвертация в md + вызов platform.file.saveAsFile
+- `renameThread(id, title)` — переименование + persist
+- `deleteThread(id)` — каскадное удаление messages + thread
+
+**Зависимости:** `StorageAdapter`, `PlatformAdapter` (platform holder) — всё в npm_lib.
+
+#### 2.4 PromptsService (`npm_lib/services/prompts.ts`)
+
+**Извлекается из:** `src/store/usePromptsStore.ts`
+
+**Логика:**
+- `createPrompt(text, folderId)` — создание + persist
+- `updatePrompt(id, updates)` — обновление + persist
+- `deletePrompt(id)` — удаление + persist
+- `createFolder(name)` / `renameFolder(id, name)` / `deleteFolder(id)` — CRUD папок с каскадным удалением
+
+**Зависимости:** `StorageAdapter` — уже в npm_lib.
+
+---
+
+### Фаза 3: ChatEngine — оркестрация чата
+
+**Извлекается из:** `src/hooks/useMessages.ts`
+
+**Новый файл:** `npm_lib/services/chat-engine.ts`
+
+Это самый сложный компонент — ядро чата. Сейчас в `useMessages` переплетены:
+- Отправка сообщений (подготовка контента, вложения)
+- Стриминг ответов (async generator processing)
+- Обработка tool calls (approval workflow, auto-allow, deny)
+- Создание тредов (генерация title через провайдер)
+- Координация storage persistence
+
+**Класс ChatEngine:**
+```ts
+class ChatEngine {
+  constructor(deps: {
+    provider: Provider;
+    servers: Servers;
+    storage: StorageAdapter;
+    settings: SettingsAdapter;
+  })
+
+  // Основной flow отправки сообщения
+  sendMessage(params: {
+    text: string;
+    threadId: string;
+    files?: TAttachmentFile[];
+    images?: TAttachmentImage[];
+    existingMessages: ThreadMessageLike[];
+    extendedThinking: boolean;
+    profileId?: string;
+  }): AsyncGenerator<ChatEvent>
+
+  // Tool call handling
+  approveToolCall(toolCallData: ToolCallData): AsyncGenerator<ChatEvent>
+  denyToolCall(toolCallData: ToolCallData): AsyncGenerator<ChatEvent>
+
+  // Stop streaming
+  stop(): void
+}
+```
+
+**Тип ChatEvent (union):**
+- `{ type: "message-start", message, messageUID }` — начало ответа
+- `{ type: "message-delta", message }` — обновление стрима
+- `{ type: "message-end", message }` — конец стрима
+- `{ type: "tool-call-pending", message, idx, messageUID }` — нужен approval
+- `{ type: "thread-created", threadId, title, profileId }` — создан новый тред
+- `{ type: "error", error }` — ошибка
+
+**Преимущество:** React-хук `useMessages` станет тонкой обёрткой, которая подписывается на события ChatEngine и обновляет Zustand state. Вся логика стриминга и tool calls — в npm_lib.
+
+---
+
+### Фаза 4: Тонкие Zustand-обёртки в src/
+
+После фаз 2-3 сторы в src/ сокращаются до минимума:
+
+**useProfilesStore (было ~440 строк → ~80):**
+```ts
+// Хранит state, делегирует ProfilesService
+const useProfilesStore = create((set, get) => ({
+  profiles: [],
+  defaultProfile: null,
+  // ...state fields...
+  init: async () => {
+    const result = await profilesService.initProfiles();
+    set(result);
+  },
+  addProfile: async (data) => {
+    const result = await profilesService.addProfile(data);
+    if (result.success) set(state => ({ profiles: [result.profile, ...state.profiles] }));
+    return result;
+  },
+  // ...thin wrappers...
+}));
+```
+
+Аналогично для остальных сторов. Zustand остаётся в src/ как React state management, а бизнес-логика — в npm_lib.
+
+**Фаза 4 не является отдельным шагом** — рефакторинг каждого стора происходит в рамках фазы 2 при создании соответствующего сервиса. Выделена для наглядности конечного результата.
+
+---
+
+## Порядок и зависимости
 
 ```
-npm_lib/
-├── storage/                           # ✅ DONE
-│   ├── types.ts
-│   ├── indexeddb/
-│   ├── context.tsx
-│   ├── storage-holder.ts
-│   └── index.ts
-├── platform/                          # ✅ DONE
-│   ├── types.ts
-│   ├── onlyoffice/
-│   ├── noop/
-│   ├── context.tsx
-│   ├── platform-holder.ts
-│   └── index.ts
-├── tools/
-│   ├── types.ts                   # HostTool, HostToolGroup, UnifiedTool, ToolSource
-│   ├── registry.ts                # ToolRegistry class
-│   ├── sources/
-│   │   ├── host.ts                # HostToolSource (wraps HostToolGroup[])
-│   │   ├── web-search.ts          # WebSearchToolSource
-│   │   └── mcp.ts                 # MCPToolSource (STDIO + HTTP)
-│   └── index.ts
-├── providers/
-│   ├── base.ts                    # AbstractBaseProvider (экспорт для расширения)
-│   ├── registry.ts                # providerRegistry + register/unregister
-│   ├── anthropic/
-│   ├── openai/
-│   ├── ... (все 11 провайдеров)
-│   └── index.ts
-└── index.ts                       # Главный экспорт библиотеки
+Фаза 0: Тесты                         (делаем первой, покрываем всё что будем трогать)
+  0.1 Утилиты                         (convertMessagesToMd, removeSpecialCharacter, etc.)
+  0.2 Zustand stores                   (profiles, servers, threads, messages, prompts)
+  0.3 useMessages hook                 (chat orchestration)
+  0.4 migrateProvidersToProfiles       (data migration)
+   ↓
+Фаза 1: SettingsAdapter + утилиты     (нет зависимостей)
+  1.1 SettingsAdapter                  (разблокирует сервисы)
+  1.2 Утилиты                         (convertMessagesToMd, removeSpecialCharacter)
+   ↓
+Фаза 2: Сервисные классы              (зависит от 1)
+  2.4 PromptsService                   (самый простой, начать с него)
+  2.3 ThreadsService                   (зависит от utils)
+  2.1 ProfilesService                  (зависит от SettingsAdapter)
+  2.2 ServersService                   (зависит от SettingsAdapter)
+   ↓
+Фаза 3: ChatEngine                    (зависит от 2.1, 2.2, 2.3)
+   ↓
+Фаза 4: Рефакторинг сторов            (параллельно с фазами 2 и 3)
 ```
 
 ---
 
-## 3. Tools API — unified tool system
+## Что НЕ выносим (остаётся в src/)
 
-### Цель
-Объединить все источники тулов в единый ToolRegistry. Убрать DesktopEditor как отдельный класс — вместо него хост передаёт любые тулы снаружи через `hostTools` prop.
-
-### 3.1 Три источника тулов
-
-| Источник | Где живёт | Условие доступности |
-|---|---|---|
-| **Host tools** (бывший DesktopEditor) | Хост передаёт через prop `hostTools` | Всегда, если переданы |
-| **Web search** | Внутри библиотеки (Exa API) | Всегда, если сконфигурирован (provider + key) |
-| **Custom MCP servers** | Внутри библиотеки (JSON-RPC 2.0) | HTTP — всегда; STDIO — только если `platform.process` не null |
-
-**Ключевое изменение:** `DesktopEditorTool` удаляется как класс. Его роль полностью заменяется `hostTools` prop — хост может передать что угодно: тулы редактора, тулы CRM, тулы файловой системы и т.д. Библиотека не знает и не заботится откуда они.
-
-### 3.2 Интерфейс HostTool
-
-Создать `npm_lib/tools/types.ts`:
-
-```ts
-export interface HostTool {
-  /** Unique tool name (e.g. "insert_text", "get_selection"). Will be prefixed with "{group}_" internally */
-  name: string;
-
-  /** Human-readable description shown to the AI model and in the tools list UI */
-  description: string;
-
-  /** JSON Schema describing the tool's input parameters */
-  inputSchema: Record<string, unknown>;
-
-  /** The function that executes the tool. Called with parsed arguments, returns a result for the AI model */
-  handler: (args: Record<string, unknown>) => Promise<unknown>;
-
-  /** Whether to show an approval dialog before executing. Default: false (auto-allow) */
-  requireApproval?: boolean;
-}
-
-export interface HostToolGroup {
-  /** Group ID used as source prefix in qualified names (e.g. "desktop_editor" → "desktop_editor_insert_text") */
-  id: string;
-
-  /** Display name shown in the tools list UI (e.g. "Desktop Editor", "CRM Tools") */
-  name: string;
-
-  /** Tools in this group */
-  tools: HostTool[];
-}
-
-export interface UnifiedTool {
-  /** Unique name across all sources: "{source}_{name}" (e.g. "host_insert_text", "web-search_web_search") */
-  qualifiedName: string;
-
-  /** Source identifier: host group id (e.g. "desktop_editor") | "web-search" | "mcp-{serverName}" */
-  source: string;
-
-  /** Original tool name without the source prefix */
-  name: string;
-
-  /** Human-readable description */
-  description: string;
-
-  /** JSON Schema for input parameters */
-  inputSchema: Record<string, unknown>;
-
-  /** Whether the tool is currently enabled by the user */
-  enabled: boolean;
-}
-```
-
-### 3.3 Unified ToolRegistry
-
-Создать `npm_lib/tools/registry.ts`:
-
-```ts
-class ToolRegistry {
-  private sources: Map<string, ToolSource> = new Map();
-
-  /** Register a new tool source (host tools, web search, or MCP server) */
-  registerSource(source: ToolSource): void;
-
-  /** Remove a tool source by its ID */
-  removeSource(id: string): void;
-
-  /** Get all enabled tools as a flat array (for passing to AI provider) */
-  getAllTools(): UnifiedTool[];
-
-  /** Get tools grouped by source (for the tools list UI) */
-  getToolsBySource(): Record<string, UnifiedTool[]>;
-
-  /** Execute a tool by its qualified name. Extracts source, routes to the correct handler */
-  callTool(qualifiedName: string, args: Record<string, unknown>): Promise<unknown>;
-
-  /** Enable or disable a specific tool */
-  setToolEnabled(qualifiedName: string, enabled: boolean): void;
-}
-
-interface ToolSource {
-  /** Unique source ID: "host" | "web-search" | "mcp-{serverName}" */
-  id: string;
-
-  /** Fetch available tools from this source */
-  getTools(): Promise<TMCPItem[]> | TMCPItem[];
-
-  /** Execute a tool from this source by name */
-  callTool(name: string, args: Record<string, unknown>): Promise<unknown>;
-}
-```
-
-### 3.4 Адаптеры — ToolSource implementations
-
-**HostToolSource** — одна инстанция на каждый `HostToolGroup`:
-- `getTools()` → маппинг `group.tools` → `TMCPItem[]`
-- `callTool(name, args)` → находит HostTool по name, вызывает `handler(args)`
-- Source ID: `group.id` (e.g. `"desktop_editor"`, `"crm"`)
-- В UI каждая группа отображается как отдельная секция с заголовком `group.name`
-
-**WebSearchToolSource** — обёртка над `src/servers/WebSearch.ts`:
-- `getTools()` → 2 хардкоженых тула (`web_search`, `web_crawling`) если сконфигурирован
-- `callTool()` → Exa API через fetch
-- Source ID: `"web-search"`
-- Доступен всегда, если передан `webSearch: { provider, key }`
-
-**MCPToolSource** — обёртка над `src/servers/CustomServers.ts`:
-- `getTools()` → JSON-RPC `tools/list`
-- `callTool()` → JSON-RPC `tools/call`
-- Source ID: `"mcp-{serverName}"`
-- **HTTP серверы** — доступны всегда
-- **STDIO серверы** — доступны только если `platform.process !== null`. Если `platform.process === null`, STDIO серверы из конфига игнорируются с предупреждением в UI
-
-### 3.5 Как хост передаёт тулы
-
-```tsx
-<AIChatProvider
-  // Host tools — grouped by source name, each group shows as a section in the tools UI
-  hostTools={[
-    {
-      id: "desktop_editor",
-      name: "Desktop Editor",
-      tools: [
-        {
-          name: "insert_text",
-          description: "Insert text at cursor position in the document",
-          inputSchema: {
-            type: "object",
-            properties: {
-              text: { type: "string", description: "Text to insert" },
-            },
-            required: ["text"],
-          },
-          handler: async (args) => {
-            editor.insertText(args.text);
-            return { success: true };
-          },
-        },
-        {
-          name: "get_selection",
-          description: "Get the currently selected text",
-          inputSchema: { type: "object", properties: {} },
-          handler: async () => ({ text: editor.getSelection() }),
-        },
-      ],
-    },
-    {
-      id: "crm",
-      name: "CRM Tools",
-      tools: [
-        {
-          name: "find_contact",
-          description: "Search for a contact by name or email",
-          inputSchema: { type: "object", properties: { query: { type: "string" } } },
-          handler: async (args) => crm.search(args.query),
-        },
-      ],
-    },
-  ]}
-
-  // Web search — available if configured
-  webSearch={{ provider: "exa", key: "exa-key-..." }}
-
-  // MCP servers — HTTP always work, STDIO only if platform.process is provided
-  mcpServers={{
-    "my-http-server": { url: "http://localhost:3001/mcp" },
-    "my-stdio-server": { command: "node", args: ["./server.js"] },
-  }}
-/>
-```
-
-### 3.6 Файловая структура
-
-См. `npm_lib/tools/` в общей структуре выше.
-
-**Удаляется:** `src/servers/DesktopEditor.ts` — заменён на `hostTools` prop.
-
-### 3.7 Изменения в существующих файлах
-
-| Файл | Что меняется |
+| Файл/модуль | Причина |
 |---|---|
-| `src/servers/DesktopEditor.ts` | **Удалить**. Функционал заменён `hostTools` prop |
-| `src/servers/index.ts` | Рефакторинг: Servers class → использует ToolRegistry |
-| `src/servers/CustomServers.ts` | Проверка `platform.process !== null` перед запуском STDIO серверов |
-| `src/store/useServersStore.ts` | `getTools()` → `toolRegistry.getAllTools()`, `callTools()` → `toolRegistry.callTool()` |
-| `src/hooks/useMessages.ts` | `handleToolCall()` без изменений — уже использует store |
-| `src/hooks/useServers.ts` | Инициализация: регистрирует ToolSources в registry |
-| `src/components/servers/` | UI: `getToolsBySource()` вместо `servers` state |
-| `src/pages/chat/sub-components/ComposerActionServers.tsx` | Отображение hostTools в списке |
-
-### 3.8 Tool approval flow
-
-Текущая логика (`checkAllowAlways` / `setAllowAlways` / `ManageToolDialog`) сохраняется:
-- **Host tools** с `requireApproval: false` (дефолт) → auto-allow
-- **Host tools** с `requireApproval: true` → показ ManageToolDialog
-- **MCP tools** → как сейчас (approval через UI)
-- **Web search** → как сейчас (auto-allow)
+| `src/storage/indexeddb/` | Конкретная реализация StorageAdapter — host-specific |
+| `src/settings/localStorage.ts` | Конкретная реализация SettingsAdapter — host-specific |
+| `src/lib/constants.ts` | Ключи localStorage — деталь реализации конкретного чата |
+| `src/lib/migrateProvidersToProfiles.ts` | Работает напрямую с localStorage, host-specific миграция |
+| `isDocument`, `isPdf`, etc. | Типы файлов ONLYOFFICE — host-specific |
+| `useAttachmentsStore` | Чистый UI state (лимит 5 файлов/картинок), нет бизнес-логики |
+| `useRouter`, `useThemeStore` | Чисто UI state |
+| `cn()`, `isDesktopEditor()` | UI/platform-специфичные утилиты |
+| `src/platform/` (adapters) | Конкретные реализации PlatformAdapter — host-specific |
+| `src/hooks/useServers.ts`, `useProfiles.ts`, `useThreads.ts` | Тонкие React-хуки инициализации, ~20 строк каждый |
+| Компоненты, страницы, переводы, стили | UI-слой |
 
 ---
 
-## 4. customProviders — расширение provider registry
+## Верификация
 
-### Цель
-Позволить хосту добавлять свои AI-провайдеры, наследуя от `AbstractBaseProvider`. Встроенные 11 провайдеров остаются.
-
-### 4.1 Экспорт базового класса
-
-В `src/lib-entry.ts` экспортировать:
-
-```ts
-export { AbstractBaseProvider } from "./providers/base";
-export type { BaseProvider } from "./providers/registry";
-export type { StreamResult, SendMessageReturnType } from "./providers/base";
-```
-
-### 4.2 Расширение registry
-
-Изменить `src/providers/registry.ts`:
-
-```ts
-const builtinProviders: Record<ProviderType, BaseProvider> = { ... };
-const customProviders: Map<string, BaseProvider> = new Map();
-
-export function registerProvider(type: string, provider: BaseProvider): void {
-  customProviders.set(type, provider);
-}
-
-export function unregisterProvider(type: string): void {
-  customProviders.delete(type);
-}
-
-export function getProvider(type: string): BaseProvider | undefined {
-  return builtinProviders[type as ProviderType] ?? customProviders.get(type);
-}
-
-export function getSupportedProviderTypes(): string[] {
-  return [...Object.keys(builtinProviders), ...customProviders.keys()];
-}
-```
-
-### 4.3 Расширение типа ProviderType
-
-Сейчас `ProviderType` — union literal. Для кастомных провайдеров нужно допустить `string`:
-
-```ts
-type BuiltinProviderType =
-  | "anthropic" | "ollama" | "openai" | "openaicompatible"
-  | "together" | "openrouter" | "genai" | "deepseek" | "xai"
-  | "lm-studio" | "mistral";
-
-type ProviderType = BuiltinProviderType | (string & {});
-```
-
-### 4.4 Хост регистрирует провайдер
-
-```tsx
-class MyCorpProvider extends AbstractBaseProvider<MyTool, MyMsg, MyClient> {
-  getName() { return "CorpLLM"; }
-  getBaseUrl() { return "https://llm.corp.com"; }
-  // ... реализация абстрактных методов
-}
-
-<AIChatProvider
-  customProviders={[
-    { type: "corp-llm", instance: new MyCorpProvider() }
-  ]}
-  profiles={[
-    { id: "1", name: "Corp Model", providerType: "corp-llm", baseUrl: "...", modelId: "v3" }
-  ]}
-/>
-```
-
-### 4.5 Provider logo для кастомных провайдеров
-
-Сейчас `src/components/provider-logo/index.tsx` хардкодит логотипы по `ProviderType`.
-
-Добавить:
-- Fallback-иконка для неизвестных типов (первая буква имени)
-- Опциональный `icon` field в регистрации кастомного провайдера:
-
-```ts
-customProviders={[
-  { type: "corp-llm", instance: new MyCorpProvider(), icon: <CorpLogo /> }
-]}
-```
-
-### 4.6 Файлы
-
-| Файл | Изменение |
-|---|---|
-| `npm_lib/providers/base.ts` | Перенос из `src/providers/base.ts` без изменений |
-| `npm_lib/providers/registry.ts` | Перенос из `src/providers/registry.ts` + добавить `registerProvider()`, `unregisterProvider()` |
-| `src/lib/types.ts` | `ProviderType` → `BuiltinProviderType | (string & {})` |
-| `src/components/provider-logo/index.tsx` | Fallback-иконка + `customIcons` через контекст |
-| `src/store/useProfilesStore.ts` | `addProfile()` — валидация кастомных типов через registry |
-
----
-
-## Порядок реализации
-
-```
-Этап 1: Tools API + ToolRegistry (пункт 3)
-  ├── Создать npm_lib/tools/ (registry + sources)
-  ├── Перенести src/servers/WebSearch.ts → npm_lib/tools/sources/web-search.ts
-  ├── Перенести src/servers/CustomServers.ts → npm_lib/tools/sources/mcp.ts
-  ├── Создать npm_lib/tools/sources/host.ts (HostToolSource)
-  ├── Удалить src/servers/DesktopEditor.ts
-  └── Переключить src/store/useServersStore.ts на ToolRegistry
-
-Этап 2: customProviders (пункт 4)
-  ├── Перенести src/providers/ → npm_lib/providers/
-  ├── Расширить registry (register/unregister)
-  ├── Расширить ProviderType
-  └── Fallback-иконка для кастомных провайдеров
-```
+После каждой фазы:
+1. `npm run check` — Biome lint/format
+2. `npm run test` — Vitest unit tests
+3. `npm run build` — TypeScript + Vite build
+4. Ручная проверка: открыть плагин, создать профиль, отправить сообщение, проверить tool call, переключить тред, скачать тред
+5. Для npm_lib: убедиться что все новые модули экспортированы из `npm_lib/index.ts` и покрыты тестами

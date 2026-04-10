@@ -10,10 +10,12 @@ import { useEffect, useMemo, useState } from "react";
 import { isDesktopEditor } from "@/lib/utils";
 import { NoopPlatform } from "@/platform/noop";
 import { OnlyOfficePlatform } from "@/platform/onlyoffice";
+import { LocalStorageSettings } from "@/settings/localStorage";
 import { IndexedDBStorage } from "@/storage/indexeddb";
 import { PlatformProvider, usePlatform } from "../npm_lib/platform/context";
 import Provider from "../npm_lib/providers";
 import { setProviderInstance } from "../npm_lib/providers/provider-holder";
+import { SettingsProvider } from "../npm_lib/settings/context";
 import { StorageProvider } from "../npm_lib/storage/context";
 import { ToolsProvider } from "../npm_lib/tools/context";
 import type { HostToolGroup } from "../npm_lib/tools/types";
@@ -37,6 +39,7 @@ import "./i18n";
 
 const App = () => {
   const storage = useMemo(() => new IndexedDBStorage(), []);
+  const settings = useMemo(() => new LocalStorageSettings(), []);
   const platform = useMemo(
     () => (isDesktopEditor() ? new OnlyOfficePlatform() : new NoopPlatform()),
     []
@@ -50,9 +53,11 @@ const App = () => {
   }, []);
 
   return (
-    <PlatformProvider platform={platform}>
-      <AppWithTools storage={storage} />
-    </PlatformProvider>
+    <SettingsProvider settings={settings}>
+      <PlatformProvider platform={platform}>
+        <AppWithTools storage={storage} />
+      </PlatformProvider>
+    </SettingsProvider>
   );
 };
 

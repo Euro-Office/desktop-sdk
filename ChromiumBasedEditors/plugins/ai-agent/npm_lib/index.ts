@@ -42,6 +42,22 @@ export type { HostTool, HostToolGroup, ToolSource } from "./tools/types";
 
 export { ToolsProvider, useToolsContext } from "./tools/context";
 
+// --- Settings ---
+export type { SettingsAdapter } from "./settings/types";
+
+export { SettingsProvider, useSettings } from "./settings/context";
+export {
+  getSettingsInstance,
+  setSettingsInstance,
+} from "./settings/settings-holder";
+
+// --- Utils ---
+export {
+  convertMessagesToMd,
+  getMessageTitleFromMd,
+  removeSpecialCharacter,
+} from "./utils";
+
 // --- Providers ---
 export { AbstractBaseProvider } from "./providers/base";
 export type { BaseProvider } from "./providers/registry";
