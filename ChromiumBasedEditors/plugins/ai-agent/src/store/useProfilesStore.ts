@@ -12,13 +12,10 @@ import {
 } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 import type { TErrorData } from "../../npm_lib/providers/base";
-import { getProviderInstance } from "../../npm_lib/providers/provider-holder";
-import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
+import { ProfilesService } from "../../npm_lib/services/profiles";
+import { getSettingsInstance } from "../../npm_lib/settings/settings-holder";
 
-const NAME_EXISTS_ERROR = {
-  field: "name" as const,
-  message: "Duplicate name",
-};
+const service = new ProfilesService();
 
 const TASK_PROFILE_KEYS = [
   CHAT_PROFILE_KEY,
@@ -30,38 +27,15 @@ const TASK_PROFILE_KEYS = [
   VISION_PROFILE_KEY,
 ] as const;
 
-function loadProfileById(profiles: Profile[], key: string): Profile | null {
-  const id = localStorage.getItem(key);
-  if (!id) return null;
-  const found = profiles.find((p) => p.id === id);
-  if (!found) {
-    localStorage.removeItem(key);
-    return null;
-  }
-  return found;
-}
-
-function applyCurrentChatProvider(
-  sessionChatProfile: Profile | null,
-  chatProfile: Profile | null,
-  defaultProfile: Profile | null
-) {
-  const active = sessionChatProfile ?? chatProfile ?? defaultProfile;
-  if (active) {
-    getProviderInstance().setCurrentProvider({
-      type: active.providerType,
-      name: active.name,
-      baseUrl: active.baseUrl,
-      key: active.key,
-    });
-    getProviderInstance().setCurrentProviderModel(
-      active.modelId,
-      active.reasoning
-    );
-  } else {
-    getProviderInstance().setCurrentProvider(undefined);
-  }
-}
+const TASK_FIELD_MAP = {
+  [CHAT_PROFILE_KEY]: "chatProfile",
+  [SUMMARIZATION_PROFILE_KEY]: "summarizationProfile",
+  [TRANSLATION_PROFILE_KEY]: "translationProfile",
+  [TEXT_ANALYSIS_PROFILE_KEY]: "textAnalysisProfile",
+  [IMAGE_GENERATION_PROFILE_KEY]: "imageGenerationProfile",
+  [OCR_PROFILE_KEY]: "ocrProfile",
+  [VISION_PROFILE_KEY]: "visionProfile",
+} as const;
 
 interface ProfilesState {
   profiles: Profile[];
@@ -108,201 +82,140 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
   sessionChatProfile: null,
 
   init: async () => {
-    const storage = getStorageInstance();
-    const profiles = (await storage.profiles.getAll()).reverse();
-    set({ profiles });
-
-    const defaultProfile =
-      loadProfileById(profiles, DEFAULT_PROFILE_KEY) ?? profiles[0] ?? null;
-
-    if (defaultProfile) {
-      localStorage.setItem(DEFAULT_PROFILE_KEY, defaultProfile.id);
-    }
-
-    const chatProfile = loadProfileById(profiles, CHAT_PROFILE_KEY);
-    const summarizationProfile = loadProfileById(
-      profiles,
-      SUMMARIZATION_PROFILE_KEY
-    );
-    const translationProfile = loadProfileById(
-      profiles,
-      TRANSLATION_PROFILE_KEY
-    );
-    const textAnalysisProfile = loadProfileById(
-      profiles,
-      TEXT_ANALYSIS_PROFILE_KEY
-    );
-    const imageGenerationProfile = loadProfileById(
-      profiles,
-      IMAGE_GENERATION_PROFILE_KEY
-    );
-    const ocrProfile = loadProfileById(profiles, OCR_PROFILE_KEY);
-    const visionProfile = loadProfileById(profiles, VISION_PROFILE_KEY);
-
-    set({
-      defaultProfile,
-      chatProfile,
-      summarizationProfile,
-      translationProfile,
-      textAnalysisProfile,
-      imageGenerationProfile,
-      ocrProfile,
-      visionProfile,
+    const { profiles, defaultProfile, taskProfiles } = await service.init({
+      defaultKey: DEFAULT_PROFILE_KEY,
+      taskKeys: [...TASK_PROFILE_KEYS],
     });
 
-    applyCurrentChatProvider(null, chatProfile, defaultProfile);
+    const state: Record<string, unknown> = { profiles, defaultProfile };
+    for (const key of TASK_PROFILE_KEYS) {
+      state[TASK_FIELD_MAP[key]] = taskProfiles[key] ?? null;
+    }
+    set(state as Partial<ProfilesState>);
+
+    service.applyCurrentChatProvider(
+      null,
+      taskProfiles[CHAT_PROFILE_KEY] ?? null,
+      defaultProfile
+    );
   },
 
   addProfile: async (data) => {
-    const nameExists = get().profiles.some(
-      (p) => p.name.toLowerCase() === data.name.toLowerCase()
-    );
+    const result = await service.addProfile(data, get().profiles);
 
-    if (nameExists) return NAME_EXISTS_ERROR;
-
-    const checkResult = await getProviderInstance().checkNewProvider(
-      data.providerType,
-      {
-        url: data.baseUrl,
-        apiKey: data.key,
-      }
-    );
-
-    if (typeof checkResult === "boolean" && checkResult) {
+    if (result.success) {
       const isFirst = get().profiles.length === 0;
-      const storage = getStorageInstance();
-      const newProfile: Profile = { ...data, id: crypto.randomUUID() };
-      await storage.profiles.create(newProfile);
-      set((state) => ({ profiles: [newProfile, ...state.profiles] }));
-      if (isFirst) get().setDefaultProfile(newProfile);
+      set((state) => ({
+        profiles: [result.profile, ...state.profiles],
+      }));
+      if (isFirst) get().setDefaultProfile(result.profile);
       return true;
-    } else {
-      return checkResult;
     }
+    return result.error;
   },
 
   editProfile: async (profile) => {
-    const nameExists = get().profiles.some(
-      (p) =>
-        p.name.toLowerCase() === profile.name.toLowerCase() &&
-        p.id !== profile.id
-    );
+    const result = await service.editProfile(profile, get().profiles);
 
-    if (nameExists) return NAME_EXISTS_ERROR;
+    if (!result.success) return result.error;
 
-    const checkResult = await getProviderInstance().checkNewProvider(
-      profile.providerType,
-      {
-        url: profile.baseUrl,
-        apiKey: profile.key,
-      }
-    );
+    set((state) => {
+      const profiles = state.profiles.map((p) =>
+        p.id === profile.id ? profile : p
+      );
 
-    if (typeof checkResult === "boolean" && checkResult) {
-      const storage = getStorageInstance();
-      await storage.profiles.update(profile);
-      set((state) => {
-        const profiles = state.profiles.map((p) =>
-          p.id === profile.id ? profile : p
-        );
+      const updateIfMatch = (p: Profile | null) =>
+        p?.id === profile.id ? profile : p;
 
-        const updateIfMatch = (p: Profile | null) =>
-          p?.id === profile.id ? profile : p;
+      const defaultProfile = updateIfMatch(state.defaultProfile);
+      const chatProfile = updateIfMatch(state.chatProfile);
+      const summarizationProfile = updateIfMatch(state.summarizationProfile);
+      const translationProfile = updateIfMatch(state.translationProfile);
+      const textAnalysisProfile = updateIfMatch(state.textAnalysisProfile);
+      const imageGenerationProfile = updateIfMatch(
+        state.imageGenerationProfile
+      );
+      const ocrProfile = updateIfMatch(state.ocrProfile);
+      const visionProfile = updateIfMatch(state.visionProfile);
+      const sessionChatProfile = updateIfMatch(state.sessionChatProfile);
 
-        const defaultProfile = updateIfMatch(state.defaultProfile);
-        const chatProfile = updateIfMatch(state.chatProfile);
-        const summarizationProfile = updateIfMatch(state.summarizationProfile);
-        const translationProfile = updateIfMatch(state.translationProfile);
-        const textAnalysisProfile = updateIfMatch(state.textAnalysisProfile);
-        const imageGenerationProfile = updateIfMatch(
-          state.imageGenerationProfile
-        );
-        const ocrProfile = updateIfMatch(state.ocrProfile);
-        const visionProfile = updateIfMatch(state.visionProfile);
-        const sessionChatProfile = updateIfMatch(state.sessionChatProfile);
+      service.applyCurrentChatProvider(
+        sessionChatProfile,
+        chatProfile,
+        defaultProfile
+      );
 
-        applyCurrentChatProvider(
-          sessionChatProfile,
-          chatProfile,
-          defaultProfile
-        );
-
-        return {
-          profiles,
-          defaultProfile,
-          chatProfile,
-          summarizationProfile,
-          translationProfile,
-          textAnalysisProfile,
-          imageGenerationProfile,
-          ocrProfile,
-          visionProfile,
-          sessionChatProfile,
-        };
-      });
-      return true;
-    } else {
-      return checkResult;
-    }
+      return {
+        profiles,
+        defaultProfile,
+        chatProfile,
+        summarizationProfile,
+        translationProfile,
+        textAnalysisProfile,
+        imageGenerationProfile,
+        ocrProfile,
+        visionProfile,
+        sessionChatProfile,
+      };
+    });
+    return true;
   },
 
   deleteProfile: async (id) => {
-    const storage = getStorageInstance();
-    await storage.profiles.delete(id);
+    await service.deleteProfile(id);
     set((state) => {
       const profiles = state.profiles.filter((p) => p.id !== id);
 
-      const clearIfMatch = (
-        p: Profile | null,
-        key: (typeof TASK_PROFILE_KEYS)[number]
-      ): Profile | null => {
-        if (p?.id === id) {
-          localStorage.removeItem(key);
-          return null;
-        }
-        return p;
-      };
-
-      const chatProfile = clearIfMatch(state.chatProfile, CHAT_PROFILE_KEY);
-      const summarizationProfile = clearIfMatch(
+      const chatProfile = service.clearTaskProfileIfMatch(
+        state.chatProfile,
+        id,
+        CHAT_PROFILE_KEY
+      );
+      const summarizationProfile = service.clearTaskProfileIfMatch(
         state.summarizationProfile,
+        id,
         SUMMARIZATION_PROFILE_KEY
       );
-      const translationProfile = clearIfMatch(
+      const translationProfile = service.clearTaskProfileIfMatch(
         state.translationProfile,
+        id,
         TRANSLATION_PROFILE_KEY
       );
-      const textAnalysisProfile = clearIfMatch(
+      const textAnalysisProfile = service.clearTaskProfileIfMatch(
         state.textAnalysisProfile,
+        id,
         TEXT_ANALYSIS_PROFILE_KEY
       );
-      const imageGenerationProfile = clearIfMatch(
+      const imageGenerationProfile = service.clearTaskProfileIfMatch(
         state.imageGenerationProfile,
+        id,
         IMAGE_GENERATION_PROFILE_KEY
       );
-      const ocrProfile = clearIfMatch(state.ocrProfile, OCR_PROFILE_KEY);
-      const visionProfile = clearIfMatch(
+      const ocrProfile = service.clearTaskProfileIfMatch(
+        state.ocrProfile,
+        id,
+        OCR_PROFILE_KEY
+      );
+      const visionProfile = service.clearTaskProfileIfMatch(
         state.visionProfile,
+        id,
         VISION_PROFILE_KEY
       );
       const sessionChatProfile =
         state.sessionChatProfile?.id === id ? null : state.sessionChatProfile;
 
-      let defaultProfile = state.defaultProfile;
+      const defaultProfile = service.reassignDefault(
+        profiles,
+        id,
+        state.defaultProfile,
+        DEFAULT_PROFILE_KEY
+      );
 
-      // set next default profile if current deleted
-      if (state.defaultProfile?.id === id) {
-        const nextDefault = profiles[0] ?? null;
-
-        if (nextDefault) {
-          localStorage.setItem(DEFAULT_PROFILE_KEY, nextDefault.id);
-        } else {
-          localStorage.removeItem(DEFAULT_PROFILE_KEY);
-        }
-        defaultProfile = nextDefault;
-      }
-
-      applyCurrentChatProvider(sessionChatProfile, chatProfile, defaultProfile);
+      service.applyCurrentChatProvider(
+        sessionChatProfile,
+        chatProfile,
+        defaultProfile
+      );
 
       return {
         profiles,
@@ -326,9 +239,9 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
     ) ?? null,
 
   setDefaultProfile: (profile) => {
-    localStorage.setItem(DEFAULT_PROFILE_KEY, profile.id);
+    service.setTaskProfile(DEFAULT_PROFILE_KEY, profile);
     set((state) => {
-      applyCurrentChatProvider(
+      service.applyCurrentChatProvider(
         state.sessionChatProfile,
         state.chatProfile,
         profile
@@ -338,13 +251,9 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
   },
 
   setChatProfile: (profile) => {
-    if (profile) {
-      localStorage.setItem(CHAT_PROFILE_KEY, profile.id);
-    } else {
-      localStorage.removeItem(CHAT_PROFILE_KEY);
-    }
+    service.setTaskProfile(CHAT_PROFILE_KEY, profile);
     set((state) => {
-      applyCurrentChatProvider(
+      service.applyCurrentChatProvider(
         state.sessionChatProfile,
         profile,
         state.defaultProfile
@@ -354,62 +263,38 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
   },
 
   setSummarizationProfile: (profile) => {
-    if (profile) {
-      localStorage.setItem(SUMMARIZATION_PROFILE_KEY, profile.id);
-    } else {
-      localStorage.removeItem(SUMMARIZATION_PROFILE_KEY);
-    }
+    service.setTaskProfile(SUMMARIZATION_PROFILE_KEY, profile);
     set({ summarizationProfile: profile });
   },
 
   setTranslationProfile: (profile) => {
-    if (profile) {
-      localStorage.setItem(TRANSLATION_PROFILE_KEY, profile.id);
-    } else {
-      localStorage.removeItem(TRANSLATION_PROFILE_KEY);
-    }
+    service.setTaskProfile(TRANSLATION_PROFILE_KEY, profile);
     set({ translationProfile: profile });
   },
 
   setTextAnalysisProfile: (profile) => {
-    if (profile) {
-      localStorage.setItem(TEXT_ANALYSIS_PROFILE_KEY, profile.id);
-    } else {
-      localStorage.removeItem(TEXT_ANALYSIS_PROFILE_KEY);
-    }
+    service.setTaskProfile(TEXT_ANALYSIS_PROFILE_KEY, profile);
     set({ textAnalysisProfile: profile });
   },
 
   setImageGenerationProfile: (profile) => {
-    if (profile) {
-      localStorage.setItem(IMAGE_GENERATION_PROFILE_KEY, profile.id);
-    } else {
-      localStorage.removeItem(IMAGE_GENERATION_PROFILE_KEY);
-    }
+    service.setTaskProfile(IMAGE_GENERATION_PROFILE_KEY, profile);
     set({ imageGenerationProfile: profile });
   },
 
   setOcrProfile: (profile) => {
-    if (profile) {
-      localStorage.setItem(OCR_PROFILE_KEY, profile.id);
-    } else {
-      localStorage.removeItem(OCR_PROFILE_KEY);
-    }
+    service.setTaskProfile(OCR_PROFILE_KEY, profile);
     set({ ocrProfile: profile });
   },
 
   setVisionProfile: (profile) => {
-    if (profile) {
-      localStorage.setItem(VISION_PROFILE_KEY, profile.id);
-    } else {
-      localStorage.removeItem(VISION_PROFILE_KEY);
-    }
+    service.setTaskProfile(VISION_PROFILE_KEY, profile);
     set({ visionProfile: profile });
   },
 
   setSessionChatProfile: (profile) => {
     set((state) => {
-      applyCurrentChatProvider(
+      service.applyCurrentChatProvider(
         profile,
         state.chatProfile,
         state.defaultProfile
@@ -419,15 +304,19 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
   },
 
   extendedThinking: (() => {
-    const saved = localStorage.getItem(DEEP_MODE_KEY);
-    if (!saved) return false;
-    return JSON.parse(saved);
+    try {
+      const saved = getSettingsInstance().get(DEEP_MODE_KEY);
+      if (!saved) return false;
+      return JSON.parse(saved);
+    } catch {
+      return false;
+    }
   })(),
 
   toggleExtendedThinking: () => {
     set((state) => {
       const next = !state.extendedThinking;
-      localStorage.setItem(DEEP_MODE_KEY, JSON.stringify(next));
+      getSettingsInstance().set(DEEP_MODE_KEY, JSON.stringify(next));
       return { extendedThinking: next };
     });
   },

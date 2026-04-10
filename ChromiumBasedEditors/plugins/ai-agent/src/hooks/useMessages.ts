@@ -1,9 +1,4 @@
-import type {
-  AppendMessage,
-  FileMessagePart,
-  ImageMessagePart,
-  ThreadMessageLike,
-} from "@assistant-ui/react";
+import type { AppendMessage, ThreadMessageLike } from "@assistant-ui/react";
 import { useEffect, useRef } from "react";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
 import useMessageStore from "@/store/useMessageStore";
@@ -12,14 +7,17 @@ import useProfilesStore, {
 } from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
 import useThreadsStore from "@/store/useThreadsStore";
-import type { SendMessageReturnType } from "../../npm_lib/providers";
-import { getProviderInstance } from "../../npm_lib/providers/provider-holder";
-import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
-import { getServersInstance } from "../../npm_lib/tools/tools-holder";
+import {
+  ChatEngine,
+  type ChatEvent,
+  type ToolCallData,
+} from "../../npm_lib/services/chat-engine";
 
 type UseMessagesProps = {
   isReady: boolean;
 };
+
+const chatEngine = new ChatEngine();
 
 const useMessages = ({ isReady }: UseMessagesProps) => {
   const {
@@ -27,19 +25,12 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     setIsStreamRunning,
     setIsRequestRunning,
     addMessage,
-
     updateLastMessage,
     fetchPrevMessages,
   } = useMessageStore();
   const { threadId, insertThread, insertNewMessageToThread } =
     useThreadsStore();
-  const {
-    manageToolData,
-    callTools,
-    checkAllowAlways,
-    setAllowAlways,
-    setManageToolData,
-  } = useServersStore();
+  const { manageToolData, setManageToolData } = useServersStore();
   const {
     attachmentFiles,
     clearAttachmentFiles,
@@ -60,6 +51,101 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     clearAttachmentFiles();
   }, [threadId, isReady, fetchPrevMessages, clearAttachmentFiles]);
 
+  const processEvents = async (events: AsyncGenerator<ChatEvent>) => {
+    setIsStreamRunning(true);
+
+    for await (const event of events) {
+      switch (event.type) {
+        case "message-start":
+          setIsRequestRunning(true);
+          addMessage(event.message);
+          break;
+
+        case "message-delta":
+          if (threadIdRef.current === threadId) {
+            updateLastMessage(event.message);
+          }
+          break;
+
+        case "message-end":
+          setIsStreamRunning(false);
+          setIsRequestRunning(false);
+          return;
+
+        case "message-incomplete":
+          addMessage(event.message);
+          setIsStreamRunning(false);
+          setIsRequestRunning(false);
+          return;
+
+        case "tool-call-pending": {
+          // Try auto-allow first via ChatEngine.handleToolCall
+          const innerEvents = chatEngine.handleToolCall(
+            event.message,
+            event.idx,
+            event.messageUID,
+            extendedThinking
+          );
+          let handled = false;
+          for await (const innerEvent of innerEvents) {
+            if (innerEvent.type === "tool-call-pending") {
+              // Not auto-allowed — show UI prompt
+              setManageToolData({
+                message: innerEvent.message,
+                idx: innerEvent.idx,
+                messageUID: innerEvent.messageUID,
+              });
+              handled = true;
+            } else {
+              await processEvent(innerEvent);
+            }
+          }
+          if (handled) return;
+          break;
+        }
+
+        case "thread-title":
+          insertThread(event.title, { profileId: event.profileId });
+          break;
+      }
+    }
+
+    setIsStreamRunning(false);
+    setIsRequestRunning(false);
+  };
+
+  const processEvent = async (event: ChatEvent) => {
+    switch (event.type) {
+      case "message-delta":
+        if (threadIdRef.current === threadId) {
+          updateLastMessage(event.message);
+        }
+        break;
+      case "message-start":
+        addMessage(event.message);
+        break;
+      case "message-end":
+        setIsStreamRunning(false);
+        setIsRequestRunning(false);
+        break;
+      case "message-incomplete":
+        addMessage(event.message);
+        setIsStreamRunning(false);
+        setIsRequestRunning(false);
+        break;
+      case "tool-call-pending":
+        setManageToolData({
+          message: event.message,
+          idx: event.idx,
+          messageUID: event.messageUID,
+        });
+        break;
+      case "thread-title":
+        insertThread(event.title, { profileId: event.profileId });
+        break;
+    }
+  };
+
   const convertMessage = (message: ThreadMessageLike) => {
     return message;
   };
@@ -67,276 +153,89 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
   const approveToolCall = (allowAlways: boolean) => {
     if (!manageToolData) return;
 
-    const toolCall = manageToolData?.message?.content[manageToolData.idx];
-
-    if (
-      !toolCall ||
-      typeof toolCall !== "object" ||
-      !("type" in toolCall) ||
-      toolCall.type !== "tool-call"
-    )
-      return;
-
-    const toolName = toolCall.toolName;
-
-    const type = getServersInstance().getServerType(toolName);
-    const name = toolName.replace(`${type}_`, "");
-
-    if (allowAlways) {
-      setAllowAlways(true, type, name);
-    }
-
-    handleToolCall(
-      manageToolData.message,
-      manageToolData.idx,
-      manageToolData.messageUID,
-      true,
-      false
-    );
+    const data: ToolCallData = {
+      message: manageToolData.message,
+      idx: manageToolData.idx,
+      messageUID: manageToolData.messageUID,
+    };
 
     setManageToolData(undefined);
+
+    const events = chatEngine.approveToolCall(
+      data,
+      allowAlways,
+      extendedThinking
+    );
+    processEvents(events);
   };
 
   const denyToolCall = () => {
     if (!manageToolData) return;
 
-    handleToolCall(
-      manageToolData.message,
-      manageToolData.idx,
-      manageToolData.messageUID,
-      false,
-      true
-    );
+    const data: ToolCallData = {
+      message: manageToolData.message,
+      idx: manageToolData.idx,
+      messageUID: manageToolData.messageUID,
+    };
 
     setManageToolData(undefined);
-  };
 
-  const handleToolCall = async (
-    msg: ThreadMessageLike,
-    idx: number,
-    messageUID: string,
-    accept?: boolean,
-    deny?: boolean
-  ) => {
-    const toolCall = msg.content[idx];
-
-    if (
-      !toolCall ||
-      typeof toolCall !== "object" ||
-      !("type" in toolCall) ||
-      toolCall.type !== "tool-call"
-    )
-      return;
-
-    const toolName = toolCall.toolName;
-
-    const type = getServersInstance().getServerType(toolName);
-    const name = toolName.replace(`${type}_`, "");
-
-    if (checkAllowAlways(type, name) || accept || deny) {
-      const result = deny
-        ? "User deny tool call"
-        : await callTools(
-            toolCall.toolName,
-            toolCall.args as Record<string, unknown>
-          );
-
-      // Create a new content array with the updated tool call
-      const updatedContent = Array.isArray(msg.content)
-        ? msg.content.map((item, index) =>
-            index === idx ? { ...toolCall, result } : item
-          )
-        : msg.content;
-
-      // Create a new message object with updated content
-      const updatedMessage = { ...msg, content: updatedContent };
-
-      updateLastMessage(updatedMessage);
-      getStorageInstance().messages.update(messageUID, updatedMessage);
-
-      const streamAfterToolCall =
-        getProviderInstance().sendMessageAfterToolCall(
-          updatedMessage,
-          extendedThinking
-        );
-
-      if (streamAfterToolCall) {
-        handleStream(streamAfterToolCall, true, messageUID);
-      }
-    } else {
-      setManageToolData({
-        message: msg,
-        idx,
-        messageUID,
-      });
-    }
-  };
-
-  const handleStream = async (
-    stream: SendMessageReturnType,
-    afterToolCall?: boolean,
-    messageUIDProp?: string
-  ) => {
-    setIsStreamRunning(true);
-    let initedMessage = !!afterToolCall;
-    const messageUID =
-      afterToolCall && messageUIDProp ? messageUIDProp : crypto.randomUUID();
-
-    if (messages)
-      for await (const message of stream) {
-        if ("isEnd" in message) {
-          if (threadIdRef.current !== threadId) {
-            setIsStreamRunning(false);
-            setIsRequestRunning(false);
-
-            return;
-          }
-          if (message.responseMessage.status?.type === "incomplete") {
-            addMessage(message.responseMessage);
-
-            setIsStreamRunning(false);
-            setIsRequestRunning(false);
-
-            return;
-          }
-          const lastMessage = message.responseMessage;
-
-          if (
-            lastMessage?.role === "assistant" &&
-            Array.isArray(lastMessage.content)
-          ) {
-            const toolCallIdx = lastMessage.content.findIndex(
-              (c) => c.type === "tool-call" && !c.result
-            );
-
-            if (toolCallIdx !== -1) {
-              handleToolCall(lastMessage, toolCallIdx, messageUID);
-
-              return;
-            }
-          }
-
-          setIsStreamRunning(false);
-          setIsRequestRunning(false);
-
-          return;
-        }
-
-        if (!initedMessage) {
-          if (!afterToolCall) setIsRequestRunning(true);
-          addMessage(message);
-          getStorageInstance().messages.create(threadId, messageUID, message);
-          initedMessage = true;
-        } else {
-          getStorageInstance().messages.update(messageUID, message);
-
-          if (threadIdRef.current === threadId) {
-            updateLastMessage(message);
-          }
-        }
-      }
+    const events = chatEngine.denyToolCall(data, extendedThinking);
+    processEvents(events);
   };
 
   const onNew = async (message: AppendMessage) => {
     if (!currentProfile) return;
     if (message.content[0].type !== "text") return;
 
-    let fileContent: FileMessagePart[] = [];
+    const files = attachmentFiles.length > 0 ? [...attachmentFiles] : undefined;
+    const images =
+      attachmentImages.length > 0 ? [...attachmentImages] : undefined;
 
-    let imageContent: ImageMessagePart[] = [];
+    if (files) clearAttachmentFiles();
+    if (images) clearAttachmentImages();
 
-    if (attachmentFiles.length > 0) {
-      fileContent = attachmentFiles.map((file) => ({
-        type: "file",
-        mimeType: JSON.stringify({ path: file.path, type: file.type }),
-        data: file.content,
-      }));
-
-      clearAttachmentFiles();
-    }
-
-    if (attachmentImages.length > 0) {
-      imageContent = attachmentImages.map((image) => ({
-        type: "image",
-        image: image.base64,
-        name: image.name,
-      }));
-
-      clearAttachmentImages();
-    }
-
-    const content: ThreadMessageLike["content"] = [
-      ...fileContent,
-      ...imageContent,
-      { type: "text", text: message.content[0].text },
-    ];
-
-    const userMessage: ThreadMessageLike = {
+    addMessage({
       role: "user",
-      content,
-      attachments: message.attachments,
-    };
+      content: [
+        ...(files?.map((f) => ({
+          type: "file" as const,
+          mimeType: JSON.stringify({ path: f.path, type: f.type }),
+          data: f.content,
+        })) ?? []),
+        ...(images?.map((i) => ({
+          type: "image" as const,
+          image: i.base64,
+          name: i.name,
+        })) ?? []),
+        { type: "text" as const, text: message.content[0].text },
+      ],
+    });
 
-    const storage = getStorageInstance();
-    const existingThread = await storage.threads.getById(threadId);
-
-    if (!existingThread) {
-      let textForTitle = "";
-
-      for (const msg of messages) {
-        // Skip messages with errors
-        if (msg.status?.type === "incomplete" && msg.status?.error) continue;
-
-        textForTitle +=
-          typeof msg.content === "string"
-            ? msg.content
-            : msg.content[0].type === "text"
-              ? msg.content[0].text
-              : "";
-
-        textForTitle += "\n\n";
-      }
-
-      textForTitle += `\n\n${message.content[0].text}`;
-
-      // Save all messages from the store to the database (skip error messages)
-      for (const msg of messages) {
-        // Skip messages with errors
-        if (msg.status?.type === "incomplete" && msg.status?.error) continue;
-
-        await storage.messages.create(threadId, crypto.randomUUID(), msg);
-      }
-
-      // Save the new user message
-      await storage.messages.create(threadId, crypto.randomUUID(), userMessage);
-
-      getProviderInstance()
-        .createChatName(textForTitle)
-        .then(async (title) => {
-          if (!title) return;
-
-          insertThread(title, { profileId: currentProfile?.id });
-        });
+    if (
+      !useThreadsStore.getState().threads.find((t) => t.threadId === threadId)
+    ) {
+      // New thread — will be created when title is generated
     } else {
       insertNewMessageToThread({ profileId: currentProfile?.id });
-
-      storage.messages.create(threadId, crypto.randomUUID(), userMessage);
     }
 
-    addMessage(userMessage);
+    const events = chatEngine.sendMessage({
+      text: message.content[0].text,
+      threadId,
+      files,
+      images,
+      existingMessages: messages,
+      extendedThinking,
+      profileId: currentProfile?.id,
+    });
 
-    const stream = getProviderInstance().sendMessage(
-      [userMessage],
-      extendedThinking
-    );
-
-    if (stream) handleStream(stream);
+    processEvents(events);
   };
 
   return {
     convertMessage,
     onNew,
-    handleStream,
     approveToolCall,
     denyToolCall,
   };

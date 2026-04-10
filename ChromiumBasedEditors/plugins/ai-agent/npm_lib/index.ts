@@ -44,6 +44,40 @@ export type { HostTool, HostToolGroup, ToolSource } from "./tools/types";
 
 export { ToolsProvider, useToolsContext } from "./tools/context";
 
+// --- Settings ---
+export type { SettingsAdapter } from "./settings/types";
+
+export { SettingsProvider, useSettings } from "./settings/context";
+export {
+  getSettingsInstance,
+  setSettingsInstance,
+} from "./settings/settings-holder";
+
+// --- Utils ---
+export {
+  convertMessagesToMd,
+  getMessageTitleFromMd,
+  removeSpecialCharacter,
+} from "./utils";
+
+// --- Services ---
+export {
+  PromptsService,
+  ThreadsService,
+  ProfilesService,
+  ServersService,
+  ChatEngine,
+} from "./services";
+export type {
+  PromptUpdates,
+  TaskProfileKeys,
+  ProfilesInitResult,
+  ToolsListResult,
+  ChangeToolStatusResult,
+  ChatEvent,
+  ToolCallData,
+} from "./services";
+
 // --- Providers ---
 export { AbstractBaseProvider } from "./providers/base";
 export type { BaseProvider } from "./providers/registry";
@@ -54,4 +88,4 @@ export {
   getSupportedProviderTypes,
   isValidProviderType,
 } from "./providers/registry";
-export { provider, type SendMessageReturnType } from "./providers";
+export { default as Provider, type SendMessageReturnType } from "./providers";
