@@ -7,8 +7,6 @@ import { getApiKeyLink } from "@/lib/apiKeyLinks";
 import type { Model } from "@/lib/types";
 import { getProviderInstance } from "../../../../npm_lib/providers/provider-holder";
 
-const providersInfo = getProviderInstance().getProvidersInfo();
-
 export interface ModelFormValues {
   provider: string;
   apiKey: string;
@@ -35,6 +33,7 @@ export const ModelConfigForm = ({
   isHorizontal,
 }: ModelConfigFormProps) => {
   const { t } = useTranslation();
+  const providersInfo = getProviderInstance().getProvidersInfo();
   const isFieldsDisabled = !values.provider;
 
   const modelItems = models.map((m) => ({
