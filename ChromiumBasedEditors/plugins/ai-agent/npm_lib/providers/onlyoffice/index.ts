@@ -3,7 +3,7 @@ import type {
   ChatCompletionSystemMessageParam,
 } from "openai/resources/chat/completions";
 import type { Model, TProvider } from "@/lib/types";
-import { getErrorCode, ProviderErrors } from "@/providers/errors.ts";
+import { getErrorCode, ProviderErrors } from "../errors";
 import type { TData, TErrorData } from "../base";
 import { OpenAIProvider } from "../openai";
 import { onlyOfficeInfo } from "./info";

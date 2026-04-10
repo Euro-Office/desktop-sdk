@@ -5,6 +5,7 @@ import { type GenAIProvider, genaiProvider } from "./genai";
 import { type LMStudioProvider, lmStudioProvider } from "./lm-studio";
 import { type MistralProvider, mistralProvider } from "./mistral";
 import { type OllamaProvider, ollamaProvider } from "./ollama";
+import { type OnlyOfficeProvider, onlyOfficeProvider } from "./onlyoffice";
 import { type OpenAIProvider, openaiProvider } from "./openai";
 import {
   type OpenAICompatibleProvider,
@@ -25,7 +26,8 @@ export type BuiltinProvider =
   | DeepSeekProvider
   | XAIProvider
   | LMStudioProvider
-  | MistralProvider;
+  | MistralProvider
+  | OnlyOfficeProvider;
 
 // biome-ignore lint/suspicious/noExplicitAny: custom providers can have any generic params
 export type BaseProvider = BuiltinProvider | import("./base").AbstractBaseProvider<any, any, any>;
@@ -34,6 +36,7 @@ export type BaseProvider = BuiltinProvider | import("./base").AbstractBaseProvid
  * Built-in registry mapping provider types to their singleton instances.
  */
 const builtinProviders: Record<ProviderType, BuiltinProvider> = {
+  onlyoffice: onlyOfficeProvider,
   anthropic: anthropicProvider,
   ollama: ollamaProvider,
   openai: openaiProvider,

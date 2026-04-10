@@ -7,40 +7,126 @@ import { Link } from "@/components/link";
 import { useDirection } from "@/hooks/useDirection";
 import { getApiKeyLink } from "@/lib/apiKeyLinks";
 import { cn } from "@/lib/utils";
+import useCloudsStore from "@/store/useCloudsStore";
 import { getServersInstance } from "../../../npm_lib/tools/tools-holder";
 
 type WebSearchProps = {
   variant?: "tab" | "page";
 };
 
+type WebSearchProvider = {
+  id: string;
+  label: string;
+  baseUrl?: string;
+  key?: string;
+  isCloudProvider?: boolean;
+};
+
+const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = [
+  { id: "Exa", label: "Exa", baseUrl: "https://api.exa.ai" },
+  { id: "ONLYOFFICE", label: "ONLYOFFICE" },
+];
+
 const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
+  const { clouds } = useCloudsStore();
 
-  const [selectedProvider, setSelectedProvider] = React.useState<string>("Exa");
+  const [selectedId, setSelectedId] = React.useState<string>("Exa");
   const [apiKey, setApiKey] = React.useState<string>("");
+  const [baseUrl, setBaseUrl] = React.useState<string>("");
+  const [baseUrlError, setBaseUrlError] = React.useState<string>("");
+
+  const allProviders = React.useMemo<WebSearchProvider[]>(
+    () => [
+      ...clouds.map((cloud) => ({
+        id: cloud.url,
+        label: new URL(cloud.url).hostname,
+        baseUrl: cloud.url,
+        key: cloud.data.apiKey,
+        isCloudProvider: true,
+      })),
+      ...WEB_SEARCH_PROVIDERS,
+    ],
+    [clouds]
+  );
+
+  const provider = allProviders.find((p) => p.id === selectedId);
 
   React.useEffect(() => {
     const data = getServersInstance().getWebSearchData();
 
     if (data) {
-      setSelectedProvider(data.provider);
+      setSelectedId(data.provider);
       setApiKey(data.key);
+      setBaseUrl(data.baseUrl ?? "");
     }
   }, []);
 
-  const handleApiKeyBlur = React.useCallback(() => {
-    if (selectedProvider && apiKey) {
+  const saveData = (desc: WebSearchProvider) => {
+    const resolvedUrl = desc.baseUrl ?? baseUrl;
+
+    if (!desc.baseUrl) {
+      try {
+        new URL(baseUrl);
+      } catch {
+        getServersInstance().setWebSearchData(null);
+        return;
+      }
+    }
+
+    if (apiKey) {
       getServersInstance().setWebSearchData({
-        provider: selectedProvider,
+        provider: desc.id,
         key: apiKey,
+        baseUrl: resolvedUrl,
       });
     } else {
       getServersInstance().setWebSearchData(null);
     }
-  }, [selectedProvider, apiKey]);
+  };
+
+  const handleSelect = (selected: WebSearchProvider) => {
+    setSelectedId(selected.id);
+    setApiKey(selected.key ?? "");
+    setBaseUrl("");
+    setBaseUrlError("");
+
+    if (selected.isCloudProvider) {
+      getServersInstance().setWebSearchData({
+        provider: selected.id,
+        key: selected.key ?? "",
+        baseUrl: selected.baseUrl ?? "",
+        isCloudProvider: true,
+      });
+    } else {
+      getServersInstance().setWebSearchData(null);
+    }
+  };
+
+  const handleBaseUrlBlur = () => {
+    if (!provider) return;
+    try {
+      new URL(baseUrl);
+      setBaseUrlError("");
+    } catch {
+      setBaseUrlError(t("InvalidUrl"));
+    }
+    saveData(provider);
+  };
+
+  const handleApiKeyBlur = () => {
+    if (!provider) return;
+    saveData(provider);
+  };
 
   const isPage = variant === "page";
+
+  const comboItems = allProviders.map((p) => ({
+    text: p.label,
+    id: p.id,
+    onClick: () => handleSelect(p),
+  }));
 
   return (
     <div
@@ -61,22 +147,34 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
         <FieldContainer header={t("WebSearchEngine")} isHorizontal={isPage}>
           <ComboBox
             className="w-full"
-            value={selectedProvider || t("SelectEngine")}
-            items={[
-              {
-                text: "Exa",
-                id: "Exa",
-                onClick: () => setSelectedProvider("Exa"),
-              },
-            ]}
+            value={provider?.label ?? t("SelectEngine")}
+            items={comboItems}
           />
         </FieldContainer>
+        {!provider?.baseUrl && (
+          <FieldContainer
+            header={t("BaseURL")}
+            isHorizontal={isPage}
+            error={baseUrlError}
+          >
+            <Input
+              className="w-full"
+              placeholder={t("EnterURL")}
+              value={baseUrl}
+              onChange={(e) => {
+                setBaseUrl(e.target.value);
+                setBaseUrlError("");
+              }}
+              onBlur={handleBaseUrlBlur}
+            />
+          </FieldContainer>
+        )}
         <FieldContainer
           header={t("APIKey")}
           isHorizontal={isPage}
           action={
-            getApiKeyLink(selectedProvider) ? (
-              <Link href={getApiKeyLink(selectedProvider)} target="_blank">
+            !provider?.isCloudProvider && getApiKeyLink(selectedId) ? (
+              <Link href={getApiKeyLink(selectedId)} target="_blank">
                 {t("GetAPIKey")}
               </Link>
             ) : undefined
@@ -88,8 +186,8 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
             placeholder={t("EnterKey")}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            onBlur={handleApiKeyBlur}
-            disabled={!selectedProvider}
+            onBlur={provider?.isCloudProvider ? undefined : handleApiKeyBlur}
+            disabled={!selectedId || provider?.isCloudProvider}
           />
         </FieldContainer>
       </div>

@@ -5,8 +5,8 @@ import { Input } from "@/components/input";
 import { Link } from "@/components/link";
 import { getApiKeyLink } from "@/lib/apiKeyLinks";
 import type { Model, ProviderType } from "@/lib/types";
-import { getProviderInstance } from "../../../../npm_lib/providers/provider-holder";
 import useCloudsStore from "@/store/useCloudsStore";
+import { getProviderInstance } from "../../../../npm_lib/providers/provider-holder";
 
 export interface ModelFormValues {
   provider: string;
