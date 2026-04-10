@@ -58,6 +58,21 @@ export {
   removeSpecialCharacter,
 } from "./utils";
 
+// --- Services ---
+export {
+  PromptsService,
+  ThreadsService,
+  ProfilesService,
+  ServersService,
+} from "./services";
+export type {
+  PromptUpdates,
+  TaskProfileKeys,
+  ProfilesInitResult,
+  ToolsListResult,
+  ChangeToolStatusResult,
+} from "./services";
+
 // --- Providers ---
 export { AbstractBaseProvider } from "./providers/base";
 export type { BaseProvider } from "./providers/registry";

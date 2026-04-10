@@ -3,7 +3,7 @@ import type { Profile } from "@/lib/types";
 
 // --- localStorage mock (hoisted to run before any module evaluation) ---
 
-const { localStorageMap, localStorageMock } = vi.hoisted(() => {
+const { localStorageMap } = vi.hoisted(() => {
   const map = new Map<string, string>();
   const mock = {
     getItem: vi.fn((key: string) => map.get(key) ?? null),
@@ -17,7 +17,7 @@ const { localStorageMap, localStorageMock } = vi.hoisted(() => {
   };
   // @ts-expect-error — setting global before modules load
   globalThis.localStorage = mock;
-  return { localStorageMap: map, localStorageMock: mock };
+  return { localStorageMap: map };
 });
 
 import useProfilesStore, {
@@ -37,6 +37,12 @@ const mockStorage = {
   },
 };
 
+const mockSettings = {
+  get: vi.fn((key: string) => localStorageMap.get(key) ?? null),
+  set: vi.fn((key: string, value: string) => localStorageMap.set(key, value)),
+  remove: vi.fn((key: string) => localStorageMap.delete(key)),
+};
+
 const mockProvider = {
   setCurrentProvider: vi.fn(),
   setCurrentProviderModel: vi.fn(),
@@ -49,6 +55,10 @@ vi.mock("../../../npm_lib/storage/storage-holder", () => ({
 
 vi.mock("../../../npm_lib/providers/provider-holder", () => ({
   getProviderInstance: () => mockProvider,
+}));
+
+vi.mock("../../../npm_lib/settings/settings-holder", () => ({
+  getSettingsInstance: () => mockSettings,
 }));
 
 // --- Helpers ---
@@ -135,7 +145,7 @@ describe("useProfilesStore", () => {
 
       await useProfilesStore.getState().init();
 
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith("chat-profile");
+      expect(mockSettings.remove).toHaveBeenCalledWith("chat-profile");
       expect(useProfilesStore.getState().chatProfile).toBeNull();
     });
 
@@ -209,7 +219,7 @@ describe("useProfilesStore", () => {
       });
 
       expect(useProfilesStore.getState().defaultProfile).toBeTruthy();
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSettings.set).toHaveBeenCalledWith(
         "default-profile",
         expect.any(String)
       );
@@ -327,7 +337,7 @@ describe("useProfilesStore", () => {
       await useProfilesStore.getState().deleteProfile(p.id);
 
       expect(useProfilesStore.getState().chatProfile).toBeNull();
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith("chat-profile");
+      expect(mockSettings.remove).toHaveBeenCalledWith("chat-profile");
     });
 
     it("reassigns default profile to next available", async () => {
@@ -350,9 +360,7 @@ describe("useProfilesStore", () => {
       await useProfilesStore.getState().deleteProfile(p.id);
 
       expect(useProfilesStore.getState().defaultProfile).toBeNull();
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith(
-        "default-profile"
-      );
+      expect(mockSettings.remove).toHaveBeenCalledWith("default-profile");
     });
   });
 
@@ -398,10 +406,7 @@ describe("useProfilesStore", () => {
       useProfilesStore.getState().setDefaultProfile(p);
 
       expect(useProfilesStore.getState().defaultProfile).toEqual(p);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "default-profile",
-        p.id
-      );
+      expect(mockSettings.set).toHaveBeenCalledWith("default-profile", p.id);
     });
 
     it("syncs provider via applyCurrentChatProvider", () => {
@@ -419,17 +424,14 @@ describe("useProfilesStore", () => {
       useProfilesStore.getState().setChatProfile(p);
 
       expect(useProfilesStore.getState().chatProfile).toEqual(p);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "chat-profile",
-        p.id
-      );
+      expect(mockSettings.set).toHaveBeenCalledWith("chat-profile", p.id);
     });
 
     it("clears chat profile and removes from localStorage", () => {
       useProfilesStore.getState().setChatProfile(null);
 
       expect(useProfilesStore.getState().chatProfile).toBeNull();
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith("chat-profile");
+      expect(mockSettings.remove).toHaveBeenCalledWith("chat-profile");
     });
 
     it("syncs provider", () => {
@@ -479,7 +481,7 @@ describe("useProfilesStore", () => {
         expect(
           (useProfilesStore.getState() as Record<string, unknown>)[field]
         ).toEqual(p);
-        expect(localStorageMock.setItem).toHaveBeenCalledWith(key, p.id);
+        expect(mockSettings.set).toHaveBeenCalledWith(key, p.id);
       });
 
       it(`${setter}(null) clears and removes localStorage key`, () => {
@@ -490,7 +492,7 @@ describe("useProfilesStore", () => {
         expect(
           (useProfilesStore.getState() as Record<string, unknown>)[field]
         ).toBeNull();
-        expect(localStorageMock.removeItem).toHaveBeenCalledWith(key);
+        expect(mockSettings.remove).toHaveBeenCalledWith(key);
       });
     }
   });
@@ -507,12 +509,12 @@ describe("useProfilesStore", () => {
 
     it("does not persist to localStorage", () => {
       const p = makeProfile();
-      localStorageMock.setItem.mockClear();
+      mockSettings.set.mockClear();
 
       useProfilesStore.getState().setSessionChatProfile(p);
 
       // Session profile is ephemeral — no localStorage write
-      const setItemCalls = localStorageMock.setItem.mock.calls;
+      const setItemCalls = mockSettings.set.mock.calls;
       const hasSessionKey = setItemCalls.some(
         ([key]: [string]) =>
           key === "session-chat-profile" || key === "sessionChatProfile"
@@ -528,10 +530,7 @@ describe("useProfilesStore", () => {
       useProfilesStore.getState().toggleExtendedThinking();
 
       expect(useProfilesStore.getState().extendedThinking).toBe(true);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "deep-mode",
-        "true"
-      );
+      expect(mockSettings.set).toHaveBeenCalledWith("deep-mode", "true");
     });
 
     it("toggles from true to false", () => {

@@ -3,7 +3,7 @@ import type { TMCPItem } from "@/lib/types";
 
 // --- localStorage mock (hoisted) ---
 
-const { localStorageMap, localStorageMock } = vi.hoisted(() => {
+const { localStorageMap } = vi.hoisted(() => {
   const map = new Map<string, string>();
   const mock = {
     getItem: vi.fn((key: string) => map.get(key) ?? null),
@@ -17,7 +17,7 @@ const { localStorageMap, localStorageMock } = vi.hoisted(() => {
   };
   // @ts-expect-error — setting global before modules load
   globalThis.localStorage = mock;
-  return { localStorageMap: map, localStorageMock: mock };
+  return { localStorageMap: map };
 });
 
 // --- Mocks ---
@@ -36,8 +36,18 @@ const mockServers = {
   setWebSearchData: vi.fn(),
 };
 
+const mockSettings = {
+  get: vi.fn((key: string) => localStorageMap.get(key) ?? null),
+  set: vi.fn((key: string, value: string) => localStorageMap.set(key, value)),
+  remove: vi.fn((key: string) => localStorageMap.delete(key)),
+};
+
 vi.mock("../../../npm_lib/tools/tools-holder", () => ({
   getServersInstance: () => mockServers,
+}));
+
+vi.mock("../../../npm_lib/settings/settings-holder", () => ({
+  getSettingsInstance: () => mockSettings,
 }));
 
 import useServersStore from "../useServersStore";
@@ -383,7 +393,7 @@ describe("useServersStore", () => {
         .getState()
         .changeToolStatus("desktop-editor", "paste", false);
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSettings.set).toHaveBeenCalledWith(
         "disabledTools",
         expect.any(String)
       );
@@ -457,7 +467,7 @@ describe("useServersStore", () => {
 
       useServersStore.getState().saveConfig(config);
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSettings.set).toHaveBeenCalledWith(
         "mcpServers",
         JSON.stringify(config)
       );

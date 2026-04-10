@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import type { Thread } from "@/lib/types";
-import { convertMessagesToMd, removeSpecialCharacter } from "@/lib/utils";
 import useMessageStore from "@/store/useMessageStore";
 import useProfilesStore from "@/store/useProfilesStore";
-import { getPlatformInstance } from "../../npm_lib/platform/platform-holder";
-import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
+import { ThreadsService } from "../../npm_lib/services/threads";
+
+const service = new ThreadsService();
 
 type UseThreadsStoreProps = {
   threadId: string;
@@ -25,7 +25,6 @@ type UseThreadsStoreProps = {
 const applyThreadContextFromThread = (thread?: Thread) => {
   const { getProfileById, setSessionChatProfile } = useProfilesStore.getState();
   const profile = thread?.profileId ? getProfileById(thread.profileId) : null;
-
   setSessionChatProfile(profile);
 };
 
@@ -38,85 +37,23 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
   threads: [],
 
   initThreads: async () => {
-    const storage = getStorageInstance();
-    const threads = await storage.threads.getAll();
-
+    const threads = await service.loadAll();
     set({ threads });
   },
+
   insertThread: (title: string, opts?: { profileId?: string }) => {
-    const thisStore = get();
-
-    set({
-      threads: [
-        {
-          threadId: thisStore.threadId,
-          title,
-          profileId: opts?.profileId,
-          lastEditDate: Date.now(),
-        },
-        ...thisStore.threads,
-      ],
-    });
-
-    const storage = getStorageInstance();
-    storage.threads.create(
-      thisStore.threadId,
-      title,
-      undefined,
-      undefined,
-      opts?.profileId
-    );
+    const { threadId, threads } = get();
+    const thread = service.createThread(threadId, title, opts?.profileId);
+    set({ threads: [thread, ...threads] });
   },
-  migrateThreadFromProviderModelToProfile: (thread) => {
-    const { provider, model, ...rest } = thread;
-    const { profiles, chatProfile, defaultProfile } =
-      useProfilesStore.getState();
 
-    const matched =
-      profiles.find(
-        (p) =>
-          p.providerType === provider?.type &&
-          p.baseUrl === provider?.baseUrl &&
-          p.modelId === model?.id &&
-          p.key === provider?.key
-      ) ??
-      profiles.find(
-        (p) =>
-          p.providerType === provider?.type &&
-          p.baseUrl === provider?.baseUrl &&
-          p.modelId === model?.id
-      ) ??
-      chatProfile ??
-      defaultProfile;
-
-    const migratedThread: Thread = { ...rest, profileId: matched?.id };
-
-    set((state) => ({
-      threads: state.threads.map((t) =>
-        t.threadId === thread.threadId ? migratedThread : t
-      ),
-    }));
-
-    const storage = getStorageInstance();
-    storage.threads.touch(thread.threadId, {
-      profileId: matched?.id ?? null,
-      provider: null,
-      model: null,
-    });
-
-    return migratedThread;
-  },
   insertNewMessageToThread: (opts?: { profileId?: string }) => {
-    const thisStore = get();
-
-    const storage = getStorageInstance();
-    storage.threads.touch(thisStore.threadId, {
-      ...(opts && "profileId" in opts ? { profileId: opts.profileId } : {}),
-    });
+    const { threadId, threads } = get();
+    service.touchThread(threadId, opts);
 
     set({
-      threads: thisStore.threads.map((thread) => {
-        if (thread.threadId === thisStore.threadId) {
+      threads: threads.map((thread) => {
+        if (thread.threadId === threadId) {
           return {
             ...thread,
             ...(opts && "profileId" in opts
@@ -129,10 +66,32 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
       }),
     });
   },
+
+  migrateThreadFromProviderModelToProfile: (thread) => {
+    const { profiles, chatProfile, defaultProfile } =
+      useProfilesStore.getState();
+
+    const migratedThread = service.migrateThreadToProfile(
+      thread,
+      profiles,
+      chatProfile,
+      defaultProfile
+    );
+
+    set((state) => ({
+      threads: state.threads.map((t) =>
+        t.threadId === thread.threadId ? migratedThread : t
+      ),
+    }));
+
+    return migratedThread;
+  },
+
   onSwitchToNewThread: () => {
     applyThreadContextFromThread(undefined);
     set({ threadId: crypto.randomUUID() });
   },
+
   onSwitchToThread: (id: string) => {
     const { threads, migrateThreadFromProviderModelToProfile } = get();
     let thread = threads.find((t) => t.threadId === id);
@@ -144,56 +103,36 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
     applyThreadContextFromThread(thread);
     set({ threadId: id });
   },
+
   onDownloadThread: async (id: string) => {
-    const thisStore = get();
-    const thread = thisStore.threads.find((t) => t.threadId === id);
-    const storage = getStorageInstance();
-    const messages = await storage.messages.getByThread(id);
-
-    const title = removeSpecialCharacter(thread?.title || "Chat Export");
-
-    const content = convertMessagesToMd(messages);
-
-    const platform = getPlatformInstance();
-    platform?.file?.saveAsFile(content, `${title}.docx`);
+    const thread = get().threads.find((t) => t.threadId === id);
+    await service.downloadThread(id, thread?.title);
   },
-  onRenameThread: (id: string, title: string) => {
-    const thisStore = get();
 
+  onRenameThread: (id: string, title: string) => {
     set({
-      threads: thisStore.threads.map((thread) => {
-        if (thread.threadId === id) {
-          return {
-            ...thread,
-            title,
-          };
-        }
+      threads: get().threads.map((thread) => {
+        if (thread.threadId === id) return { ...thread, title };
         return thread;
       }),
     });
-
-    const storage = getStorageInstance();
-    storage.threads.update(id, title);
+    service.renameThread(id, title);
   },
+
   onDeleteThread: (id: string) => {
     const thisStore = get();
-
     if (thisStore.threadId === id) {
       thisStore.onSwitchToNewThread();
     }
     set({ threads: thisStore.threads.filter((t) => t.threadId !== id) });
-    const storage = getStorageInstance();
-    storage.messages.deleteByThread(id).then(() => storage.threads.delete(id));
+    service.deleteThread(id);
   },
+
   onClearThreadHistory: async (id: string) => {
-    const thisStore = get();
+    await service.clearHistory(id);
 
-    const storage = getStorageInstance();
-    await storage.messages.deleteByThread(id);
-
-    if (thisStore.threadId === id) {
-      const { clearMessages } = useMessageStore.getState();
-      clearMessages();
+    if (get().threadId === id) {
+      useMessageStore.getState().clearMessages();
     }
   },
 }));
