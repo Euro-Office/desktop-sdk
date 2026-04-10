@@ -39,11 +39,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    window.on_update_cloud = () => {
-      fetchClouds();
-    };
+    const unsubscribeClouds = platform.env.onCloudsChange?.(fetchClouds);
 
-    return () => unsubscribe?.();
+    return () => {
+      unsubscribe?.();
+      unsubscribeClouds?.();
+    };
   }, [i18n, setThemeId, platform, fetchClouds]);
 
   const isHistory = currentPage === "history";

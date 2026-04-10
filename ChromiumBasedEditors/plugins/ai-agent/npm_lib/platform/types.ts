@@ -46,6 +46,9 @@ export interface PlatformEnvironment {
 
   /** Subscribe to theme/language changes from the host. Returns an unsubscribe function */
   onEnvironmentChange?: (callback: (info: { theme?: string; lang?: string }) => void) => () => void;
+
+  /** Subscribe to cloud account list changes from the host. Returns an unsubscribe function */
+  onCloudsChange?: (callback: () => void) => () => void;
 }
 
 export interface PlatformHostTools {
