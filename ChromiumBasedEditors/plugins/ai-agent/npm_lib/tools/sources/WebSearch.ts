@@ -1,4 +1,4 @@
-import type { TMCPItem } from "@/lib/types";
+import type { TMCPItem } from "../../types";
 
 const WEB_SEARCH_DATA = "webSearchProviderData";
 

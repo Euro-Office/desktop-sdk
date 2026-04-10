@@ -36,3 +36,8 @@ export type {
 } from "./platform/types";
 
 export { PlatformProvider, usePlatform } from "./platform/context";
+
+// --- Tools ---
+export type { HostTool, HostToolGroup, ToolSource } from "./tools/types";
+
+export { ToolsProvider, useHostTools } from "./tools/context";
