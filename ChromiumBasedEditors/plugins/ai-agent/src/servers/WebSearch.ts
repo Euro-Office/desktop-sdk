@@ -5,6 +5,7 @@ const WEB_SEARCH_DATA = "webSearchProviderData";
 export type WebSearchData = {
   provider: string;
   key: string;
+  baseUrl?: string;
   isCloudProvider?: boolean;
 } | null;
 
@@ -46,12 +47,15 @@ class WebSearch {
   };
 
   webSearch = async (args: Record<string, unknown>) => {
-    if (this.webSearchData?.isCloudProvider) {
+    if (
+      this.webSearchData?.isCloudProvider ||
+      this.webSearchData?.provider === "ONLYOFFICE"
+    ) {
       try {
-        const searchUrl = new URL(
-          "/api/2.0/ai/web-search/v1/search",
-          this.webSearchData.provider
-        );
+        const baseUrl = this.webSearchData.isCloudProvider
+          ? this.webSearchData.provider
+          : (this.webSearchData.baseUrl ?? "");
+        const searchUrl = new URL("/api/2.0/ai/web-search/v1/search", baseUrl);
         const response = await fetch(`onlyoffice-proxy://${searchUrl.href}`, {
           method: "POST",
           headers: {
@@ -115,12 +119,15 @@ class WebSearch {
   };
 
   webCrawling = async (args: Record<string, unknown>) => {
-    if (this.webSearchData?.isCloudProvider) {
+    if (
+      this.webSearchData?.isCloudProvider ||
+      this.webSearchData?.provider === "ONLYOFFICE"
+    ) {
       try {
-        const crawlUrl = new URL(
-          "/api/2.0/ai/web-search/v1/contents",
-          this.webSearchData.provider
-        );
+        const baseUrl = this.webSearchData.isCloudProvider
+          ? this.webSearchData.provider
+          : (this.webSearchData.baseUrl ?? "");
+        const crawlUrl = new URL("/api/2.0/ai/web-search/v1/contents", baseUrl);
         const response = await fetch(`onlyoffice-proxy://${crawlUrl.href}`, {
           method: "POST",
           headers: {

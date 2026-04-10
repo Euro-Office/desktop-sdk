@@ -14,6 +14,8 @@ type WebSearchProps = {
   variant?: "tab" | "page";
 };
 
+const ONLYOFFICE_PROVIDER = "ONLYOFFICE";
+
 const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
@@ -21,6 +23,8 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
 
   const [selectedProvider, setSelectedProvider] = React.useState<string>("Exa");
   const [apiKey, setApiKey] = React.useState<string>("");
+  const [baseUrl, setBaseUrl] = React.useState<string>("");
+  const [baseUrlError, setBaseUrlError] = React.useState<string>("");
   const [isCloudProvider, setIsCloudProvider] = React.useState(false);
 
   React.useEffect(() => {
@@ -29,17 +33,55 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
     if (data) {
       setSelectedProvider(data.provider);
       setApiKey(data.key);
+      setBaseUrl(data.baseUrl ?? "");
       setIsCloudProvider(data.isCloudProvider ?? false);
     }
   }, []);
 
+  const isOnlyOffice = selectedProvider === ONLYOFFICE_PROVIDER;
+
+  const handleBaseUrlBlur = React.useCallback(() => {
+    if (!isOnlyOffice) return;
+    try {
+      new URL(baseUrl);
+      setBaseUrlError("");
+      if (apiKey) {
+        client.setWebSearchData({
+          provider: ONLYOFFICE_PROVIDER,
+          key: apiKey,
+          baseUrl,
+        });
+      }
+    } catch {
+      setBaseUrlError(t("InvalidUrl"));
+      client.setWebSearchData(null);
+    }
+  }, [isOnlyOffice, baseUrl, apiKey, t]);
+
   const handleApiKeyBlur = React.useCallback(() => {
+    if (isOnlyOffice) {
+      try {
+        new URL(baseUrl);
+        if (apiKey) {
+          client.setWebSearchData({
+            provider: ONLYOFFICE_PROVIDER,
+            key: apiKey,
+            baseUrl,
+          });
+        } else {
+          client.setWebSearchData(null);
+        }
+      } catch {
+        client.setWebSearchData(null);
+      }
+      return;
+    }
     if (selectedProvider && apiKey) {
       client.setWebSearchData({ provider: selectedProvider, key: apiKey });
     } else {
       client.setWebSearchData(null);
     }
-  }, [selectedProvider, apiKey]);
+  }, [isOnlyOffice, selectedProvider, apiKey, baseUrl]);
 
   const isPage = variant === "page";
 
@@ -50,6 +92,8 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
       onClick: () => {
         setSelectedProvider(cloud.url);
         setApiKey(cloud.data.apiKey);
+        setBaseUrl("");
+        setBaseUrlError("");
         setIsCloudProvider(true);
         client.setWebSearchData({
           provider: cloud.url,
@@ -59,11 +103,25 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
       },
     })),
     {
+      text: ONLYOFFICE_PROVIDER,
+      id: ONLYOFFICE_PROVIDER,
+      onClick: () => {
+        setSelectedProvider(ONLYOFFICE_PROVIDER);
+        setApiKey("");
+        setBaseUrl("");
+        setBaseUrlError("");
+        setIsCloudProvider(false);
+        client.setWebSearchData(null);
+      },
+    },
+    {
       text: "Exa",
       id: "Exa",
       onClick: () => {
         setSelectedProvider("Exa");
         setApiKey("");
+        setBaseUrl("");
+        setBaseUrlError("");
         setIsCloudProvider(false);
         client.setWebSearchData(null);
       },
@@ -98,11 +156,31 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
             items={providerItems}
           />
         </FieldContainer>
+        {isOnlyOffice && (
+          <FieldContainer
+            header={t("BaseURL")}
+            isHorizontal={isPage}
+            error={baseUrlError}
+          >
+            <Input
+              className="w-full"
+              placeholder={t("EnterURL")}
+              value={baseUrl}
+              onChange={(e) => {
+                setBaseUrl(e.target.value);
+                setBaseUrlError("");
+              }}
+              onBlur={handleBaseUrlBlur}
+            />
+          </FieldContainer>
+        )}
         <FieldContainer
           header={t("APIKey")}
           isHorizontal={isPage}
           action={
-            !isCloudProvider && getApiKeyLink(selectedProvider) ? (
+            !isCloudProvider &&
+            !isOnlyOffice &&
+            getApiKeyLink(selectedProvider) ? (
               <Link href={getApiKeyLink(selectedProvider)} target="_blank">
                 {t("GetAPIKey")}
               </Link>
