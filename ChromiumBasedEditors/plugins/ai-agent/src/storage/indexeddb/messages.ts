@@ -1,5 +1,5 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-import type { MessagesStorage } from "../types";
+import type { MessagesStorage } from "../../../npm_lib/storage/types";
 
 interface Message {
   id: string;
@@ -14,7 +14,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
   async create(
     threadId: string,
     id: string,
-    message: ThreadMessageLike,
+    message: ThreadMessageLike
   ): Promise<void> {
     const db = this.getDB();
     const messageData: Message = {
@@ -36,7 +36,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
 
   async getByThread(
     threadId: string,
-    limit?: number,
+    limit?: number
   ): Promise<ThreadMessageLike[]> {
     const db = this.getDB();
 
@@ -63,7 +63,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
 
   async getById(
     threadId: string,
-    messageId: string,
+    messageId: string
   ): Promise<ThreadMessageLike | null> {
     const db = this.getDB();
 
@@ -86,7 +86,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
 
   async update(
     messageId: string,
-    updatedMessage: ThreadMessageLike,
+    updatedMessage: ThreadMessageLike
   ): Promise<void> {
     const db = this.getDB();
 
@@ -154,7 +154,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
 
   async replaceByThread(
     threadId: string,
-    messages: ThreadMessageLike[],
+    messages: ThreadMessageLike[]
   ): Promise<void> {
     const db = this.getDB();
 
@@ -188,7 +188,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
   }
 
   async search(
-    query: string,
+    query: string
   ): Promise<{ threadId: string; message: ThreadMessageLike }[]> {
     const db = this.getDB();
 
@@ -207,7 +207,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
           return content.some(
             (part: { type: string; text: string }) =>
               part.type === "text" &&
-              part.text.toLowerCase().includes(query.toLowerCase()),
+              part.text.toLowerCase().includes(query.toLowerCase())
           );
         });
 
@@ -215,7 +215,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
           results.map((item: Message) => ({
             threadId: item.threadId,
             message: item.message,
-          })),
+          }))
         );
       };
     });

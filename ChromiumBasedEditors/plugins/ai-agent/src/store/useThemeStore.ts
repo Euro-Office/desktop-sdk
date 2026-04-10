@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getPlatformInstance } from "../../npm_lib/platform/platform-holder";
 
 const DARK_THEMES = [
   "theme-dark",
@@ -12,8 +13,10 @@ type ThemeStore = {
   themeId: string;
   themeType: ThemeType;
   scale: number;
+  initialized: boolean;
   setThemeId: (id: string) => void;
   setScale: (scale: number) => void;
+  initFromPlatform: () => void;
 };
 
 const getThemeType = (themeId: string): ThemeType =>
@@ -21,42 +24,33 @@ const getThemeType = (themeId: string): ThemeType =>
     ? "dark"
     : "light";
 
-const getInitialThemeId = (): string => {
-  if (typeof window === "undefined" || !window.RendererProcessVariable) {
-    return "theme-light";
-  }
+const useThemeStore = create<ThemeStore>((set, get) => ({
+  themeId: "theme-light",
+  themeType: "light",
+  scale: 1,
+  initialized: false,
 
-  const { theme } = window.RendererProcessVariable;
+  setThemeId: (id: string) =>
+    set({
+      themeId: id,
+      themeType: getThemeType(id),
+    }),
 
-  if (theme.id === "theme-system") {
-    return theme.system === "dark" ? "theme-night" : "theme-white";
-  }
+  setScale: (scale: number) => set({ scale }),
 
-  return theme.id;
-};
+  initFromPlatform: () => {
+    if (get().initialized) return;
+    const platform = getPlatformInstance();
+    if (!platform) return;
 
-const getInitialScale = (): number => {
-  if (typeof window === "undefined") return 1;
-  // macOS handles scaling differently, always use 1x
-  return window.devicePixelRatio || 1;
-};
-
-const useThemeStore = create<ThemeStore>((set) => {
-  const initialThemeId = getInitialThemeId();
-
-  return {
-    themeId: initialThemeId,
-    themeType: getThemeType(initialThemeId),
-    scale: getInitialScale(),
-
-    setThemeId: (id: string) =>
-      set({
-        themeId: id,
-        themeType: getThemeType(id),
-      }),
-
-    setScale: (scale: number) => set({ scale }),
-  };
-});
+    const themeId = platform.env.theme;
+    set({
+      themeId,
+      themeType: getThemeType(themeId),
+      scale: platform.env.devicePixelRatio,
+      initialized: true,
+    });
+  },
+}));
 
 export default useThemeStore;

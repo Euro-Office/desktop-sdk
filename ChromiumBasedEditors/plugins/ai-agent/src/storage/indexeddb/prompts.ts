@@ -1,5 +1,8 @@
-import type { Prompt, PromptFolder } from "../../../src/lib/types";
-import type { PromptFoldersStorage, PromptsStorage } from "../types";
+import type { Prompt, PromptFolder } from "@/lib/types";
+import type {
+  PromptFoldersStorage,
+  PromptsStorage,
+} from "../../../npm_lib/storage/types";
 
 export class IndexedDBPromptsStorage implements PromptsStorage {
   constructor(private getDB: () => IDBDatabase) {}
@@ -28,7 +31,7 @@ export class IndexedDBPromptsStorage implements PromptsStorage {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         const prompts = request.result.sort(
-          (a: Prompt, b: Prompt) => b.createdAt - a.createdAt,
+          (a: Prompt, b: Prompt) => b.createdAt - a.createdAt
         );
         resolve(prompts);
       };
@@ -50,7 +53,7 @@ export class IndexedDBPromptsStorage implements PromptsStorage {
 
   async update(
     id: string,
-    updates: { name?: string; text?: string; folderId?: string | null },
+    updates: { name?: string; text?: string; folderId?: string | null }
   ): Promise<void> {
     const db = this.getDB();
 
@@ -123,7 +126,7 @@ export class IndexedDBPromptsStorage implements PromptsStorage {
 export class IndexedDBPromptFoldersStorage implements PromptFoldersStorage {
   constructor(
     private getDB: () => IDBDatabase,
-    private prompts: IndexedDBPromptsStorage,
+    private prompts: IndexedDBPromptsStorage
   ) {}
 
   async create(folder: PromptFolder): Promise<void> {
@@ -150,7 +153,7 @@ export class IndexedDBPromptFoldersStorage implements PromptFoldersStorage {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         const folders = request.result.sort(
-          (a: PromptFolder, b: PromptFolder) => b.createdAt - a.createdAt,
+          (a: PromptFolder, b: PromptFolder) => b.createdAt - a.createdAt
         );
         resolve(folders);
       };

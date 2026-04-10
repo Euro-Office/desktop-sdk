@@ -17,6 +17,7 @@ import {
 import useAttachmentsStore from "@/store/useAttachmentsStore";
 import useProfilesStore from "@/store/useProfilesStore.ts";
 import useServersStore from "@/store/useServersStore";
+import { usePlatform } from "../../../../npm_lib/platform/context";
 
 const getFileIconName = (type: number): string => {
   if (isPdfForm(type)) return "pdf-form";
@@ -33,6 +34,7 @@ const getFileIconName = (type: number): string => {
 const ComposerActionAttachment = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const platform = usePlatform();
 
   const { addAttachmentFile, addAttachmentImage } = useAttachmentsStore();
   const { servers, changeToolStatus, webSearchEnabled, getWebSearchEnabled } =
@@ -43,81 +45,73 @@ const ComposerActionAttachment = () => {
     setIsOpen(open);
   };
 
-  const selectRecentFile = (path: string, type: number) => {
-    const isSpreadsheetFile = isSpreadsheet(type);
-    window.AscDesktopEditor.convertFileExternal(
-      path,
-      isSpreadsheetFile ? 260 : 69,
-      (data, error) => {
-        if (error) {
-          console.log("Error:", error);
-          return;
-        }
+  const selectRecentFile = React.useCallback(
+    async (path: string, type: number) => {
+      if (!platform.file) return;
+      const isSpreadsheetFile = isSpreadsheet(type);
+      const content = await platform.file.convertFileToText(
+        path,
+        isSpreadsheetFile ? 260 : 69
+      );
+      addAttachmentFile({ path, content, type });
+    },
+    [platform.file, addAttachmentFile]
+  );
 
-        const uint8Array = new Uint8Array(data.content);
-        const textDecoder = new TextDecoder("utf-8");
-        const stringData = textDecoder.decode(uint8Array);
+  const selectLocalFile = async () => {
+    if (!platform.file) return;
+    const files = await platform.file.pickFiles();
+    if (!files) return;
 
-        addAttachmentFile({ path, content: stringData, type });
-      }
-    );
+    for (const file of files.slice(0, 6)) {
+      const type = platform.file.getFileType(file.path);
+      const isSpreadsheetFile = isSpreadsheet(type);
+      const content = await platform.file.convertFileToText(
+        file.path,
+        isSpreadsheetFile ? 260 : 69
+      );
+      addAttachmentFile({ path: file.path, content: content || "", type });
+    }
   };
 
-  const selectLocalFile = () => {
-    window.AscDesktopEditor.OpenFilenameDialog("", true, (file) => {
-      if (Array.isArray(file)) {
-        file.forEach((file, index) => {
-          if (index > 5) return;
+  const [recentFiles, setRecentFiles] = React.useState<DropDownItemProps[]>([]);
 
-          const type = window.AscDesktopEditor.getOfficeFileType(file);
+  React.useEffect(() => {
+    if (!platform.file) return;
 
-          const isSpreadsheetFile = isSpreadsheet(type);
-
-          window.AscDesktopEditor.convertFileExternal(
-            file,
-            isSpreadsheetFile ? 260 : 69,
-            (data, error) => {
-              if (error) {
-                console.log("Error:", error);
-                return;
-              }
-
-              const uint8Array = new Uint8Array(data.content);
-              const textDecoder = new TextDecoder("utf-8");
-              const stringData = textDecoder.decode(uint8Array);
-
-              addAttachmentFile({
-                path: file,
-                content: stringData || "",
-                type,
-              });
-            }
-          );
-        });
+    platform.file.getRecentFiles().then((raw) => {
+      try {
+        const parsed = JSON.parse(raw) as {
+          files: { path: string; type: number; url: string }[];
+        };
+        const items = parsed?.files
+          ?.filter((file) => !file.url)
+          ?.map((file) => {
+            const iconName = getFileIconName(file.type);
+            return {
+              text: file.path.includes("\\")
+                ? (file.path.split("\\").pop() ?? "")
+                : (file.path.split("/").pop() ?? ""),
+              key: file.path,
+              id: file.path,
+              icon: (
+                <IconButton
+                  iconName={iconName}
+                  size={24}
+                  disableHover
+                  noColor
+                />
+              ),
+              onClick: () => selectRecentFile(file.path, file.type),
+            };
+          })
+          .filter(Boolean);
+        setRecentFiles(items ?? []);
+      } catch {
+        setRecentFiles([]);
       }
     });
-  };
-
-  const recentFiles = (
-    JSON.parse(
-      window.AscDesktopEditor?.callToolFunction("recent_files_reader") ?? "{}"
-    ) as { files: { path: string; type: number; url: string }[] }
-  )?.files
-    ?.filter((file) => !file.url)
-    ?.map((file) => {
-      const iconName = getFileIconName(file.type);
-
-      return {
-        text: file.path.includes("\\")
-          ? (file.path.split("\\").pop() ?? "")
-          : (file.path.split("/").pop() ?? ""),
-        key: file.path,
-        id: file.path,
-        icon: <IconButton iconName={iconName} size={24} disableHover noColor />,
-        onClick: () => selectRecentFile(file.path, file.type),
-      };
-    })
-    .filter(Boolean);
+  }, [platform.file, selectRecentFile]);
 
   const { t } = useTranslation();
 
@@ -133,22 +127,26 @@ const ComposerActionAttachment = () => {
     </TooltipIconButton>
   );
 
-  const items: DropDownItemProps[] = [
-    { text: t("AddLocalFile"), onClick: () => selectLocalFile() },
-    {
-      text: t("AddLocalImage"),
-      onClick: () => imageInputRef.current?.click(),
-    },
-  ];
+  const items: DropDownItemProps[] = [];
 
-  if (recentFiles.length > 0) {
-    items.push({
-      text: t("RecentFiles"),
-      onClick: () => {
-        // ignore
-      },
-      subMenu: recentFiles,
-    });
+  if (platform.file) {
+    items.push(
+      { text: t("AddLocalFile"), onClick: () => selectLocalFile() },
+      {
+        text: t("AddLocalImage"),
+        onClick: () => imageInputRef.current?.click(),
+      }
+    );
+
+    if (recentFiles.length > 0) {
+      items.push({
+        text: t("RecentFiles"),
+        onClick: () => {
+          // ignore
+        },
+        subMenu: recentFiles,
+      });
+    }
   }
 
   items.push({

@@ -1,4 +1,5 @@
 import type { TMCPItem, TProcess } from "@/lib/types";
+import { getPlatformInstance } from "../../npm_lib/platform/platform-holder";
 
 type THttpServer = {
   url: string;
@@ -238,7 +239,9 @@ class CustomServers {
       `${new Date().toLocaleString()}: ${commandLine}\n`,
     ];
 
-    const process = new window.ExternalProcess(commandLine, env);
+    const platform = getPlatformInstance();
+    const process = platform?.process?.createProcess(commandLine, env);
+    if (!process) return;
 
     process.onprocess = this.onProcess.bind(this, type);
 
@@ -298,7 +301,9 @@ class CustomServers {
 
     this.tools[type] = [];
 
-    const process = new window.ExternalProcess(commandLine, env);
+    const platform = getPlatformInstance();
+    const process = platform?.process?.createProcess(commandLine, env);
+    if (!process) return;
 
     process.onprocess = this.onProcess.bind(this, type);
 

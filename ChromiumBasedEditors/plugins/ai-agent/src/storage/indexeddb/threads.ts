@@ -1,5 +1,5 @@
-import type { Model, Thread, TProvider } from "../../../src/lib/types";
-import type { ThreadsStorage } from "../types";
+import type { Model, Thread, TProvider } from "@/lib/types";
+import type { ThreadsStorage } from "../../../npm_lib/storage/types";
 
 export class IndexedDBThreadsStorage implements ThreadsStorage {
   constructor(private getDB: () => IDBDatabase) {}
@@ -9,7 +9,7 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
     title: string,
     provider?: TProvider,
     model?: Model,
-    profileId?: string,
+    profileId?: string
   ): Promise<void> {
     const db = this.getDB();
     const threadData: Thread = {
@@ -43,7 +43,7 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
       request.onsuccess = () => {
         const threads = request.result.sort(
           (a: Thread, b: Thread) =>
-            (b.lastEditDate ?? 0) - (a.lastEditDate ?? 0),
+            (b.lastEditDate ?? 0) - (a.lastEditDate ?? 0)
         );
         resolve(threads);
       };
@@ -98,7 +98,7 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
       provider?: TProvider | null;
       model?: Model | null;
       profileId?: string | null;
-    },
+    }
   ): Promise<void> {
     const db = this.getDB();
 

@@ -4,51 +4,47 @@ import { useDirection } from "@/hooks/useDirection";
 import useCloudsStore from "@/store/useCloudsStore";
 import useRouter from "@/store/useRouter";
 import useThemeStore from "@/store/useThemeStore";
+import { usePlatform } from "../../../npm_lib/platform/context";
 import { ChatList } from "./sub-components/ChatList";
 import { Navigation } from "./sub-components/Header";
 
-const getSystemTheme = (system: "dark" | "light") => {
-  if (system === "dark") {
-    return "theme-night";
-  }
-
-  return "theme-white";
-};
-
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { currentPage } = useRouter();
-  const { themeId, setThemeId } = useThemeStore();
+  const { themeId, setThemeId, initFromPlatform } = useThemeStore();
+  const platform = usePlatform();
   const { fetchClouds } = useCloudsStore();
+
+  // Initialize theme from platform on first render (after PlatformProvider is mounted)
+  initFromPlatform();
 
   const { i18n } = useTranslation();
   const { isRTL } = useDirection();
 
   React.useLayoutEffect(() => {
-    if (window.RendererProcessVariable) {
-      i18n.changeLanguage(window.RendererProcessVariable.lang);
-    }
+    i18n.changeLanguage(platform.env.locale);
 
-    window.on_update_plugin_info = (info) => {
+    const unsubscribe = platform.env.onEnvironmentChange?.((info) => {
       if (info.lang) {
         i18n.changeLanguage(info.lang);
       }
 
       if (info.theme) {
         if (info.theme === "theme-system") {
-          const resolvedTheme = getSystemTheme(
-            window.RendererProcessVariable.theme.system as "dark" | "light"
-          );
-          setThemeId(resolvedTheme);
+          const resolved =
+            platform.env.systemTheme === "dark" ? "theme-night" : "theme-white";
+          setThemeId(resolved);
         } else {
           setThemeId(info.theme);
         }
       }
-    };
+    });
 
     window.on_update_cloud = () => {
       fetchClouds();
     };
-  }, [i18n, setThemeId, fetchClouds]);
+
+    return () => unsubscribe?.();
+  }, [i18n, setThemeId, platform, fetchClouds]);
 
   const isHistory = currentPage === "history";
 

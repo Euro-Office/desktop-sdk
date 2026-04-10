@@ -3,6 +3,7 @@ import type { Thread } from "@/lib/types";
 import { convertMessagesToMd, removeSpecialCharacter } from "@/lib/utils";
 import useMessageStore from "@/store/useMessageStore";
 import useProfilesStore from "@/store/useProfilesStore";
+import { getPlatformInstance } from "../../npm_lib/platform/platform-holder";
 import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 
 type UseThreadsStoreProps = {
@@ -153,13 +154,8 @@ const useThreadsStore = create<UseThreadsStoreProps>((set, get) => ({
 
     const content = convertMessagesToMd(messages);
 
-    window.AscDesktopEditor.SaveFilenameDialog(`${title}.docx`, (path) => {
-      if (!path) return;
-
-      window.AscDesktopEditor.saveAndOpen(content, 0x5c, path, 0x41, (code) => {
-        if (!code) console.log("Conversion error");
-      });
-    });
+    const platform = getPlatformInstance();
+    platform?.file?.saveAsFile(content, `${title}.docx`);
   },
   onRenameThread: (id: string, title: string) => {
     const thisStore = get();

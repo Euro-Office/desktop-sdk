@@ -13,6 +13,7 @@ import {
   isXps,
 } from "@/lib/utils";
 import useAttachmentsStore from "@/store/useAttachmentsStore";
+import { usePlatform } from "../../../npm_lib/platform/context";
 import { IconButton } from "../icon-button";
 
 type FileItemProps = {
@@ -34,6 +35,7 @@ const getFileIconName = (type: number): string => {
 
 const FileItem = ({ file, withoutClose }: FileItemProps) => {
   const { isRTL } = useDirection();
+  const platform = usePlatform();
   const { deleteAttachmentFile, deleteAttachmentImage } = useAttachmentsStore();
 
   const handleDelete = () => {
@@ -78,7 +80,7 @@ const FileItem = ({ file, withoutClose }: FileItemProps) => {
       onClick={() => {
         if (!withoutClose || !("path" in file)) return;
 
-        window.AscDesktopEditor.openTemplate(file.path, name);
+        platform.file?.openFile(file.path, name);
       }}
     >
       {"base64" in file ? (
