@@ -1,14 +1,14 @@
 # @onlyoffice/ai-chat — Library Core
 
-This folder is the **core of the ai-chat library**. It contains interfaces, React providers, shared types, AI provider implementations, and tool runtime logic. It has **zero imports from `src/`** — fully self-contained.
+This folder is the **core of the ai-chat library**. It contains interfaces, React providers, shared types, AI provider implementations, tool runtime logic, and business-logic services. It has **zero imports from `src/`** — fully self-contained.
 
-Host-specific code (IndexedDB, `window.AscDesktopEditor`, ONLYOFFICE APIs) lives in `src/` and is injected via providers.
+Host-specific code (IndexedDB, `window.AscDesktopEditor`, ONLYOFFICE APIs) lives in `src/` and is injected via adapters.
 
 ## Architecture
 
 ```
-npm_lib/          — Library core: types, providers, contexts, AI providers, tool runtime
-src/              — Host implementation: IndexedDB storage, OnlyOffice platform, UI components
+npm_lib/          — Library core: types, adapters, contexts, AI providers, tool runtime, services
+src/              — Host implementation: IndexedDB storage, localStorage settings, OnlyOffice platform, UI components
 ```
 
 ## File Structure
@@ -18,12 +18,19 @@ npm_lib/
 ├── index.ts                       # Root entry — re-exports everything
 ├── types.ts                       # Shared domain types (Thread, Profile, Model, etc.)
 ├── constants.ts                   # Shared constants (CURRENT_MODEL_KEY)
+├── utils.ts                       # Message utilities (convertMessagesToMd, removeSpecialCharacter, getMessageTitleFromMd)
 ├── README.md
 │
 ├── storage/
 │   ├── types.ts                   # StorageAdapter interface + sub-interfaces
 │   ├── context.tsx                # StorageProvider + useStorage()
 │   ├── storage-holder.ts          # Global holder for Zustand stores
+│   └── index.ts
+│
+├── settings/
+│   ├── types.ts                   # SettingsAdapter interface (key-value)
+│   ├── context.tsx                # SettingsProvider + useSettings()
+│   ├── settings-holder.ts         # Global holder for Zustand stores
 │   └── index.ts
 │
 ├── platform/
@@ -42,6 +49,14 @@ npm_lib/
 │   │   ├── WebSearch.ts           # Exa API web search
 │   │   └── CustomServers.ts       # MCP STDIO/HTTP servers
 │   └── index.ts
+│
+├── services/
+│   ├── index.ts                   # Re-exports all services
+│   ├── prompts.ts                 # PromptsService — prompt/folder CRUD
+│   ├── threads.ts                 # ThreadsService — thread lifecycle, migration, export
+│   ├── profiles.ts                # ProfilesService — profile validation, task assignments, provider sync
+│   ├── servers.ts                 # ServersService — MCP config, tool list building, enable/disable
+│   └── chat-engine.ts             # ChatEngine — message sending, streaming, tool call approval/deny
 │
 └── providers/
     ├── index.ts                   # Provider class (AI provider manager)
@@ -70,14 +85,15 @@ All providers set their global holders **synchronously during render** so Zustan
 
 ```
 App
-├── PlatformProvider          [SYNC]  setPlatformInstance()
-│   ├── Provider instance     [SYNC]  setProviderInstance() via useMemo
-│   └── AppWithTools
-│       └── ToolsProvider     [SYNC]  new Servers() + setServersInstance()
-│           └── StorageProvider
-│               ├── [SYNC]    setStorageInstance()
-│               ├── [ASYNC]   storage.init() → renders children when ready
-│               └── AppInner  [uses all holders safely]
+├── SettingsProvider          [SYNC]  setSettingsInstance()
+│   └── PlatformProvider      [SYNC]  setPlatformInstance()
+│       ├── Provider instance [SYNC]  setProviderInstance() via useMemo
+│       └── AppWithTools
+│           └── ToolsProvider [SYNC]  new Servers() + setServersInstance()
+│               └── StorageProvider
+│                   ├── [SYNC]    setStorageInstance()
+│                   ├── [ASYNC]   storage.init() → renders children when ready
+│                   └── AppInner  [uses all holders safely]
 ```
 
 **Key rule:** All holders are set synchronously. `StorageProvider` additionally gates rendering on async `init()`.
@@ -122,6 +138,24 @@ Plus `init()` / `close()` lifecycle.
 
 ---
 
+### settings/ — Pluggable Key-Value Settings
+
+The host provides a `SettingsAdapter` for persisting user preferences:
+
+```ts
+interface SettingsAdapter {
+  get(key: string): string | null;
+  set(key: string, value: string): void;
+  remove(key: string): void;
+}
+```
+
+Settings keys (e.g. `"default-profile"`, `"mcpServers"`) are defined by the host, not the library. Services receive keys via constructor or method arguments.
+
+**Current host implementation:** `src/settings/localStorage.ts` — wraps browser `localStorage`.
+
+---
+
 ### platform/ — Platform Abstraction
 
 | Sub-interface | Nullable | When null, hides |
@@ -146,6 +180,31 @@ Three tool sources managed by `Servers` class:
 | `CustomServers` | MCP via JSON-RPC 2.0 | HTTP always; STDIO only if `platform.process` available |
 
 **Tool approval:** Host tools auto-allow by default (`requireApproval: false`). MCP tools require UI approval. Web search always auto-allows.
+
+---
+
+### services/ — Business Logic
+
+Services contain all chat business logic. They depend on holders (`getStorageInstance()`, `getSettingsInstance()`, etc.) and have zero UI dependencies.
+
+| Service | Responsibility |
+|---------|---------------|
+| `PromptsService` | Prompt/folder CRUD with storage persistence |
+| `ThreadsService` | Thread lifecycle, legacy migration, DOCX export, deletion |
+| `ProfilesService` | Profile validation, task profile assignments, provider sync |
+| `ServersService` | MCP config persistence, tool list building with limits, enable/disable, tool call routing |
+| `ChatEngine` | Message sending, streaming via `AsyncGenerator<ChatEvent>`, tool call approval/deny, thread title generation |
+
+**ChatEngine event types:**
+
+| ChatEvent type | Description |
+|----------------|-------------|
+| `message-start` | First chunk of assistant response |
+| `message-delta` | Subsequent streaming chunk |
+| `message-end` | Stream complete |
+| `message-incomplete` | Stream interrupted (error/cancel) |
+| `tool-call-pending` | Tool call requires user approval |
+| `thread-title` | Thread title generated, create thread |
 
 ---
 
@@ -178,6 +237,7 @@ Three tool sources managed by `Servers` class:
 // src/App.tsx
 const App = () => {
   const storage = useMemo(() => new IndexedDBStorage(), []);
+  const settings = useMemo(() => new LocalStorageSettings(), []);
   const platform = useMemo(
     () => isDesktopEditor() ? new OnlyOfficePlatform() : new NoopPlatform(),
     []
@@ -190,24 +250,11 @@ const App = () => {
   }, []);
 
   return (
-    <PlatformProvider platform={platform}>
-      <AppWithTools storage={storage} />   {/* reads platform, builds HostToolGroup[] */}
-    </PlatformProvider>
-  );
-};
-
-const AppWithTools = ({ storage }) => {
-  const platform = usePlatform();
-  const hostToolGroups = useMemo(() => {
-    // Convert platform.hostTools into HostToolGroup[]
-  }, [platform.hostTools]);
-
-  return (
-    <ToolsProvider hostToolGroups={hostToolGroups}>
-      <StorageProvider storage={storage}>
-        <AppInner />
-      </StorageProvider>
-    </ToolsProvider>
+    <SettingsProvider settings={settings}>
+      <PlatformProvider platform={platform}>
+        <AppWithTools storage={storage} />
+      </PlatformProvider>
+    </SettingsProvider>
   );
 };
 ```
@@ -216,12 +263,17 @@ const AppWithTools = ({ storage }) => {
 
 ```tsx
 import {
-  PlatformProvider, StorageProvider, ToolsProvider,
-  type StorageAdapter, type PlatformAdapter, type HostToolGroup,
+  PlatformProvider, StorageProvider, ToolsProvider, SettingsProvider,
+  type StorageAdapter, type PlatformAdapter, type SettingsAdapter, type HostToolGroup,
   Provider, setProviderInstance,
 } from "@onlyoffice/ai-chat";
 
 const myStorage: StorageAdapter = { /* REST API */ };
+const mySettings: SettingsAdapter = {
+  get: (key) => sessionStorage.getItem(key),
+  set: (key, value) => sessionStorage.setItem(key, value),
+  remove: (key) => sessionStorage.removeItem(key),
+};
 const myPlatform: PlatformAdapter = {
   file: null,
   process: null,
@@ -241,17 +293,44 @@ const myTools: HostToolGroup[] = [
   },
 ];
 
-// Create Provider instance
 const p = new Provider();
 setProviderInstance(p);
 
-<PlatformProvider platform={myPlatform}>
-  <ToolsProvider hostToolGroups={myTools}>
-    <StorageProvider storage={myStorage}>
-      <Chat />
-    </StorageProvider>
-  </ToolsProvider>
-</PlatformProvider>
+<SettingsProvider settings={mySettings}>
+  <PlatformProvider platform={myPlatform}>
+    <ToolsProvider hostToolGroups={myTools}>
+      <StorageProvider storage={myStorage}>
+        <Chat />
+      </StorageProvider>
+    </ToolsProvider>
+  </PlatformProvider>
+</SettingsProvider>
+```
+
+### Using Services Directly
+
+```tsx
+import { ChatEngine, ProfilesService, ServersService } from "@onlyoffice/ai-chat";
+
+// Profile management
+const profiles = new ProfilesService();
+const result = await profiles.init({ defaultKey: "default-profile", taskKeys: ["chat-profile"] });
+
+// Chat orchestration
+const chat = new ChatEngine();
+for await (const event of chat.sendMessage({
+  text: "Hello!",
+  threadId: "thread-1",
+  existingMessages: [],
+  extendedThinking: false,
+})) {
+  switch (event.type) {
+    case "message-start": console.log("Stream started");  break;
+    case "message-delta": console.log("Chunk:", event.message); break;
+    case "message-end":   console.log("Done"); break;
+    case "tool-call-pending": /* show approval UI */ break;
+  }
+}
 ```
 
 ### Adding a Custom AI Provider
@@ -274,7 +353,8 @@ registerProvider("my-llm", new MyProvider());
 ## Rules
 
 1. **No imports from `src/`** — npm_lib is fully self-contained
-2. **No host-specific code** — no `window.*`, no IndexedDB, no ONLYOFFICE APIs
-3. **All providers require explicit props** — no auto-detection, no defaults, no fallbacks
-4. **Holders set synchronously** — during render, not in useEffect, so Zustand stores can access them immediately
-5. **`ProviderType` accepts any string** — builtin types have autocomplete, custom types work via `registerProvider()`
+2. **No host-specific code** — no `window.*`, no IndexedDB, no ONLYOFFICE APIs, no localStorage
+3. **All providers/adapters require explicit props** — no auto-detection, no defaults, no fallbacks
+4. **Settings keys are host-defined** — services receive keys via arguments, never hardcode them
+5. **Holders set synchronously** — during render, not in useEffect, so Zustand stores can access them immediately
+6. **`ProviderType` accepts any string** — builtin types have autocomplete, custom types work via `registerProvider()`
