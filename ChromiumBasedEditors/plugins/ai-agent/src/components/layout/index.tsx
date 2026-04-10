@@ -39,7 +39,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    const unsubscribeClouds = platform.env.onCloudsChange?.(fetchClouds);
+    const unsubscribeClouds = platform.clouds?.onCloudsChange?.(fetchClouds);
 
     return () => {
       unsubscribe?.();

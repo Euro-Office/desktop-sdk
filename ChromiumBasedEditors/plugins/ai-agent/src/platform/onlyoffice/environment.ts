@@ -45,14 +45,4 @@ export class OnlyOfficeEnvironment implements PlatformEnvironment {
       (window as any).on_update_plugin_info = undefined;
     };
   }
-
-  onCloudsChange(callback: () => void): () => void {
-    // biome-ignore lint/suspicious/noExplicitAny: ONLYOFFICE global API
-    (window as any).on_update_cloud = callback;
-
-    return () => {
-      // biome-ignore lint/suspicious/noExplicitAny: ONLYOFFICE global API
-      (window as any).on_update_cloud = undefined;
-    };
-  }
 }

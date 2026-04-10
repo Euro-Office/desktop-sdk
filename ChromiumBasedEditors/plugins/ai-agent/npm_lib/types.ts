@@ -86,3 +86,8 @@ export type Profile = {
   reasoning?: boolean;
   isCloudProvider?: boolean;
 };
+
+export type TCloud = {
+  url: string;
+  data: { apiKey: string };
+};

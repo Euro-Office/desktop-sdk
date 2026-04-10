@@ -1,4 +1,4 @@
-import type { TMCPItem, TProcess } from "../types";
+import type { TCloud, TMCPItem, TProcess } from "../types";
 
 export interface PlatformFileOperations {
   /** Show a native file picker dialog and return selected file paths, or null if cancelled */
@@ -46,9 +46,14 @@ export interface PlatformEnvironment {
 
   /** Subscribe to theme/language changes from the host. Returns an unsubscribe function */
   onEnvironmentChange?: (callback: (info: { theme?: string; lang?: string }) => void) => () => void;
+}
 
-  /** Subscribe to cloud account list changes from the host. Returns an unsubscribe function */
-  onCloudsChange?: (callback: () => void) => () => void;
+export interface PlatformClouds {
+  /** Get the list of connected cloud accounts from the host application */
+  getClouds(): TCloud[];
+
+  /** Subscribe to cloud account list changes. Returns an unsubscribe function */
+  onCloudsChange?(callback: () => void): () => void;
 }
 
 export interface PlatformHostTools {
@@ -71,4 +76,7 @@ export interface PlatformAdapter {
 
   /** Built-in tools exposed by the host application. If null — no host tools section in the tools list */
   hostTools: PlatformHostTools | null;
+
+  /** Cloud accounts connected in the host application. If null — cloud provider features are unavailable */
+  clouds: PlatformClouds | null;
 }

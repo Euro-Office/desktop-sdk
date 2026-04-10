@@ -11,6 +11,7 @@ export type {
   TAttachmentImage,
   TProcess,
   Profile,
+  TCloud,
 } from "./types";
 
 // --- Storage ---
@@ -33,6 +34,7 @@ export type {
   PlatformProcessRunner,
   PlatformEnvironment,
   PlatformHostTools,
+  PlatformClouds,
 } from "./platform/types";
 
 export { PlatformProvider, usePlatform } from "./platform/context";

@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import type { TCloud } from "@/index";
+import { getPlatformInstance } from "../../npm_lib/platform/platform-holder";
+import type { TCloud } from "../../npm_lib/types";
 
 type CloudsState = {
   clouds: TCloud[];
@@ -23,10 +24,8 @@ const useCloudsStore = create<CloudsState>()((set, get) => ({
   getClouds: () => get().clouds,
   setClouds: (clouds) => set({ clouds }),
   fetchClouds: () => {
-    const clouds =
-      (typeof window.AscDesktopEditor?.getClouds === "function"
-        ? window.AscDesktopEditor.getClouds()
-        : null) ?? devClouds;
+    const platform = getPlatformInstance();
+    const clouds = platform?.clouds?.getClouds() ?? devClouds;
     set({ clouds });
   },
 }));

@@ -10,4 +10,5 @@ export class NoopPlatform implements PlatformAdapter {
     devicePixelRatio: 1,
   };
   hostTools = null;
+  clouds = null;
 }
