@@ -2,12 +2,12 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { ComboBox } from "@/components/combo-box";
 import type { Profile } from "@/lib/types";
-import { provider } from "@/providers";
 import useMessageStore from "@/store/useMessageStore";
 import useProfilesStore, {
   selectCurrentChatProfile,
 } from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
+import { getProviderInstance } from "../../../../npm_lib/providers/provider-holder";
 
 const SelectModel = () => {
   const { profiles, setSessionChatProfile } = useProfilesStore();
@@ -21,8 +21,8 @@ const SelectModel = () => {
       if (currentProfile?.id === profile.id) return;
 
       setSessionChatProfile(profile);
-      provider.setCurrentProviderTools(tools);
-      provider.setCurrentProviderPrevMessages(messages);
+      getProviderInstance().setCurrentProviderTools(tools);
+      getProviderInstance().setCurrentProviderPrevMessages(messages);
     },
     [currentProfile, setSessionChatProfile, tools, messages]
   );

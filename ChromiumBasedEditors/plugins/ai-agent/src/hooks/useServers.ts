@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { provider } from "@/providers";
 import useProfilesStore, {
   selectCurrentChatProfile,
 } from "@/store/useProfilesStore";
 import useServersStore from "@/store/useServersStore";
+import { getProviderInstance } from "../../npm_lib/providers/provider-holder";
+import { useToolsContext } from "../../npm_lib/tools/context";
 
 type UseServersProps = {
   isReady: boolean;
@@ -12,6 +13,13 @@ type UseServersProps = {
 const useServers = ({ isReady }: UseServersProps) => {
   const { initServers, getTools, tools } = useServersStore();
   const currentProfile = useProfilesStore(selectCurrentChatProfile);
+  const { servers, hostToolGroups } = useToolsContext();
+
+  // Sync host tool groups into servers
+  useEffect(() => {
+    servers.hostToolSource.setGroups(hostToolGroups);
+    getTools();
+  }, [servers, hostToolGroups, getTools]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -22,7 +30,6 @@ const useServers = ({ isReady }: UseServersProps) => {
     const interval = setInterval(
       () => {
         getTools();
-        // update tools every 5 minutes
       },
       1000 * 60 * 5
     );
@@ -47,7 +54,7 @@ const useServers = ({ isReady }: UseServersProps) => {
   useEffect(() => {
     if (!tools || !currentProfile) return;
 
-    provider.setCurrentProviderTools(tools);
+    getProviderInstance().setCurrentProviderTools(tools);
   }, [tools, currentProfile]);
 
   return {};

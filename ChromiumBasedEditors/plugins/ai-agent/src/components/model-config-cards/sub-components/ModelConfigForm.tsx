@@ -5,7 +5,7 @@ import { Input } from "@/components/input";
 import { Link } from "@/components/link";
 import { getApiKeyLink } from "@/lib/apiKeyLinks";
 import type { Model, ProviderType } from "@/lib/types";
-import { provider } from "@/providers";
+import { getProviderInstance } from "../../../../npm_lib/providers/provider-holder";
 import useCloudsStore from "@/store/useCloudsStore";
 
 export interface ModelFormValues {
@@ -25,8 +25,6 @@ export type ProviderSelection = {
   apiKey?: string;
   isCloudProvider?: boolean;
 };
-
-const providersInfo = provider.getProvidersInfo();
 
 interface ModelConfigFormProps {
   values: ModelFormValues;
@@ -48,6 +46,7 @@ export const ModelConfigForm = ({
 }: ModelConfigFormProps) => {
   const { t } = useTranslation();
   const { clouds } = useCloudsStore();
+  const providersInfo = getProviderInstance().getProvidersInfo();
   const isFieldsDisabled = !values.provider;
 
   const providerItems = [

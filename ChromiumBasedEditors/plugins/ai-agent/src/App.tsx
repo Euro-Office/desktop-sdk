@@ -11,8 +11,12 @@ import { isDesktopEditor } from "@/lib/utils";
 import { NoopPlatform } from "@/platform/noop";
 import { OnlyOfficePlatform } from "@/platform/onlyoffice";
 import { IndexedDBStorage } from "@/storage/indexeddb";
-import { PlatformProvider } from "../npm_lib/platform/context";
+import { PlatformProvider, usePlatform } from "../npm_lib/platform/context";
+import Provider from "../npm_lib/providers";
+import { setProviderInstance } from "../npm_lib/providers/provider-holder";
 import { StorageProvider } from "../npm_lib/storage/context";
+import { ToolsProvider } from "../npm_lib/tools/context";
+import type { HostToolGroup } from "../npm_lib/tools/types";
 import { Layout } from "./components/layout";
 import { ManageToolDialog } from "./components/manage-tool-dialog";
 import useMessages from "./hooks/useMessages";
@@ -39,12 +43,50 @@ const App = () => {
     []
   );
 
+  // Create Provider instance and set global holder
+  useMemo(() => {
+    const p = new Provider();
+    setProviderInstance(p);
+    return p;
+  }, []);
+
   return (
     <PlatformProvider platform={platform}>
+      <AppWithTools storage={storage} />
+    </PlatformProvider>
+  );
+};
+
+/** Reads platform from context to build host tool groups, then wraps in ToolsProvider + StorageProvider */
+const AppWithTools = ({ storage }: { storage: IndexedDBStorage }) => {
+  const platform = usePlatform();
+
+  const hostToolGroups: HostToolGroup[] = useMemo(() => {
+    const ht = platform.hostTools;
+    if (!ht) return [];
+
+    const tools = ht.getTools();
+    if (!tools.length) return [];
+
+    return [
+      {
+        id: "desktop-editor",
+        name: "Desktop Editor",
+        tools: tools.map((tool) => ({
+          ...tool,
+          handler: (args: Record<string, unknown>) =>
+            ht.callTool(tool.name, args),
+        })),
+      },
+    ];
+  }, [platform.hostTools]);
+
+  return (
+    <ToolsProvider hostToolGroups={hostToolGroups}>
       <StorageProvider storage={storage}>
         <AppInner />
       </StorageProvider>
-    </PlatformProvider>
+    </ToolsProvider>
   );
 };
 

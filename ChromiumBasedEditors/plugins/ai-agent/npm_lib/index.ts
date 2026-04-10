@@ -38,3 +38,20 @@ export type {
 } from "./platform/types";
 
 export { PlatformProvider, usePlatform } from "./platform/context";
+
+// --- Tools ---
+export type { HostTool, HostToolGroup, ToolSource } from "./tools/types";
+
+export { ToolsProvider, useToolsContext } from "./tools/context";
+
+// --- Providers ---
+export { AbstractBaseProvider } from "./providers/base";
+export type { BaseProvider } from "./providers/registry";
+export {
+  registerProvider,
+  unregisterProvider,
+  getProvider,
+  getSupportedProviderTypes,
+  isValidProviderType,
+} from "./providers/registry";
+export { provider, type SendMessageReturnType } from "./providers";

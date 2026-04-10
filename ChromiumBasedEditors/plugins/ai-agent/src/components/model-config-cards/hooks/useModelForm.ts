@@ -7,7 +7,7 @@ import type {
 } from "@/components/model-config-cards/sub-components/ModelConfigForm";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
 import type { Model, ProviderType } from "@/lib/types";
-import { provider } from "@/providers";
+import { getProviderInstance } from "../../../../npm_lib/providers/provider-holder";
 
 export const useModelForm = (initialValues: ModelFormValues) => {
   const { t } = useTranslation();
@@ -41,9 +41,9 @@ export const useModelForm = (initialValues: ModelFormValues) => {
     }
     setErrors({});
     const requestId = ++fetchModelsRequestIdRef.current;
-    const providerInfo = provider.getProviderInfo(providerType);
+    const providerInfo = getProviderInstance().getProviderInfo(providerType);
     const { models: result, errors: fetchErrors } =
-      await provider.getProvidersModels([
+      await getProviderInstance().getProvidersModels([
         { type: providerType, name: providerInfo.name, key: apiKey, baseUrl },
       ]);
     if (requestId !== fetchModelsRequestIdRef.current) return;
@@ -144,7 +144,7 @@ export const useModelForm = (initialValues: ModelFormValues) => {
     }
     if (field === "model") {
       const modelObj = models.find((m) => m.id === value);
-      const providerInfo = provider.getProviderInfo(
+      const providerInfo = getProviderInstance().getProviderInfo(
         values.provider as ProviderType
       );
       const displayName = values.isCloudProvider

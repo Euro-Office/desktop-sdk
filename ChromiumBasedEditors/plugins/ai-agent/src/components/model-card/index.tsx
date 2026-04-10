@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tooltip";
 import { useDirection } from "@/hooks/useDirection";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { provider } from "@/providers";
+import { getProviderInstance } from "../../../npm_lib/providers/provider-holder";
 import { DeleteProfileDialog } from "./DeleteProfileDialog";
 
 type ModelCardProps = {
@@ -17,8 +17,9 @@ type ModelCardProps = {
 
 const ModelCard = ({ profile }: ModelCardProps) => {
   const providerName = profile.isCloudProvider
-    ? new URL(profile.baseUrl).hostname
-    : provider.getProviderInfo(profile.providerType).name;
+    ? new URL(profile.baseUrl).hostname : getProviderInstance().getProviderInfo(
+    profile.providerType
+  ).name;
   const [isEditing, setIsEditing] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const { isRTL } = useDirection();

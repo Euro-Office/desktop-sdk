@@ -19,15 +19,16 @@ interface StorageProviderProps {
 
 /**
  * Initializes and provides the storage layer.
+ * Sets the global holder synchronously so Zustand stores can access it immediately.
  * Renders children only after storage.init() completes.
- * Also sets the global storage-holder so Zustand stores can access it.
  */
 export function StorageProvider({ storage, children }: StorageProviderProps) {
+  // Set holder synchronously — Zustand stores may call getStorageInstance() during render
+  setStorageInstance(storage);
+
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    setStorageInstance(storage);
-
     storage.init().then(() => setIsReady(true));
 
     return () => {

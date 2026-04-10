@@ -5,7 +5,7 @@ import {
   MAX_TOOL_COUNT_WITH_WEB_SEARCH,
 } from "@/lib/constants";
 import type { TMCPItem } from "@/lib/types";
-import client from "@/servers";
+import { getServersInstance } from "../../npm_lib/tools/tools-holder";
 
 const DISABLED_TOOLS_NAME = "disabledTools";
 const MCP_SERVERS_NAME = "mcpServers";
@@ -49,13 +49,13 @@ const useServersStore = create<UseServersStoreProps>((set, get) => ({
 
     if (customServers) {
       const parsedCustomServers = JSON.parse(customServers);
-      client.setCustomServers(parsedCustomServers);
-      client.startCustomServers();
+      getServersInstance().setCustomServers(parsedCustomServers);
+      getServersInstance().startCustomServers();
     }
   },
 
   getTools: async () => {
-    const allTools = await client.getTools();
+    const allTools = await getServersInstance().getTools();
     const disabledToolsNamesStr = localStorage.getItem(DISABLED_TOOLS_NAME);
 
     const tools: TMCPItem[] = [];
@@ -281,17 +281,17 @@ const useServersStore = create<UseServersStoreProps>((set, get) => ({
   },
 
   checkAllowAlways: (type: string, name: string) => {
-    return client.checkAllowAlways(type, name);
+    return getServersInstance().checkAllowAlways(type, name);
   },
 
   setAllowAlways: (value: boolean, type: string, name: string) => {
-    client.setAllowAlways(value, type, name);
+    getServersInstance().setAllowAlways(value, type, name);
   },
 
   callTools: async (name: string, args: Record<string, unknown>) => {
     const thisStore = get();
 
-    const type = client.getServerType(name);
+    const type = getServersInstance().getServerType(name);
     const toolName = name.replace(`${type}_`, "");
 
     const tool = thisStore.disabledTools[type].find(
@@ -300,7 +300,7 @@ const useServersStore = create<UseServersStoreProps>((set, get) => ({
 
     if (tool) return;
 
-    return await client.callTools(type, toolName, args);
+    return await getServersInstance().callTools(type, toolName, args);
   },
 
   setManageToolData: (data: UseServersStoreProps["manageToolData"]) => {
@@ -319,23 +319,23 @@ const useServersStore = create<UseServersStoreProps>((set, get) => ({
   }) => {
     const currConfig = config.mcpServers ? config : { mcpServers: {} };
     localStorage.setItem(MCP_SERVERS_NAME, JSON.stringify(currConfig));
-    client.setCustomServers(currConfig);
-    client.startCustomServers();
+    getServersInstance().setCustomServers(currConfig);
+    getServersInstance().startCustomServers();
   },
 
   deleteCustomServer: (name: string) => {
-    client.deleteCustomServer(name);
+    getServersInstance().deleteCustomServer(name);
     const config = get().getConfig();
     delete config.mcpServers[name];
     localStorage.setItem(MCP_SERVERS_NAME, JSON.stringify(config));
   },
 
   getCustomServersLogs: () => {
-    return client.getCustomServersLogs();
+    return getServersInstance().getCustomServersLogs();
   },
 
   getWebSearchEnabled: () => {
-    return client.getWebSearchEnabled();
+    return getServersInstance().getWebSearchEnabled();
   },
 }));
 

@@ -11,8 +11,8 @@ import {
   VISION_PROFILE_KEY,
 } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
-import { provider } from "@/providers";
-import type { TErrorData } from "@/providers/base";
+import type { TErrorData } from "../../npm_lib/providers/base";
+import { getProviderInstance } from "../../npm_lib/providers/provider-holder";
 import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 
 const NAME_EXISTS_ERROR = {
@@ -48,15 +48,18 @@ function applyCurrentChatProvider(
 ) {
   const active = sessionChatProfile ?? chatProfile ?? defaultProfile;
   if (active) {
-    provider.setCurrentProvider({
+    getProviderInstance().setCurrentProvider({
       type: active.providerType,
       name: active.name,
       baseUrl: active.baseUrl,
       key: active.key,
     });
-    provider.setCurrentProviderModel(active.modelId, active.reasoning);
+    getProviderInstance().setCurrentProviderModel(
+      active.modelId,
+      active.reasoning
+    );
   } else {
-    provider.setCurrentProvider(undefined);
+    getProviderInstance().setCurrentProvider(undefined);
   }
 }
 
@@ -157,10 +160,13 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
 
     if (nameExists) return NAME_EXISTS_ERROR;
 
-    const checkResult = await provider.checkNewProvider(data.providerType, {
-      url: data.baseUrl,
-      apiKey: data.key,
-    });
+    const checkResult = await getProviderInstance().checkNewProvider(
+      data.providerType,
+      {
+        url: data.baseUrl,
+        apiKey: data.key,
+      }
+    );
 
     if (typeof checkResult === "boolean" && checkResult) {
       const isFirst = get().profiles.length === 0;
@@ -184,10 +190,13 @@ const useProfilesStore = create<ProfilesState>()((set, get) => ({
 
     if (nameExists) return NAME_EXISTS_ERROR;
 
-    const checkResult = await provider.checkNewProvider(profile.providerType, {
-      url: profile.baseUrl,
-      apiKey: profile.key,
-    });
+    const checkResult = await getProviderInstance().checkNewProvider(
+      profile.providerType,
+      {
+        url: profile.baseUrl,
+        apiKey: profile.key,
+      }
+    );
 
     if (typeof checkResult === "boolean" && checkResult) {
       const storage = getStorageInstance();

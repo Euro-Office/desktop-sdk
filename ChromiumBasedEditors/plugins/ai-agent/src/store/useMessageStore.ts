@@ -1,6 +1,6 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { create } from "zustand";
-import { provider } from "@/providers";
+import { getProviderInstance } from "../../npm_lib/providers/provider-holder";
 import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 
 type UseMessageStoreProps = {
@@ -27,7 +27,7 @@ const useMessageStore = create<UseMessageStoreProps>((set, get) => ({
 
     set({ messages });
 
-    provider.setCurrentProviderPrevMessages(messages);
+    getProviderInstance().setCurrentProviderPrevMessages(messages);
   },
   setIsStreamRunning: (value) => {
     set({ isStreamRunning: value });
@@ -61,11 +61,11 @@ const useMessageStore = create<UseMessageStoreProps>((set, get) => ({
     const thisStore = get();
 
     thisStore.setIsStreamRunning(false);
-    provider.stopMessage();
+    getProviderInstance().stopMessage();
   },
   clearMessages: () => {
     set({ messages: [] });
-    provider.setCurrentProviderPrevMessages([]);
+    getProviderInstance().setCurrentProviderPrevMessages([]);
   },
 }));
 

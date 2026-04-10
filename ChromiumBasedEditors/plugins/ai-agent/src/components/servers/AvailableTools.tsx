@@ -6,8 +6,8 @@ import {
   MAX_TOOL_COUNT_WITH_WEB_SEARCH,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import client from "@/servers";
 import useServersStore from "@/store/useServersStore";
+import { getServersInstance } from "../../../npm_lib/tools/tools-holder";
 import AvailableToolsItem from "./AvailableToolsItem";
 import ToolsCounter from "./ToolsCounter";
 
@@ -24,10 +24,10 @@ const AvailableTools = ({ withHeader = true }: AvailableToolsProps) => {
   const { servers, tools, webSearchEnabled } = useServersStore();
 
   React.useEffect(() => {
-    setCustomServers(client.getCustomServers());
+    setCustomServers(getServersInstance().getCustomServers());
 
     const interval = setInterval(() => {
-      setCustomServers(client.getCustomServers());
+      setCustomServers(getServersInstance().getCustomServers());
     }, 1000);
 
     return () => clearInterval(interval);

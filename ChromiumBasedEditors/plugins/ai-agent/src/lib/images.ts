@@ -129,8 +129,9 @@ export const getProviderImageSrc = (
   theme: ThemeType = "light",
   scale: number = 1
 ): string => {
-  const providerName =
-    providerType === "anthropic" ? "anthropic" : FALLBACK_PROVIDER;
+  // Try exact provider name first, then fallback
+  const exact = getImageSrc(providerType, theme, scale);
+  if (exact) return exact.src;
 
-  return getImageSrc(providerName, theme, scale)?.src || "";
+  return getImageSrc(FALLBACK_PROVIDER, theme, scale)?.src || "";
 };
