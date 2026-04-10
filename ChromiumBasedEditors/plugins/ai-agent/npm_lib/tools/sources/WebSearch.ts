@@ -1,3 +1,4 @@
+import { getSettingsInstance } from "../../settings/settings-holder";
 import type { TMCPItem } from "../../types";
 
 const WEB_SEARCH_DATA = "webSearchProviderData";
@@ -15,7 +16,7 @@ class WebSearch {
   constructor() {
     this.tools = [];
 
-    const data = localStorage.getItem(WEB_SEARCH_DATA);
+    const data = getSettingsInstance().get(WEB_SEARCH_DATA);
 
     if (data) {
       this.webSearchData = JSON.parse(data);
@@ -28,7 +29,10 @@ class WebSearch {
 
   setWebSearchData = (data: WebSearchData) => {
     this.webSearchData = data;
-    localStorage.setItem(WEB_SEARCH_DATA, data ? JSON.stringify(data) : "");
+    getSettingsInstance().set(
+      WEB_SEARCH_DATA,
+      data ? JSON.stringify(data) : ""
+    );
     this.initTools();
   };
 

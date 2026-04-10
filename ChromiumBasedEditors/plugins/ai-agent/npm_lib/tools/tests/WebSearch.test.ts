@@ -26,6 +26,15 @@ const createMockLocalStorage = () => {
 
 const mockLocalStorage = createMockLocalStorage();
 
+// Mock settings holder — WebSearch now uses getSettingsInstance() instead of localStorage directly
+vi.mock("../../settings/settings-holder", () => ({
+  getSettingsInstance: () => ({
+    get: (key: string) => mockLocalStorage.getItem(key),
+    set: (key: string, value: string) => mockLocalStorage.setItem(key, value),
+    remove: (key: string) => mockLocalStorage.removeItem(key),
+  }),
+}));
+
 // Mock window object for Node environment
 const mockWindow = {
   localStorage: mockLocalStorage,

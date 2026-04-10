@@ -1,5 +1,6 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { CURRENT_MODEL_KEY } from "../constants";
+import { getSettingsInstance } from "../settings/settings-holder";
 import type { Model, ProviderType, TMCPItem, TProvider } from "../types";
 import type { TData, TErrorData } from "./base";
 import { mapFetchError } from "./errors";
@@ -42,7 +43,7 @@ class Provider {
       this.currentProvider.setSystemPrompt(SYSTEM_PROMPT);
 
       // Restore model from localStorage to handle initialization race condition
-      const savedModel = localStorage.getItem(CURRENT_MODEL_KEY);
+      const savedModel = getSettingsInstance().get(CURRENT_MODEL_KEY);
       if (savedModel) {
         const parsed: Model = JSON.parse(savedModel);
         this.currentProvider.setModelKey(parsed.id);

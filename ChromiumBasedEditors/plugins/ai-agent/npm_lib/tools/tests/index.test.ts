@@ -31,12 +31,21 @@ const {
     clear: vi.fn(() => {
       storageMock.store = {};
     }),
+    // SettingsAdapter interface (used by Servers via getSettingsInstance)
+    get: vi.fn((key: string) => storageMock.store[key] || null),
+    set: vi.fn((key: string, value: string) => {
+      storageMock.store[key] = value;
+    }),
+    remove: vi.fn((key: string) => {
+      delete storageMock.store[key];
+    }),
   };
 
   Object.defineProperty(global, "localStorage", {
     value: storageMock,
     writable: true,
   });
+
 
   // Mock window for CustomServers
   Object.defineProperty(global, "window", {
@@ -65,6 +74,11 @@ const {
     customServersDeleteMock: vi.fn(),
   };
 });
+
+// Mock settings holder (Servers uses getSettingsInstance() for allowAlways)
+vi.mock("../../settings/settings-holder", () => ({
+  getSettingsInstance: () => localStorageMock,
+}));
 
 // Mock the dependencies
 vi.mock("../sources/HostToolSource", () => ({
@@ -162,13 +176,13 @@ describe("Servers", () => {
     it("should ignore web-search type", () => {
       servers.setAllowAlways(true, "web-search", "search");
       // web-search is always allowed, so this should be a no-op
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(localStorageMock.set).not.toHaveBeenCalled();
     });
 
     it("should add tool to allowAlways when value is true", () => {
       servers.setAllowAlways(true, "mcp", "tool1");
       expect(servers.checkAllowAlways("mcp", "tool1")).toBe(true);
-      expect(localStorageMock.setItem).toHaveBeenCalled();
+      expect(localStorageMock.set).toHaveBeenCalled();
     });
 
     it("should remove tool from allowAlways when value is false", () => {

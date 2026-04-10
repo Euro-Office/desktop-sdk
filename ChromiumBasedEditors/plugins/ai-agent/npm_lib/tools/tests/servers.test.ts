@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TMCPItem } from "../../types";
 
-vi.stubGlobal("localStorage", {
-  getItem: vi.fn().mockReturnValue(null),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-});
+const mockSettings = {
+  get: vi.fn().mockReturnValue(null),
+  set: vi.fn(),
+  remove: vi.fn(),
+};
+
+vi.mock("../../settings/settings-holder", () => ({
+  getSettingsInstance: () => mockSettings,
+}));
 
 const mockHostToolSource = {
   getGroupIds: vi.fn().mockReturnValue([]),
@@ -26,20 +30,26 @@ const mockWebSearch = {
 };
 
 vi.mock("../sources/HostToolSource", () => ({
-  HostToolSource: function () {
-    return mockHostToolSource;
+  HostToolSource: class {
+    constructor() {
+      return mockHostToolSource;
+    }
   },
 }));
 
 vi.mock("../sources/CustomServers", () => ({
-  CustomServers: function () {
-    return mockCustomServers;
+  CustomServers: class {
+    constructor() {
+      return mockCustomServers;
+    }
   },
 }));
 
 vi.mock("../sources/WebSearch", () => ({
-  WebSearch: function () {
-    return mockWebSearch;
+  WebSearch: class {
+    constructor() {
+      return mockWebSearch;
+    }
   },
 }));
 
@@ -50,7 +60,7 @@ describe("Servers", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
+    mockSettings.get.mockReturnValue(null);
     mockHostToolSource.getGroupIds.mockReturnValue([]);
     mockHostToolSource.getToolsByGroup.mockResolvedValue({});
     mockHostToolSource.isAutoAllow.mockReturnValue(false);
@@ -61,13 +71,11 @@ describe("Servers", () => {
 
   describe("constructor", () => {
     it("reads allowAlways from localStorage", () => {
-      expect(localStorage.getItem).toHaveBeenCalledWith("allowAlwaysTools");
+      expect(mockSettings.get).toHaveBeenCalledWith("allowAlwaysTools");
     });
 
     it("parses stored allowAlways tools", () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(
-        "server_tool1,server_tool2"
-      );
+      mockSettings.get.mockReturnValue("server_tool1,server_tool2");
       const s = new Servers();
       expect(s.allowAlways).toEqual(["server_tool1", "server_tool2"]);
     });
@@ -104,7 +112,7 @@ describe("Servers", () => {
     it("adds tool to list and saves to localStorage", () => {
       servers.setAllowAlways(true, "myserver", "mytool");
       expect(servers.allowAlways).toContain("myserver_mytool");
-      expect(localStorage.setItem).toHaveBeenCalledWith(
+      expect(mockSettings.set).toHaveBeenCalledWith(
         "allowAlwaysTools",
         "myserver_mytool"
       );
@@ -115,7 +123,7 @@ describe("Servers", () => {
       servers.setAllowAlways(false, "myserver", "mytool");
       expect(servers.allowAlways).not.toContain("myserver_mytool");
       expect(servers.allowAlways).toContain("other_tool");
-      expect(localStorage.setItem).toHaveBeenCalledWith(
+      expect(mockSettings.set).toHaveBeenCalledWith(
         "allowAlwaysTools",
         "other_tool"
       );
@@ -124,7 +132,7 @@ describe("Servers", () => {
     it("ignores web-search type", () => {
       servers.setAllowAlways(true, "web-search", "web_search");
       expect(servers.allowAlways).toEqual([]);
-      expect(localStorage.setItem).not.toHaveBeenCalled();
+      expect(mockSettings.set).not.toHaveBeenCalled();
     });
   });
 

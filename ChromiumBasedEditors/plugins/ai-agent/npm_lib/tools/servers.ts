@@ -1,3 +1,4 @@
+import { getSettingsInstance } from "../settings/settings-holder";
 import type { TMCPItem } from "../types";
 import { CustomServers } from "./sources/CustomServers";
 import { HostToolSource } from "./sources/HostToolSource";
@@ -18,7 +19,7 @@ class Servers {
     this.webSearch = new WebSearch();
 
     this.allowAlways =
-      localStorage.getItem(ALLOW_ALWAYS_TOOLS)?.split(",") ?? [];
+      getSettingsInstance().get(ALLOW_ALWAYS_TOOLS)?.split(",") ?? [];
   }
 
   checkAllowAlways = (type: string, name: string) => {
@@ -53,7 +54,7 @@ class Servers {
       );
     }
 
-    localStorage.setItem(ALLOW_ALWAYS_TOOLS, this.allowAlways.join(","));
+    getSettingsInstance().set(ALLOW_ALWAYS_TOOLS, this.allowAlways.join(","));
   };
 
   getTools = async () => {
