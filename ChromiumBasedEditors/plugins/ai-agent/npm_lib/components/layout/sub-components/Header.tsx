@@ -7,8 +7,9 @@ const Navigation = () => {
   const { t } = useTranslation();
   const { useRouter, useThreadsStore } = useStores();
 
-  const { currentPage, setCurrentPage } = useRouter();
-  const { onSwitchToNewThread } = useThreadsStore();
+  const currentPage = useRouter((s) => s.currentPage);
+  const setCurrentPage = useRouter((s) => s.setCurrentPage);
+  const onSwitchToNewThread = useThreadsStore((s) => s.onSwitchToNewThread);
 
   return (
     <nav className="w-full flex justify-between items-center h-[56px] min-h-[56px] box-border border-b-[1px] border-[var(--header-border-color)] bg-[var(--header-background-color)] px-[32px]">

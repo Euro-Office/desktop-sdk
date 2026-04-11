@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Page } from "../../../store/create-stores";
 import type { Thread } from "../../../types";
@@ -22,7 +22,7 @@ const DownloadIcon = () => <Icon name="btn-save" size={24} isStroke />;
 const RenameIcon = () => <Icon name="btn-rename" size={24} />;
 const RemoveIcon = () => <Icon name="btn-remove" size={24} />;
 
-const ChatListItem = ({
+const ChatListItemComponent = ({
   thread,
   isActive,
   onSwitchToThread,
@@ -198,4 +198,5 @@ const ChatListItem = ({
   );
 };
 
+const ChatListItem = memo(ChatListItemComponent);
 export { ChatListItem };

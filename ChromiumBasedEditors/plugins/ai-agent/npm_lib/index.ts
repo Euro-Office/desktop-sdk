@@ -23,7 +23,7 @@ export {
 } from "./hooks";
 export type { InitAIChatI18nOptions } from "./i18n";
 // --- i18n ---
-export { bundledLocales, initAIChatI18n } from "./i18n";
+export { bundledLocaleKeys, initAIChatI18n } from "./i18n";
 export { getApiKeyLink } from "./lib/api-key-links";
 export { type DebouncedFn, debounce } from "./lib/debounce";
 export type { ImageCollections } from "./lib/images";

@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { cn } from "../../lib/utils";
 import { Icon } from "../icon";
 import type { IconButtonProps } from "./IconButton.types";
 
-const IconButton = ({
+const IconButtonComponent = ({
   iconName,
   size,
   isStroke,
@@ -68,4 +69,5 @@ const IconButton = ({
   );
 };
 
+const IconButton = memo(IconButtonComponent);
 export { IconButton };

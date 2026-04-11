@@ -1,3 +1,4 @@
+import { memo, useCallback } from "react";
 import { ReactSVG } from "react-svg";
 import { getImageSrc } from "../../lib/images";
 import { useStores } from "../../store/context";
@@ -13,7 +14,7 @@ type IconProps = {
   className?: string;
 };
 
-const Icon = ({
+const IconComponent = ({
   name,
   size,
   width,
@@ -33,29 +34,32 @@ const Icon = ({
     return null;
   }
 
-  const handleBeforeInjection = (svg: SVGSVGElement) => {
-    if (noColor) return;
+  const handleBeforeInjection = useCallback(
+    (svg: SVGSVGElement) => {
+      if (noColor) return;
 
-    const fillColor = color || "var(--icon-button-color)";
+      const fillColor = color || "var(--icon-button-color)";
 
-    const paths = svg.querySelectorAll("path");
-    paths.forEach((path) => {
-      if (isStroke) {
-        path.setAttribute("stroke", fillColor);
-      } else {
-        path.setAttribute("fill", fillColor);
-      }
-    });
+      const paths = svg.querySelectorAll("path");
+      paths.forEach((path) => {
+        if (isStroke) {
+          path.setAttribute("stroke", fillColor);
+        } else {
+          path.setAttribute("fill", fillColor);
+        }
+      });
 
-    const circles = svg.querySelectorAll("circle");
-    circles.forEach((circle) => {
-      if (isStroke) {
-        circle.setAttribute("stroke", fillColor);
-      } else {
-        circle.setAttribute("fill", fillColor);
-      }
-    });
-  };
+      const circles = svg.querySelectorAll("circle");
+      circles.forEach((circle) => {
+        if (isStroke) {
+          circle.setAttribute("stroke", fillColor);
+        } else {
+          circle.setAttribute("fill", fillColor);
+        }
+      });
+    },
+    [noColor, color, isStroke]
+  );
 
   if (image.isSvg) {
     return (
@@ -78,4 +82,5 @@ const Icon = ({
   );
 };
 
+const Icon = memo(IconComponent);
 export { Icon };

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useStores } from "../../../store/context";
 import { IconButton } from "../../icon-button";
@@ -7,25 +7,26 @@ import { ChatListItem } from "./ChatListItem";
 
 const ChatList = () => {
   const { useThreadsStore, useRouter } = useStores();
-  const {
-    threads,
-    threadId,
-    onSwitchToThread,
-    onRenameThread,
-    onDownloadThread,
-    onClearThreadHistory,
-  } = useThreadsStore();
-  const { setCurrentPage } = useRouter();
+  const threads = useThreadsStore((s) => s.threads);
+  const threadId = useThreadsStore((s) => s.threadId);
+  const onSwitchToThread = useThreadsStore((s) => s.onSwitchToThread);
+  const onRenameThread = useThreadsStore((s) => s.onRenameThread);
+  const onDownloadThread = useThreadsStore((s) => s.onDownloadThread);
+  const onClearThreadHistory = useThreadsStore((s) => s.onClearThreadHistory);
+  const setCurrentPage = useRouter((s) => s.setCurrentPage);
 
   const [searchValue, setSearchValue] = React.useState("");
   const [showingThreads, setShowingThreads] = React.useState(threads);
 
   const { t } = useTranslation();
 
-  const onChangeSearchValue = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchValue(value);
-  };
+  const onChangeSearchValue = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setSearchValue(value);
+    },
+    []
+  );
 
   React.useEffect(() => {
     const filteredThreads = threads.filter((thread) => {

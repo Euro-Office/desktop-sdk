@@ -5,7 +5,7 @@ import {
   useMessage,
 } from "@assistant-ui/react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlatform } from "../../../platform/context";
 import { Icon } from "../../../components/icon";
@@ -17,7 +17,7 @@ import { TooltipIconButton } from "../../../components/tooltip-icon-button";
 import { convertMessagesToMd, getMessageTitleFromMd } from "../../../lib/utils";
 import { useStores } from "../../../store/context";
 
-const ThinkingMarkdownText = ({
+const ThinkingMarkdownText = memo(({
   text,
   type,
   parentId,
@@ -69,7 +69,7 @@ const ThinkingMarkdownText = ({
       )}
     </>
   );
-};
+});
 
 const MessageError = () => {
   return (

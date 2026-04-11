@@ -41,6 +41,12 @@ const buildCollections = (images: ImageMap): ImageCollections => {
   return collections;
 };
 
+// NOTE: These globs use `eager: true` which loads all theme variants at module
+// parse time. Removing `eager` would make them lazy (returning Promise-based
+// loaders), but that would require making getImageSrc async — cascading changes
+// through every component that uses images. Since Vite already emits these as
+// hashed URL strings (not file contents), the bundle-size impact is minimal.
+// A future optimization could load only the active theme's images on demand.
 const lightImageMap = import.meta.glob<string>("../assets/light/*.png", {
   eager: true,
   import: "default",

@@ -20,7 +20,7 @@ describe("initAIChatI18n", () => {
 
   it("calls i18n.use and i18n.init", async () => {
     const { initAIChatI18n } = await import("../i18n");
-    initAIChatI18n();
+    await initAIChatI18n();
 
     expect(mockUse).toHaveBeenCalledWith("initReactI18next-mock");
     expect(mockInit).toHaveBeenCalledOnce();
@@ -28,7 +28,7 @@ describe("initAIChatI18n", () => {
 
   it("uses fallbackLng 'en' by default", async () => {
     const { initAIChatI18n } = await import("../i18n");
-    initAIChatI18n();
+    await initAIChatI18n();
 
     expect(mockInit).toHaveBeenCalledWith(
       expect.objectContaining({ fallbackLng: "en" })
@@ -37,30 +37,42 @@ describe("initAIChatI18n", () => {
 
   it("passes lng when locale option is provided", async () => {
     const { initAIChatI18n } = await import("../i18n");
-    initAIChatI18n({ locale: "ru" });
+    await initAIChatI18n({ locale: "ru" });
 
     expect(mockInit).toHaveBeenCalledWith(
       expect.objectContaining({ lng: "ru" })
     );
   });
 
-  it("merges custom resources with bundled locales", async () => {
-    const { initAIChatI18n, bundledLocales } = await import("../i18n");
+  it("merges custom resources with loaded locales", async () => {
+    const { initAIChatI18n } = await import("../i18n");
     const custom = { "ko-KR": { translation: { hello: "world" } } };
-    initAIChatI18n({ resources: custom });
+    await initAIChatI18n({ resources: custom });
 
     expect(mockInit).toHaveBeenCalledWith(
       expect.objectContaining({
-        resources: { ...bundledLocales, ...custom },
+        resources: expect.objectContaining({
+          en: expect.objectContaining({ translation: expect.any(Object) }),
+          "ko-KR": { translation: { hello: "world" } },
+        }),
       })
     );
   });
 
   it("does not re-initialize on second call", async () => {
     const { initAIChatI18n } = await import("../i18n");
-    initAIChatI18n();
-    initAIChatI18n({ locale: "fr" });
+    await initAIChatI18n();
+    await initAIChatI18n({ locale: "fr" });
 
     expect(mockInit).toHaveBeenCalledOnce();
+  });
+
+  it("exports bundledLocaleKeys with all locale keys", async () => {
+    const { bundledLocaleKeys } = await import("../i18n");
+
+    expect(Array.isArray(bundledLocaleKeys)).toBe(true);
+    expect(bundledLocaleKeys).toContain("en");
+    expect(bundledLocaleKeys).toContain("ru");
+    expect(bundledLocaleKeys).toContain("ar-SA");
   });
 });

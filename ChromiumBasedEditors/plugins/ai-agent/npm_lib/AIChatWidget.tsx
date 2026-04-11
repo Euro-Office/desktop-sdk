@@ -6,7 +6,7 @@ import {
   type ThreadMessageLike,
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Layout } from "./components/layout";
 import { ManageToolDialog } from "./components/manage-tool-dialog";
 import type { FeatureFlags, StoreKeys } from "./config";
@@ -17,9 +17,9 @@ import useServers from "./hooks/useServers";
 import useThread from "./hooks/useThreads";
 import { initAIChatI18n } from "./i18n";
 import Thread from "./pages/chat";
-import EmptyScreen from "./pages/empty-screen";
-import InitialSetup from "./pages/initial-setup";
-import Settings from "./pages/settings";
+const EmptyScreen = lazy(() => import("./pages/empty-screen"));
+const InitialSetup = lazy(() => import("./pages/initial-setup"));
+const Settings = lazy(() => import("./pages/settings"));
 import { PlatformProvider, usePlatform } from "./platform/context";
 import type { PlatformAdapter } from "./platform/types";
 import Provider from "./providers";
@@ -57,8 +57,13 @@ export const AIChatWidget = ({
   hostToolGroups: hostToolGroupsProp,
   onMigrate,
 }: AIChatWidgetProps) => {
-  // Initialize i18n once
-  initAIChatI18n({ locale, resources: translations });
+  // Initialize i18n lazily (only loads requested locale + English fallback)
+  const [i18nReady, setI18nReady] = useState(false);
+  useEffect(() => {
+    initAIChatI18n({ locale, resources: translations }).then(() =>
+      setI18nReady(true)
+    );
+  }, [locale, translations]);
 
   // Create Provider instance
   useMemo(() => {
@@ -82,6 +87,8 @@ export const AIChatWidget = ({
     () => ({ ...DEFAULT_FEATURE_FLAGS, ...features }),
     [features]
   );
+
+  if (!i18nReady) return null;
 
   return (
     <SettingsProvider settings={settings}>
@@ -200,7 +207,9 @@ const AppInner = ({
   if (currentPage !== "settings" && !profiles.length && !messages.length)
     return (
       <Layout>
-        <EmptyScreen />
+        <Suspense fallback={null}>
+          <EmptyScreen />
+        </Suspense>
       </Layout>
     );
 
@@ -208,9 +217,13 @@ const AppInner = ({
     <Layout>
       <AssistantRuntimeProvider runtime={runtime}>
         {currentPage === "settings" ? (
-          <Settings />
+          <Suspense fallback={null}>
+            <Settings />
+          </Suspense>
         ) : currentPage === "initial-setup" ? (
-          <InitialSetup />
+          <Suspense fallback={null}>
+            <InitialSetup />
+          </Suspense>
         ) : (
           <Thread />
         )}

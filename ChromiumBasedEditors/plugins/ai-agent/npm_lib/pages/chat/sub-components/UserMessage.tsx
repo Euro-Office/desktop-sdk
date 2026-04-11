@@ -4,7 +4,7 @@ import {
   useMessage,
 } from "@assistant-ui/react";
 import { motion } from "framer-motion";
-import { useCallback, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../components/button";
 import { Dialog, DialogContent } from "../../../components/dialog";
@@ -171,7 +171,7 @@ const UserActionBar = () => {
   );
 };
 
-export const UserMessage = () => {
+export const UserMessage = memo(() => {
   const message = useMessage();
   const { isRTL } = useDirection();
 
@@ -231,4 +231,4 @@ export const UserMessage = () => {
       </motion.div>
     </MessagePrimitive.Root>
   );
-};
+});
