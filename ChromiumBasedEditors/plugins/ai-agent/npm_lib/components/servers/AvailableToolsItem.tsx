@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { getServersInstance } from "../../../tools/tools-holder";
+import { getServersInstance } from "../../tools/tools-holder";
 import { useDirection } from "../../hooks/useDirection";
 import { cn } from "../../lib/utils";
 import { useStores } from "../../store/context";

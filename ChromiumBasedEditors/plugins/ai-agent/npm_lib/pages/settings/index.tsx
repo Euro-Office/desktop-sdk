@@ -1,7 +1,5 @@
-import React from "react";
 import { useTranslation } from "react-i18next";
 import { ModelAssignment } from "../../components/model-assignment";
-import { RadioButton } from "../../components/radio-button";
 import { Servers } from "../../components/servers";
 import { Tabs } from "../../components/tabs";
 import { WebSearch } from "../../components/web-search";
@@ -9,82 +7,31 @@ import { useDirection } from "../../hooks/useDirection";
 import { cn } from "../../lib/utils";
 import { useStores } from "../../store/context";
 import { Models } from "./sub-components/models";
-import { Wallet } from "./sub-components/wallet";
-
-// TODO: showWallet should come from FeatureFlags passed via context/props
-const showWallet = false;
 
 const Settings = () => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
   const { useProfilesStore } = useStores();
 
-  const [selectedSection, setSelectedSection] = React.useState(
-    showWallet ? "wallet" : "providers"
-  );
-
   const profiles = useProfilesStore((s) => s.profiles);
 
   const aiSettingsTab = (
     <div className="flex flex-col gap-[16px] select-none max-w-full">
-      {showWallet ? (
-        <div>
-          <h3 className="font-bold text-[20px] leading-[28px] text-[var(--settings-header-color)]">
-            {t("ChooseHowConnect")}
-          </h3>
-          <p className="text-[14px] leading-[20px] text-[var(--settings-description-color)] mt-[4px]">
-            {t("SelectHowConnect")}
-            <br />
-            {t("SelectHowConnectDescription")}
-          </p>
-        </div>
-      ) : null}
-      {(showWallet ? ["wallet", "providers"] : ["providers"]).map((item) => {
-        const isWallet = item === "wallet";
-
-        return (
-          <div
-            key={item}
-            className={cn("flex gap-[12px]", isRTL ? "justify-end" : "")}
-          >
-            {showWallet ? (
-              <div className={cn("flex items-start w-[20px] flex-shrink-0")}>
-                <RadioButton
-                  checked={selectedSection === item}
-                  onChange={() => setSelectedSection(item)}
-                />
-              </div>
-            ) : null}
-            <div className="select-none flex flex-col gap-[12px] w-full">
-              <div className="flex flex-col gap-[4px] ">
-                {showWallet ? (
-                  <h2
-                    className="font-normal text-[14px] leading-[20px] text-[var(--text-normal)] cursor-pointer"
-                    onClick={() => setSelectedSection(item)}
-                  >
-                    {isWallet ? t("ONLYOFFICEWallet") : t("AIProviders")}
-                  </h2>
-                ) : null}
-                <p
-                  className={cn(
-                    "text-[14px] leading-[20px] text-[var(--settings-description-color)]",
-                    isRTL ? "text-end" : ""
-                  )}
-                >
-                  {isWallet
-                    ? t("ONLYOFFICEWalletDescription")
-                    : t("AIProvidersDescription")}
-                </p>
-              </div>
-              {isWallet ? (
-                <Wallet isActive={selectedSection === item} />
-              ) : (
-                <Models />
+      <div className={cn("flex gap-[12px]", isRTL ? "justify-end" : "")}>
+        <div className="select-none flex flex-col gap-[12px] w-full">
+          <div className="flex flex-col gap-[4px] ">
+            <p
+              className={cn(
+                "text-[14px] leading-[20px] text-[var(--settings-description-color)]",
+                isRTL ? "text-end" : ""
               )}
-            </div>
+            >
+              {t("AIProvidersDescription")}
+            </p>
           </div>
-        );
-      })}
+          <Models />
+        </div>
+      </div>
     </div>
   );
 

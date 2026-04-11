@@ -93,7 +93,7 @@ describe("HostToolSource", () => {
 
       expect(Object.keys(result)).toEqual(["desktop-editor", "crm"]);
       expect(result["desktop-editor"]).toHaveLength(2);
-      expect(result["crm"]).toHaveLength(1);
+      expect(result.crm).toHaveLength(1);
     });
 
     it("should map tools to TMCPItem format (no handler)", () => {

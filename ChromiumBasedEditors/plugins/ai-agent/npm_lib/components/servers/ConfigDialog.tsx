@@ -4,7 +4,7 @@ import type { ViewUpdate } from "@codemirror/view";
 import { basicSetup, EditorView } from "codemirror";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { isExternalProcessAvailable } from "../../lib/utils";
+import { getPlatformInstance } from "../../platform/platform-holder";
 import { useStores } from "../../store/context";
 import { Button } from "../button";
 import { Dialog, DialogContent } from "../dialog";
@@ -33,7 +33,7 @@ const ConfigDialog = ({ open, onClose }: ConfigDialogProps) => {
         const parsed = JSON.parse(jsonString);
         if (parsed.mcpServers) {
           if (
-            !isExternalProcessAvailable() &&
+            !getPlatformInstance()?.process?.isAvailable() &&
             Object.values(
               parsed.mcpServers as Record<string, Record<string, unknown>>
             ).some((config) => typeof config.url !== "string")

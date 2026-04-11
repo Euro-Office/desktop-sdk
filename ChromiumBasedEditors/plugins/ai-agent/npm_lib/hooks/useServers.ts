@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { chatEvents } from "../events";
 import { getProviderInstance } from "../providers/provider-holder";
 import { useStores } from "../store/context";
 import { useToolsContext } from "../tools/context";
@@ -43,10 +44,10 @@ const useServers = ({ isReady }: UseServersProps) => {
       getTools();
     };
 
-    window.addEventListener("tools-changed", handler);
+    chatEvents.on("tools-changed", handler);
 
     return () => {
-      window.removeEventListener("tools-changed", handler);
+      chatEvents.off("tools-changed", handler);
     };
   }, [getTools]);
 

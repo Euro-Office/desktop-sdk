@@ -168,10 +168,7 @@ describe("OpenRouterProvider", () => {
 
     it("should mark reasoning models", async () => {
       modelsListMock.mockResolvedValue({
-        data: [
-          { id: "openai/gpt-5.2" },
-          { id: "anthropic/claude-haiku-4.5" },
-        ],
+        data: [{ id: "openai/gpt-5.2" }, { id: "anthropic/claude-haiku-4.5" }],
       });
 
       const result = await provider.getProviderModels({

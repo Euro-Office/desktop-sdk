@@ -36,9 +36,7 @@ vi.mock("../../platform/platform-holder", () => ({
 
 vi.mock("../../utils", () => ({
   convertMessagesToMd: vi.fn(() => "# Exported content"),
-  removeSpecialCharacter: vi.fn((s: string) =>
-    s.replace(/[\\/:*"<>|?]/g, ""),
-  ),
+  removeSpecialCharacter: vi.fn((s: string) => s.replace(/[\\/:*"<>|?]/g, "")),
 }));
 
 // ---------------------------------------------------------------------------
@@ -116,7 +114,7 @@ describe("ThreadsService", () => {
         "My Chat",
         undefined,
         undefined,
-        "profile-1",
+        "profile-1"
       );
     });
 
@@ -129,7 +127,7 @@ describe("ThreadsService", () => {
         "No Profile",
         undefined,
         undefined,
-        undefined,
+        undefined
       );
     });
   });
@@ -191,7 +189,7 @@ describe("ThreadsService", () => {
         threadWithProvider,
         [partialProfile, exactProfile],
         chatProfile,
-        defaultProfile,
+        defaultProfile
       );
 
       expect(result.profileId).toBe("exact");
@@ -218,7 +216,7 @@ describe("ThreadsService", () => {
         threadWithProvider,
         [partialProfile],
         chatProfile,
-        null,
+        null
       );
 
       expect(result.profileId).toBe("partial");
@@ -236,7 +234,7 @@ describe("ThreadsService", () => {
         threadWithProvider,
         [unrelatedProfile],
         chatProfile,
-        null,
+        null
       );
 
       expect(result.profileId).toBe("chat-fallback");
@@ -249,7 +247,7 @@ describe("ThreadsService", () => {
         threadWithProvider,
         [],
         null,
-        defaultProfile,
+        defaultProfile
       );
 
       expect(result.profileId).toBe("default-fallback");
@@ -283,7 +281,7 @@ describe("ThreadsService", () => {
       expect(mockStorage.messages.getByThread).toHaveBeenCalledWith("t-1");
       expect(mockPlatform.file.saveAsFile).toHaveBeenCalledWith(
         "# Exported content",
-        "My Chat.docx",
+        "My Chat.docx"
       );
     });
 
@@ -294,7 +292,7 @@ describe("ThreadsService", () => {
 
       expect(mockPlatform.file.saveAsFile).toHaveBeenCalledWith(
         expect.any(String),
-        "Chat Export.docx",
+        "Chat Export.docx"
       );
     });
   });
@@ -309,7 +307,7 @@ describe("ThreadsService", () => {
 
       expect(mockStorage.threads.update).toHaveBeenCalledWith(
         "t-1",
-        "New Title",
+        "New Title"
       );
     });
   });

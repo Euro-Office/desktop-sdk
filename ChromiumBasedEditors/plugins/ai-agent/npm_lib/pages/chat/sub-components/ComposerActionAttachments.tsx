@@ -1,10 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { usePlatform } from "../../../../../platform/context";
+import { usePlatform } from "../../../platform/context";
 import { DropdownMenu } from "../../../components/dropdown";
 import type { DropDownItemProps } from "../../../components/dropdown-item/DropDownItem.types";
 import { IconButton } from "../../../components/icon-button";
 import { TooltipIconButton } from "../../../components/tooltip-icon-button";
+import { chatEvents } from "../../../events";
 import {
   isDjVu,
   isDocument,
@@ -171,7 +172,7 @@ const ComposerActionAttachment = () => {
       const webSearchTool = servers["web-search"]?.[0];
       if (!webSearchTool) return;
       changeToolStatus("web-search", webSearchTool.name, !webSearchEnabled);
-      window.dispatchEvent(new CustomEvent("tools-changed"));
+      chatEvents.emit("tools-changed");
     },
   });
 

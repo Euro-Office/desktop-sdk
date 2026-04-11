@@ -1,4 +1,4 @@
-import { usePlatform } from "../../../platform/context";
+import { usePlatform } from "../../platform/context";
 import { useDirection } from "../../hooks/useDirection";
 import {
   cn,

@@ -1,11 +1,8 @@
-// Re-export all utilities from npm_lib
-
+// Re-export utilities from npm_lib
 export {
   cn,
-  isDesktopEditor,
   isDjVu,
   isDocument,
-  isExternalProcessAvailable,
   isPdf,
   isPdfForm,
   isPresentation,
@@ -19,3 +16,12 @@ export {
   getMessageTitleFromMd,
   removeSpecialCharacter,
 } from "../../npm_lib/utils";
+
+// Host-specific helpers — only meaningful in the ONLYOFFICE Desktop context
+export const isDesktopEditor = (): boolean => {
+  return typeof window !== "undefined" && "AscDesktopEditor" in window;
+};
+
+export const isExternalProcessAvailable = (): boolean => {
+  return typeof window !== "undefined" && "ExternalProcess" in window;
+};

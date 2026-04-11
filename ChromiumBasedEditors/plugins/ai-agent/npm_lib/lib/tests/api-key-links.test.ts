@@ -4,13 +4,13 @@ import { getApiKeyLink } from "../api-key-links";
 describe("getApiKeyLink", () => {
   it("returns correct URL for anthropic", () => {
     expect(getApiKeyLink("anthropic")).toBe(
-      "https://console.anthropic.com/settings/keys",
+      "https://console.anthropic.com/settings/keys"
     );
   });
 
   it("returns correct URL for openai", () => {
     expect(getApiKeyLink("openai")).toBe(
-      "https://platform.openai.com/api-keys",
+      "https://platform.openai.com/api-keys"
     );
   });
 

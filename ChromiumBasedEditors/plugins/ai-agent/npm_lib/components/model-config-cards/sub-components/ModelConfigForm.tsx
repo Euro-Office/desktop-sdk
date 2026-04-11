@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { getProviderInstance } from "../../../../../providers/provider-holder";
+import { getProviderInstance } from "../../../providers/provider-holder";
 import { getApiKeyLink } from "../../../lib/api-key-links";
 import type { Model } from "../../../types";
 import { ComboBox } from "../../combo-box";

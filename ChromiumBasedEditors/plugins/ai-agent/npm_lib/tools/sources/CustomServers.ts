@@ -1,5 +1,12 @@
+import { chatEvents } from "../../events";
 import { getPlatformInstance } from "../../platform/platform-holder";
 import type { TMCPItem, TProcess } from "../../types";
+
+/** Use platform fetchProxy if available, otherwise standard fetch */
+const platformFetch = (url: string, init?: RequestInit): Promise<Response> => {
+  const proxy = getPlatformInstance()?.fetchProxy;
+  return proxy ? proxy(url, init) : fetch(url, init);
+};
 
 type THttpServer = {
   url: string;
@@ -77,6 +84,17 @@ const getHttpParams = (
   return { url, headers };
 };
 
+let clientInfo: { name: string; version: string } = {
+  name: "ai-chat",
+  version: "1.0.0",
+};
+
+export const setClientInfo = (info: { name: string; version: string }) => {
+  clientInfo = info;
+};
+
+export const getClientInfo = () => clientInfo;
+
 class CustomServers {
   customServers: Record<string, Record<string, unknown>>;
   startedCustomServers: Record<string, string>;
@@ -119,7 +137,7 @@ class CustomServers {
         correctJson.id.includes(`tools-${type}`)
       ) {
         this.tools[type] = correctJson.result.tools;
-        window.dispatchEvent(new CustomEvent("tools-changed"));
+        chatEvents.emit("tools-changed");
       }
     } catch {
       // ignore
@@ -287,7 +305,7 @@ class CustomServers {
     };
 
     this.initHttpServer(type);
-    window.dispatchEvent(new CustomEvent("tools-changed"));
+    chatEvents.emit("tools-changed");
   };
 
   restartStdioServer = (type: string, config: Record<string, unknown>) => {
@@ -312,7 +330,7 @@ class CustomServers {
     process.start();
 
     this.initCustomServer(type);
-    window.dispatchEvent(new CustomEvent("tools-changed"));
+    chatEvents.emit("tools-changed");
   };
 
   deleteCustomServer = (type: string) => {
@@ -340,7 +358,7 @@ class CustomServers {
     if (this.tools[type]) {
       delete this.tools[type];
     }
-    window.dispatchEvent(new CustomEvent("tools-changed"));
+    chatEvents.emit("tools-changed");
   };
 
   initHttpServer = async (type: string) => {
@@ -358,14 +376,11 @@ class CustomServers {
           capabilities: {
             tools: {},
           },
-          clientInfo: {
-            name: "ai-agent",
-            version: "1.0.0",
-          },
+          clientInfo,
         },
       };
 
-      const response = await fetch(`onlyoffice-proxy://${server.url}`, {
+      const response = await platformFetch(server.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -455,7 +470,7 @@ class CustomServers {
         params: {},
       };
 
-      const response = await fetch(`onlyoffice-proxy://${server.url}`, {
+      const response = await platformFetch(server.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -546,7 +561,7 @@ class CustomServers {
         },
       };
 
-      const response = await fetch(`onlyoffice-proxy://${server.url}`, {
+      const response = await platformFetch(server.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

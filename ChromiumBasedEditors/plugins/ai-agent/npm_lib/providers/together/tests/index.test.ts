@@ -137,9 +137,7 @@ describe("TogetherProvider", () => {
     });
 
     it("should use model.id as name", async () => {
-      const mockResponse = [
-        { id: "deepseek-ai/DeepSeek-V3.1" },
-      ];
+      const mockResponse = [{ id: "deepseek-ai/DeepSeek-V3.1" }];
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,

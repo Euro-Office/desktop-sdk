@@ -674,10 +674,7 @@ describe("OpenAIProvider", () => {
 
     it("should mark reasoning models", async () => {
       modelsListMock.mockResolvedValue({
-        data: [
-          { id: "gpt-4.1" },
-          { id: "gpt-5.2-2025-12-11" },
-        ],
+        data: [{ id: "gpt-4.1" }, { id: "gpt-5.2-2025-12-11" }],
       });
 
       const result = await provider.getProviderModels({

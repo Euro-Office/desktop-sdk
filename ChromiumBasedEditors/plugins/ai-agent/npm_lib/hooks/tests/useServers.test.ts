@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { chatEvents } from "../../events";
 
 // ---------------------------------------------------------------------------
 // Capture useEffect callbacks and cleanup functions
@@ -159,26 +160,19 @@ describe("useServers", () => {
     expect(mockInitServers).not.toHaveBeenCalled();
   });
 
-  it("tools-changed effect adds event listener and calls getTools on event", () => {
-    const mockAddEventListener = vi.fn();
-    const mockRemoveEventListener = vi.fn();
-    vi.stubGlobal("window", {
-      addEventListener: mockAddEventListener,
-      removeEventListener: mockRemoveEventListener,
-    });
+  it("tools-changed effect registers on chatEvents and calls getTools on event", () => {
+    const mockOn = vi.spyOn(chatEvents, "on");
+    const mockOff = vi.spyOn(chatEvents, "off");
 
     useServers({ isReady: true });
 
     // The tools-changed effect is the third one (index 2)
     const cleanup = effectCallbacks[2]();
 
-    expect(mockAddEventListener).toHaveBeenCalledWith(
-      "tools-changed",
-      expect.any(Function)
-    );
+    expect(mockOn).toHaveBeenCalledWith("tools-changed", expect.any(Function));
 
     // Simulate the event firing
-    const handler = mockAddEventListener.mock.calls.find(
+    const handler = mockOn.mock.calls.find(
       (call: unknown[]) => call[0] === "tools-changed"
     )?.[1] as () => void;
     expect(handler).toBeDefined();
@@ -191,12 +185,10 @@ describe("useServers", () => {
     if (typeof cleanup === "function") {
       cleanup();
     }
-    expect(mockRemoveEventListener).toHaveBeenCalledWith(
-      "tools-changed",
-      expect.any(Function)
-    );
+    expect(mockOff).toHaveBeenCalledWith("tools-changed", expect.any(Function));
 
-    vi.unstubAllGlobals();
+    mockOn.mockRestore();
+    mockOff.mockRestore();
   });
 
   it("third effect sets provider tools when tools and profile exist", () => {

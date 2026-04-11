@@ -99,8 +99,8 @@ describe("ProfilesService", () => {
       // getAll returns [p1, p2], reversed = [p2, p1]
       expect(result.profiles).toEqual([p2, p1]);
       expect(result.defaultProfile).toEqual(p2);
-      expect(result.taskProfiles["taskChat"]).toEqual(p1);
-      expect(result.taskProfiles["taskSummary"]).toBeNull();
+      expect(result.taskProfiles.taskChat).toEqual(p1);
+      expect(result.taskProfiles.taskSummary).toBeNull();
     });
 
     it("returns empty when no profiles exist", async () => {

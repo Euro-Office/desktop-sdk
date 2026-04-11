@@ -1,5 +1,13 @@
+import { chatEvents } from "../../events";
+import { getPlatformInstance } from "../../platform/platform-holder";
 import { getSettingsInstance } from "../../settings/settings-holder";
 import type { TMCPItem } from "../../types";
+
+/** Use platform fetchProxy if available, otherwise standard fetch */
+const platformFetch = (url: string, init?: RequestInit): Promise<Response> => {
+  const proxy = getPlatformInstance()?.fetchProxy;
+  return proxy ? proxy(url, init) : fetch(url, init);
+};
 
 const WEB_SEARCH_DATA = "webSearchProviderData";
 
@@ -51,22 +59,19 @@ class WebSearch {
   webSearch = async (args: Record<string, unknown>) => {
     if (this.webSearchData?.provider === "Exa") {
       try {
-        const response = await fetch(
-          "onlyoffice-proxy://https://api.exa.ai/search",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": this.webSearchData?.key ?? "",
-            },
-            body: JSON.stringify({
-              query: args.query,
-              text: true,
-              numResults: 5,
-              livecrawl: "preferred",
-            }),
-          }
-        );
+        const response = await platformFetch("https://api.exa.ai/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": this.webSearchData?.key ?? "",
+          },
+          body: JSON.stringify({
+            query: args.query,
+            text: true,
+            numResults: 5,
+            livecrawl: "preferred",
+          }),
+        });
 
         if (!response.ok) {
           return JSON.stringify({
@@ -92,20 +97,17 @@ class WebSearch {
   webCrawling = async (args: Record<string, unknown>) => {
     if (this.webSearchData?.provider === "Exa") {
       try {
-        const response = await fetch(
-          "onlyoffice-proxy://https://api.exa.ai/contents",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": this.webSearchData?.key ?? "",
-            },
-            body: JSON.stringify({
-              urls: args.urls,
-              text: true,
-            }),
-          }
-        );
+        const response = await platformFetch("https://api.exa.ai/contents", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": this.webSearchData?.key ?? "",
+          },
+          body: JSON.stringify({
+            urls: args.urls,
+            text: true,
+          }),
+        });
 
         if (!response.ok) {
           return JSON.stringify({
@@ -179,7 +181,7 @@ class WebSearch {
       },
     ]);
 
-    window.dispatchEvent(new CustomEvent("tools-changed"));
+    chatEvents.emit("tools-changed");
   };
 
   getWebSearchEnabled = () => {

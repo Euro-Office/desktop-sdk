@@ -91,7 +91,8 @@ describe("PromptsService", () => {
 
   describe("createPrompt", () => {
     it("generates id, truncates name to 15 chars, calls storage.create, returns prompt with timestamps", () => {
-      const text = "This is a really long prompt text that exceeds fifteen characters";
+      const text =
+        "This is a really long prompt text that exceeds fifteen characters";
       const result = service.createPrompt(text, "folder-1");
 
       expect(result.id).toBeDefined();
@@ -109,7 +110,7 @@ describe("PromptsService", () => {
 
       expect(result.folderId).toBeUndefined();
       expect(mockStorage.prompts.create).toHaveBeenCalledWith(
-        expect.not.objectContaining({ folderId: expect.anything() }),
+        expect.not.objectContaining({ folderId: expect.anything() })
       );
     });
   });
@@ -195,7 +196,7 @@ describe("PromptsService", () => {
       expect(result[1]).toBe(f2);
       expect(mockStorage.promptFolders.update).toHaveBeenCalledWith(
         "f1",
-        "Renamed",
+        "Renamed"
       );
     });
   });

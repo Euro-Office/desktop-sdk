@@ -206,10 +206,7 @@ describe("DeepSeekProvider", () => {
 
     it("should mark reasoning models based on id containing 'reasoner'", async () => {
       mockList.mockResolvedValue({
-        data: [
-          { id: "deepseek-chat" },
-          { id: "deepseek-reasoner" },
-        ],
+        data: [{ id: "deepseek-chat" }, { id: "deepseek-reasoner" }],
       });
 
       const models = await provider.getProviderModels({

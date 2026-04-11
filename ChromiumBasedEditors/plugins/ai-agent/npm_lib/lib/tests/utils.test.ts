@@ -7,10 +7,8 @@ import {
 } from "../../utils";
 import {
   cn,
-  isDesktopEditor,
   isDjVu,
   isDocument,
-  isExternalProcessAvailable,
   isPdf,
   isPdfForm,
   isPresentation,
@@ -159,18 +157,6 @@ describe("sanitizeProviderName", () => {
 describe("cn", () => {
   it("merges tailwind classes", () => {
     expect(cn("px-2", "py-1")).toBe("px-2 py-1");
-  });
-});
-
-describe("isDesktopEditor", () => {
-  it("returns false in node environment", () => {
-    expect(isDesktopEditor()).toBe(false);
-  });
-});
-
-describe("isExternalProcessAvailable", () => {
-  it("returns false in node environment", () => {
-    expect(isExternalProcessAvailable()).toBe(false);
   });
 });
 

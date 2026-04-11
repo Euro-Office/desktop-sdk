@@ -1106,7 +1106,9 @@ describe("createStores", () => {
       expect(state.visionProfile).toBeNull();
       expect(state.defaultProfile).toBeNull();
       // clearTaskProfileIfMatch called 7 times (one per task profile)
-      expect(mockProfilesService.clearTaskProfileIfMatch).toHaveBeenCalledTimes(7);
+      expect(mockProfilesService.clearTaskProfileIfMatch).toHaveBeenCalledTimes(
+        7
+      );
     });
 
     it("editProfile() updates profile assigned as summarizationProfile", async () => {

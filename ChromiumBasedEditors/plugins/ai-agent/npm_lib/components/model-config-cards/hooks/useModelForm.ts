@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getProviderInstance } from "../../../../../providers/provider-holder";
+import { getProviderInstance } from "../../../providers/provider-holder";
 import { useDebouncedCallback } from "../../../hooks/useDebouncedCallback";
 import type { Model, ProviderType } from "../../../types";
 import type {

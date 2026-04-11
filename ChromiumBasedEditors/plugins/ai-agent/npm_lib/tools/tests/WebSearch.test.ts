@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { chatEvents } from "../../events";
 import { WebSearch, type WebSearchData } from "../sources/WebSearch";
 
 // =============================================================================
@@ -6,7 +7,7 @@ import { WebSearch, type WebSearchData } from "../sources/WebSearch";
 // =============================================================================
 
 const mockFetch = vi.fn();
-const mockDispatchEvent = vi.fn();
+const mockEmit = vi.spyOn(chatEvents, "emit");
 
 const createMockLocalStorage = () => {
   let store: Record<string, string> = {};
@@ -35,21 +36,11 @@ vi.mock("../../settings/settings-holder", () => ({
   }),
 }));
 
-// Mock window object for Node environment
-const mockWindow = {
-  localStorage: mockLocalStorage,
-  dispatchEvent: mockDispatchEvent,
-  CustomEvent: class CustomEvent {
-    type: string;
-    constructor(type: string) {
-      this.type = type;
-    }
-  },
-};
+// Mock platform holder — WebSearch uses platformFetch (falls back to fetch if no proxy)
+vi.mock("../../platform/platform-holder", () => ({
+  getPlatformInstance: () => null,
+}));
 
-vi.stubGlobal("window", mockWindow);
-vi.stubGlobal("localStorage", mockLocalStorage);
-vi.stubGlobal("CustomEvent", mockWindow.CustomEvent);
 vi.stubGlobal("fetch", mockFetch);
 
 describe("WebSearch", () => {
@@ -204,7 +195,7 @@ describe("WebSearch", () => {
       await webSearch.webSearch({ query: "test query" });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "onlyoffice-proxy://https://api.exa.ai/search",
+        "https://api.exa.ai/search",
         expect.objectContaining({
           method: "POST",
           headers: {
@@ -296,7 +287,7 @@ describe("WebSearch", () => {
       await webSearch.webSearch({ query: "test" });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "onlyoffice-proxy://https://api.exa.ai/search",
+        "https://api.exa.ai/search",
         expect.objectContaining({
           headers: {
             "Content-Type": "application/json",
@@ -334,7 +325,7 @@ describe("WebSearch", () => {
       await webSearch.webCrawling({ urls: ["https://example.com"] });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "onlyoffice-proxy://https://api.exa.ai/contents",
+        "https://api.exa.ai/contents",
         expect.objectContaining({
           method: "POST",
         })
@@ -427,7 +418,7 @@ describe("WebSearch", () => {
       await webSearch.webCrawling({ urls: ["https://example.com"] });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "onlyoffice-proxy://https://api.exa.ai/contents",
+        "https://api.exa.ai/contents",
         expect.objectContaining({
           headers: {
             "Content-Type": "application/json",
@@ -457,7 +448,7 @@ describe("WebSearch", () => {
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "onlyoffice-proxy://https://api.exa.ai/search",
+        "https://api.exa.ai/search",
         expect.anything()
       );
       expect(result).toBeDefined();
@@ -469,7 +460,7 @@ describe("WebSearch", () => {
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "onlyoffice-proxy://https://api.exa.ai/contents",
+        "https://api.exa.ai/contents",
         expect.anything()
       );
       expect(result).toBeDefined();
@@ -491,11 +482,11 @@ describe("WebSearch", () => {
     it("should dispatch tools-changed event when configured", () => {
       webSearch.setWebSearchData({ provider: "Exa", key: "key" });
 
-      expect(mockDispatchEvent).toHaveBeenCalled();
+      expect(mockEmit).toHaveBeenCalled();
     });
 
     it("should not dispatch event when clearing data", () => {
-      mockDispatchEvent.mockClear();
+      mockEmit.mockClear();
 
       webSearch.setWebSearchData(null);
 

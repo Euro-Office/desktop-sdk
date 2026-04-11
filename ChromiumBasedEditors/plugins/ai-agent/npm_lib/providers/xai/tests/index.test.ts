@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { XAIProvider } from "../index";
-import { xaiInfo } from "../info";
 
 // Mock OpenAI client
 const mockList = vi.fn();

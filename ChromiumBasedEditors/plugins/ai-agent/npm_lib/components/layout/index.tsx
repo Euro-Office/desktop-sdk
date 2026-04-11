@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { usePlatform } from "../../../platform/context";
+import { usePlatform } from "../../platform/context";
 import { useDirection } from "../../hooks/useDirection";
 import { useStores } from "../../store/context";
 import { ChatList } from "./sub-components/ChatList";

@@ -1,6 +1,13 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+// Re-export message utilities so components can import from lib/utils
+export {
+  convertMessagesToMd,
+  getMessageTitleFromMd,
+  removeSpecialCharacter,
+} from "../utils";
+
 export const cn = (...inputs: ClassValue[]) => {
   return twMerge(clsx(inputs));
 };
@@ -39,12 +46,4 @@ export const isPdfForm = (type: number) => {
 
 export const isVisio = (type: number) => {
   return !!(type & 0x4000);
-};
-
-export const isDesktopEditor = (): boolean => {
-  return typeof window !== "undefined" && "AscDesktopEditor" in window;
-};
-
-export const isExternalProcessAvailable = (): boolean => {
-  return typeof window !== "undefined" && "ExternalProcess" in window;
 };

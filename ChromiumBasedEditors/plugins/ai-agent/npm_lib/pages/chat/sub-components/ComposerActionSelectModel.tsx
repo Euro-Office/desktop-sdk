@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getProviderInstance } from "../../../../../providers/provider-holder";
+import { getProviderInstance } from "../../../providers/provider-holder";
 import { ComboBox } from "../../../components/combo-box";
 import { useStores } from "../../../store/context";
 import type { Profile } from "../../../types";

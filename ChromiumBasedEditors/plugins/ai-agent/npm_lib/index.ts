@@ -10,6 +10,8 @@ export {
   MAX_TOOL_COUNT,
   MAX_TOOL_COUNT_WITH_WEB_SEARCH,
 } from "./config";
+// --- Events ---
+export { chatEvents } from "./events";
 // --- Hooks ---
 export {
   useDebouncedCallback,
@@ -27,12 +29,7 @@ export { type DebouncedFn, debounce } from "./lib/debounce";
 export type { ImageCollections } from "./lib/images";
 export { getImageSrc, getProviderImageSrc } from "./lib/images";
 // --- Lib ---
-export {
-  cn,
-  isDesktopEditor,
-  isExternalProcessAvailable,
-  sanitizeProviderName,
-} from "./lib/utils";
+export { cn, sanitizeProviderName } from "./lib/utils";
 export { PlatformProvider, usePlatform } from "./platform/context";
 // --- Platform ---
 export type {
@@ -108,6 +105,7 @@ export type {
 export { createStores, StoresProvider, useStores } from "./store";
 export { ToolsProvider, useToolsContext } from "./tools/context";
 // --- Tools ---
+export { getClientInfo, setClientInfo } from "./tools/sources/CustomServers";
 export type { HostTool, HostToolGroup, ToolSource } from "./tools/types";
 export type {
   Model,

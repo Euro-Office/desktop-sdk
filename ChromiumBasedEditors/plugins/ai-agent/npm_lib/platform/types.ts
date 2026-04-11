@@ -70,4 +70,7 @@ export interface PlatformAdapter {
 
   /** Built-in tools exposed by the host application. If null — no host tools section in the tools list */
   hostTools: PlatformHostTools | null;
+
+  /** Optional fetch wrapper for proxied HTTP requests (e.g. CORS proxy). If null — standard fetch is used */
+  fetchProxy?: (url: string, init?: RequestInit) => Promise<Response>;
 }

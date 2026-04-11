@@ -26,13 +26,9 @@ export const DEFAULT_STORE_KEYS: StoreKeys = {
   disabledTools: "disabledTools",
 };
 
-export interface FeatureFlags {
-  showWallet: boolean;
-}
+export type FeatureFlags = {};
 
-export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
-  showWallet: false,
-};
+export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {};
 
 export const MAX_TOOL_COUNT = 100;
 export const MAX_TOOL_COUNT_WITH_WEB_SEARCH = MAX_TOOL_COUNT + 2;

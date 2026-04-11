@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { DropdownMenu } from "../../../components/dropdown";
 import { IconButton } from "../../../components/icon-button";
 import { TooltipIconButton } from "../../../components/tooltip-icon-button";
+import { chatEvents } from "../../../events";
 import { useStores } from "../../../store/context";
 
 const ServersSettings = () => {
@@ -48,7 +49,7 @@ const ServersSettings = () => {
             servers["web-search"][0].name,
             !webSearchEnabled
           );
-          window.dispatchEvent(new CustomEvent("tools-changed"));
+          chatEvents.emit("tools-changed");
         },
       },
       {

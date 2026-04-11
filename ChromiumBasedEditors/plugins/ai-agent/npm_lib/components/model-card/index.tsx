@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getProviderInstance } from "../../../providers/provider-holder";
+import { getProviderInstance } from "../../providers/provider-holder";
 import { useDirection } from "../../hooks/useDirection";
 import { cn } from "../../lib/utils";
 import type { Profile } from "../../types";

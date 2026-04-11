@@ -1,7 +1,7 @@
 import type { ToolCallMessagePartComponent } from "@assistant-ui/react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getServersInstance } from "../../../tools/tools-holder";
+import { getServersInstance } from "../../tools/tools-holder";
 import { useDirection } from "../../hooks/useDirection";
 import { Icon } from "../icon";
 import { IconButton } from "../icon-button";

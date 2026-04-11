@@ -31,7 +31,7 @@ describe("initAIChatI18n", () => {
     initAIChatI18n();
 
     expect(mockInit).toHaveBeenCalledWith(
-      expect.objectContaining({ fallbackLng: "en" }),
+      expect.objectContaining({ fallbackLng: "en" })
     );
   });
 
@@ -40,7 +40,7 @@ describe("initAIChatI18n", () => {
     initAIChatI18n({ locale: "ru" });
 
     expect(mockInit).toHaveBeenCalledWith(
-      expect.objectContaining({ lng: "ru" }),
+      expect.objectContaining({ lng: "ru" })
     );
   });
 
@@ -52,7 +52,7 @@ describe("initAIChatI18n", () => {
     expect(mockInit).toHaveBeenCalledWith(
       expect.objectContaining({
         resources: { ...bundledLocales, ...custom },
-      }),
+      })
     );
   });
 

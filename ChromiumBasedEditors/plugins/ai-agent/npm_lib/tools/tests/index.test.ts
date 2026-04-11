@@ -46,7 +46,6 @@ const {
     writable: true,
   });
 
-
   // Mock window for CustomServers
   Object.defineProperty(global, "window", {
     value: {

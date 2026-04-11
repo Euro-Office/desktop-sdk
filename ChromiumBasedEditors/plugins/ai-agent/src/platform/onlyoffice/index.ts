@@ -16,4 +16,8 @@ export class OnlyOfficePlatform implements PlatformAdapter {
     this.env = new OnlyOfficeEnvironment();
     this.hostTools = new OnlyOfficeHostTools();
   }
+
+  fetchProxy = (url: string, init?: RequestInit): Promise<Response> => {
+    return fetch(`onlyoffice-proxy://${url}`, init);
+  };
 }

@@ -105,8 +105,8 @@ describe("ServersService", () => {
       expect(result.tools).toHaveLength(2);
       expect(result.tools[0].name).toBe("custom_read");
       expect(result.tools[1].name).toBe("custom_write");
-      expect(result.servers["custom"]).toHaveLength(2);
-      expect(result.disabledTools["custom"]).toEqual([]);
+      expect(result.servers.custom).toHaveLength(2);
+      expect(result.disabledTools.custom).toEqual([]);
       expect(result.webSearchEnabled).toBe(false);
     });
 
@@ -142,7 +142,7 @@ describe("ServersService", () => {
 
       expect(result.tools).toHaveLength(1);
       expect(result.tools[0].name).toBe("custom_read");
-      expect(result.servers["custom"][1].enabled).toBe(false);
+      expect(result.servers.custom[1].enabled).toBe(false);
     });
 
     it("with disabledTools where web-search has items (disabled)", async () => {
@@ -193,7 +193,7 @@ describe("ServersService", () => {
       expect(result.tools.map((t) => t.name)).toContain("web-search_search");
       expect(result.tools.map((t) => t.name)).toContain("custom_read");
       expect(result.tools.map((t) => t.name)).not.toContain("custom_write");
-      expect(result.servers["custom"][1].enabled).toBe(false);
+      expect(result.servers.custom[1].enabled).toBe(false);
     });
 
     it("with disabledTools where type key is missing for a server", async () => {
@@ -227,9 +227,9 @@ describe("ServersService", () => {
       const result = await service.buildToolsList();
 
       expect(result.tools).toHaveLength(100);
-      expect(result.disabledTools["custom"]).toHaveLength(5);
-      expect(result.disabledTools["custom"]).toContain("tool_100");
-      expect(result.disabledTools["custom"]).toContain("tool_104");
+      expect(result.disabledTools.custom).toHaveLength(5);
+      expect(result.disabledTools.custom).toContain("tool_100");
+      expect(result.disabledTools.custom).toContain("tool_104");
     });
 
     it("enforces MAX_TOOL_COUNT_WITH_WEB_SEARCH (102) when web-search present", async () => {
@@ -248,7 +248,7 @@ describe("ServersService", () => {
       // 2 web-search + 100 custom = 102
       expect(result.tools).toHaveLength(102);
       expect(result.webSearchEnabled).toBe(true);
-      expect(result.disabledTools["custom"]).toHaveLength(5);
+      expect(result.disabledTools.custom).toHaveLength(5);
     });
   });
 
@@ -289,9 +289,9 @@ describe("ServersService", () => {
       const result = service.changeToolStatus("custom", "write", true, state);
 
       expect(result).not.toBeNull();
-      expect(result!.tools).toHaveLength(2);
-      expect(result!.tools[1].name).toBe("custom_write");
-      expect(result!.disabledTools["custom"]).not.toContain("write");
+      expect(result?.tools).toHaveLength(2);
+      expect(result?.tools[1].name).toBe("custom_write");
+      expect(result?.disabledTools.custom).not.toContain("write");
       expect(mockSettings.set).toHaveBeenCalledWith(
         DISABLED_TOOLS_KEY,
         expect.any(String)
@@ -308,9 +308,9 @@ describe("ServersService", () => {
       );
 
       expect(result).not.toBeNull();
-      expect(result!.tools).toHaveLength(1);
-      expect(result!.tools[0].name).toBe("custom_read");
-      expect(result!.disabledTools["custom"]).toContain("write");
+      expect(result?.tools).toHaveLength(1);
+      expect(result?.tools[0].name).toBe("custom_read");
+      expect(result?.disabledTools.custom).toContain("write");
       expect(mockSettings.set).toHaveBeenCalled();
     });
 
@@ -340,11 +340,9 @@ describe("ServersService", () => {
       );
 
       expect(result).not.toBeNull();
-      expect(result!.webSearchEnabled).toBe(true);
-      expect(result!.disabledTools["web-search"]).toEqual([]);
-      expect(
-        result!.servers["web-search"].every((t) => t.enabled)
-      ).toBe(true);
+      expect(result?.webSearchEnabled).toBe(true);
+      expect(result?.disabledTools["web-search"]).toEqual([]);
+      expect(result?.servers["web-search"].every((t) => t.enabled)).toBe(true);
     });
 
     it("disables all web-search tools as a group", () => {
@@ -374,14 +372,14 @@ describe("ServersService", () => {
       );
 
       expect(result).not.toBeNull();
-      expect(result!.webSearchEnabled).toBe(false);
-      expect(result!.disabledTools["web-search"]).toEqual([
+      expect(result?.webSearchEnabled).toBe(false);
+      expect(result?.disabledTools["web-search"]).toEqual([
         "search",
         "contents",
       ]);
-      expect(
-        result!.tools.every((t) => !t.name.includes("web-search"))
-      ).toBe(true);
+      expect(result?.tools.every((t) => !t.name.includes("web-search"))).toBe(
+        true
+      );
     });
 
     it("returns null when tool not found", () => {
@@ -435,9 +433,13 @@ describe("ServersService", () => {
       mockServers.callTools.mockResolvedValue("result");
 
       const service = createService();
-      const result = await service.callTools("custom_read", { arg: 1 }, {
-        custom: [],
-      });
+      const result = await service.callTools(
+        "custom_read",
+        { arg: 1 },
+        {
+          custom: [],
+        }
+      );
 
       expect(mockServers.getServerType).toHaveBeenCalledWith("custom_read");
       expect(mockServers.callTools).toHaveBeenCalledWith("custom", "read", {
@@ -450,9 +452,13 @@ describe("ServersService", () => {
       mockServers.getServerType.mockReturnValue("custom");
 
       const service = createService();
-      const result = await service.callTools("custom_read", {}, {
-        custom: ["read"],
-      });
+      const result = await service.callTools(
+        "custom_read",
+        {},
+        {
+          custom: ["read"],
+        }
+      );
 
       expect(result).toBeUndefined();
       expect(mockServers.callTools).not.toHaveBeenCalled();
@@ -532,7 +538,9 @@ describe("ServersService", () => {
     });
 
     it("normalizes config without mcpServers", () => {
-      const config = {} as { mcpServers: Record<string, Record<string, unknown>> };
+      const config = {} as {
+        mcpServers: Record<string, Record<string, unknown>>;
+      };
 
       const service = createService();
       service.saveConfig(config);

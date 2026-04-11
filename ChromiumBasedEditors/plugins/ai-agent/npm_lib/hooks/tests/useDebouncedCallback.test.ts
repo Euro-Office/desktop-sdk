@@ -5,7 +5,7 @@ let cleanupFn: (() => void) | undefined;
 vi.mock("react", () => ({
   useRef: (val: unknown) => ({ current: val }),
   useMemo: (fn: () => unknown) => fn(),
-  useEffect: (fn: () => (() => void) | void) => {
+  useEffect: (fn: () => (() => void) | undefined) => {
     const result = fn();
     if (typeof result === "function") {
       cleanupFn = result;

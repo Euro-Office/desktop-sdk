@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import { AIChatWidget } from "../npm_lib";
-import { isDesktopEditor } from "../npm_lib/lib/utils";
-import config from "./config.json";
 import { migrateProvidersToProfiles } from "./lib/migrateProvidersToProfiles";
+import { isDesktopEditor } from "./lib/utils";
 import { NoopPlatform } from "./platform/noop";
 import { OnlyOfficePlatform } from "./platform/onlyoffice";
 import { LocalStorageSettings } from "./settings/localStorage";
@@ -22,7 +21,6 @@ const App = () => {
       settings={settings}
       platform={platform}
       onMigrate={migrateProvidersToProfiles}
-      features={{ showWallet: config.showWallet }}
     />
   );
 };
