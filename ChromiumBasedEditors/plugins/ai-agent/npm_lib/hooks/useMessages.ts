@@ -1,4 +1,4 @@
-import type { AppendMessage, ThreadMessageLike } from "@assistant-ui/react";
+import type { AppendMessage } from "@assistant-ui/react";
 import { useEffect, useRef } from "react";
 import type { ChatEvent, ToolCallData } from "../services/chat-engine";
 import { useStores } from "../store/context";
@@ -49,78 +49,15 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     clearAttachmentFiles();
   }, [threadId, isReady, fetchPrevMessages, clearAttachmentFiles]);
 
-  const processEvents = async (events: AsyncGenerator<ChatEvent>) => {
-    setIsStreamRunning(true);
-
-    for await (const event of events) {
-      switch (event.type) {
-        case "message-start":
-          setIsRequestRunning(true);
-          addMessage(event.message);
-          break;
-
-        case "message-delta":
-          if (threadIdRef.current === threadId) {
-            updateLastMessage(event.message);
-          }
-          break;
-
-        case "message-end":
-          setIsStreamRunning(false);
-          setIsRequestRunning(false);
-          return;
-
-        case "message-incomplete":
-          addMessage(event.message);
-          setIsStreamRunning(false);
-          setIsRequestRunning(false);
-          return;
-
-        case "tool-call-pending": {
-          // Try auto-allow first via ChatEngine.handleToolCall
-          const innerEvents = chatEngine.handleToolCall(
-            event.message,
-            event.idx,
-            event.messageUID,
-            extendedThinking
-          );
-          let handled = false;
-          for await (const innerEvent of innerEvents) {
-            if (innerEvent.type === "tool-call-pending") {
-              // Not auto-allowed — show UI prompt
-              setManageToolData({
-                message: innerEvent.message,
-                idx: innerEvent.idx,
-                messageUID: innerEvent.messageUID,
-              });
-              handled = true;
-            } else {
-              await processEvent(innerEvent);
-            }
-          }
-          if (handled) return;
-          break;
-        }
-
-        case "thread-title":
-          insertThread(event.title, { profileId: event.profileId });
-          break;
-      }
-    }
-
-    setIsStreamRunning(false);
-    setIsRequestRunning(false);
-  };
-
-  const processEvent = async (event: ChatEvent) => {
+  const handleEvent = (event: ChatEvent) => {
     switch (event.type) {
+      case "message-start":
+        addMessage(event.message);
+        break;
       case "message-delta":
         if (threadIdRef.current === threadId) {
           updateLastMessage(event.message);
         }
-        break;
-      case "message-start":
-        addMessage(event.message);
         break;
       case "message-end":
         setIsStreamRunning(false);
@@ -144,18 +81,64 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     }
   };
 
-  const convertMessage = (message: ThreadMessageLike) => {
-    return message;
+  const processEvents = async (events: AsyncGenerator<ChatEvent>) => {
+    setIsStreamRunning(true);
+
+    for await (const event of events) {
+      if (event.type === "message-start") {
+        setIsRequestRunning(true);
+      }
+
+      if (event.type === "tool-call-pending") {
+        // Try auto-allow first via ChatEngine.handleToolCall
+        const innerEvents = chatEngine.handleToolCall(
+          event.message,
+          event.idx,
+          event.messageUID,
+          extendedThinking
+        );
+        let handled = false;
+        for await (const innerEvent of innerEvents) {
+          if (innerEvent.type === "tool-call-pending") {
+            // Not auto-allowed — show UI prompt
+            setManageToolData({
+              message: innerEvent.message,
+              idx: innerEvent.idx,
+              messageUID: innerEvent.messageUID,
+            });
+            handled = true;
+          } else {
+            handleEvent(innerEvent);
+          }
+        }
+        if (handled) return;
+      } else {
+        handleEvent(event);
+        if (
+          event.type === "message-end" ||
+          event.type === "message-incomplete"
+        ) {
+          return;
+        }
+      }
+    }
+
+    setIsStreamRunning(false);
+    setIsRequestRunning(false);
   };
 
-  const approveToolCall = (allowAlways: boolean) => {
-    if (!manageToolData) return;
-
-    const data: ToolCallData = {
+  const extractToolData = (): ToolCallData | null => {
+    if (!manageToolData) return null;
+    return {
       message: manageToolData.message,
       idx: manageToolData.idx,
       messageUID: manageToolData.messageUID,
     };
+  };
+
+  const approveToolCall = (allowAlways: boolean) => {
+    const data = extractToolData();
+    if (!data) return;
 
     setManageToolData(undefined);
 
@@ -168,13 +151,8 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
   };
 
   const denyToolCall = () => {
-    if (!manageToolData) return;
-
-    const data: ToolCallData = {
-      message: manageToolData.message,
-      idx: manageToolData.idx,
-      messageUID: manageToolData.messageUID,
-    };
+    const data = extractToolData();
+    if (!data) return;
 
     setManageToolData(undefined);
 
@@ -232,7 +210,6 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
   };
 
   return {
-    convertMessage,
     onNew,
     approveToolCall,
     denyToolCall,

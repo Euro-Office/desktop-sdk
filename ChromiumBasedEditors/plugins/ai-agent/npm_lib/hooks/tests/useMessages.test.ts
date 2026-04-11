@@ -158,13 +158,11 @@ describe("useMessages", () => {
     mockThreadsState.threads = [];
   });
 
-  it("returns convertMessage, onNew, approveToolCall, denyToolCall", () => {
+  it("returns onNew, approveToolCall, denyToolCall", () => {
     const result = useMessages({ isReady: true });
-    expect(result).toHaveProperty("convertMessage");
     expect(result).toHaveProperty("onNew");
     expect(result).toHaveProperty("approveToolCall");
     expect(result).toHaveProperty("denyToolCall");
-    expect(typeof result.convertMessage).toBe("function");
     expect(typeof result.onNew).toBe("function");
     expect(typeof result.approveToolCall).toBe("function");
     expect(typeof result.denyToolCall).toBe("function");
@@ -194,15 +192,6 @@ describe("useMessages", () => {
     }
 
     expect(mockFetchPrevMessages).not.toHaveBeenCalled();
-  });
-
-  it("convertMessage returns the same message", () => {
-    const { convertMessage } = useMessages({ isReady: true });
-    const msg: ThreadMessageLike = {
-      role: "user",
-      content: [{ type: "text", text: "hello" }],
-    };
-    expect(convertMessage(msg)).toBe(msg);
   });
 
   it("onNew sends message via chatEngine", async () => {

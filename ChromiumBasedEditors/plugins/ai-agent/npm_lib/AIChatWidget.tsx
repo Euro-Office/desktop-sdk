@@ -58,10 +58,7 @@ export const AIChatWidget = ({
   onMigrate,
 }: AIChatWidgetProps) => {
   // Initialize i18n once
-  useMemo(
-    () => initAIChatI18n({ locale, resources: translations }),
-    [locale, translations]
-  );
+  initAIChatI18n({ locale, resources: translations });
 
   // Create Provider instance
   useMemo(() => {
@@ -169,7 +166,7 @@ const AppInner = ({
   useServers({ isReady });
   useProfiles({ isReady });
 
-  const { onNew, convertMessage, approveToolCall, denyToolCall } = useMessages({
+  const { onNew, approveToolCall, denyToolCall } = useMessages({
     isReady,
   });
 
@@ -191,7 +188,7 @@ const AppInner = ({
     onCancel: async () => {
       stopMessage();
     },
-    convertMessage,
+    convertMessage: (m: ThreadMessageLike) => m,
     adapters: {
       attachments: new CompositeAttachmentAdapter([
         new SimpleImageAttachmentAdapter(),
