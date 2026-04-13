@@ -1,9 +1,4 @@
-import type { TProcess } from "./lib/types";
-
-export type TCloud = {
-  url: string;
-  data: { apiKey: string };
-};
+import type { TCloud, TProcess } from "./lib/types";
 
 declare global {
   interface Window {
@@ -12,6 +7,7 @@ declare global {
       getToolFunctions: () => string;
       callToolFunction: (name: string, args?: string) => string;
       getClouds: () => TCloud[];
+      getCloudKeys: () => TCloud[];
       openConnectCloud: () => void;
       openTemplate: (file: string, name: string) => void;
       saveAndOpen: (

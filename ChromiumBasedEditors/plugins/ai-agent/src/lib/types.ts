@@ -6,6 +6,7 @@ export type {
   ProviderType,
   TAttachmentFile,
   TAttachmentImage,
+  TCloud,
   Thread,
   TMCPItem,
   TProcess,

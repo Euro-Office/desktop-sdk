@@ -92,5 +92,5 @@ export type Profile = {
 
 export type TCloud = {
   url: string;
-  data: { apiKey: string };
+  keys: { id: string; value: string }[];
 };

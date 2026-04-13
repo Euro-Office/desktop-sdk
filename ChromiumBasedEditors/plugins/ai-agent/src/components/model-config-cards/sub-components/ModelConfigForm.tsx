@@ -57,7 +57,7 @@ export const ModelConfigForm = ({
         onChange("provider", {
           type: "onlyoffice" as ProviderType,
           baseUrl: cloud.url,
-          apiKey: cloud.data.apiKey,
+          apiKey: cloud.keys[0].value || "",
           isCloudProvider: true,
         }),
     })),

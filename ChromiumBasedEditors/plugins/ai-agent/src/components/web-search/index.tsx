@@ -43,7 +43,7 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
         id: cloud.url,
         label: new URL(cloud.url).hostname,
         baseUrl: cloud.url,
-        key: cloud.data.apiKey,
+        key: cloud.keys[0].value || "",
         isCloudProvider: true,
       })),
       ...WEB_SEARCH_PROVIDERS,
