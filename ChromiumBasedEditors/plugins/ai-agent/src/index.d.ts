@@ -44,7 +44,7 @@ declare global {
       };
     };
     on_update_plugin_info: (info: { theme: string; lang: string }) => void;
-    on_update_cloud: () => void;
+    onUpdateClouds?: () => void;
     ExternalProcess: new (
       command: string,
       env?: Record<string, string>

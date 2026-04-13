@@ -9,12 +9,10 @@ export class OnlyOfficeClouds implements PlatformClouds {
   }
 
   onCloudsChange(callback: () => void): () => void {
-    // biome-ignore lint/suspicious/noExplicitAny: ONLYOFFICE global API
-    (window as any).on_update_cloud = callback;
+    window.onUpdateClouds = callback;
 
     return () => {
-      // biome-ignore lint/suspicious/noExplicitAny: ONLYOFFICE global API
-      (window as any).on_update_cloud = undefined;
+      window.onUpdateClouds = undefined;
     };
   }
 }
