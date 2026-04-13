@@ -1,14 +1,14 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getServersInstance } from "../../tools/tools-holder";
 import { useDirection } from "../../hooks/useDirection";
 import { getApiKeyLink } from "../../lib/api-key-links";
 import { cn } from "../../lib/utils";
+import { useStores } from "../../store/context";
+import { getServersInstance } from "../../tools/tools-holder";
 import { ComboBox } from "../combo-box";
 import { FieldContainer } from "../field-container";
 import { Input } from "../input";
 import { Link } from "../link";
-import {useStores} from "./useStores";
 
 type WebSearchProps = {
   variant?: "tab" | "page";

@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { getProviderInstance } from "../../../providers/provider-holder";
 import { getApiKeyLink } from "../../../lib/api-key-links";
+import { getProviderInstance } from "../../../providers/provider-holder";
+import { useStores } from "../../../store/context";
 import type { Model, ProviderType } from "../../../types";
 import { ComboBox } from "../../combo-box";
 import { FieldContainer } from "../../field-container";
 import { Input } from "../../input";
 import { Link } from "../../link";
-import { useStores } from "./useStores";
 
 export interface ModelFormValues {
   provider: string;

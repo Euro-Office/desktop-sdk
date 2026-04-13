@@ -6,7 +6,7 @@ import {
   type ThreadMessageLike,
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Layout } from "./components/layout";
 import { ManageToolDialog } from "./components/manage-tool-dialog";
 import type { FeatureFlags, StoreKeys } from "./config";
@@ -17,9 +17,11 @@ import useServers from "./hooks/useServers";
 import useThread from "./hooks/useThreads";
 import { initAIChatI18n } from "./i18n";
 import Thread from "./pages/chat";
+
 const EmptyScreen = lazy(() => import("./pages/empty-screen"));
 const InitialSetup = lazy(() => import("./pages/initial-setup"));
 const Settings = lazy(() => import("./pages/settings"));
+
 import { PlatformProvider, usePlatform } from "./platform/context";
 import type { PlatformAdapter } from "./platform/types";
 import Provider from "./providers";
@@ -163,13 +165,19 @@ const AppInner = ({
   const [isReady, setIsReady] = useState(false);
   const [isManageToolOpen, setIsManageToolOpen] = useState(false);
 
-  const { useMessageStore, useProfilesStore, useServersStore, useRouter } =
-    useStores();
+  const {
+    useMessageStore,
+    useProfilesStore,
+    useServersStore,
+    useRouter,
+    useCloudsStore,
+  } = useStores();
 
   const { messages, stopMessage } = useMessageStore();
   const { currentPage } = useRouter();
   const { manageToolData, setManageToolData } = useServersStore();
   const { profiles } = useProfilesStore();
+  const { fetchClouds } = useCloudsStore();
 
   useThread({ isReady });
   useServers({ isReady });
@@ -182,6 +190,10 @@ const AppInner = ({
   useEffect(() => {
     if (manageToolData) setIsManageToolOpen(true);
   }, [manageToolData]);
+
+  useEffect(() => {
+    fetchClouds();
+  }, [fetchClouds]);
 
   useEffect(() => {
     if (onMigrate) {
