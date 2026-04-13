@@ -12,6 +12,9 @@ const apiKeyLinks: Record<string, string> = {
   openrouter: "https://openrouter.ai/keys",
   together: "https://api.together.ai/settings/api-keys",
   xai: "https://console.x.ai",
+  groq: "https://console.groq.com/keys",
+  zhipu: "https://open.bigmodel.cn/usercenter/apikeys",
+  stabilityai: "https://platform.stability.ai/account/keys",
 
   // Web search providers
   Exa: "https://dashboard.exa.ai/api-keys",

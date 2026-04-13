@@ -2,6 +2,8 @@ import type { ProviderType } from "../types";
 import { AnthropicProvider, anthropicProvider } from "./anthropic";
 import { DeepSeekProvider, deepseekProvider } from "./deepseek";
 import { GenAIProvider, genaiProvider } from "./genai";
+import { GPT4AllProvider, gpt4allProvider } from "./gpt4all";
+import { GroqProvider, groqProvider } from "./groq";
 import { LMStudioProvider, lmStudioProvider } from "./lm-studio";
 import { MistralProvider, mistralProvider } from "./mistral";
 import { OllamaProvider, ollamaProvider } from "./ollama";
@@ -11,8 +13,10 @@ import {
   openaicompatibleProvider,
 } from "./openaicompatible";
 import { OpenRouterProvider, openrouterProvider } from "./openrouter";
+import { StabilityAIProvider, stabilityaiProvider } from "./stabilityai";
 import { TogetherProvider, togetherProvider } from "./together";
 import { XAIProvider, xaiProvider } from "./xai";
+import { ZhipuProvider, zhipuProvider } from "./zhipu";
 
 export type BuiltinProvider =
   | AnthropicProvider
@@ -25,7 +29,11 @@ export type BuiltinProvider =
   | DeepSeekProvider
   | XAIProvider
   | LMStudioProvider
-  | MistralProvider;
+  | MistralProvider
+  | GroqProvider
+  | ZhipuProvider
+  | StabilityAIProvider
+  | GPT4AllProvider;
 
 // biome-ignore lint/suspicious/noExplicitAny: custom providers can have any generic params
 export type BaseProvider =
@@ -47,6 +55,10 @@ const builtinProviders: Record<ProviderType, BuiltinProvider> = {
   xai: xaiProvider,
   "lm-studio": lmStudioProvider,
   mistral: mistralProvider,
+  groq: groqProvider,
+  zhipu: zhipuProvider,
+  stabilityai: stabilityaiProvider,
+  gpt4all: gpt4allProvider,
 };
 
 /**
@@ -107,6 +119,10 @@ const builtinFactories: Record<ProviderType, () => BuiltinProvider> = {
   xai: () => new XAIProvider(),
   "lm-studio": () => new LMStudioProvider(),
   mistral: () => new MistralProvider(),
+  groq: () => new GroqProvider(),
+  zhipu: () => new ZhipuProvider(),
+  stabilityai: () => new StabilityAIProvider(),
+  gpt4all: () => new GPT4AllProvider(),
 };
 
 /**

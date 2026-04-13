@@ -25,7 +25,11 @@ export type BuiltinProviderType =
   | "deepseek"
   | "xai"
   | "lm-studio"
-  | "mistral";
+  | "mistral"
+  | "groq"
+  | "zhipu"
+  | "stabilityai"
+  | "gpt4all";
 
 /** Accepts builtin provider types with autocomplete + any custom string */
 export type ProviderType = BuiltinProviderType | (string & {});
