@@ -53,8 +53,24 @@ export function inferCapabilities(
     return CapabilitiesUI.Chat;
   }
 
+  if (providerType === "groq") {
+    if (id.includes("vision"))
+      return CapabilitiesUI.Chat | CapabilitiesUI.Vision;
+    return CapabilitiesUI.Chat | CapabilitiesUI.Tools;
+  }
+
+  if (providerType === "zhipu") {
+    if (id.includes("cogview") || id.includes("image"))
+      return CapabilitiesUI.Image;
+    return CapabilitiesUI.Chat | CapabilitiesUI.Tools;
+  }
+
+  if (providerType === "stabilityai") {
+    return CapabilitiesUI.Image;
+  }
+
   // together, openrouter — can't infer without API metadata, use broad default
-  // deepseek, ollama, lm-studio, openaicompatible, genai — broad default
+  // deepseek, ollama, lm-studio, openaicompatible, genai, gpt4all — broad default
   return CapabilitiesUI.Chat | CapabilitiesUI.Vision | CapabilitiesUI.Tools;
 }
 

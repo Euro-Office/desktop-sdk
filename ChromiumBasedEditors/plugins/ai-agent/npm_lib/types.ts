@@ -26,6 +26,10 @@ export type BuiltinProviderType =
   | "xai"
   | "lm-studio"
   | "mistral"
+  | "groq"
+  | "zhipu"
+  | "stabilityai"
+  | "gpt4all"
   | "onlyoffice";
 
 /** Accepts builtin provider types with autocomplete + any custom string */
