@@ -35,6 +35,7 @@ export type Model = {
   name: string;
   provider: ProviderType;
   reasoning?: boolean;
+  capabilities?: number;
 };
 
 export type TProvider = {
@@ -86,4 +87,5 @@ export type Profile = {
   key?: string;
   modelId: string;
   reasoning?: boolean;
+  capabilities?: number;
 };

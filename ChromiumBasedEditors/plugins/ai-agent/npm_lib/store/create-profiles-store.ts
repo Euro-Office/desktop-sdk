@@ -1,6 +1,11 @@
 import { create, type StoreApi, type UseBoundStore } from "zustand";
+import { ActionType, inferCapabilities } from "../capabilities";
 import type { StoreKeys } from "../config";
 import type { TErrorData } from "../providers/base";
+import {
+  applyProfileToAction,
+  initActionHolders,
+} from "../services/action-holders";
 import type { ProfilesService } from "../services/profiles";
 import { getSettingsInstance } from "../settings/settings-holder";
 import type { Profile } from "../types";
@@ -63,11 +68,46 @@ export function createProfilesStore(deps: {
     [keys.visionProfile]: "visionProfile",
   };
 
+  const FIELD_TO_ACTION: Record<string, ActionType> = {
+    chatProfile: ActionType.Chat,
+    summarizationProfile: ActionType.Summarization,
+    translationProfile: ActionType.Translation,
+    textAnalysisProfile: ActionType.TextAnalyze,
+    imageGenerationProfile: ActionType.ImageGeneration,
+    ocrProfile: ActionType.OCR,
+    visionProfile: ActionType.Vision,
+  };
+
+  const applyAllActionHolders = (state: {
+    defaultProfile: Profile | null;
+    chatProfile: Profile | null;
+    summarizationProfile: Profile | null;
+    translationProfile: Profile | null;
+    textAnalysisProfile: Profile | null;
+    imageGenerationProfile: Profile | null;
+    ocrProfile: Profile | null;
+    visionProfile: Profile | null;
+  }) => {
+    for (const [field, actionType] of Object.entries(FIELD_TO_ACTION)) {
+      applyProfileToAction(
+        actionType,
+        state[field as keyof typeof state],
+        state.defaultProfile
+      );
+    }
+  };
+
   const makeTaskSetter =
-    (settingsKey: string, stateField: keyof ProfilesStoreState) =>
+    (
+      settingsKey: string,
+      stateField: keyof ProfilesStoreState,
+      actionType: ActionType
+    ) =>
     (profile: Profile | null) => {
       profilesService.setTaskProfile(settingsKey, profile);
       set({ [stateField]: profile } as Partial<ProfilesStoreState>);
+      const state = store.getState();
+      applyProfileToAction(actionType, profile, state.defaultProfile);
     };
 
   let set: (
@@ -108,6 +148,13 @@ export function createProfilesStore(deps: {
             taskKeys: [...TASK_PROFILE_KEYS],
           });
 
+        // Backfill capabilities for profiles created before this feature
+        for (const p of profiles) {
+          if (p.capabilities == null) {
+            p.capabilities = inferCapabilities(p.providerType, p.modelId);
+          }
+        }
+
         const state: Record<string, unknown> = { profiles, defaultProfile };
         for (const key of TASK_PROFILE_KEYS) {
           state[TASK_FIELD_MAP[key]] = taskProfiles[key] ?? null;
@@ -119,6 +166,10 @@ export function createProfilesStore(deps: {
           taskProfiles[keys.chatProfile] ?? null,
           defaultProfile
         );
+
+        // Initialize action holders for all task types
+        initActionHolders();
+        applyAllActionHolders(get());
       },
 
       addProfile: async (data) => {
@@ -168,7 +219,7 @@ export function createProfilesStore(deps: {
             defaultProfile
           );
 
-          return {
+          const updated = {
             profiles,
             defaultProfile,
             chatProfile,
@@ -180,6 +231,10 @@ export function createProfilesStore(deps: {
             visionProfile,
             sessionChatProfile,
           };
+
+          applyAllActionHolders(updated);
+
+          return updated;
         });
         return true;
       },
@@ -217,12 +272,16 @@ export function createProfilesStore(deps: {
             defaultProfile
           );
 
-          return {
+          const updated = {
             profiles,
             defaultProfile,
             ...cleared,
             sessionChatProfile,
           };
+
+          applyAllActionHolders(updated as typeof state & typeof updated);
+
+          return updated;
         });
       },
 
@@ -245,6 +304,7 @@ export function createProfilesStore(deps: {
           );
           return { defaultProfile: profile };
         });
+        applyAllActionHolders(store.getState());
       },
 
       setChatProfile: (profile) => {
@@ -257,26 +317,43 @@ export function createProfilesStore(deps: {
           );
           return { chatProfile: profile };
         });
+        applyProfileToAction(
+          ActionType.Chat,
+          profile,
+          store.getState().defaultProfile
+        );
       },
 
       setSummarizationProfile: makeTaskSetter(
         keys.summarizationProfile,
-        "summarizationProfile"
+        "summarizationProfile",
+        ActionType.Summarization
       ),
       setTranslationProfile: makeTaskSetter(
         keys.translationProfile,
-        "translationProfile"
+        "translationProfile",
+        ActionType.Translation
       ),
       setTextAnalysisProfile: makeTaskSetter(
         keys.textAnalysisProfile,
-        "textAnalysisProfile"
+        "textAnalysisProfile",
+        ActionType.TextAnalyze
       ),
       setImageGenerationProfile: makeTaskSetter(
         keys.imageGenerationProfile,
-        "imageGenerationProfile"
+        "imageGenerationProfile",
+        ActionType.ImageGeneration
       ),
-      setOcrProfile: makeTaskSetter(keys.ocrProfile, "ocrProfile"),
-      setVisionProfile: makeTaskSetter(keys.visionProfile, "visionProfile"),
+      setOcrProfile: makeTaskSetter(
+        keys.ocrProfile,
+        "ocrProfile",
+        ActionType.OCR
+      ),
+      setVisionProfile: makeTaskSetter(
+        keys.visionProfile,
+        "visionProfile",
+        ActionType.Vision
+      ),
 
       setSessionChatProfile: (profile) => {
         set((state) => {

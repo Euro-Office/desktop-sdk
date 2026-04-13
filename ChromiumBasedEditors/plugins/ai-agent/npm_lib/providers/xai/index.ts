@@ -1,3 +1,4 @@
+import { CapabilitiesUI } from "../../capabilities";
 import type { Model } from "../../types";
 import type { TData } from "../base";
 import { OpenAIProvider } from "../openai";
@@ -16,12 +17,25 @@ class XAIProvider extends OpenAIProvider {
 
     const response = (await client.models.list()).data;
 
-    const models: Model[] = response.map((model) => ({
-      id: model.id,
-      name: model.id,
-      provider: "xai" as const,
-      reasoning: model.id.includes("reasoning"),
-    }));
+    const models: Model[] = response.map((model) => {
+      let capabilities: number;
+
+      if (model.id.includes("vision")) {
+        capabilities = CapabilitiesUI.Chat | CapabilitiesUI.Vision;
+      } else if (model.id.includes("image")) {
+        capabilities = CapabilitiesUI.Image;
+      } else {
+        capabilities = CapabilitiesUI.Chat;
+      }
+
+      return {
+        id: model.id,
+        name: model.id,
+        provider: "xai" as const,
+        reasoning: model.id.includes("reasoning"),
+        capabilities,
+      };
+    });
 
     return models.reverse();
   };

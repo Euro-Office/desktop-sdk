@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { CapabilitiesUI } from "../../capabilities";
 import { useStores } from "../../store/context";
 import type { Profile } from "../../types";
 import { ComboBox } from "../combo-box";
@@ -33,13 +34,21 @@ const ModelAssignment = () => {
     onClick: () => setDefaultProfile(p),
   }));
 
-  const taskItems = (setter: (p: Profile | null) => void) => [
+  const filterByCapability = (requiredCap: number) =>
+    profiles.filter(
+      (p) => !p.capabilities || (p.capabilities & requiredCap) !== 0
+    );
+
+  const taskItems = (
+    setter: (p: Profile | null) => void,
+    requiredCap: number
+  ) => [
     {
       text: t("DefaultModel"),
       id: "default",
       onClick: () => setter(null),
     },
-    ...profiles.map((p) => ({
+    ...filterByCapability(requiredCap).map((p) => ({
       text: p.name,
       id: p.id,
       onClick: () => setter(p),
@@ -81,7 +90,7 @@ const ModelAssignment = () => {
           <ComboBox
             className="w-full"
             value={chatProfile?.name ?? t("DefaultModel")}
-            items={taskItems(setChatProfile)}
+            items={taskItems(setChatProfile, CapabilitiesUI.Chat)}
           />
         </FieldContainer>
 
@@ -95,7 +104,7 @@ const ModelAssignment = () => {
           <ComboBox
             className="w-full"
             value={summarizationProfile?.name ?? t("DefaultModel")}
-            items={taskItems(setSummarizationProfile)}
+            items={taskItems(setSummarizationProfile, CapabilitiesUI.Chat)}
           />
         </FieldContainer>
 
@@ -109,7 +118,7 @@ const ModelAssignment = () => {
           <ComboBox
             className="w-full"
             value={translationProfile?.name ?? t("DefaultModel")}
-            items={taskItems(setTranslationProfile)}
+            items={taskItems(setTranslationProfile, CapabilitiesUI.Chat)}
           />
         </FieldContainer>
 
@@ -123,7 +132,7 @@ const ModelAssignment = () => {
           <ComboBox
             className="w-full"
             value={textAnalysisProfile?.name ?? t("DefaultModel")}
-            items={taskItems(setTextAnalysisProfile)}
+            items={taskItems(setTextAnalysisProfile, CapabilitiesUI.Chat)}
           />
         </FieldContainer>
 
@@ -137,7 +146,7 @@ const ModelAssignment = () => {
           <ComboBox
             className="w-full"
             value={imageGenerationProfile?.name ?? t("DefaultModel")}
-            items={taskItems(setImageGenerationProfile)}
+            items={taskItems(setImageGenerationProfile, CapabilitiesUI.Image)}
           />
         </FieldContainer>
 
@@ -151,7 +160,7 @@ const ModelAssignment = () => {
           <ComboBox
             className="w-full"
             value={ocrProfile?.name ?? t("DefaultModel")}
-            items={taskItems(setOcrProfile)}
+            items={taskItems(setOcrProfile, CapabilitiesUI.Vision)}
           />
         </FieldContainer>
 
@@ -165,7 +174,7 @@ const ModelAssignment = () => {
           <ComboBox
             className="w-full"
             value={visionProfile?.name ?? t("DefaultModel")}
-            items={taskItems(setVisionProfile)}
+            items={taskItems(setVisionProfile, CapabilitiesUI.Vision)}
           />
         </FieldContainer>
       </div>

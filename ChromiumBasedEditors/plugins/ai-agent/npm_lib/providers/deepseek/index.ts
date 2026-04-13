@@ -1,3 +1,4 @@
+import { CapabilitiesUI } from "../../capabilities";
 import type { Model } from "../../types";
 import type { TData } from "../base";
 import { OpenAIProvider } from "../openai";
@@ -19,11 +20,15 @@ class DeepSeekProvider extends OpenAIProvider {
 
     const response = (await client.models.list()).data;
 
+    const defaultCaps =
+      CapabilitiesUI.Chat | CapabilitiesUI.Vision | CapabilitiesUI.Tools;
+
     const models: Model[] = response.map((model) => ({
       id: model.id,
       name: model.id,
       provider: "deepseek" as const,
       reasoning: model.id.includes("reasoner"),
+      capabilities: defaultCaps,
     }));
 
     return models.reverse();

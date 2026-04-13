@@ -1,3 +1,8 @@
+export {
+  applyProfileToAction,
+  getActionProvider,
+  initActionHolders,
+} from "./action-holders";
 export type { ChatEvent, ToolCallData } from "./chat-engine";
 export { ChatEngine } from "./chat-engine";
 export type { ProfilesInitResult, TaskProfileKeys } from "./profiles";

@@ -1,7 +1,9 @@
-// --- Types ---
+// --- Capabilities ---
 
 // --- Widget ---
 export { AIChatWidget, type AIChatWidgetProps } from "./AIChatWidget";
+export type { Capabilities } from "./capabilities";
+export { ActionType, CapabilitiesUI } from "./capabilities";
 // --- Config ---
 export type { FeatureFlags, StoreKeys } from "./config";
 export {
@@ -44,6 +46,7 @@ export { default as Provider, type SendMessageReturnType } from "./providers";
 export { AbstractBaseProvider } from "./providers/base";
 export type { BaseProvider } from "./providers/registry";
 export {
+  createProvider,
   getProvider,
   getSupportedProviderTypes,
   isValidProviderType,
@@ -61,7 +64,10 @@ export type {
 } from "./services";
 // --- Services ---
 export {
+  applyProfileToAction,
   ChatEngine,
+  getActionProvider,
+  initActionHolders,
   ProfilesService,
   PromptsService,
   ServersService,

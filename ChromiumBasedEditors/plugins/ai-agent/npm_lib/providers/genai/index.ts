@@ -6,6 +6,7 @@ import {
   ThinkingLevel,
 } from "@google/genai";
 import cloneDeep from "lodash.clonedeep";
+import { CapabilitiesUI } from "../../capabilities";
 import type { Model, TMCPItem, TProvider } from "../../types";
 import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
 import { ProviderErrors } from "../errors";
@@ -297,11 +298,25 @@ class GenAIProvider extends AbstractBaseProvider<
     while (page.length > 0) {
       for (const model of page) {
         const modelId = model.name?.replace("models/", "") ?? "";
+        const methods = model.supportedGenerationMethods ?? [];
+
+        let capabilities: number;
+
+        if (methods.includes("embedContent")) {
+          capabilities = CapabilitiesUI.Embeddings;
+        } else if (methods.includes("generateContent")) {
+          capabilities =
+            CapabilitiesUI.Chat | CapabilitiesUI.Vision | CapabilitiesUI.Tools;
+        } else {
+          capabilities =
+            CapabilitiesUI.Chat | CapabilitiesUI.Vision | CapabilitiesUI.Tools;
+        }
 
         models.push({
           id: modelId,
           name: model.displayName || modelId,
           provider: "genai" as const,
+          capabilities,
         });
       }
 

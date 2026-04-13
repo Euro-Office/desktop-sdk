@@ -52,12 +52,15 @@ export const AddModelCard = ({
     setIsLoading(true);
     setErrors({});
 
+    const selectedModel = models.find((m) => m.id === values.model);
+
     const result = await addProfile({
       name: values.profileName,
       providerType: values.provider as ProviderType,
       baseUrl: values.baseUrl,
       key: values.apiKey || undefined,
       modelId: values.model,
+      capabilities: selectedModel?.capabilities,
     });
 
     setIsLoading(false);

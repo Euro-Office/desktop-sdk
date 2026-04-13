@@ -1,3 +1,4 @@
+import { CapabilitiesUI } from "../../capabilities";
 import type { Model, TProvider } from "../../types";
 import type { TData, TErrorData } from "../base";
 import { ProviderErrors } from "../errors";
@@ -36,10 +37,14 @@ class OllamaProvider extends OpenAIProvider {
     const client = this.createClient("ollama", data.url);
     const response = await client.models.list();
 
+    const defaultCaps =
+      CapabilitiesUI.Chat | CapabilitiesUI.Vision | CapabilitiesUI.Tools;
+
     return response.data.map((model) => ({
       id: model.id,
       name: model.id,
       provider: "ollama" as const,
+      capabilities: defaultCaps,
     }));
   };
 }

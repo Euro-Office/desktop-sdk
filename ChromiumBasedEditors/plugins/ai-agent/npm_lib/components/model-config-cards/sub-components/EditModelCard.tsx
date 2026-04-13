@@ -66,6 +66,8 @@ export const EditModelCard = ({
     setIsLoading(true);
     setErrors({});
 
+    const selectedModel = models.find((m) => m.id === values.model);
+
     const result = await editProfile({
       ...profile,
       name: values.profileName,
@@ -73,6 +75,7 @@ export const EditModelCard = ({
       baseUrl: values.baseUrl,
       key: values.apiKey || undefined,
       modelId: values.model,
+      capabilities: selectedModel?.capabilities ?? profile.capabilities,
     });
 
     setIsLoading(false);

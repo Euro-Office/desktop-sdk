@@ -1,7 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getProviderInstance } from "../../../providers/provider-holder";
+import { CapabilitiesUI } from "../../../capabilities";
 import { ComboBox } from "../../../components/combo-box";
+import { getProviderInstance } from "../../../providers/provider-holder";
 import { useStores } from "../../../store/context";
 import type { Profile } from "../../../types";
 
@@ -18,6 +19,10 @@ const SelectModel = () => {
   const { messages } = useMessageStore();
   const { t } = useTranslation();
 
+  const chatProfiles = profiles.filter(
+    (p) => !p.capabilities || (p.capabilities & CapabilitiesUI.Chat) !== 0
+  );
+
   const onSelectProfile = React.useCallback(
     (profile: Profile) => {
       if (currentProfile?.id === profile.id) return;
@@ -30,12 +35,12 @@ const SelectModel = () => {
   );
 
   React.useEffect(() => {
-    if (!currentProfile && profiles.length > 0) {
-      onSelectProfile(profiles[0]);
+    if (!currentProfile && chatProfiles.length > 0) {
+      onSelectProfile(chatProfiles[0]);
     }
-  }, [currentProfile, profiles, onSelectProfile]);
+  }, [currentProfile, chatProfiles, onSelectProfile]);
 
-  const items = profiles.map((p) => ({
+  const items = chatProfiles.map((p) => ({
     text: p.name,
     id: p.id,
     onClick: () => onSelectProfile(p),

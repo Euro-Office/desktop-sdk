@@ -17,6 +17,7 @@ src/              — Host implementation: IndexedDB storage, localStorage setti
 npm_lib/
 ├── index.ts                       # Root entry — re-exports everything
 ├── types.ts                       # Shared domain types (Thread, Profile, Model, etc.)
+├── capabilities.ts                # CapabilitiesUI bitmask, ActionType, inferCapabilities()
 ├── constants.ts                   # Shared constants (CURRENT_MODEL_KEY)
 ├── utils.ts                       # Message utilities (convertMessagesToMd, removeSpecialCharacter, getMessageTitleFromMd)
 ├── README.md
@@ -52,6 +53,7 @@ npm_lib/
 │
 ├── services/
 │   ├── index.ts                   # Re-exports all services
+│   ├── action-holders.ts          # Action holders — per-ActionType provider instances
 │   ├── prompts.ts                 # PromptsService — prompt/folder CRUD
 │   ├── threads.ts                 # ThreadsService — thread lifecycle, migration, export
 │   ├── profiles.ts                # ProfilesService — profile validation, task assignments, provider sync
@@ -107,8 +109,8 @@ App
 | Type | Description |
 |------|-------------|
 | `Thread` | Chat session (threadId, title, lastEditDate, profileId) |
-| `Profile` | AI provider profile (name, providerType, baseUrl, key, modelId) |
-| `Model` | AI model reference (id, name, provider, reasoning) |
+| `Profile` | AI provider profile (name, providerType, baseUrl, key, modelId, capabilities) |
+| `Model` | AI model reference (id, name, provider, reasoning, capabilities) |
 | `TProvider` | Provider connection info (type, name, key, baseUrl) |
 | `ProviderType` | `BuiltinProviderType | (string & {})` — builtin autocomplete + custom strings |
 | `TMCPItem` | MCP tool schema (name, description, inputSchema) |
@@ -117,6 +119,41 @@ App
 | `TAttachmentFile` | File attachment (path, content, type) |
 | `TAttachmentImage` | Image attachment (name, base64) |
 | `TProcess` | External process handle (stdin, onprocess, end, start) |
+
+---
+
+### capabilities.ts — Model Capabilities & Action Types
+
+**CapabilitiesUI** — bitmask flags for model capabilities:
+
+| Flag | Value | Description |
+|------|-------|-------------|
+| `None` | 0x00 | No capabilities |
+| `Chat` | 0x01 | Text chat |
+| `Image` | 0x02 | Image generation |
+| `Embeddings` | 0x04 | Text embeddings |
+| `Audio` | 0x08 | Audio (TTS/STT) |
+| `Vision` | 0x80 | Image understanding |
+| `Tools` | 0x100 | Tool/function calling |
+
+Capabilities are stored as bitmasks on `Model` and `Profile`. Each provider returns capabilities from `getProviderModels()`. Model Assignment UI filters profiles by required capability per task.
+
+**ActionType** — task types for model assignment:
+
+`Chat`, `Summarization`, `Translation`, `TextAnalyze`, `ImageGeneration`, `OCR`, `Vision`
+
+**Action Holders** — each ActionType gets a dedicated provider instance via `getActionProvider(actionType)`. Configured automatically when profiles change. Fallback: task profile -> default profile -> undefined.
+
+```ts
+import { ActionType, getActionProvider } from "@onlyoffice/ai-chat";
+
+const provider = getActionProvider(ActionType.Summarization);
+if (provider) {
+  const result = await provider.sendMessageSync([
+    { role: "user", content: "Summarize this text: ..." },
+  ]);
+}
+```
 
 ---
 
@@ -189,6 +226,7 @@ Services contain all chat business logic. They depend on holders (`getStorageIns
 
 | Service | Responsibility |
 |---------|---------------|
+| `ActionHolders` | Per-ActionType provider instances with fallback (task profile -> default profile) |
 | `PromptsService` | Prompt/folder CRUD with storage persistence |
 | `ThreadsService` | Thread lifecycle, legacy migration, DOCX export, deletion |
 | `ProfilesService` | Profile validation, task profile assignments, provider sync |
@@ -212,14 +250,24 @@ Services contain all chat business logic. They depend on holders (`getStorageIns
 
 11 built-in providers + runtime registration for custom ones.
 
-**AbstractBaseProvider<TOOL, MESSAGE, CLIENT>** — base class with abstract methods:
-- `sendMessage()` / `sendMessageAfterToolCall()` — async generators for streaming
-- `setProvider()` / `setTools()` / `setPrevMessages()` — configuration
-- `checkProvider()` / `getProviderModels()` — validation and model discovery
-- `createChatName()` — generate thread title from content
+**AbstractBaseProvider<TOOL, MESSAGE, CLIENT>** — base class:
+
+| Method | Type | Description |
+|--------|------|-------------|
+| `sendMessage()` | abstract | Streaming chat via async generator |
+| `sendMessageAfterToolCall()` | abstract | Continue after tool call |
+| `sendMessageSync()` | concrete | Non-streaming chat — drains generator, returns string |
+| `imageGeneration()` | optional | Image generation — returns base64 (OpenAI only) |
+| `imageVision()` | concrete | Image analysis — sends image+prompt via sendMessageSync |
+| `imageOCR()` | concrete | OCR — extracts text from image via imageVision |
+| `isSupportStreaming()` | concrete | Streaming support flag (default true) |
+| `setProvider()` / `setTools()` / `setPrevMessages()` | abstract | Configuration |
+| `checkProvider()` / `getProviderModels()` | abstract | Validation and model discovery (returns capabilities) |
+| `createChatName()` | abstract | Generate thread title from content |
 
 **Registry:**
-- `getProvider(type)` — lookup builtin or custom
+- `getProvider(type)` — lookup builtin or custom (singleton)
+- `createProvider(type)` — create a new (non-singleton) instance
 - `registerProvider(type, instance)` — add custom provider at runtime
 - `unregisterProvider(type)` — remove custom provider
 - `getSupportedProviderTypes()` — all registered types
