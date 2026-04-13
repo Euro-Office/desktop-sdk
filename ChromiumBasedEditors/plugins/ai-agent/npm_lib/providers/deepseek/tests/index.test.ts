@@ -173,7 +173,7 @@ describe("DeepSeekProvider", () => {
   // ==========================================================================
 
   describe("getProviderModels", () => {
-    it("should return models matching filter", async () => {
+    it("should return all models mapped with provider type", async () => {
       mockList.mockResolvedValue({
         data: [
           { id: "deepseek-chat" },
@@ -187,34 +187,11 @@ describe("DeepSeekProvider", () => {
         url: "",
       });
 
-      // Should only include models in modelFilters
-      const filteredModels = models.filter((m) =>
-        deepseekInfo.modelFilters.includes(m.id)
-      );
-      expect(filteredModels.length).toBe(models.length);
+      expect(models).toHaveLength(3);
+      expect(models.every((m) => m.provider === "deepseek")).toBe(true);
     });
 
-    it("should return all models when filter is empty", async () => {
-      // Temporarily store original filter
-      const originalFilters = [...deepseekInfo.modelFilters];
-      deepseekInfo.modelFilters.length = 0;
-
-      mockList.mockResolvedValue({
-        data: [{ id: "deepseek-chat" }, { id: "deepseek-coder" }],
-      });
-
-      const models = await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "",
-      });
-
-      expect(models).toHaveLength(2);
-
-      // Restore original filter
-      deepseekInfo.modelFilters.push(...originalFilters);
-    });
-
-    it("should set provider type to deepseek", async () => {
+    it("should use model.id as name", async () => {
       mockList.mockResolvedValue({
         data: [{ id: "deepseek-chat" }],
       });
@@ -224,12 +201,12 @@ describe("DeepSeekProvider", () => {
         url: "",
       });
 
-      expect(models[0]?.provider).toBe("deepseek");
+      expect(models[0].name).toBe("deepseek-chat");
     });
 
-    it("should use modelNames mapping when available", async () => {
+    it("should mark reasoning models based on id containing 'reasoner'", async () => {
       mockList.mockResolvedValue({
-        data: [{ id: "deepseek-chat" }],
+        data: [{ id: "deepseek-chat" }, { id: "deepseek-reasoner" }],
       });
 
       const models = await provider.getProviderModels({
@@ -237,19 +214,13 @@ describe("DeepSeekProvider", () => {
         url: "",
       });
 
-      // Should use mapped name if exists, otherwise use model.id
-      if (deepseekInfo.modelNames["deepseek-chat"]) {
-        expect(models[0].name).toBe(deepseekInfo.modelNames["deepseek-chat"]);
-      } else {
-        expect(models[0].name).toBe("deepseek-chat");
-      }
+      const chat = models.find((m) => m.id === "deepseek-chat");
+      const reasoner = models.find((m) => m.id === "deepseek-reasoner");
+      expect(chat?.reasoning).toBe(false);
+      expect(reasoner?.reasoning).toBe(true);
     });
 
     it("should reverse the models array", async () => {
-      // Temporarily clear filters to get all models
-      const originalFilters = [...deepseekInfo.modelFilters];
-      deepseekInfo.modelFilters.length = 0;
-
       mockList.mockResolvedValue({
         data: [{ id: "model-1" }, { id: "model-2" }, { id: "model-3" }],
       });
@@ -261,13 +232,12 @@ describe("DeepSeekProvider", () => {
 
       expect(models[0].id).toBe("model-3");
       expect(models[2].id).toBe("model-1");
-
-      // Restore filters
-      deepseekInfo.modelFilters.push(...originalFilters);
     });
 
-    it("should return empty array on error", async () => {
-      mockList.mockRejectedValue(new Error("Network error"));
+    it("should return empty array when response has no models", async () => {
+      mockList.mockResolvedValue({
+        data: [],
+      });
 
       const models = await provider.getProviderModels({
         apiKey: "test-key",

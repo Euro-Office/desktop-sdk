@@ -1,6 +1,7 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { Mistral } from "@mistralai/mistralai";
 import type { Messages, Tool } from "@mistralai/mistralai/models/components";
+import { CapabilitiesUI } from "../../capabilities";
 import type { Model, TMCPItem, TProvider } from "../../types";
 import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
 import { extractErrorMessage, getErrorStatus, ProviderErrors } from "../errors";
@@ -214,6 +215,26 @@ class MistralProvider extends AbstractBaseProvider<Tool, Messages, Mistral> {
     }
   };
 
+  private checkModelCapabilities = (model: {
+    id?: string;
+    capabilities?: { vision?: boolean };
+  }): number => {
+    const id = model.id ?? "";
+
+    if (id.includes("mistral-embed")) return CapabilitiesUI.Embeddings;
+    if (id.includes("pixtral"))
+      return CapabilitiesUI.Chat | CapabilitiesUI.Vision;
+    if (id.includes("mistral-small")) return CapabilitiesUI.Chat;
+    if (id.includes("mistral-medium")) return CapabilitiesUI.Chat;
+    if (id.includes("codestral")) return CapabilitiesUI.Chat;
+
+    let caps = CapabilitiesUI.Chat;
+    if (model.capabilities?.vision) {
+      caps |= CapabilitiesUI.Vision;
+    }
+    return caps;
+  };
+
   getProviderModels = async (data: TData): Promise<Model[]> => {
     const client = createClient(data.apiKey, data.url);
     const response = await client.models.list();
@@ -228,6 +249,7 @@ class MistralProvider extends AbstractBaseProvider<Tool, Messages, Mistral> {
         id: model.id ?? "",
         name: displayName,
         provider: "mistral" as const,
+        capabilities: this.checkModelCapabilities(model),
       });
     }
 

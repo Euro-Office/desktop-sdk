@@ -1,13 +1,14 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import type { StorageAdapter } from "./types";
 import { setStorageInstance } from "./storage-holder";
+import type { StorageAdapter } from "./types";
 
 const StorageContext = createContext<StorageAdapter | null>(null);
 
 /** Access the current StorageAdapter instance from any component */
 export function useStorage(): StorageAdapter {
   const ctx = useContext(StorageContext);
-  if (!ctx) throw new Error("useStorage() must be used inside <StorageProvider>");
+  if (!ctx)
+    throw new Error("useStorage() must be used inside <StorageProvider>");
   return ctx;
 }
 
@@ -29,7 +30,12 @@ export function StorageProvider({ storage, children }: StorageProviderProps) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    storage.init().then(() => setIsReady(true));
+    storage
+      .init()
+      .then(() => setIsReady(true))
+      .catch((err) => {
+        console.error("Storage init failed:", err);
+      });
 
     return () => {
       storage.close();

@@ -1,4 +1,13 @@
+import { chatEvents } from "../../events";
+import { getPlatformInstance } from "../../platform/platform-holder";
+import { getSettingsInstance } from "../../settings/settings-holder";
 import type { TMCPItem } from "../../types";
+
+/** Use platform fetchProxy if available, otherwise standard fetch */
+const platformFetch = (url: string, init?: RequestInit): Promise<Response> => {
+  const proxy = getPlatformInstance()?.fetchProxy;
+  return proxy ? proxy(url, init) : fetch(url, init);
+};
 
 const WEB_SEARCH_DATA = "webSearchProviderData";
 
@@ -17,10 +26,14 @@ class WebSearch {
   constructor() {
     this.tools = [];
 
-    const data = localStorage.getItem(WEB_SEARCH_DATA);
+    const data = getSettingsInstance().get(WEB_SEARCH_DATA);
 
     if (data) {
-      this.webSearchData = JSON.parse(data);
+      try {
+        this.webSearchData = JSON.parse(data);
+      } catch {
+        this.webSearchData = null;
+      }
     } else {
       this.webSearchData = null;
     }
@@ -30,7 +43,11 @@ class WebSearch {
 
   setWebSearchData = (data: WebSearchData) => {
     this.webSearchData = data;
-    localStorage.setItem(WEB_SEARCH_DATA, data ? JSON.stringify(data) : "");
+    if (data) {
+      getSettingsInstance().set(WEB_SEARCH_DATA, JSON.stringify(data));
+    } else {
+      getSettingsInstance().remove(WEB_SEARCH_DATA);
+    }
     this.initTools();
   };
 
@@ -85,22 +102,19 @@ class WebSearch {
     }
     if (this.webSearchData?.provider === "Exa") {
       try {
-        const response = await fetch(
-          "onlyoffice-proxy://https://api.exa.ai/search",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": this.webSearchData?.key ?? "",
-            },
-            body: JSON.stringify({
-              query: args.query,
-              text: true,
-              numResults: 5,
-              livecrawl: "preferred",
-            }),
-          }
-        );
+        const response = await platformFetch("https://api.exa.ai/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": this.webSearchData?.key ?? "",
+          },
+          body: JSON.stringify({
+            query: args.query,
+            text: true,
+            numResults: 5,
+            livecrawl: "preferred",
+          }),
+        });
 
         if (!response.ok) {
           return JSON.stringify({
@@ -117,7 +131,9 @@ class WebSearch {
         return JSON.stringify({ data });
       } catch (e) {
         console.error("WebSearch error:", e);
-        return JSON.stringify({ error: e });
+        return JSON.stringify({
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
     return JSON.stringify(args);
@@ -164,20 +180,17 @@ class WebSearch {
     }
     if (this.webSearchData?.provider === "Exa") {
       try {
-        const response = await fetch(
-          "onlyoffice-proxy://https://api.exa.ai/contents",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": this.webSearchData?.key ?? "",
-            },
-            body: JSON.stringify({
-              urls: args.urls,
-              text: true,
-            }),
-          }
-        );
+        const response = await platformFetch("https://api.exa.ai/contents", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": this.webSearchData?.key ?? "",
+          },
+          body: JSON.stringify({
+            urls: args.urls,
+            text: true,
+          }),
+        });
 
         if (!response.ok) {
           return JSON.stringify({
@@ -194,7 +207,9 @@ class WebSearch {
         return JSON.stringify({ data });
       } catch (e) {
         console.error(e);
-        return JSON.stringify({ error: e });
+        return JSON.stringify({
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
     return JSON.stringify(args);
@@ -251,7 +266,7 @@ class WebSearch {
       },
     ]);
 
-    window.dispatchEvent(new CustomEvent("tools-changed"));
+    chatEvents.emit("tools-changed");
   };
 
   getWebSearchEnabled = () => {

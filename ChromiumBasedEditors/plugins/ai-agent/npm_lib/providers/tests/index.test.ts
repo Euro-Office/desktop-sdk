@@ -1,18 +1,18 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Model, TProvider } from "../types";
 import Provider from "../index";
+import type { Model, TProvider } from "../types";
 
-// Mock localStorage
+// Mock settings holder (used by Provider for model restoration)
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
 
   return {
-    getItem: vi.fn((key: string) => store[key] || null),
-    setItem: vi.fn((key: string, value: string) => {
+    get: vi.fn((key: string) => store[key] || null),
+    set: vi.fn((key: string, value: string) => {
       store[key] = value.toString();
     }),
-    removeItem: vi.fn((key: string) => {
+    remove: vi.fn((key: string) => {
       delete store[key];
     }),
     clear: vi.fn(() => {
@@ -21,9 +21,9 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(global, "localStorage", {
-  value: localStorageMock,
-});
+vi.mock("../../settings/settings-holder", () => ({
+  getSettingsInstance: () => localStorageMock,
+}));
 
 // Create mock provider instance
 const createMockProvider = () => ({
@@ -147,16 +147,16 @@ describe("Provider", () => {
       expect(provider.currentProvider?.setSystemPrompt).toHaveBeenCalled();
     });
 
-    it("should restore model from localStorage", () => {
+    it("should restore model from settings", () => {
       const savedModel: Model = {
         id: "gpt-4",
         name: "GPT-4",
         provider: "openai",
       };
 
-      // Store in localStorage before setting provider
+      // Store in settings before setting provider
       const modelString = JSON.stringify(savedModel);
-      localStorageMock.getItem.mockReturnValueOnce(modelString);
+      localStorageMock.get.mockReturnValueOnce(modelString);
 
       const testProvider: TProvider = {
         type: "openai",
@@ -167,8 +167,8 @@ describe("Provider", () => {
 
       provider.setCurrentProvider(testProvider);
 
-      // Check that localStorage.getItem was called
-      expect(localStorageMock.getItem).toHaveBeenCalledWith("current-model");
+      // Check that settings.get was called
+      expect(localStorageMock.get).toHaveBeenCalledWith("current-model");
       // Check that setModelKey was called with the stored model id
       expect(provider.currentProvider?.setModelKey).toHaveBeenCalledWith(
         "gpt-4"

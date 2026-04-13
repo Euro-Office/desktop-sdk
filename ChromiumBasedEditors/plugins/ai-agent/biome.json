@@ -91,6 +91,6 @@
     }
   },
   "files": {
-    "includes": ["src/**"]
+    "includes": ["src/**", "npm_lib/**"]
   }
 }

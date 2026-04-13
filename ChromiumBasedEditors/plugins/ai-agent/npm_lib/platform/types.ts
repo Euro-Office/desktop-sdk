@@ -45,7 +45,9 @@ export interface PlatformEnvironment {
   devicePixelRatio: number;
 
   /** Subscribe to theme/language changes from the host. Returns an unsubscribe function */
-  onEnvironmentChange?: (callback: (info: { theme?: string; lang?: string }) => void) => () => void;
+  onEnvironmentChange?: (
+    callback: (info: { theme?: string; lang?: string }) => void
+  ) => () => void;
 }
 
 export interface PlatformClouds {
@@ -79,6 +81,9 @@ export interface PlatformAdapter {
 
   /** Built-in tools exposed by the host application. If null — no host tools section in the tools list */
   hostTools: PlatformHostTools | null;
+
+  /** Optional fetch wrapper for proxied HTTP requests (e.g. CORS proxy). If null — standard fetch is used */
+  fetchProxy?: (url: string, init?: RequestInit) => Promise<Response>;
 
   /** Cloud accounts connected in the host application. If null — cloud provider features are unavailable */
   clouds: PlatformClouds | null;

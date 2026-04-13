@@ -1,8 +1,17 @@
+import { CapabilitiesUI } from "../../capabilities";
 import type { Model } from "../../types";
 import type { TData, TErrorData } from "../base";
 import { ProviderErrors } from "../errors";
 import { OpenAIProvider } from "../openai";
 import { openrouterInfo } from "./info";
+
+type OpenRouterModel = {
+  id: string;
+  architecture?: {
+    modality?: string;
+  };
+  context_length?: number;
+};
 
 /**
  * OpenRouter provider - extends OpenAI since it uses the same SDK.
@@ -45,15 +54,52 @@ class OpenRouterProvider extends OpenAIProvider {
   // Model Fetching (different filters)
   // ============================================
 
-  getProviderModels = async (data: TData): Promise<Model[]> => {
-    const client = this.createClient(data.apiKey, data.url);
-    const response = (await client.models.list()).data;
+  private checkModelCapabilities = (model: OpenRouterModel): number => {
+    const modality = model.architecture?.modality ?? "";
+    if (!modality) return CapabilitiesUI.Chat;
 
-    return response.map((model) => ({
+    const [input, output] = modality.split("->");
+    const modIn = input?.split("+") ?? [];
+    const modOut = output?.split("+") ?? [];
+
+    if (modIn.includes("embedding") || modOut.includes("embedding")) {
+      return CapabilitiesUI.Embeddings;
+    }
+
+    let caps = 0;
+
+    if (modOut.includes("text")) {
+      if (
+        modIn.includes("text") ||
+        modIn.includes("image") ||
+        modIn.includes("audio")
+      ) {
+        caps |= CapabilitiesUI.Chat;
+      }
+      if (modIn.includes("image")) caps |= CapabilitiesUI.Vision;
+      if (modIn.includes("audio")) caps |= CapabilitiesUI.Audio;
+    }
+    if (modOut.includes("image") && modIn.includes("image")) {
+      caps |= CapabilitiesUI.Image;
+    }
+
+    return caps || CapabilitiesUI.Chat;
+  };
+
+  getProviderModels = async (data: TData): Promise<Model[]> => {
+    const url = data.url || openrouterInfo.baseUrl;
+    const response = await fetch(`${url}/models`, {
+      headers: data.apiKey ? { Authorization: `Bearer ${data.apiKey}` } : {},
+    });
+    const json = await response.json();
+    const models: OpenRouterModel[] = json.data ?? [];
+
+    return models.map((model) => ({
       id: model.id,
       name: model.id,
       provider: "openrouter" as const,
       reasoning: openrouterInfo.reasoningModels.includes(model.id),
+      capabilities: this.checkModelCapabilities(model),
     }));
   };
 }

@@ -3,11 +3,11 @@ import type {
   ImageMessagePart,
   ThreadMessageLike,
 } from "@assistant-ui/react";
-import type { TAttachmentFile, TAttachmentImage } from "../types";
 import type { SendMessageReturnType } from "../providers";
 import { getProviderInstance } from "../providers/provider-holder";
 import { getStorageInstance } from "../storage/storage-holder";
 import { getServersInstance } from "../tools/tools-holder";
+import type { TAttachmentFile, TAttachmentImage } from "../types";
 
 // --- Event types ---
 
@@ -46,13 +46,11 @@ export class ChatEngine {
     extendedThinking: boolean;
     profileId?: string;
   }): AsyncGenerator<ChatEvent> {
-    const fileContent: FileMessagePart[] = (params.files ?? []).map(
-      (file) => ({
-        type: "file",
-        mimeType: JSON.stringify({ path: file.path, type: file.type }),
-        data: file.content,
-      })
-    );
+    const fileContent: FileMessagePart[] = (params.files ?? []).map((file) => ({
+      type: "file",
+      mimeType: JSON.stringify({ path: file.path, type: file.type }),
+      data: file.content,
+    }));
 
     const imageContent: ImageMessagePart[] = (params.images ?? []).map(
       (image) => ({
@@ -105,12 +103,11 @@ export class ChatEngine {
         userMessage
       );
 
-      getProviderInstance()
+      this._pendingTitlePromise = getProviderInstance()
         .createChatName(textForTitle)
-        .then(async (title) => {
-          if (!title) return;
-          // Notify the caller to create the thread
-          this._pendingTitle = { title, profileId: params.profileId };
+        .then((title) => {
+          if (!title) return null;
+          return { title, profileId: params.profileId };
         });
     } else {
       storage.threads.touch(params.threadId, {
@@ -134,14 +131,17 @@ export class ChatEngine {
       yield* this._processStream(stream, params.threadId, false);
     }
 
-    // Yield title event if generated
-    if (this._pendingTitle) {
-      yield {
-        type: "thread-title" as const,
-        title: this._pendingTitle.title,
-        profileId: this._pendingTitle.profileId,
-      };
-      this._pendingTitle = null;
+    // Await title generation and yield if ready
+    if (this._pendingTitlePromise) {
+      const titleResult = await this._pendingTitlePromise;
+      this._pendingTitlePromise = null;
+      if (titleResult) {
+        yield {
+          type: "thread-title" as const,
+          title: titleResult.title,
+          profileId: titleResult.profileId,
+        };
+      }
     }
   }
 
@@ -195,10 +195,10 @@ export class ChatEngine {
 
   // --- Internal ---
 
-  private _pendingTitle: {
+  private _pendingTitlePromise: Promise<{
     title: string;
     profileId?: string;
-  } | null = null;
+  } | null> | null = null;
 
   async *handleToolCall(
     msg: ThreadMessageLike,
@@ -279,19 +279,13 @@ export class ChatEngine {
     };
     getStorageInstance().messages.update(messageUID, updatedMessage);
 
-    const streamAfterToolCall =
-      getProviderInstance().sendMessageAfterToolCall(
-        updatedMessage,
-        extendedThinking
-      );
+    const streamAfterToolCall = getProviderInstance().sendMessageAfterToolCall(
+      updatedMessage,
+      extendedThinking
+    );
 
     if (streamAfterToolCall) {
-      yield* this._processStream(
-        streamAfterToolCall,
-        "",
-        true,
-        messageUID
-      );
+      yield* this._processStream(streamAfterToolCall, "", true, messageUID);
     }
   }
 

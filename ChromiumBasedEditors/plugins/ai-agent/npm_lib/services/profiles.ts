@@ -1,8 +1,8 @@
-import type { Profile } from "../types";
 import type { TErrorData } from "../providers/base";
 import { getProviderInstance } from "../providers/provider-holder";
 import { getSettingsInstance } from "../settings/settings-holder";
 import { getStorageInstance } from "../storage/storage-holder";
+import type { Profile } from "../types";
 
 const NAME_EXISTS_ERROR = {
   field: "name" as const,
@@ -61,9 +61,7 @@ export class ProfilesService {
     const profiles = (await storage.profiles.getAll()).reverse();
 
     const defaultProfile =
-      this.loadProfileById(profiles, keys.defaultKey) ??
-      profiles[0] ??
-      null;
+      this.loadProfileById(profiles, keys.defaultKey) ?? profiles[0] ?? null;
 
     if (defaultProfile) {
       settings.set(keys.defaultKey, defaultProfile.id);
@@ -81,8 +79,7 @@ export class ProfilesService {
     data: Omit<Profile, "id">,
     existingProfiles: Profile[]
   ): Promise<
-    | { success: true; profile: Profile }
-    | { success: false; error: TErrorData }
+    { success: true; profile: Profile } | { success: false; error: TErrorData }
   > {
     const nameExists = existingProfiles.some(
       (p) => p.name.toLowerCase() === data.name.toLowerCase()
@@ -96,23 +93,27 @@ export class ProfilesService {
       { url: data.baseUrl, apiKey: data.key }
     );
 
-    if (typeof checkResult === "boolean" && checkResult) {
+    if (checkResult === true) {
       const storage = getStorageInstance();
       const newProfile: Profile = { ...data, id: crypto.randomUUID() };
       await storage.profiles.create(newProfile);
       return { success: true, profile: newProfile };
     }
 
-    return { success: false, error: checkResult as TErrorData };
+    if (checkResult && typeof checkResult === "object") {
+      return { success: false, error: checkResult };
+    }
+
+    return {
+      success: false,
+      error: { field: "key", message: "Provider validation failed" },
+    };
   }
 
   async editProfile(
     profile: Profile,
     existingProfiles: Profile[]
-  ): Promise<
-    | { success: true }
-    | { success: false; error: TErrorData }
-  > {
+  ): Promise<{ success: true } | { success: false; error: TErrorData }> {
     const nameExists = existingProfiles.some(
       (p) =>
         p.name.toLowerCase() === profile.name.toLowerCase() &&
@@ -127,13 +128,20 @@ export class ProfilesService {
       { url: profile.baseUrl, apiKey: profile.key }
     );
 
-    if (typeof checkResult === "boolean" && checkResult) {
+    if (checkResult === true) {
       const storage = getStorageInstance();
       await storage.profiles.update(profile);
       return { success: true };
     }
 
-    return { success: false, error: checkResult as TErrorData };
+    if (checkResult && typeof checkResult === "object") {
+      return { success: false, error: checkResult };
+    }
+
+    return {
+      success: false,
+      error: { field: "key", message: "Provider validation failed" },
+    };
   }
 
   async deleteProfile(id: string): Promise<void> {

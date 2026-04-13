@@ -965,7 +965,7 @@ describe("MistralProvider", () => {
   // ==========================================================================
 
   describe("getProviderModels", () => {
-    it("should return filtered and mapped models", async () => {
+    it("should return all models mapped with provider type", async () => {
       modelsListMock.mockResolvedValue({
         data: [
           { id: "mistral-large-latest" },
@@ -979,14 +979,12 @@ describe("MistralProvider", () => {
         url: "https://api.mistral.ai",
       });
 
-      expect(result.length).toBe(2);
+      expect(result).toHaveLength(3);
       expect(result.every((m) => m.provider === "mistral")).toBe(true);
-      expect(result.map((m) => m.id)).toContain("mistral-large-latest");
-      expect(result.map((m) => m.id)).toContain("mistral-small-latest");
-      expect(result.map((m) => m.id)).not.toContain("other-model");
+      expect(result.map((m) => m.id)).toContain("other-model");
     });
 
-    it("should use modelNames mapping for display names", async () => {
+    it("should use model.id as display name", async () => {
       modelsListMock.mockResolvedValue({
         data: [{ id: "mistral-large-latest" }],
       });
@@ -996,31 +994,7 @@ describe("MistralProvider", () => {
         url: "https://api.mistral.ai",
       });
 
-      expect(result[0].name).toBe("Mistral Large");
-    });
-
-    it("should handle API errors gracefully", async () => {
-      modelsListMock.mockRejectedValue(new Error("API Error"));
-
-      const result = await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "https://api.mistral.ai",
-      });
-
-      expect(result).toEqual([]);
-    });
-
-    it("should return empty array when no models match filters", async () => {
-      modelsListMock.mockResolvedValue({
-        data: [{ id: "unknown-model-1" }, { id: "unknown-model-2" }],
-      });
-
-      const result = await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "https://api.mistral.ai",
-      });
-
-      expect(result).toEqual([]);
+      expect(result[0].name).toBe("mistral-large-latest");
     });
 
     it("should handle empty response data", async () => {
@@ -1034,48 +1008,7 @@ describe("MistralProvider", () => {
       expect(result).toEqual([]);
     });
 
-    it("should return all models when filters are empty", async () => {
-      const originalFilters = [...mistralInfo.modelFilters];
-      mistralInfo.modelFilters.length = 0;
-
-      modelsListMock.mockResolvedValue({
-        data: [{ id: "any-model-1" }, { id: "any-model-2" }],
-      });
-
-      const result = await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "https://api.mistral.ai",
-      });
-
-      expect(result).toHaveLength(2);
-
-      // Restore filters
-      mistralInfo.modelFilters.push(...originalFilters);
-    });
-
-    it("should use model id as name when not in modelNames", async () => {
-      const originalFilters = [...mistralInfo.modelFilters];
-      mistralInfo.modelFilters.length = 0;
-
-      modelsListMock.mockResolvedValue({
-        data: [{ id: "custom-model-id" }],
-      });
-
-      const result = await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "https://api.mistral.ai",
-      });
-
-      expect(result[0].name).toBe("custom-model-id");
-
-      // Restore filters
-      mistralInfo.modelFilters.push(...originalFilters);
-    });
-
     it("should handle model with undefined id", async () => {
-      const originalFilters = [...mistralInfo.modelFilters];
-      mistralInfo.modelFilters.length = 0;
-
       modelsListMock.mockResolvedValue({
         data: [{ id: undefined }],
       });
@@ -1088,9 +1021,6 @@ describe("MistralProvider", () => {
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe("");
       expect(result[0].name).toBe("Unknown");
-
-      // Restore filters
-      mistralInfo.modelFilters.push(...originalFilters);
     });
   });
 });

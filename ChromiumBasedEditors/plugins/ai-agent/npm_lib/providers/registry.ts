@@ -1,19 +1,19 @@
 import type { ProviderType } from "../types";
-import { type AnthropicProvider, anthropicProvider } from "./anthropic";
-import { type DeepSeekProvider, deepseekProvider } from "./deepseek";
-import { type GenAIProvider, genaiProvider } from "./genai";
-import { type LMStudioProvider, lmStudioProvider } from "./lm-studio";
-import { type MistralProvider, mistralProvider } from "./mistral";
-import { type OllamaProvider, ollamaProvider } from "./ollama";
-import { type OnlyOfficeProvider, onlyOfficeProvider } from "./onlyoffice";
-import { type OpenAIProvider, openaiProvider } from "./openai";
+import { AnthropicProvider, anthropicProvider } from "./anthropic";
+import { DeepSeekProvider, deepseekProvider } from "./deepseek";
+import { GenAIProvider, genaiProvider } from "./genai";
+import { LMStudioProvider, lmStudioProvider } from "./lm-studio";
+import { MistralProvider, mistralProvider } from "./mistral";
+import { OllamaProvider, ollamaProvider } from "./ollama";
+import { OnlyOfficeProvider, onlyOfficeProvider } from "./onlyoffice";
+import { OpenAIProvider, openaiProvider } from "./openai";
 import {
-  type OpenAICompatibleProvider,
+  OpenAICompatibleProvider,
   openaicompatibleProvider,
 } from "./openaicompatible";
-import { type OpenRouterProvider, openrouterProvider } from "./openrouter";
-import { type TogetherProvider, togetherProvider } from "./together";
-import { type XAIProvider, xaiProvider } from "./xai";
+import { OpenRouterProvider, openrouterProvider } from "./openrouter";
+import { TogetherProvider, togetherProvider } from "./together";
+import { XAIProvider, xaiProvider } from "./xai";
 
 export type BuiltinProvider =
   | AnthropicProvider
@@ -30,7 +30,9 @@ export type BuiltinProvider =
   | OnlyOfficeProvider;
 
 // biome-ignore lint/suspicious/noExplicitAny: custom providers can have any generic params
-export type BaseProvider = BuiltinProvider | import("./base").AbstractBaseProvider<any, any, any>;
+export type BaseProvider =
+  | BuiltinProvider
+  | import("./base").AbstractBaseProvider<any, any, any>;
 
 /**
  * Built-in registry mapping provider types to their singleton instances.
@@ -58,7 +60,10 @@ const customProviders: Map<string, BaseProvider> = new Map();
 /**
  * Register a custom provider at runtime.
  */
-export const registerProvider = (type: string, provider: BaseProvider): void => {
+export const registerProvider = (
+  type: string,
+  provider: BaseProvider
+): void => {
   customProviders.set(type, provider);
 };
 
@@ -88,6 +93,33 @@ export const isValidProviderType = (type: string): boolean => {
  */
 export const getSupportedProviderTypes = (): string[] => {
   return [...Object.keys(builtinProviders), ...customProviders.keys()];
+};
+
+/**
+ * Factory map for creating new (non-singleton) provider instances.
+ */
+const builtinFactories: Record<ProviderType, () => BuiltinProvider> = {
+  anthropic: () => new AnthropicProvider(),
+  ollama: () => new OllamaProvider(),
+  openai: () => new OpenAIProvider(),
+  openaicompatible: () => new OpenAICompatibleProvider(),
+  together: () => new TogetherProvider(),
+  openrouter: () => new OpenRouterProvider(),
+  genai: () => new GenAIProvider(),
+  deepseek: () => new DeepSeekProvider(),
+  xai: () => new XAIProvider(),
+  "lm-studio": () => new LMStudioProvider(),
+  mistral: () => new MistralProvider(),
+  onlyoffice: () => new OnlyOfficeProvider(),
+};
+
+/**
+ * Create a new provider instance (not the shared singleton).
+ * Returns undefined for unknown types.
+ */
+export const createProvider = (type: string): BaseProvider | undefined => {
+  const factory = builtinFactories[type as ProviderType];
+  return factory?.();
 };
 
 // Keep backward compat export

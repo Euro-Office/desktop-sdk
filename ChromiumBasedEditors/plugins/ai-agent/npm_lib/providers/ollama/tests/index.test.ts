@@ -536,7 +536,7 @@ describe("OllamaProvider", () => {
       });
     });
 
-    it("should use modelNames mapping if available", async () => {
+    it("should use model.id as name", async () => {
       const testProvider: TProvider = {
         type: "ollama",
         name: "Ollama",
@@ -557,7 +557,7 @@ describe("OllamaProvider", () => {
       expect(result[0].name).toBe("test-model");
     });
 
-    it("should return empty array on error", async () => {
+    it("should throw on error", async () => {
       const testProvider: TProvider = {
         type: "ollama",
         name: "Ollama",
@@ -568,11 +568,11 @@ describe("OllamaProvider", () => {
 
       mockList.mockRejectedValue(new Error("Connection failed"));
 
-      const result = await provider.getProviderModels({
-        url: "http://localhost:11434/v1",
-      });
-
-      expect(result).toEqual([]);
+      await expect(
+        provider.getProviderModels({
+          url: "http://localhost:11434/v1",
+        })
+      ).rejects.toThrow("Connection failed");
     });
 
     it("should return empty array when no models available", async () => {

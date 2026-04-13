@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { ProviderType } from "../types";
 import {
   getProvider,
   getSupportedProviderTypes,
@@ -8,6 +7,7 @@ import {
   registerProvider,
   unregisterProvider,
 } from "../registry";
+import type { ProviderType } from "../types";
 
 describe("Provider Registry", () => {
   describe("providerRegistry", () => {

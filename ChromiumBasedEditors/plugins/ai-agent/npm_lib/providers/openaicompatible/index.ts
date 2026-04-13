@@ -1,3 +1,4 @@
+import { CapabilitiesUI } from "../../capabilities";
 import type { Model } from "../../types";
 import type { TData } from "../base";
 import { OpenAIProvider } from "../openai";
@@ -24,10 +25,14 @@ class OpenAICompatibleProvider extends OpenAIProvider {
     const client = this.createClient(data.apiKey, data.url);
     const response = await client.models.list();
 
+    const defaultCaps =
+      CapabilitiesUI.Chat | CapabilitiesUI.Vision | CapabilitiesUI.Tools;
+
     return response.data.map((model) => ({
       id: model.id,
       name: model.id,
       provider: "openaicompatible" as const,
+      capabilities: defaultCaps,
     }));
   };
 }

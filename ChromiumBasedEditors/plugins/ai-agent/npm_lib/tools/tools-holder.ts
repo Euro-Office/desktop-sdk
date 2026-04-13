@@ -13,7 +13,9 @@ export function setServersInstance(servers: Servers): void {
 
 export function getServersInstance(): Servers {
   if (!serversInstance) {
-    throw new Error("Servers not initialized. Wrap your app in <ToolsProvider>.");
+    throw new Error(
+      "Servers not initialized. Wrap your app in <ToolsProvider>."
+    );
   }
   return serversInstance;
 }

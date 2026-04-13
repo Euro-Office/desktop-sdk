@@ -1,10 +1,11 @@
-import {
-  CURRENT_MODEL_KEY,
-  CURRENT_PROVIDER_KEY,
-  DEFAULT_PROFILE_KEY,
-  PROVIDERS_LOCAL_STORAGE_KEY,
-} from "@/lib/constants";
 import type { Model, Profile, ProviderType, TProvider } from "@/lib/types";
+
+// Migration-specific localStorage keys (inlined — not part of the library contract)
+const PROVIDERS_LOCAL_STORAGE_KEY = "providers";
+const CURRENT_PROVIDER_KEY = "current-provider";
+const CURRENT_MODEL_KEY = "current-model";
+const DEFAULT_PROFILE_KEY = "default-profile";
+
 import { getStorageInstance } from "../../npm_lib/storage/storage-holder";
 
 type MigrationModel = {

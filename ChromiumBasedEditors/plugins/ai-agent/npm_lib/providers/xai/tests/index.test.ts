@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { XAIProvider } from "../index";
-import { xaiInfo } from "../info";
 
 // Mock OpenAI client
 const mockList = vi.fn();
@@ -33,7 +32,40 @@ describe("XAIProvider", () => {
   });
 
   describe("getProviderModels", () => {
-    it("should return models matching filter", async () => {
+    it("should return all models mapped with provider type", async () => {
+      mockList.mockResolvedValue({
+        data: [
+          { id: "grok-4-1-fast-non-reasoning" },
+          { id: "grok-4-1-fast-reasoning" },
+          { id: "some-other-model" },
+        ],
+      });
+
+      const provider = new XAIProvider();
+      const models = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "",
+      });
+
+      expect(models).toHaveLength(3);
+      expect(models.every((m) => m.provider === "xai")).toBe(true);
+    });
+
+    it("should use model.id as name", async () => {
+      mockList.mockResolvedValue({
+        data: [{ id: "grok-4-1-fast-non-reasoning" }],
+      });
+
+      const provider = new XAIProvider();
+      const models = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "",
+      });
+
+      expect(models[0]?.name).toBe("grok-4-1-fast-non-reasoning");
+    });
+
+    it("should mark reasoning models based on id containing 'reasoning'", async () => {
       mockList.mockResolvedValue({
         data: [
           { id: "grok-4-1-fast-non-reasoning" },
@@ -47,27 +79,13 @@ describe("XAIProvider", () => {
         url: "",
       });
 
-      // Should only include models in modelFilters
-      expect(models).toHaveLength(2);
-      expect(models.map((m) => m.id)).toEqual(
-        expect.arrayContaining([
-          "grok-4-1-fast-non-reasoning",
-          "grok-4-1-fast-reasoning",
-        ])
-      );
+      // Both contain "reasoning" in the id
+      expect(models.every((m) => m.reasoning === true)).toBe(true);
     });
 
-    it("should return all models when filter is empty", async () => {
-      // Temporarily store original filter
-      const originalFilters = [...xaiInfo.modelFilters];
-      xaiInfo.modelFilters.length = 0;
-
+    it("should reverse the models array", async () => {
       mockList.mockResolvedValue({
-        data: [
-          { id: "grok-4-1-fast-non-reasoning" },
-          { id: "grok-3" },
-          { id: "some-other-model" },
-        ],
+        data: [{ id: "model-1" }, { id: "model-2" }, { id: "model-3" }],
       });
 
       const provider = new XAIProvider();
@@ -76,50 +94,8 @@ describe("XAIProvider", () => {
         url: "",
       });
 
-      expect(models).toHaveLength(3);
-
-      // Restore original filter
-      xaiInfo.modelFilters.push(...originalFilters);
-    });
-
-    it("should set provider type to xai", async () => {
-      mockList.mockResolvedValue({
-        data: [{ id: "grok-4-1-fast-non-reasoning" }],
-      });
-
-      const provider = new XAIProvider();
-      const models = await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "",
-      });
-
-      expect(models[0]?.provider).toBe("xai");
-    });
-
-    // it("should use model id as name", async () => {
-    //   mockList.mockResolvedValue({
-    //     data: [{ id: "grok-4-1-fast-non-reasoning" }],
-    //   });
-
-    //   const provider = new XAIProvider();
-    //   const models = await provider.getProviderModels({
-    //     apiKey: "test-key",
-    //     url: "",
-    //   });
-
-    //   expect(models[0]?.name).toBe("grok-4-1-fast-non-reasoning");
-    // });
-
-    it("should return empty array on error", async () => {
-      mockList.mockRejectedValue(new Error("API error"));
-
-      const provider = new XAIProvider();
-      const models = await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "",
-      });
-
-      expect(models).toEqual([]);
+      expect(models[0].id).toBe("model-3");
+      expect(models[2].id).toBe("model-1");
     });
 
     it("should use custom URL when provided", async () => {

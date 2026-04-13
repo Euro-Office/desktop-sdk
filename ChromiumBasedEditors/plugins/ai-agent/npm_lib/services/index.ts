@@ -1,13 +1,14 @@
-export { PromptsService } from "./prompts";
-export type { PromptUpdates } from "./prompts";
-
-export { ThreadsService } from "./threads";
-
-export { ProfilesService } from "./profiles";
-export type { TaskProfileKeys, ProfilesInitResult } from "./profiles";
-
-export { ServersService } from "./servers";
-export type { ToolsListResult, ChangeToolStatusResult } from "./servers";
-
-export { ChatEngine } from "./chat-engine";
+export {
+  applyProfileToAction,
+  getActionProvider,
+  initActionHolders,
+} from "./action-holders";
 export type { ChatEvent, ToolCallData } from "./chat-engine";
+export { ChatEngine } from "./chat-engine";
+export type { ProfilesInitResult, TaskProfileKeys } from "./profiles";
+export { ProfilesService } from "./profiles";
+export type { PromptUpdates } from "./prompts";
+export { PromptsService } from "./prompts";
+export type { ChangeToolStatusResult, ToolsListResult } from "./servers";
+export { ServersService } from "./servers";
+export { ThreadsService } from "./threads";

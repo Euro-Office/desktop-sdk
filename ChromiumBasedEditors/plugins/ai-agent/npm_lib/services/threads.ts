@@ -1,6 +1,6 @@
-import type { Profile, Thread } from "../types";
 import { getPlatformInstance } from "../platform/platform-holder";
 import { getStorageInstance } from "../storage/storage-holder";
+import type { Profile, Thread } from "../types";
 import { convertMessagesToMd, removeSpecialCharacter } from "../utils";
 
 export class ThreadsService {
@@ -9,11 +9,7 @@ export class ThreadsService {
     return storage.threads.getAll();
   }
 
-  createThread(
-    threadId: string,
-    title: string,
-    profileId?: string
-  ): Thread {
+  createThread(threadId: string, title: string, profileId?: string): Thread {
     const thread: Thread = {
       threadId,
       title,
@@ -21,20 +17,11 @@ export class ThreadsService {
       lastEditDate: Date.now(),
     };
     const storage = getStorageInstance();
-    storage.threads.create(
-      threadId,
-      title,
-      undefined,
-      undefined,
-      profileId
-    );
+    storage.threads.create(threadId, title, undefined, undefined, profileId);
     return thread;
   }
 
-  touchThread(
-    threadId: string,
-    updates?: { profileId?: string }
-  ): void {
+  touchThread(threadId: string, updates?: { profileId?: string }): void {
     const storage = getStorageInstance();
     storage.threads.touch(threadId, {
       ...(updates && "profileId" in updates
@@ -80,10 +67,7 @@ export class ThreadsService {
     return migratedThread;
   }
 
-  async downloadThread(
-    threadId: string,
-    threadTitle?: string
-  ): Promise<void> {
+  async downloadThread(threadId: string, threadTitle?: string): Promise<void> {
     const storage = getStorageInstance();
     const messages = await storage.messages.getByThread(threadId);
     const title = removeSpecialCharacter(threadTitle || "Chat Export");

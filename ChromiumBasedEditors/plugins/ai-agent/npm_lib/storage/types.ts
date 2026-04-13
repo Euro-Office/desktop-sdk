@@ -1,5 +1,12 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-import type { Model, Profile, Prompt, PromptFolder, Thread, TProvider } from "../types";
+import type {
+  Model,
+  Profile,
+  Prompt,
+  PromptFolder,
+  Thread,
+  TProvider,
+} from "../types";
 
 export interface ThreadsStorage {
   /** Create a new thread and persist it to storage */
@@ -8,7 +15,7 @@ export interface ThreadsStorage {
     title: string,
     provider?: TProvider,
     model?: Model,
-    profileId?: string,
+    profileId?: string
   ): Promise<void>;
 
   /** Retrieve all threads sorted by lastEditDate descending (newest first) */
@@ -27,7 +34,7 @@ export interface ThreadsStorage {
       provider?: TProvider | null;
       model?: Model | null;
       profileId?: string | null;
-    },
+    }
   ): Promise<void>;
 
   /** Delete a thread and all its messages (cascading delete) */
@@ -36,13 +43,20 @@ export interface ThreadsStorage {
 
 export interface MessagesStorage {
   /** Save a new message in a thread. Automatically sets timestamp to Date.now() */
-  create(threadId: string, id: string, message: ThreadMessageLike): Promise<void>;
+  create(
+    threadId: string,
+    id: string,
+    message: ThreadMessageLike
+  ): Promise<void>;
 
   /** Get all messages for a thread sorted by timestamp ascending (oldest first). Optionally limit to last N messages */
   getByThread(threadId: string, limit?: number): Promise<ThreadMessageLike[]>;
 
   /** Find a specific message by ID within a thread. Returns null if not found */
-  getById(threadId: string, messageId: string): Promise<ThreadMessageLike | null>;
+  getById(
+    threadId: string,
+    messageId: string
+  ): Promise<ThreadMessageLike | null>;
 
   /** Update message content (e.g. after receiving a tool result). Also updates the timestamp */
   update(messageId: string, message: ThreadMessageLike): Promise<void>;
@@ -54,10 +68,15 @@ export interface MessagesStorage {
   deleteByThread(threadId: string): Promise<void>;
 
   /** Replace all messages in a thread with a new array. Used for bulk operations */
-  replaceByThread(threadId: string, messages: ThreadMessageLike[]): Promise<void>;
+  replaceByThread(
+    threadId: string,
+    messages: ThreadMessageLike[]
+  ): Promise<void>;
 
   /** Full-text case-insensitive search across all message content. Returns {threadId, message} pairs */
-  search(query: string): Promise<{ threadId: string; message: ThreadMessageLike }[]>;
+  search(
+    query: string
+  ): Promise<{ threadId: string; message: ThreadMessageLike }[]>;
 }
 
 export interface ProfilesStorage {
@@ -91,7 +110,10 @@ export interface PromptsStorage {
   getById(id: string): Promise<Prompt | null>;
 
   /** Partially update a prompt: name, text, and/or folderId. Updates the updatedAt timestamp */
-  update(id: string, updates: { name?: string; text?: string; folderId?: string | null }): Promise<void>;
+  update(
+    id: string,
+    updates: { name?: string; text?: string; folderId?: string | null }
+  ): Promise<void>;
 
   /** Delete a single prompt by ID */
   delete(id: string): Promise<void>;

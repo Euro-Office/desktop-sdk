@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { chatEvents } from "../../events";
 import { CustomServers } from "../sources/CustomServers";
 
 // =============================================================================
 // Mock Setup
 // =============================================================================
 
-const mockDispatchEvent = vi.fn();
+const mockEmit = vi.spyOn(chatEvents, "emit");
 const mockFetch = vi.fn();
 
 // Track processes
@@ -31,18 +32,6 @@ class MockExternalProcess {
   }
 }
 
-const mockWindow = {
-  ExternalProcess: MockExternalProcess,
-  dispatchEvent: mockDispatchEvent,
-  CustomEvent: class {
-    type: string;
-    constructor(type: string) {
-      this.type = type;
-    }
-  },
-};
-
-vi.stubGlobal("window", mockWindow);
 vi.stubGlobal("fetch", mockFetch);
 
 // Mock platform holder to return a process runner that uses MockExternalProcess
@@ -292,7 +281,7 @@ describe("CustomServers", () => {
       expect(abortSpy).toHaveBeenCalled();
     });
 
-    it("should use onlyoffice-proxy:// prefix for HTTP requests", async () => {
+    it("should use platformFetch for HTTP requests", async () => {
       mockFetch.mockResolvedValue(
         createMockResponse({
           jsonrpc: "2.0",
@@ -313,7 +302,7 @@ describe("CustomServers", () => {
       await vi.runAllTimersAsync();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "onlyoffice-proxy://https://api.example.com/mcp",
+        "https://api.example.com/mcp",
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({
@@ -381,7 +370,7 @@ describe("CustomServers", () => {
 
       expect(customServers.initedCustomServers.httpServer).toBe(false);
       expect(customServers.tools.httpServer).toEqual([]);
-      expect(mockDispatchEvent).toHaveBeenCalled();
+      expect(mockEmit).toHaveBeenCalled();
     });
 
     it("should restart HTTP server without abortController", async () => {
@@ -450,7 +439,7 @@ describe("CustomServers", () => {
     it("should dispatch tools-changed", () => {
       customServers.deleteCustomServer("test");
 
-      expect(mockDispatchEvent).toHaveBeenCalled();
+      expect(mockEmit).toHaveBeenCalled();
     });
 
     it("should delete tools when they exist", () => {
@@ -647,7 +636,7 @@ describe("CustomServers", () => {
       await customServers.initHttpServer("httpTest");
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "onlyoffice-proxy://https://example.com/mcp",
+        "https://example.com/mcp",
         expect.objectContaining({
           method: "POST",
           headers: {
@@ -1024,7 +1013,7 @@ describe("CustomServers", () => {
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "onlyoffice-proxy://https://example.com/mcp",
+        "https://example.com/mcp",
         expect.objectContaining({
           method: "POST",
           headers: {
@@ -1130,9 +1119,7 @@ describe("CustomServers", () => {
 
       await expect(
         customServers.callToolFromStdioMCP("test", "read_file", {})
-      ).rejects.toThrow(
-        "Error calling MCP tool read_file on server test: Error: Connection lost"
-      );
+      ).rejects.toThrow("Connection lost");
     });
 
     it("should use empty array when tools are not defined for server", async () => {

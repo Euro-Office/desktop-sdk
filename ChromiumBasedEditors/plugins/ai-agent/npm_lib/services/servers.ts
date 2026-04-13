@@ -1,6 +1,6 @@
-import type { TMCPItem } from "../types";
 import { getSettingsInstance } from "../settings/settings-holder";
 import { getServersInstance } from "../tools/tools-holder";
+import type { TMCPItem } from "../types";
 
 const MAX_TOOL_COUNT = 100;
 const MAX_TOOL_COUNT_WITH_WEB_SEARCH = MAX_TOOL_COUNT + 2;
@@ -30,9 +30,13 @@ export class ServersService {
     const customServers = settings.get(this.serversKey);
 
     if (customServers) {
-      const parsed = JSON.parse(customServers);
-      getServersInstance().setCustomServers(parsed);
-      getServersInstance().startCustomServers();
+      try {
+        const parsed = JSON.parse(customServers);
+        getServersInstance().setCustomServers(parsed);
+        getServersInstance().startCustomServers();
+      } catch {
+        // Ignore invalid JSON in settings
+      }
     }
   }
 
@@ -45,14 +49,23 @@ export class ServersService {
     const servers: Record<string, TMCPItem[]> = {};
     let webSearchEnabled = false;
 
+    let parsedDisabledTools: Record<string, string[]> | null = null;
     if (disabledToolsStr) {
-      const disabledTools = JSON.parse(disabledToolsStr);
+      try {
+        parsedDisabledTools = JSON.parse(disabledToolsStr);
+      } catch {
+        // Ignore invalid JSON
+      }
+    }
+
+    if (parsedDisabledTools) {
+      const disabledTools = parsedDisabledTools;
 
       Object.entries(allTools).forEach(([type, serverTools]) => {
         if (type === "web-search") {
           servers[type] = [...serverTools];
 
-          if (disabledTools["web-search"].length) {
+          if (disabledTools["web-search"]?.length) {
             return;
           }
 
@@ -73,11 +86,10 @@ export class ServersService {
           }
           const enabled = !disabledTools[type].includes(tool.name);
 
-          if (
-            enabled && webSearchEnabled
-              ? tools.length === MAX_TOOL_COUNT_WITH_WEB_SEARCH
-              : tools.length === MAX_TOOL_COUNT
-          ) {
+          const maxCount = webSearchEnabled
+            ? MAX_TOOL_COUNT_WITH_WEB_SEARCH
+            : MAX_TOOL_COUNT;
+          if (enabled && tools.length >= maxCount) {
             disabledTools[type].push(tool.name);
             return { ...tool, enabled: false };
           }
@@ -110,9 +122,7 @@ export class ServersService {
       const serverToolsWithStatus = serverTools.map((t, index) => {
         if (
           tools.length + index >=
-          (webSearchEnabled
-            ? MAX_TOOL_COUNT_WITH_WEB_SEARCH
-            : MAX_TOOL_COUNT)
+          (webSearchEnabled ? MAX_TOOL_COUNT_WITH_WEB_SEARCH : MAX_TOOL_COUNT)
         ) {
           disabledTools[type].push(t.name);
           return { ...t, enabled: false };
@@ -191,9 +201,7 @@ export class ServersService {
       if (type === "web-search") {
         newDisabledTools[type] = servers[type].map((t) => t.name);
         newWebSearchEnabled = false;
-        newTools = currentState.tools.filter(
-          (t) => !t.name.includes(type)
-        );
+        newTools = currentState.tools.filter((t) => !t.name.includes(type));
       } else {
         newTools = currentState.tools.filter(
           (t) => t.name !== `${type}_${name}`
@@ -243,9 +251,13 @@ export class ServersService {
 
   getConfig(): Record<string, Record<string, unknown>> {
     const settings = getSettingsInstance();
-    return JSON.parse(
-      settings.get(this.serversKey) ?? JSON.stringify({ mcpServers: {} })
-    );
+    const raw = settings.get(this.serversKey);
+    if (!raw) return { mcpServers: {} };
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return { mcpServers: {} };
+    }
   }
 
   saveConfig(config: {

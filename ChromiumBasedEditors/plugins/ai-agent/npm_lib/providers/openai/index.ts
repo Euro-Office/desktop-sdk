@@ -8,6 +8,7 @@ import type {
   ChatCompletionToolMessageParam,
 } from "openai/resources/chat/completions";
 import type { Model as OpenAIModel } from "openai/resources/models";
+import { CapabilitiesUI } from "../../capabilities";
 import type { Model, TMCPItem, TProvider } from "../../types";
 import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
 import { getErrorCode, ProviderErrors } from "../errors";
@@ -443,6 +444,58 @@ class OpenAIProvider extends AbstractBaseProvider<
     }
   };
 
+  private checkModelCapabilities = (id: string): number => {
+    if (id.includes("whisper") || id.includes("tts-1")) {
+      return CapabilitiesUI.Audio;
+    }
+    if (id.includes("embedding")) {
+      return CapabilitiesUI.Embeddings;
+    }
+    if (id === "dall-e-2" || id === "dall-e-3" || id.includes("-image-")) {
+      return CapabilitiesUI.Image;
+    }
+    if (id.includes("gpt-3.5-turbo-instruct")) {
+      return CapabilitiesUI.Chat;
+    }
+    return CapabilitiesUI.Chat | CapabilitiesUI.Vision;
+  };
+
+  // ============================================
+  // Image Generation
+  // ============================================
+
+  imageGeneration = async (request: {
+    prompt: string;
+    width?: number;
+    height?: number;
+  }): Promise<string> => {
+    if (!this.client) return "";
+
+    const size =
+      request.width && request.height
+        ? (`${request.width}x${request.height}` as
+            | "256x256"
+            | "512x512"
+            | "1024x1024"
+            | "1792x1024"
+            | "1024x1792")
+        : "1024x1024";
+
+    const response = await this.client.images.generate({
+      model: this.modelKey,
+      prompt: request.prompt,
+      n: 1,
+      size,
+      response_format: "b64_json",
+    });
+
+    return response.data[0]?.b64_json ?? "";
+  };
+
+  // ============================================
+  // Model Fetching
+  // ============================================
+
   getProviderModels = async (data: TData): Promise<Model[]> => {
     const client = this.createClient(data.apiKey, data.url);
     const response: OpenAIModel[] = (await client.models.list()).data;
@@ -453,6 +506,7 @@ class OpenAIProvider extends AbstractBaseProvider<
         name: model.id,
         provider: "openai" as const,
         reasoning: openaiInfo.reasoningModels.includes(model.id),
+        capabilities: this.checkModelCapabilities(model.id),
       };
     });
   };

@@ -1,5 +1,5 @@
-import type { Prompt, PromptFolder } from "../types";
 import { getStorageInstance } from "../storage/storage-holder";
+import type { Prompt, PromptFolder } from "../types";
 
 export type PromptUpdates = {
   name?: string;
@@ -67,7 +67,11 @@ export class PromptsService {
     return folder;
   }
 
-  renameFolder(folders: PromptFolder[], id: string, name: string): PromptFolder[] {
+  renameFolder(
+    folders: PromptFolder[],
+    id: string,
+    name: string
+  ): PromptFolder[] {
     getStorageInstance().promptFolders.update(id, name).catch(console.error);
     return folders.map((f) => {
       if (f.id !== id) return f;
@@ -75,7 +79,16 @@ export class PromptsService {
     });
   }
 
-  deleteFolder(id: string): void {
+  deleteFolder(id: string, prompts: Prompt[]): Prompt[] {
     getStorageInstance().promptFolders.delete(id).catch(console.error);
+    // Reset folderId on orphaned prompts
+    const updated = prompts.map((p) => {
+      if (p.folderId !== id) return p;
+      getStorageInstance()
+        .prompts.update(p.id, { folderId: null })
+        .catch(console.error);
+      return { ...p, folderId: undefined };
+    });
+    return updated;
   }
 }

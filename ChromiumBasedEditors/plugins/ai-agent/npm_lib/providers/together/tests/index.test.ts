@@ -115,17 +115,10 @@ describe("TogetherProvider", () => {
   // ==========================================================================
 
   describe("getProviderModels", () => {
-    it("should return filtered and mapped models", async () => {
-      // Mock the fetch response - use actual model from togetherInfo.modelFilters
+    it("should return all models mapped with provider type", async () => {
       const mockResponse = [
-        {
-          id: "deepseek-ai/DeepSeek-V3.1",
-          display_name: "DeepSeek V3.1",
-        },
-        {
-          id: "unknown-model",
-          display_name: "Unknown Model",
-        },
+        { id: "deepseek-ai/DeepSeek-V3.1" },
+        { id: "unknown-model" },
       ];
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -138,46 +131,13 @@ describe("TogetherProvider", () => {
         url: "https://api.together.xyz/v1",
       });
 
-      expect(result.length).toBe(1);
+      expect(result).toHaveLength(2);
       expect(result.every((m) => m.provider === "together")).toBe(true);
-      expect(result.map((m) => m.id)).toContain("deepseek-ai/DeepSeek-V3.1");
-      expect(result.map((m) => m.id)).not.toContain("unknown-model");
+      expect(result.map((m) => m.id)).toContain("unknown-model");
     });
 
-    it("should use modelNames mapping for display names", async () => {
-      const mockResponse = [
-        {
-          id: "deepseek-ai/DeepSeek-V3.1",
-          display_name: "DeepSeek V3.1",
-        },
-      ];
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "https://api.together.xyz/v1",
-      });
-
-      expect(result[0].name).toBe(
-        togetherInfo.modelNames["deepseek-ai/DeepSeek-V3.1"]
-      );
-    });
-
-    it("should fallback to model id if no mapping exists", async () => {
-      const mockResponse = [
-        {
-          id: "deepseek-ai/DeepSeek-V3.1",
-          display_name: "DeepSeek V3.1",
-        },
-      ];
-
-      // Temporarily remove the mapping
-      const originalName = togetherInfo.modelNames["deepseek-ai/DeepSeek-V3.1"];
-      togetherInfo.modelNames["deepseek-ai/DeepSeek-V3.1"] = undefined;
+    it("should use model.id as name", async () => {
+      const mockResponse = [{ id: "deepseek-ai/DeepSeek-V3.1" }];
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
@@ -190,31 +150,9 @@ describe("TogetherProvider", () => {
       });
 
       expect(result[0].name).toBe("deepseek-ai/DeepSeek-V3.1");
-
-      // Restore the mapping
-      togetherInfo.modelNames["deepseek-ai/DeepSeek-V3.1"] = originalName;
     });
 
-    it("should return empty array when no models match filters", async () => {
-      const mockResponse = [
-        { id: "unknown-model-1", display_name: "Unknown 1" },
-        { id: "unknown-model-2", display_name: "Unknown 2" },
-      ];
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await provider.getProviderModels({
-        apiKey: "test-key",
-        url: "https://api.together.xyz/v1",
-      });
-
-      expect(result).toEqual([]);
-    });
-
-    it("should handle fetch errors gracefully", async () => {
+    it("should handle fetch errors by throwing", async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
         new Error("Network error")
       );

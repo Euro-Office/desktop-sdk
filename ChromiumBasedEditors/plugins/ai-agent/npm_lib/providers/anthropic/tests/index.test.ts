@@ -788,8 +788,7 @@ describe("AnthropicProvider", () => {
   // ==========================================================================
 
   describe("getProviderModels", () => {
-    it("should return filtered and mapped models", async () => {
-      // Use model IDs that match the filters in anthropicInfo
+    it("should return all models mapped with provider type", async () => {
       modelsListMock.mockResolvedValue({
         data: [
           { id: "claude-haiku-4-5-20241022", display_name: "Claude Haiku" },
@@ -803,11 +802,9 @@ describe("AnthropicProvider", () => {
         url: "https://api.anthropic.com",
       });
 
-      expect(result.length).toBe(2);
+      expect(result).toHaveLength(3);
       expect(result.every((m) => m.provider === "anthropic")).toBe(true);
-      expect(result.map((m) => m.id)).toContain("claude-haiku-4-5-20241022");
-      expect(result.map((m) => m.id)).toContain("claude-sonnet-4-5-20241022");
-      expect(result.map((m) => m.id)).not.toContain("other-model");
+      expect(result.map((m) => m.id)).toContain("other-model");
     });
 
     it("should use display_name from API", async () => {
@@ -828,23 +825,28 @@ describe("AnthropicProvider", () => {
       expect(result[0].name).toBe("Custom Display Name");
     });
 
-    it("should handle API errors gracefully", async () => {
-      modelsListMock.mockRejectedValue(new Error("API Error"));
+    it("should mark thinking models as reasoning", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [
+          { id: "claude-sonnet-4-5-20241022", display_name: "Claude Sonnet" },
+          { id: "claude-haiku-4-5-20241022", display_name: "Claude Haiku" },
+        ],
+      });
 
       const result = await provider.getProviderModels({
         apiKey: "test-key",
         url: "https://api.anthropic.com",
       });
 
-      expect(result).toEqual([]);
+      const sonnet = result.find((m) => m.id === "claude-sonnet-4-5-20241022");
+      const haiku = result.find((m) => m.id === "claude-haiku-4-5-20241022");
+      expect(sonnet?.reasoning).toBe(true);
+      expect(haiku?.reasoning).toBe(false);
     });
 
-    it("should return empty array when no models match filters", async () => {
+    it("should return empty array when response has no models", async () => {
       modelsListMock.mockResolvedValue({
-        data: [
-          { id: "unknown-model-1", display_name: "Unknown 1" },
-          { id: "unknown-model-2", display_name: "Unknown 2" },
-        ],
+        data: [],
       });
 
       const result = await provider.getProviderModels({

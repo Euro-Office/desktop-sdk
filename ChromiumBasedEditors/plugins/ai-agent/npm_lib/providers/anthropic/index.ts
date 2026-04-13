@@ -5,6 +5,7 @@ import type {
   ToolUnion,
 } from "@anthropic-ai/sdk/resources/messages";
 import type { ThreadMessageLike } from "@assistant-ui/react";
+import { CapabilitiesUI } from "../../capabilities";
 import type { Model, TMCPItem, TProvider } from "../../types";
 import { AbstractBaseProvider, type TData, type TErrorData } from "../base";
 import { extractErrorMessage, getErrorStatus, ProviderErrors } from "../errors";
@@ -268,6 +269,16 @@ class AnthropicProvider extends AbstractBaseProvider<
     const result: Model[] = [];
 
     for (const model of models) {
+      let capabilities: number;
+
+      if (model.id.startsWith("claude-2")) {
+        capabilities = CapabilitiesUI.Chat;
+      } else if (model.id.startsWith("claude-3-5-haiku")) {
+        capabilities = CapabilitiesUI.Chat;
+      } else {
+        capabilities = CapabilitiesUI.Chat | CapabilitiesUI.Vision;
+      }
+
       result.push({
         id: model.id,
         name: model.display_name,
@@ -275,6 +286,7 @@ class AnthropicProvider extends AbstractBaseProvider<
         reasoning: anthropicInfo.thinkingModels.some((t) =>
           model.id.includes(t)
         ),
+        capabilities,
       });
     }
 

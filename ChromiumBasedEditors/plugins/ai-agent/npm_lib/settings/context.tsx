@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
-import type { SettingsAdapter } from "./types";
 import { setSettingsInstance } from "./settings-holder";
+import type { SettingsAdapter } from "./types";
 
 const SettingsContext = createContext<SettingsAdapter | null>(null);
 

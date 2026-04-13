@@ -106,5 +106,14 @@ export const mapFetchError = (
     return ProviderErrors.invalidUrl();
   }
 
-  return hasApiKey ? ProviderErrors.invalidKey() : ProviderErrors.emptyKey();
+  if (!hasApiKey) return ProviderErrors.emptyKey();
+
+  const message = extractErrorMessage(error);
+  if (message) return ProviderErrors.invalidKey(message);
+
+  if (status) {
+    return ProviderErrors.invalidKey(`Request failed with status ${status}`);
+  }
+
+  return ProviderErrors.invalidKey();
 };
