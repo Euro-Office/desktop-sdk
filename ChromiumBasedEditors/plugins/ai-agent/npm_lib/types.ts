@@ -91,6 +91,13 @@ export type Profile = {
 };
 
 export type TCloud = {
+  portal: string;
+  provider: string;
+  user: string;
+  email: string;
+};
+
+export type TCloudKey = {
   url: string;
   keys: { id: string; value: string }[];
 };

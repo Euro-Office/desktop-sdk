@@ -1,8 +1,14 @@
 import type { PlatformClouds } from "../../../npm_lib/platform/types";
-import type { TCloud } from "../../../npm_lib/types";
+import type { TCloud, TCloudKey } from "../../../npm_lib/types";
 
 export class OnlyOfficeClouds implements PlatformClouds {
-  getClouds(): TCloud[] {
+  async getClouds(): Promise<TCloud[]> {
+    return typeof window.AscDesktopEditor?.getClouds === "function"
+      ? window.AscDesktopEditor.getClouds()
+      : [];
+  }
+
+  getCloudKeys(): TCloudKey[] {
     return typeof window.AscDesktopEditor?.getCloudKeys === "function"
       ? window.AscDesktopEditor.getCloudKeys()
       : [];

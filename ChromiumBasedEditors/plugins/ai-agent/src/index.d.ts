@@ -7,7 +7,7 @@ declare global {
       getToolFunctions: () => string;
       callToolFunction: (name: string, args?: string) => string;
       getClouds: () => TCloud[];
-      getCloudKeys: () => TCloud[];
+      getCloudKeys: () => TCloudKey[];
       openConnectCloud: () => void;
       openTemplate: (file: string, name: string) => void;
       saveAndOpen: (

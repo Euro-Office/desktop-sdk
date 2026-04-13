@@ -1,4 +1,4 @@
-import type { TCloud, TMCPItem, TProcess } from "../types";
+import type { TCloud, TCloudKey, TMCPItem, TProcess } from "../types";
 
 export interface PlatformFileOperations {
   /** Show a native file picker dialog and return selected file paths, or null if cancelled */
@@ -50,7 +50,10 @@ export interface PlatformEnvironment {
 
 export interface PlatformClouds {
   /** Get the list of connected cloud accounts from the host application */
-  getClouds(): TCloud[];
+  getClouds(): Promise<TCloud[]>;
+
+  /** Get the list of cloud keys */
+  getCloudKeys(): TCloudKey[];
 
   /** Subscribe to cloud account list changes. Returns an unsubscribe function */
   onCloudsChange?(callback: () => void): () => void;
