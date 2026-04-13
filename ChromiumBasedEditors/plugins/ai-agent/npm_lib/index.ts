@@ -12,6 +12,7 @@ export type {
   TProcess,
   Profile,
   TCloud,
+  TCloudProvider,
 } from "./types";
 
 // --- Storage ---

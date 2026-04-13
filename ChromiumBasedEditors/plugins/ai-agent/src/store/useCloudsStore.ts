@@ -1,22 +1,40 @@
 import { create } from "zustand";
 import { getPlatformInstance } from "../../npm_lib/platform/platform-holder";
-import type { TCloud } from "../../npm_lib/types";
+import type { TCloudProvider } from "../../npm_lib/types";
 
 type CloudsState = {
-  clouds: TCloud[];
-  getClouds: () => TCloud[];
-  setClouds: (clouds: TCloud[]) => void;
-  fetchClouds: () => void;
+  cloudProviders: TCloudProvider[];
+  fetchClouds: () => Promise<void>;
 };
 
-const useCloudsStore = create<CloudsState>()((set, get) => ({
-  clouds: [],
-  getClouds: () => get().clouds,
-  setClouds: (clouds) => set({ clouds }),
-  fetchClouds: () => {
+const useCloudsStore = create<CloudsState>()((set) => ({
+  cloudProviders: [],
+  fetchClouds: async () => {
     const platform = getPlatformInstance();
-    const clouds = platform?.clouds?.getClouds() ?? [];
-    set({ clouds });
+    if (!platform?.clouds) {
+      set({ cloudProviders: [] });
+      return;
+    }
+
+    const clouds = await platform.clouds.getClouds();
+    const cloudKeys = platform.clouds.getCloudKeys();
+
+    const cloudProviders = clouds.reduce<TCloudProvider[]>((acc, cloud) => {
+      const key = cloudKeys.find((k) => k.url === cloud.portal);
+      const apiKey = key?.keys[0]?.value;
+
+      if (apiKey) {
+        acc.push({
+          url: cloud.portal,
+          label: new URL(cloud.portal).hostname,
+          apiKey,
+        });
+      }
+
+      return acc;
+    }, []);
+
+    set({ cloudProviders });
   },
 }));
 

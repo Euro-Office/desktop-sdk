@@ -30,7 +30,7 @@ const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = [
 const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
-  const { clouds } = useCloudsStore();
+  const { cloudProviders } = useCloudsStore();
 
   const [selectedId, setSelectedId] = React.useState<string>("Exa");
   const [apiKey, setApiKey] = React.useState<string>("");
@@ -39,16 +39,16 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
 
   const allProviders = React.useMemo<WebSearchProvider[]>(
     () => [
-      ...clouds.map((cloud) => ({
-        id: cloud.url,
-        label: new URL(cloud.url).hostname,
-        baseUrl: cloud.url,
-        key: cloud.keys[0].value || "",
+      ...cloudProviders.map((cp) => ({
+        id: cp.url,
+        label: cp.label,
+        baseUrl: cp.url,
+        key: cp.apiKey,
         isCloudProvider: true,
       })),
       ...WEB_SEARCH_PROVIDERS,
     ],
-    [clouds]
+    [cloudProviders]
   );
 
   const provider = allProviders.find((p) => p.id === selectedId);

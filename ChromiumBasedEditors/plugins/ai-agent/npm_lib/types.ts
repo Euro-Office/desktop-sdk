@@ -101,3 +101,9 @@ export type TCloudKey = {
   url: string;
   keys: { id: string; value: string }[];
 };
+
+export type TCloudProvider = {
+  url: string;
+  label: string;
+  apiKey: string;
+};

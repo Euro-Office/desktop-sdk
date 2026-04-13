@@ -8,6 +8,7 @@ export type {
   TAttachmentImage,
   TCloud,
   TCloudKey,
+  TCloudProvider,
   Thread,
   TMCPItem,
   TProcess,

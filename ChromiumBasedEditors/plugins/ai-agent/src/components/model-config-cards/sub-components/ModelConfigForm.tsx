@@ -45,19 +45,19 @@ export const ModelConfigForm = ({
   isHorizontal,
 }: ModelConfigFormProps) => {
   const { t } = useTranslation();
-  const { clouds } = useCloudsStore();
+  const { cloudProviders } = useCloudsStore();
   const providersInfo = getProviderInstance().getProvidersInfo();
   const isFieldsDisabled = !values.provider;
 
   const providerItems = [
-    ...clouds.map((cloud) => ({
-      text: new URL(cloud.url).hostname,
-      id: cloud.url,
+    ...cloudProviders.map((cp) => ({
+      text: cp.label,
+      id: cp.url,
       onClick: () =>
         onChange("provider", {
           type: "onlyoffice" as ProviderType,
-          baseUrl: cloud.url,
-          apiKey: cloud.keys[0].value || "",
+          baseUrl: cp.url,
+          apiKey: cp.apiKey,
           isCloudProvider: true,
         }),
     })),
