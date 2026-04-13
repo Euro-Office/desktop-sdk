@@ -93,14 +93,21 @@ export class ProfilesService {
       { url: data.baseUrl, apiKey: data.key }
     );
 
-    if (typeof checkResult === "boolean" && checkResult) {
+    if (checkResult === true) {
       const storage = getStorageInstance();
       const newProfile: Profile = { ...data, id: crypto.randomUUID() };
       await storage.profiles.create(newProfile);
       return { success: true, profile: newProfile };
     }
 
-    return { success: false, error: checkResult as TErrorData };
+    if (checkResult && typeof checkResult === "object") {
+      return { success: false, error: checkResult };
+    }
+
+    return {
+      success: false,
+      error: { field: "key", message: "Provider validation failed" },
+    };
   }
 
   async editProfile(
@@ -121,13 +128,20 @@ export class ProfilesService {
       { url: profile.baseUrl, apiKey: profile.key }
     );
 
-    if (typeof checkResult === "boolean" && checkResult) {
+    if (checkResult === true) {
       const storage = getStorageInstance();
       await storage.profiles.update(profile);
       return { success: true };
     }
 
-    return { success: false, error: checkResult as TErrorData };
+    if (checkResult && typeof checkResult === "object") {
+      return { success: false, error: checkResult };
+    }
+
+    return {
+      success: false,
+      error: { field: "key", message: "Provider validation failed" },
+    };
   }
 
   async deleteProfile(id: string): Promise<void> {

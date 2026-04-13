@@ -30,7 +30,12 @@ export function StorageProvider({ storage, children }: StorageProviderProps) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    storage.init().then(() => setIsReady(true));
+    storage
+      .init()
+      .then(() => setIsReady(true))
+      .catch((err) => {
+        console.error("Storage init failed:", err);
+      });
 
     return () => {
       storage.close();

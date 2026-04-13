@@ -1390,6 +1390,14 @@ describe("createStores", () => {
         createdAt: 9,
       };
 
+      // Mock deleteFolder to reset folderId on orphaned prompts
+      mockPromptsService.deleteFolder.mockImplementation(
+        (id: string, prompts: Array<{ id: string; folderId?: string }>) =>
+          prompts.map((p) =>
+            p.folderId === id ? { ...p, folderId: undefined } : p
+          )
+      );
+
       const { usePromptsStore } = createStores();
       usePromptsStore.setState({
         folders: [folder],
@@ -1398,9 +1406,13 @@ describe("createStores", () => {
       usePromptsStore.getState().removeFolder("f4");
 
       expect(usePromptsStore.getState().folders).toHaveLength(0);
-      expect(usePromptsStore.getState().prompts).toHaveLength(1);
-      expect(usePromptsStore.getState().prompts[0].id).toBe("pr6");
-      expect(mockPromptsService.deleteFolder).toHaveBeenCalledWith("f4");
+      expect(usePromptsStore.getState().prompts).toHaveLength(2);
+      expect(usePromptsStore.getState().prompts[0].folderId).toBeUndefined();
+      expect(usePromptsStore.getState().prompts[1].id).toBe("pr6");
+      expect(mockPromptsService.deleteFolder).toHaveBeenCalledWith(
+        "f4",
+        expect.any(Array)
+      );
     });
   });
 

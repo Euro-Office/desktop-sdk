@@ -1,182 +1,166 @@
-# Plan: npm_lib Review Fixes — Tests, Abstraction, Refactoring, Performance
+# npm_lib Code Review (Re-review)
 
-## Context
-
-После выноса UI-слоя в npm_lib проведено ревью библиотеки. Выявлены 4 категории проблем: отсутствие тестов (покрытие 14%), нарушение абстракции (прямой localStorage вместо адаптеров), дублирование кода и проблемы перформанса (eager-загрузка). План фиксит всё поэтапно — сначала тесты на существующий код, потом рефакторинг под защитой тестов.
-
----
-
-## Phase 1: Тесты
-
-Покрыть существующий код ДО рефакторинга, чтобы потом менять под защитой тестов.
-
-### 1.1 Services (приоритет — вся бизнес-логика, 0% покрытия)
-- `npm_lib/services/tests/chat-engine.test.ts` — sendMessage flow, tool-call-pending, approve/deny, stop
-- `npm_lib/services/tests/profiles.test.ts` — init, addProfile, editProfile, deleteProfile, clearTaskProfileIfMatch, applyCurrentChatProvider
-- `npm_lib/services/tests/threads.test.ts` — loadAll, createThread, migrateThreadToProfile, downloadThread, deleteThread
-- `npm_lib/services/tests/servers.test.ts` — initServers, buildToolsList, changeToolStatus, callTools, checkAllowAlways
-- `npm_lib/services/tests/prompts.test.ts` — loadAll, createPrompt, updatePrompt, deletePrompt, createFolder, deleteFolder
-
-### 1.2 Hooks (0% покрытия)
-- `npm_lib/hooks/tests/useMessages.test.ts` — processEvents flow, tool approval, onNew с attachments
-- `npm_lib/hooks/tests/useDirection.test.ts` — RTL detection
-- `npm_lib/hooks/tests/useDebouncedCallback.test.ts` — debounce + cancel
-
-### 1.3 Lib (25% покрытия)
-- `npm_lib/lib/tests/debounce.test.ts` — debounce, cancel
-- `npm_lib/lib/tests/api-key-links.test.ts` — getApiKeyLink returns correct URLs
-- `npm_lib/lib/tests/images.test.ts` — parseImageMeta, buildCollections, getImageSrc, getProviderImageSrc
-
-### 1.4 i18n
-- `npm_lib/tests/i18n.test.ts` — initAIChatI18n с дефолтами, с кастомной локалью, идемпотентность
+> Повторное ревью после исправления 35 проблем из первоначального списка.
+> ✅ = исправлено, ⚠️ = частично исправлено, ❌ = не исправлено
 
 ---
 
-## Phase 2: Абстракция — localStorage → SettingsAdapter
+## Статус исправлений из первого ревью
 
-Убрать прямой `localStorage` в библиотеке. Всё должно идти через `getSettingsInstance()`.
-
-### 2.1 tools/sources/WebSearch.ts
-- Строки 18, 31: `localStorage.getItem/setItem(WEB_SEARCH_DATA)` → `getSettingsInstance().get/set()`
-- Ключ `WEB_SEARCH_DATA` передавать через конструктор или использовать дефолт
-
-### 2.2 tools/servers.ts
-- Строки 21, 56: `localStorage.getItem/setItem(ALLOW_ALWAYS_TOOLS)` → `getSettingsInstance().get/set()`
-
-### 2.3 providers/index.ts
-- Строка 45: `localStorage.getItem(CURRENT_MODEL_KEY)` → `getSettingsInstance().get()`
-
-### 2.4 Тесты
-- Обновить существующие тесты WebSearch.test.ts, HostToolSource.test.ts если они мокают localStorage — перевести на mockSettings
-
----
-
-## Phase 3: Убрать host-specific код из библиотеки
-
-### 3.1 onlyoffice-proxy:// протокол
-- `tools/sources/CustomServers.ts:368,458,549` и `WebSearch.ts:51,92`
-- Добавить в `PlatformAdapter` опциональное поле `fetchProxy?: (url: string, init?: RequestInit) => Promise<Response>`
-- В CustomServers/WebSearch: если `getPlatformInstance().fetchProxy` есть — использовать его, иначе стандартный `fetch`
-
-### 3.2 isDesktopEditor / isExternalProcessAvailable
-- `npm_lib/lib/utils.ts:44-50` — убрать из npm_lib, оставить только в src/lib/utils.ts
-- Grep все использования в npm_lib/, заменить на проверки через PlatformAdapter
-- `npm_lib/components/servers/ConfigDialog.tsx` использует `isExternalProcessAvailable()` — заменить на `getPlatformInstance().process?.isAvailable`
-
-### 3.3 window.dispatchEvent → callback/EventEmitter
-- Создать `npm_lib/events.ts` с простым EventEmitter (on/off/emit)
-- Экспортировать singleton `chatEvents`
-- Заменить `window.dispatchEvent(new CustomEvent("tools-changed"))` → `chatEvents.emit("tools-changed")`
-- Заменить `window.addEventListener("tools-changed")` → `chatEvents.on("tools-changed")`
-- Файлы: `CustomServers.ts`, `WebSearch.ts`, `useServers.ts`, `ComposerActionAttachments.tsx`, `ComposerActionServers.tsx`
-
-### 3.4 Полностью удалить Wallet из библиотеки
-Wallet — host-specific фича ONLYOFFICE, не место в npm_lib.
-
-**Удалить файлы:**
-- `npm_lib/pages/settings/sub-components/wallet/index.tsx` — компонент Wallet
-
-**Очистить Settings:**
-- `npm_lib/pages/settings/index.tsx` — удалить:
-  - Импорт `Wallet` (строка 12)
-  - Константу `showWallet` (строка 15)
-  - Весь условный рендеринг по `showWallet` (строки 30-41, 42-43, 50-57, 60-67, 74-75, 79-80)
-  - Состояние `selectedSection` — убрать wallet-ветку, оставить только "providers"
-- Результат: Settings рендерит `<Models />` напрямую без radio-кнопок и wallet-секции
-
-**Очистить FeatureFlags:**
-- `npm_lib/config.ts` — удалить `showWallet` из `FeatureFlags` и `DEFAULT_FEATURE_FLAGS`
-
-**Очистить локали (все JSON в npm_lib/locales/):**
-- Удалить ключи: `ONLYOFFICEWallet`, `ONLYOFFICEWalletDescription`, `RegisterConnectWallet`
-- В `SelectHowConnectDescription` убрать упоминание "Wallet" (переформулировать или удалить)
-
-**Очистить src/:**
-- `src/App.tsx` — убрать `features={{ showWallet: config.showWallet }}` из `<AIChatWidget>`
-- `src/config.json` — убрать `showWallet`
-
-### 3.5 Хардкод clientInfo в CustomServers
-- `CustomServers.ts:361-364` — `{ name: "ai-agent", version: "1.0.0" }`
-- Добавить в `CreateStoresConfig` или `AIChatWidgetProps` поле `clientInfo?: { name: string; version: string }`
-- Прокинуть в ServersService → CustomServers
+| # | Проблема | Статус |
+|---|----------|--------|
+| 1 | Race condition `_pendingTitle` в ChatEngine | ✅ Теперь `_pendingTitlePromise` + `await` после стрима |
+| 2 | Concurrent tool calls STDIO MCP (overwrite `onprocess`) | ✅ `_pendingRequests` Map с UUID |
+| 3 | Race condition `fetchPrevMessages` при переключении тредов | ✅ Guard по `_currentThreadId` после await |
+| 4 | Stale closures в `useMessages` | ✅ Рефы (`threadIdRef`, `extendedThinkingRef`, `handleEventRef`) |
+| 5 | Operator precedence bug в servers.ts | ✅ Переписано на if-statements |
+| 6 | Null dereference `disabledTools["web-search"]` | ✅ Optional chaining `?.length` |
+| 7 | Unguarded `JSON.parse` (servers.ts, providers/index.ts, WebSearch.ts) | ✅ try/catch везде |
+| 8 | `false as TErrorData` в profiles.ts | ✅ Корректная обработка трёх веток |
+| 9 | `initCustomServer` бесконечный setInterval | ✅ maxRetries=30 + проверка stoppedCustomServers |
+| 10 | `i18n.init()` не awaited | ✅ `await i18n.use(...).init(...)` |
+| 11 | Race condition в `initAIChatI18n` | ✅ `initPromise` как mutex |
+| 12 | Нет error handling на async init-путях | ✅ `.catch()` добавлен |
+| 13 | Unbounded log accumulation в CustomServers | ✅ `_appendLog` с MAX_LOG_LINES=1000 |
+| 14 | Side effects во время render в context providers | ⚠️ Намеренно оставлено с комментарием, идемпотентно |
+| 15 | `useMemo` для side effect (Provider singleton) | ❌ Всё ещё `useMemo` с `setProviderInstance` |
+| 16 | `startsWith` совпадение с неправильным тулом | ✅ Exact match |
+| 17 | `JSON.stringify(error)` даёт `{}` | ✅ `e instanceof Error ? e.message : String(e)` |
+| 18 | `mapFetchError` misleading fallback | ⚠️ Улучшен, но 500 ошибки всё ещё → "Invalid API key" |
+| 19 | ManageToolDialog state desync | ✅ Раздельный `isManageToolOpen` + clear при закрытии |
+| 20 | `getArgs` ломает аргументы с пробелами | ❌ Всё ещё `args.join(" ")` — ограничение platform API |
+| 21 | Side effects внутри Zustand `set()` updater | ⚠️ Частично, `applyCurrentChatProvider` и `settings.set` остались в updater |
+| 22 | `deleteFolder` orphaned prompts | ✅ Сброс `folderId` на null |
+| 23 | `getServerType` includes → startsWith | ✅ |
+| 24 | `onProcess` assumes id is string | ✅ `String(correctJson.id)` |
+| 25 | Stale `values` в useModelForm handleChange | ✅ `valuesRef` pattern |
+| 26 | `isFormValid` не учитывает errors | ✅ `Object.values(errors).every(v => !v)` |
+| 27 | `setErrors({})` очищает все ошибки | ✅ Точечная очистка url/key |
+| 28 | `isLoading` никогда не устанавливается | ✅ `setIsLoading(true)` в fetchModels |
+| 29 | Fire-and-forget storage writes | ⚠️ Новые пути с await, но threads.ts createThread/touchThread/renameThread — нет |
+| 30 | `allowAlways` parsing пустой строки | ✅ `.filter(Boolean)` |
+| 31 | `setWebSearchData(null)` → пустая строка | ✅ `settings.remove()` |
+| 32 | Inconsistent null/undefined в Storage API | ❌ `ProfilesStorage.getById` → undefined, остальные → null |
+| 33 | `chatEvents` module-level singleton | ❌ Не исправлено |
+| 34 | Empty `FeatureFlags` type | ❌ Не исправлено |
+| 35 | `fieldToErrorKey` пересоздаётся при рендере | ✅ Module-level constant |
 
 ---
 
-## Phase 4: Рефакторинг кода
+## Новые проблемы
 
-### 4.1 create-stores.ts — разбить 854-строчную фабрику
-- Вынести каждый стор в отдельную фабрику: `createProfilesStore(keys, service)`, `createThreadsStore(...)`, etc.
-- В `createStores()` остаётся только композиция
-- 7 task-profile сеттеров → цикл по TASK_FIELD_MAP
-- `deleteProfile` — 7 вызовов `clearTaskProfileIfMatch` → цикл
+### High
 
-### 4.2 useMessages.ts — убрать дублирование
-- `processEvents` (52-113) и `processEvent` (115-145) — 6 одинаковых case
-- Извлечь `handleEvent(event: ChatEvent)` — один обработчик
-- `processEvents` вызывает `handleEvent` в цикле
-- Удалить `convertMessage` (identity функция, строка 147-149) — передавать undefined в runtime
-
-### 4.3 useMessages.ts — убрать дублирование ToolCallData
-- `approveToolCall` и `denyToolCall` строят одинаковый `ToolCallData` объект
-- Извлечь `extractToolData(): ToolCallData | null`
-
-### 4.4 AIChatWidget.tsx — исправить useMemo
-- Строка 61: `useMemo(() => initAIChatI18n(...))` — side-effect в useMemo. Заменить на вызов вне рендера или useEffect
-- Строка 67: `new Provider()` в useMemo — ок функционально, но семантически лучше вынести
-
----
-
-## Phase 5: Перформанс
-
-### 5.1 Ленивая загрузка локалей
-- `npm_lib/i18n.ts:3-23` — убрать статические импорты всех 21 JSON
-- `initAIChatI18n({ locale })` загружает только запрошенную локаль + en (fallback)
-- Использовать `i18next-resources-to-backend` или dynamic import: `const mod = await import(./locales/${locale}.json)`
-- Экспортировать `bundledLocales` как lazy map
-
-### 5.2 Ленивая загрузка картинок
-- `npm_lib/lib/images.ts:44-91` — убрать `eager: true` с 5 глобов
-- `import.meta.glob(pattern)` без eager возвращает `() => Promise<module>`
-- `getImageSrc` становится async или использует кэш с preload
-
-### 5.3 React.memo на чистых компонентах
-- `components/icon/index.tsx` — обернуть в `memo()`
-- `components/icon-button/index.tsx` — `memo()`
-- `components/layout/sub-components/ChatListItem.tsx` — `memo()`
-- `pages/chat/sub-components/AssistantMessage.tsx` — `memo()` для ThinkingMarkdownText
-- `pages/chat/sub-components/UserMessage.tsx` — `memo()`
-
-### 5.4 Zustand selectors вместо полной подписки
-- `components/layout/sub-components/ChatList.tsx:8` — `useThreadsStore()` → `useThreadsStore(s => ({ threads: s.threads, threadId: s.threadId, ... }))`
-- Аналогично во всех компонентах с `const { ... } = useXxxStore()`
-- Паттерн: деструктуризация в useStores() + selector на конкретном сторе
-
-### 5.5 useCallback на хэндлерах
-- `ChatList.tsx:25` — `onChangeSearchValue` обернуть в `useCallback`
-- `Icon.tsx:36` — `handleBeforeInjection` обернуть в `useCallback`
-
-### 5.6 Lazy-загрузка страниц
-- Settings, InitialSetup, EmptyScreen — `React.lazy()` в AIChatWidget.tsx
-- Обернуть в `<Suspense fallback={<Loader />}>`
-
----
-
-## Порядок выполнения
-
-1. **Phase 1** (тесты) — покрываем существующий код до любых изменений
-2. **Phase 2** (localStorage → SettingsAdapter) — фундамент портабельности
-3. **Phase 3** (host-specific) — убираем привязку к ONLYOFFICE + wallet
-4. **Phase 4** (рефакторинг) — чистим код под защитой тестов
-5. **Phase 5** (перформанс) — оптимизируем в последнюю очередь
-
----
-
-## Verification
-
-```bash
-npx tsc --noEmit              # 0 errors
-npx biome check npm_lib/      # 0 errors
-npx vitest run                # все тесты проходят, 0 regressions
-npx vitest run --coverage     # coverage report
-npm run dev                   # dev server работает, чат функционирует
+#### N1. `restartStdioServer` crash если процесс не существует
+**File:** `npm_lib/tools/sources/CustomServers.ts:337`
+```ts
+this.customServersProcesses[type].end(); // No null check
 ```
+`deleteCustomServer` корректно проверяет `if (this.customServersProcesses[type])`, но `restartStdioServer` — нет. Crash при рестарте незапущенного сервера.
+
+#### N2. `initedCustomServers` не сбрасывается при STDIO restart
+**File:** `npm_lib/tools/sources/CustomServers.ts:336-358`
+`restartStdioServer` не ставит `this.initedCustomServers[type] = false`. Сравни с `restartHttpServer` (строка 324) — там сброс есть. После рестарта `initCustomServer` видит `initedCustomServers[type] === true` и сразу запрашивает tools до того, как новый процесс инициализирован.
+
+#### N3. Stale `manageToolData` closure в `approveToolCall`/`denyToolCall`
+**File:** `npm_lib/hooks/useMessages.ts:153-177`
+`extractToolData` замыкает `manageToolData` из render scope, но `approveToolCall`/`denyToolCall` обёрнуты в `useCallback` без `manageToolData` в deps. При вызове через кнопку `extractToolData()` читает устаревшие данные → может вернуть null → tool approval молча проваливается.
+**Fix:** Добавить `manageToolData` в deps, или читать из store через `getState()`.
+
+#### N4. Pending requests утекают при stop/delete сервера
+**File:** `npm_lib/tools/sources/CustomServers.ts:361-387`
+При `deleteCustomServer` / `restartStdioServer` записи в `_pendingRequests` для этого сервера не reject-ятся. Они зависают до 30с таймаута. Нужно reject-ить все pending по prefix `call-${type}-`.
+
+#### N5. `msg.content[0]` без проверки длины массива
+**Files:** `npm_lib/services/chat-engine.ts:84`, `npm_lib/hooks/useMessages.ts:191`
+Если `msg.content` — пустой массив `[]`, доступ к `[0].type` → `TypeError`. Нужен guard `msg.content.length > 0`.
+
+#### N6. `initAIChatI18n` не re-entrant для смены локали
+**File:** `npm_lib/i18n.ts:54-59`
+После первого вызова `initPromise` закеширован. Повторный вызов с другим `locale` молча вернёт старый promise — язык не сменится. `AIChatWidget` имеет `[locale, translations]` в deps useEffect, подразумевая поддержку смены, но она не работает.
+
+### Medium
+
+#### N7. Concurrent `processEvents` без координации
+**File:** `npm_lib/hooks/useMessages.ts:104-151`
+Нет мьютекса/guard-а. Если пользователь отправляет сообщение, а потом approve-ит tool call — два `processEvents` работают параллельно, interleaving `addMessage`/`updateLastMessage`. Может испортить массив сообщений.
+**Fix:** `isProcessing` ref guard или очередь.
+
+#### N8. `disabledTools[type]` может быть undefined при disable
+**File:** `npm_lib/services/servers.ts:198`
+```ts
+const disabled = [...disabledTools[type], name];
+```
+Если `type` нет в `disabledTools` → spread от undefined → `TypeError`. Нужно `[...(disabledTools[type] ?? []), name]`.
+
+#### N9. Enabling web-search не добавляет tools в массив
+**File:** `npm_lib/services/servers.ts:165-181`
+При включении web-search `newTools = currentState.tools` — без добавления web-search тулов. Они появятся только после следующего `buildToolsList()`. При отключении — корректно удаляются.
+
+#### N10. `WebSearch.callTools` возвращает undefined для неизвестных тулов
+**File:** `npm_lib/tools/sources/WebSearch.ts:142-150`
+Если `name` не `"web_search"` и не `"web_crawling"` — implicit return undefined. Должен возвращать error string.
+
+#### N11. `mapFetchError` всё ещё misleading для 500/429 ошибок
+**File:** `npm_lib/providers/errors.ts:112-118`
+При `hasApiKey === true` и статусе не 0/401/404, fallback → `invalidKey()`. Пользователь видит "Invalid API key" при server error.
+
+#### N12. `getServerType` возвращает последнее совпадение, не самое длинное
+**File:** `npm_lib/tools/sources/CustomServers.ts:202-212`
+`forEach` не break-ается. Если серверы `"foo"` и `"foo_bar"`, и тул `"foo_bar_tool"` — оба матчат `startsWith`. Побеждает последний по порядку итерации (не самый длинный).
+**Fix:** Искать самый длинный match.
+
+#### N13. `insertThread` / `onRenameThread` — non-functional updater
+**Files:** `npm_lib/store/create-threads-store.ts:49-57, 115-123`
+`const { threads } = get()` → `set({ threads: [thread, ...threads] })`. При concurrent вызовах (например, быстрая отправка двух сообщений) второй вызов потеряет вставку первого. Использовать `set(state => ...)`.
+
+#### N14. `storage.close()` без error handling
+**File:** `npm_lib/storage/context.tsx:41`
+`storage.close()` возвращает Promise, но reject не обрабатывается → unhandled rejection.
+
+#### N15. StorageProvider / i18n — вечный blank screen при ошибке init
+**Files:** `npm_lib/storage/context.tsx:33-38`, `npm_lib/AIChatWidget.tsx:62-68`
+`storage.init()` при ошибке логирует, но `isReady` не ставится → виджет навсегда рендерит null. То же для i18n: `i18nReady` не ставится при reject.
+**Fix:** Ставить `isReady(true)` даже при ошибке + показывать error boundary / fallback UI.
+
+### Low
+
+#### N16. `useMemo` для side effect (Provider)
+**File:** `npm_lib/AIChatWidget.tsx:71-75`
+React strict mode вызовет factory дважды → два Provider instance, второй перезатрёт первый в holder. Использовать `useRef` + lazy init.
+
+#### N17. `updateLastMessage` на пустом массиве
+**File:** `npm_lib/store/create-message-store.ts:55-58`
+На пустом `messages` — `slice(0, -1)` → `[]`, message добавляется вместо замены. Семантически неверно, хоть и не crash.
+
+#### N18. `onNew` использует render-scope `extendedThinking` и `messages`
+**File:** `npm_lib/hooks/useMessages.ts:231-232`
+`processEvents` использует refs, но `onNew` → `sendMessage(existingMessages: messages, extendedThinking)` берёт значения из render scope. Inconsistency: может отправить устаревший `messages` или `extendedThinking`.
+
+#### N19. Double `getTools()` при mount
+**File:** `npm_lib/hooks/useServers.ts:19-40`
+Два `useEffect` оба вызывают `getTools()` при initial render. Два concurrent async вызова `buildToolsList()`.
+
+#### N20. `createChatName` think-tag → пустая строка
+**File:** `npm_lib/providers/index.ts:89-91`
+`"thinking</think>".split("</think>")[1]` → `""`. Thread получит пустой title. Нужен fallback.
+
+#### N21. `ProfilesStorage.getById` → undefined, остальные → null
+**File:** `npm_lib/storage/types.ts:93`
+Inconsistency в контракте.
+
+#### N22. No error handling на init() в hooks
+**Files:** `npm_lib/hooks/useProfiles.ts:15`, `npm_lib/hooks/useThreads.ts:17-18`, `npm_lib/hooks/useServers.ts:28-29`
+Все `init()` без `.catch()` → unhandled rejection при сбое DB.
+
+---
+
+## Summary
+
+| Severity | Count | Key areas |
+|----------|-------|-----------|
+| High | 6 | N1-N6: crash при restart, stale closure в tool approval, pending leak, content[0] access, i18n re-init |
+| Medium | 9 | N7-N15: concurrent streams, spread undefined, web-search toggle, misleading errors, blank screen |
+| Low | 7 | N16-N22: useMemo side effect, empty array edge case, stale values, double init |
+
+Из 35 первоначальных проблем: **27 исправлены**, **4 частично**, **4 не исправлены** (архитектурные / design decisions).

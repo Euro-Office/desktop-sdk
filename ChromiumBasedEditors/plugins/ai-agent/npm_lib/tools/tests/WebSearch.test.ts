@@ -101,9 +101,8 @@ describe("WebSearch", () => {
       webSearch.setWebSearchData(null);
 
       expect(webSearch.getTools()).toEqual([]);
-      expect(mockLocalStorage.setItem).toHaveBeenLastCalledWith(
-        "webSearchProviderData",
-        ""
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+        "webSearchProviderData"
       );
     });
   });

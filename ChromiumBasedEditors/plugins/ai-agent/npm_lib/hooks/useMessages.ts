@@ -1,5 +1,5 @@
 import type { AppendMessage } from "@assistant-ui/react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { ChatEvent, ToolCallData } from "../services/chat-engine";
 import { useStores } from "../store/context";
 
@@ -39,93 +39,116 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
   const extendedThinking = useProfilesStore((s) => s.extendedThinking);
 
   const threadIdRef = useRef(threadId);
+  const extendedThinkingRef = useRef(extendedThinking);
+
+  useEffect(() => {
+    threadIdRef.current = threadId;
+  }, [threadId]);
+
+  useEffect(() => {
+    extendedThinkingRef.current = extendedThinking;
+  }, [extendedThinking]);
 
   useEffect(() => {
     if (!isReady) return;
-
-    threadIdRef.current = threadId;
 
     fetchPrevMessages(threadId);
     clearAttachmentFiles();
   }, [threadId, isReady, fetchPrevMessages, clearAttachmentFiles]);
 
-  const handleEvent = (event: ChatEvent) => {
-    switch (event.type) {
-      case "message-start":
-        addMessage(event.message);
-        break;
-      case "message-delta":
-        if (threadIdRef.current === threadId) {
+  const handleEvent = useCallback(
+    (event: ChatEvent) => {
+      switch (event.type) {
+        case "message-start":
+          addMessage(event.message);
+          break;
+        case "message-delta":
           updateLastMessage(event.message);
-        }
-        break;
-      case "message-end":
-        setIsStreamRunning(false);
-        setIsRequestRunning(false);
-        break;
-      case "message-incomplete":
-        addMessage(event.message);
-        setIsStreamRunning(false);
-        setIsRequestRunning(false);
-        break;
-      case "tool-call-pending":
-        setManageToolData({
-          message: event.message,
-          idx: event.idx,
-          messageUID: event.messageUID,
-        });
-        break;
-      case "thread-title":
-        insertThread(event.title, { profileId: event.profileId });
-        break;
-    }
-  };
-
-  const processEvents = async (events: AsyncGenerator<ChatEvent>) => {
-    setIsStreamRunning(true);
-
-    for await (const event of events) {
-      if (event.type === "message-start") {
-        setIsRequestRunning(true);
+          break;
+        case "message-end":
+          setIsStreamRunning(false);
+          setIsRequestRunning(false);
+          break;
+        case "message-incomplete":
+          addMessage(event.message);
+          setIsStreamRunning(false);
+          setIsRequestRunning(false);
+          break;
+        case "tool-call-pending":
+          setManageToolData({
+            message: event.message,
+            idx: event.idx,
+            messageUID: event.messageUID,
+          });
+          break;
+        case "thread-title":
+          insertThread(event.title, { profileId: event.profileId });
+          break;
       }
+    },
+    [
+      addMessage,
+      updateLastMessage,
+      setIsStreamRunning,
+      setIsRequestRunning,
+      setManageToolData,
+      insertThread,
+    ]
+  );
 
-      if (event.type === "tool-call-pending") {
-        // Try auto-allow first via ChatEngine.handleToolCall
-        const innerEvents = chatEngine.handleToolCall(
-          event.message,
-          event.idx,
-          event.messageUID,
-          extendedThinking
-        );
-        let handled = false;
-        for await (const innerEvent of innerEvents) {
-          if (innerEvent.type === "tool-call-pending") {
-            // Not auto-allowed — show UI prompt
-            setManageToolData({
-              message: innerEvent.message,
-              idx: innerEvent.idx,
-              messageUID: innerEvent.messageUID,
-            });
-            handled = true;
-          } else {
-            handleEvent(innerEvent);
+  const handleEventRef = useRef(handleEvent);
+  useEffect(() => {
+    handleEventRef.current = handleEvent;
+  }, [handleEvent]);
+
+  const processEvents = useCallback(
+    async (events: AsyncGenerator<ChatEvent>) => {
+      setIsStreamRunning(true);
+
+      for await (const event of events) {
+        if (event.type === "message-start") {
+          setIsRequestRunning(true);
+        }
+
+        if (event.type === "tool-call-pending") {
+          // Try auto-allow first via ChatEngine.handleToolCall
+          const innerEvents = chatEngine.handleToolCall(
+            event.message,
+            event.idx,
+            event.messageUID,
+            extendedThinkingRef.current
+          );
+          let handled = false;
+          for await (const innerEvent of innerEvents) {
+            if (innerEvent.type === "tool-call-pending") {
+              // Not auto-allowed — show UI prompt
+              setManageToolData({
+                message: innerEvent.message,
+                idx: innerEvent.idx,
+                messageUID: innerEvent.messageUID,
+              });
+              handled = true;
+            } else {
+              handleEventRef.current(innerEvent);
+            }
+          }
+          if (handled) return;
+        } else {
+          handleEventRef.current(event);
+          if (
+            event.type === "message-end" ||
+            event.type === "message-incomplete"
+          ) {
+            return;
           }
         }
-        if (handled) return;
-      } else {
-        handleEvent(event);
-        if (
-          event.type === "message-end" ||
-          event.type === "message-incomplete"
-        ) {
-          return;
-        }
       }
-    }
 
-    setIsStreamRunning(false);
-    setIsRequestRunning(false);
-  };
+      setIsStreamRunning(false);
+      setIsRequestRunning(false);
+    },
+    [chatEngine, setIsStreamRunning, setIsRequestRunning, setManageToolData]
+  );
 
   const extractToolData = (): ToolCallData | null => {
     if (!manageToolData) return null;
@@ -136,29 +159,32 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
     };
   };
 
-  const approveToolCall = (allowAlways: boolean) => {
+  const approveToolCall = useCallback(
+    (allowAlways: boolean) => {
+      const data = extractToolData();
+      if (!data) return;
+
+      setManageToolData(undefined);
+
+      const events = chatEngine.approveToolCall(
+        data,
+        allowAlways,
+        extendedThinkingRef.current
+      );
+      processEvents(events);
+    },
+    [chatEngine, setManageToolData, processEvents]
+  );
+
+  const denyToolCall = useCallback(() => {
     const data = extractToolData();
     if (!data) return;
 
     setManageToolData(undefined);
 
-    const events = chatEngine.approveToolCall(
-      data,
-      allowAlways,
-      extendedThinking
-    );
+    const events = chatEngine.denyToolCall(data, extendedThinkingRef.current);
     processEvents(events);
-  };
-
-  const denyToolCall = () => {
-    const data = extractToolData();
-    if (!data) return;
-
-    setManageToolData(undefined);
-
-    const events = chatEngine.denyToolCall(data, extendedThinking);
-    processEvents(events);
-  };
+  }, [chatEngine, setManageToolData, processEvents]);
 
   const onNew = async (message: AppendMessage) => {
     if (!currentProfile) return;

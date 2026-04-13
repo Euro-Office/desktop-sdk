@@ -60,9 +60,11 @@ export const AIChatWidget = ({
   // Initialize i18n lazily (only loads requested locale + English fallback)
   const [i18nReady, setI18nReady] = useState(false);
   useEffect(() => {
-    initAIChatI18n({ locale, resources: translations }).then(() =>
-      setI18nReady(true)
-    );
+    initAIChatI18n({ locale, resources: translations })
+      .then(() => setI18nReady(true))
+      .catch((err) => {
+        console.error("i18n init failed:", err);
+      });
   }, [locale, translations]);
 
   // Create Provider instance
@@ -166,7 +168,7 @@ const AppInner = ({
 
   const { messages, stopMessage } = useMessageStore();
   const { currentPage } = useRouter();
-  const { manageToolData } = useServersStore();
+  const { manageToolData, setManageToolData } = useServersStore();
   const { profiles } = useProfilesStore();
 
   useThread({ isReady });
@@ -183,7 +185,12 @@ const AppInner = ({
 
   useEffect(() => {
     if (onMigrate) {
-      onMigrate().then(() => setIsReady(true));
+      onMigrate()
+        .then(() => setIsReady(true))
+        .catch((err) => {
+          console.error("Migration failed:", err);
+          setIsReady(true);
+        });
     } else {
       setIsReady(true);
     }
@@ -232,7 +239,10 @@ const AppInner = ({
         <ManageToolDialog
           onAllow={approveToolCall}
           onDeny={denyToolCall}
-          onClose={() => setIsManageToolOpen(false)}
+          onClose={() => {
+            setIsManageToolOpen(false);
+            setManageToolData(undefined);
+          }}
         />
       ) : null}
     </Layout>

@@ -58,11 +58,12 @@ export function createPromptsStore(deps: {
     },
 
     removeFolder: (id) => {
+      const currentPrompts = get().prompts;
+      const updatedPrompts = promptsService.deleteFolder(id, currentPrompts);
       set({
         folders: get().folders.filter((f) => f.id !== id),
-        prompts: get().prompts.filter((p) => p.folderId !== id),
+        prompts: updatedPrompts,
       });
-      promptsService.deleteFolder(id);
     },
   }));
 }

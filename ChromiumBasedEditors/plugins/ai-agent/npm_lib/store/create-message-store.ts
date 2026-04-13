@@ -7,6 +7,7 @@ export interface MessageStoreState {
   messages: ThreadMessageLike[];
   isStreamRunning: boolean;
   isRequestRunning: boolean;
+  _currentThreadId: string;
   setIsStreamRunning: (value: boolean) => void;
   setIsRequestRunning: (value: boolean) => void;
   addMessage: (message: ThreadMessageLike) => void;
@@ -23,12 +24,17 @@ export function createMessageStore(): UseBoundStore<
     messages: [],
     isStreamRunning: false,
     isRequestRunning: false,
+    _currentThreadId: "",
 
     fetchPrevMessages: async (threadId: string) => {
+      set({ _currentThreadId: threadId });
       const storage = getStorageInstance();
-      const messages = await storage.messages.getByThread(threadId);
-      set({ messages });
-      getProviderInstance().setCurrentProviderPrevMessages(messages);
+      const fetchedMessages = await storage.messages.getByThread(threadId);
+      // Guard: if thread changed while awaiting, discard stale results
+      const current = get();
+      if (current._currentThreadId !== threadId) return;
+      set({ messages: fetchedMessages });
+      getProviderInstance().setCurrentProviderPrevMessages(fetchedMessages);
     },
 
     setIsStreamRunning: (value) => set({ isStreamRunning: value }),

@@ -13,6 +13,7 @@ vi.mock("react", () => ({
     effectCallbacks.push(fn);
   },
   useRef: (val: unknown) => ({ current: val }),
+  useCallback: (fn: unknown) => fn,
   useContext: vi.fn(),
   createContext: vi.fn(),
 }));

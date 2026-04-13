@@ -45,9 +45,13 @@ class Provider {
       // Restore model from localStorage to handle initialization race condition
       const savedModel = getSettingsInstance().get(CURRENT_MODEL_KEY);
       if (savedModel) {
-        const parsed: Model = JSON.parse(savedModel);
-        this.currentProvider.setModelKey(parsed.id);
-        this.currentProvider.isReasoning = parsed.reasoning ?? false;
+        try {
+          const parsed: Model = JSON.parse(savedModel);
+          this.currentProvider.setModelKey(parsed.id);
+          this.currentProvider.isReasoning = parsed.reasoning ?? false;
+        } catch {
+          // Ignore invalid stored model JSON
+        }
       }
     }
   };

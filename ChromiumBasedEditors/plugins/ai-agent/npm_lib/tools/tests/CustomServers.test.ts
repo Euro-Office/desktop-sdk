@@ -1119,9 +1119,7 @@ describe("CustomServers", () => {
 
       await expect(
         customServers.callToolFromStdioMCP("test", "read_file", {})
-      ).rejects.toThrow(
-        "Error calling MCP tool read_file on server test: Error: Connection lost"
-      );
+      ).rejects.toThrow("Connection lost");
     });
 
     it("should use empty array when tools are not defined for server", async () => {

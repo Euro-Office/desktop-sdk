@@ -27,7 +27,11 @@ class WebSearch {
     const data = getSettingsInstance().get(WEB_SEARCH_DATA);
 
     if (data) {
-      this.webSearchData = JSON.parse(data);
+      try {
+        this.webSearchData = JSON.parse(data);
+      } catch {
+        this.webSearchData = null;
+      }
     } else {
       this.webSearchData = null;
     }
@@ -37,10 +41,11 @@ class WebSearch {
 
   setWebSearchData = (data: WebSearchData) => {
     this.webSearchData = data;
-    getSettingsInstance().set(
-      WEB_SEARCH_DATA,
-      data ? JSON.stringify(data) : ""
-    );
+    if (data) {
+      getSettingsInstance().set(WEB_SEARCH_DATA, JSON.stringify(data));
+    } else {
+      getSettingsInstance().remove(WEB_SEARCH_DATA);
+    }
     this.initTools();
   };
 
@@ -88,7 +93,9 @@ class WebSearch {
         return JSON.stringify({ data });
       } catch (e) {
         console.error("WebSearch error:", e);
-        return JSON.stringify({ error: e });
+        return JSON.stringify({
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
     return JSON.stringify(args);
@@ -124,7 +131,9 @@ class WebSearch {
         return JSON.stringify({ data });
       } catch (e) {
         console.error(e);
-        return JSON.stringify({ error: e });
+        return JSON.stringify({
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
     return JSON.stringify(args);

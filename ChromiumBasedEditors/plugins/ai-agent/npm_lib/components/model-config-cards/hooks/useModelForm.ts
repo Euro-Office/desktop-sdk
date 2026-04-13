@@ -8,6 +8,14 @@ import type {
   ModelFormValues,
 } from "../../model-config-cards/sub-components/ModelConfigForm";
 
+const fieldToErrorKey: Partial<
+  Record<keyof ModelFormValues, keyof ModelFormErrors>
+> = {
+  apiKey: "key",
+  baseUrl: "url",
+  profileName: "name",
+};
+
 export const useModelForm = (initialValues: ModelFormValues) => {
   const { t } = useTranslation();
   const [values, setValues] = useState<ModelFormValues>(initialValues);
@@ -15,13 +23,16 @@ export const useModelForm = (initialValues: ModelFormValues) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<ModelFormErrors>({});
   const fetchModelsRequestIdRef = useRef(0);
+  const valuesRef = useRef(values);
+  valuesRef.current = values;
 
   const isFormValid =
     !isLoading &&
     !!values.provider &&
     !!values.baseUrl &&
     !!values.model &&
-    !!values.profileName;
+    !!values.profileName &&
+    Object.values(errors).every((v) => !v);
 
   const fetchModels = async (
     providerType: ProviderType,
@@ -38,7 +49,11 @@ export const useModelForm = (initialValues: ModelFormValues) => {
       setValues((prev) => ({ ...prev, model: "" }));
       return;
     }
-    setErrors({});
+    setErrors((prev) => {
+      const { url: _url, key: _key, ...rest } = prev;
+      return rest;
+    });
+    setIsLoading(true);
     const requestId = ++fetchModelsRequestIdRef.current;
     const providerInfo = getProviderInstance().getProviderInfo(providerType);
     const { models: result, errors: fetchErrors } =
@@ -46,6 +61,7 @@ export const useModelForm = (initialValues: ModelFormValues) => {
         { type: providerType, name: providerInfo.name, key: apiKey, baseUrl },
       ]);
     if (requestId !== fetchModelsRequestIdRef.current) return;
+    setIsLoading(false);
     const fetchError = fetchErrors.get(providerInfo.name);
     if (fetchError) {
       setErrors((prev) => ({
@@ -77,14 +93,6 @@ export const useModelForm = (initialValues: ModelFormValues) => {
 
   const debouncedFetchModels = useDebouncedCallback(fetchModels, 500);
 
-  const fieldToErrorKey: Partial<
-    Record<keyof ModelFormValues, keyof ModelFormErrors>
-  > = {
-    apiKey: "key",
-    baseUrl: "url",
-    profileName: "name",
-  };
-
   const handleChange = (field: keyof ModelFormValues, value: string) => {
     const errorKey = fieldToErrorKey[field];
     if (errorKey) setErrors((prev) => ({ ...prev, [errorKey]: undefined }));
@@ -102,23 +110,23 @@ export const useModelForm = (initialValues: ModelFormValues) => {
         model: "",
       }));
       setModels([]);
-      fetchModels(value as ProviderType, values.apiKey, newBaseUrl);
+      fetchModels(value as ProviderType, valuesRef.current.apiKey, newBaseUrl);
       return;
     }
     if (field === "apiKey") {
       setValues((prev) => ({ ...prev, apiKey: value }));
       debouncedFetchModels(
-        values.provider as ProviderType,
+        valuesRef.current.provider as ProviderType,
         value,
-        values.baseUrl
+        valuesRef.current.baseUrl
       );
       return;
     }
     if (field === "baseUrl") {
       setValues((prev) => ({ ...prev, baseUrl: value }));
       debouncedFetchModels(
-        values.provider as ProviderType,
-        values.apiKey,
+        valuesRef.current.provider as ProviderType,
+        valuesRef.current.apiKey,
         value
       );
       return;
@@ -126,7 +134,7 @@ export const useModelForm = (initialValues: ModelFormValues) => {
     if (field === "model") {
       const modelObj = models.find((m) => m.id === value);
       const providerInfo = getProviderInstance().getProviderInfo(
-        values.provider as ProviderType
+        valuesRef.current.provider as ProviderType
       );
       setValues((prev) => ({
         ...prev,

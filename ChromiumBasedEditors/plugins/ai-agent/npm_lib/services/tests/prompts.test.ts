@@ -206,10 +206,33 @@ describe("PromptsService", () => {
   // -----------------------------------------------------------------------
 
   describe("deleteFolder", () => {
-    it("calls storage.delete with the id", () => {
-      service.deleteFolder("f1");
+    it("calls storage.delete with the id and resets orphaned prompts", () => {
+      const prompts = [
+        {
+          id: "p1",
+          name: "in folder",
+          text: "t",
+          folderId: "f1",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+        {
+          id: "p2",
+          name: "other",
+          text: "t",
+          folderId: "f2",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
+      const result = service.deleteFolder("f1", prompts);
 
       expect(mockStorage.promptFolders.delete).toHaveBeenCalledWith("f1");
+      expect(mockStorage.prompts.update).toHaveBeenCalledWith("p1", {
+        folderId: null,
+      });
+      expect(result[0].folderId).toBeUndefined();
+      expect(result[1].folderId).toBe("f2");
     });
   });
 });

@@ -95,6 +95,8 @@ export const setClientInfo = (info: { name: string; version: string }) => {
 
 export const getClientInfo = () => clientInfo;
 
+const MAX_LOG_LINES = 1000;
+
 class CustomServers {
   customServers: Record<string, Record<string, unknown>>;
   startedCustomServers: Record<string, string>;
@@ -104,6 +106,10 @@ class CustomServers {
   httpServers: Record<string, THttpServer>;
   customServersLogs: Record<string, string[]>;
   tools: Record<string, TMCPItem[]>;
+  private _pendingRequests: Map<
+    string,
+    { resolve: (value: unknown) => void; reject: (reason: unknown) => void }
+  >;
 
   constructor() {
     this.customServers = {};
@@ -114,52 +120,71 @@ class CustomServers {
     this.customServersLogs = {};
     this.tools = {};
     this.stoppedCustomServers = [];
+    this._pendingRequests = new Map();
+  }
+
+  private _appendLog(type: string, line: string) {
+    const logs = this.customServersLogs[type];
+    if (!logs) return;
+    logs.push(line);
+    if (logs.length > MAX_LOG_LINES) {
+      logs.splice(0, logs.length - MAX_LOG_LINES);
+    }
   }
 
   onProcess = (type: string, t: number, message: string) => {
-    try {
-      const correctJson = JSON.parse(message);
+    if (t === 0) {
+      // stdout — parse JSON-RPC responses
+      try {
+        const correctJson = JSON.parse(message);
+        const jsonId =
+          correctJson.jsonrpc === "2.0" && correctJson.id != null
+            ? String(correctJson.id)
+            : null;
 
-      if (
-        correctJson.jsonrpc === "2.0" &&
-        correctJson.id &&
-        correctJson.id.includes(`init-${type}`)
-      ) {
-        this.initedCustomServers[type] = true;
-        this.stoppedCustomServers = this.stoppedCustomServers.filter(
-          (s) => s !== type
-        );
-      }
+        if (jsonId && jsonId === `init-${type}`) {
+          this.initedCustomServers[type] = true;
+          this.stoppedCustomServers = this.stoppedCustomServers.filter(
+            (s) => s !== type
+          );
+        }
 
-      if (
-        correctJson.jsonrpc === "2.0" &&
-        correctJson.id &&
-        correctJson.id.includes(`tools-${type}`)
-      ) {
-        this.tools[type] = correctJson.result.tools;
-        chatEvents.emit("tools-changed");
+        if (jsonId && jsonId.startsWith(`tools-${type}`)) {
+          this.tools[type] = correctJson.result.tools;
+          chatEvents.emit("tools-changed");
+        }
+
+        // Dispatch to pending request resolvers
+        if (jsonId && this._pendingRequests.has(jsonId)) {
+          const pending = this._pendingRequests.get(jsonId)!;
+          this._pendingRequests.delete(jsonId);
+          if (correctJson.error) {
+            pending.reject(
+              new Error(
+                `MCP tool error (${correctJson.error.code}): ${correctJson.error.message}`
+              )
+            );
+          } else {
+            pending.resolve(JSON.stringify(correctJson.result));
+          }
+        }
+      } catch {
+        // ignore non-JSON stdout
       }
-    } catch {
-      // ignore
     }
 
+    const timestamp = new Date().toLocaleString();
     switch (t) {
       case 0: {
-        this.customServersLogs[type].push(
-          `${new Date().toLocaleString()}: ${message}\n`
-        );
+        this._appendLog(type, `${timestamp}: ${message}\n`);
         break;
       }
       case 1: {
-        this.customServersLogs[type].push(
-          `${new Date().toLocaleString()}: ${message}\n`
-        );
+        this._appendLog(type, `${timestamp}: ${message}\n`);
         break;
       }
       case 2: {
-        this.customServersLogs[type].push(
-          `${new Date().toLocaleString()}: [stop] ${message}\n`
-        );
+        this._appendLog(type, `${timestamp}: [stop] ${message}\n`);
         this.stoppedCustomServers.push(type);
         break;
       }
@@ -178,7 +203,7 @@ class CustomServers {
     let type: string = "";
 
     Object.keys(this.customServers).forEach((serverType) => {
-      if (name.includes(`${serverType}_`)) {
+      if (name.startsWith(`${serverType}_`)) {
         type = serverType;
       }
     });
@@ -422,6 +447,9 @@ class CustomServers {
       return;
     }
 
+    let retries = 0;
+    const maxRetries = 30;
+
     const interval = setInterval(() => {
       if (this.initedCustomServers[type]) {
         clearInterval(interval);
@@ -429,8 +457,18 @@ class CustomServers {
         return;
       }
 
+      if (
+        this.stoppedCustomServers.includes(type) ||
+        !this.customServersProcesses[type] ||
+        retries >= maxRetries
+      ) {
+        clearInterval(interval);
+        return;
+      }
+
+      retries++;
+
       try {
-        // First send initialize request
         const initRequest = {
           jsonrpc: "2.0",
           id: `init-${type}`,
@@ -440,20 +478,17 @@ class CustomServers {
             capabilities: {
               tools: {},
             },
-            clientInfo: {
-              name: "ai-agent",
-              version: "1.0.0",
-            },
+            clientInfo,
           },
         };
 
         const initBody = JSON.stringify(initRequest);
         const initMessage = `${initBody}\n`;
 
-        // Send initialize request
         process.stdin(initMessage);
       } catch (error) {
         console.error(`Error initializing custom server ${type}:`, error);
+        clearInterval(interval);
       }
     }, 1000);
   };
@@ -623,73 +658,42 @@ class CustomServers {
       throw new Error(`Tool ${toolName} not found on server ${serverType}`);
     }
 
-    try {
-      const request = {
-        jsonrpc: "2.0",
-        id: `call-${serverType}-${toolName}-${Date.now()}`,
-        method: "tools/call",
-        params: {
-          name: toolName,
-          arguments: args,
+    const requestId = `call-${serverType}-${toolName}-${Date.now()}-${crypto.randomUUID()}`;
+
+    const request = {
+      jsonrpc: "2.0",
+      id: requestId,
+      method: "tools/call",
+      params: {
+        name: toolName,
+        arguments: args,
+      },
+    };
+
+    const requestBody = JSON.stringify(request);
+    const requestMessage = `${requestBody}\n`;
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this._pendingRequests.delete(requestId);
+        reject(
+          new Error(`Timeout waiting for tool response from ${serverType}`)
+        );
+      }, 30000);
+
+      this._pendingRequests.set(requestId, {
+        resolve: (value) => {
+          clearTimeout(timeout);
+          resolve(value);
         },
-      };
-
-      const requestBody = JSON.stringify(request);
-      const requestMessage = `${requestBody}\n`;
-
-      // Send the tool call request
-      process.stdin(requestMessage);
-
-      // Return a promise that resolves when we get the response
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(
-            new Error(`Timeout waiting for tool response from ${serverType}`)
-          );
-        }, 30000); // 30 second timeout for tool execution
-
-        // Store original onprocess handler
-        const originalOnProcess = process.onprocess;
-
-        // Temporarily override to capture tool response
-        process.onprocess = (t: number, message: string) => {
-          // Call original handler to maintain logging
-          originalOnProcess(t, message);
-
-          if (t === 0) {
-            // stdout
-            try {
-              const response = JSON.parse(message);
-
-              // Check if this is our tool call response
-              if (response.id?.startsWith(`call-${serverType}-${toolName}`)) {
-                // Restore original handler
-                process.onprocess = originalOnProcess;
-                clearTimeout(timeout);
-
-                if (response.error) {
-                  console.error(`MCP tool error response:`, response.error);
-                  reject(
-                    new Error(
-                      `MCP tool error (${response.error.code}): ${response.error.message}`
-                    )
-                  );
-                } else {
-                  console.log(`MCP tool success response:`, response.result);
-                  resolve(JSON.stringify(response.result));
-                }
-              }
-            } catch {
-              // Ignore parse errors, continue waiting
-            }
-          }
-        };
+        reject: (reason) => {
+          clearTimeout(timeout);
+          reject(reason);
+        },
       });
-    } catch (error) {
-      throw new Error(
-        `Error calling MCP tool ${toolName} on server ${serverType}: ${error}`
-      );
-    }
+
+      process.stdin(requestMessage);
+    });
   };
 
   getTools = () => {

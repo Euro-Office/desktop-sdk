@@ -51,41 +51,46 @@ export interface InitAIChatI18nOptions {
   resources?: Record<string, { translation: object }>;
 }
 
-let initialized = false;
+let initPromise: Promise<typeof i18n> | null = null;
 
-export const initAIChatI18n = async (options?: InitAIChatI18nOptions) => {
-  if (initialized) return i18n;
+export const initAIChatI18n = (
+  options?: InitAIChatI18nOptions
+): Promise<typeof i18n> => {
+  if (initPromise) return initPromise;
 
-  // Load only requested locale + English fallback
-  const locale = options?.locale ?? "en";
-  const resources: Record<string, { translation: object }> = {};
+  initPromise = (async () => {
+    // Load only requested locale + English fallback
+    const locale = options?.locale ?? "en";
+    const resources: Record<string, { translation: object }> = {};
 
-  // Always load English as fallback
-  const enModule = await localeLoaders.en();
-  resources.en = { translation: enModule.default };
+    // Always load English as fallback
+    const enModule = await localeLoaders.en();
+    resources.en = { translation: enModule.default };
 
-  // Load requested locale if different from English
-  if (locale !== "en" && localeLoaders[locale]) {
-    const localeModule = await localeLoaders[locale]();
-    resources[locale] = { translation: localeModule.default };
-  }
+    // Load requested locale if different from English
+    if (locale !== "en" && localeLoaders[locale]) {
+      const localeModule = await localeLoaders[locale]();
+      resources[locale] = { translation: localeModule.default };
+    }
 
-  // Merge with custom resources
-  if (options?.resources) {
-    Object.assign(resources, options.resources);
-  }
+    // Merge with custom resources
+    if (options?.resources) {
+      Object.assign(resources, options.resources);
+    }
 
-  i18n.use(initReactI18next).init({
-    resources,
-    lng: locale,
-    fallbackLng: "en",
-    interpolation: {
-      escapeValue: false,
-    },
-  });
+    await i18n.use(initReactI18next).init({
+      resources,
+      lng: locale,
+      fallbackLng: "en",
+      interpolation: {
+        escapeValue: false,
+      },
+    });
 
-  initialized = true;
-  return i18n;
+    return i18n;
+  })();
+
+  return initPromise;
 };
 
 // Export for hosts that want to preload all locales

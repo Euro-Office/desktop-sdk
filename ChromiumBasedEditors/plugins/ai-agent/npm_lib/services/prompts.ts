@@ -79,7 +79,16 @@ export class PromptsService {
     });
   }
 
-  deleteFolder(id: string): void {
+  deleteFolder(id: string, prompts: Prompt[]): Prompt[] {
     getStorageInstance().promptFolders.delete(id).catch(console.error);
+    // Reset folderId on orphaned prompts
+    const updated = prompts.map((p) => {
+      if (p.folderId !== id) return p;
+      getStorageInstance()
+        .prompts.update(p.id, { folderId: null })
+        .catch(console.error);
+      return { ...p, folderId: undefined };
+    });
+    return updated;
   }
 }

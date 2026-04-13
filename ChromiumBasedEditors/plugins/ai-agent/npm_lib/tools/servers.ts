@@ -18,8 +18,8 @@ class Servers {
     this.customServers = new CustomServers();
     this.webSearch = new WebSearch();
 
-    this.allowAlways =
-      getSettingsInstance().get(ALLOW_ALWAYS_TOOLS)?.split(",") ?? [];
+    const raw = getSettingsInstance().get(ALLOW_ALWAYS_TOOLS);
+    this.allowAlways = raw ? raw.split(",").filter(Boolean) : [];
   }
 
   checkAllowAlways = (type: string, name: string) => {
@@ -100,7 +100,7 @@ class Servers {
       }
     }
 
-    if (name.includes("web-search_")) {
+    if (name.startsWith("web-search_")) {
       return "web-search";
     }
 
