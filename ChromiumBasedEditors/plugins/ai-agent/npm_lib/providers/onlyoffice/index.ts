@@ -2,9 +2,9 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionSystemMessageParam,
 } from "openai/resources/chat/completions";
-import type { Model, TProvider } from "@/lib/types";
-import { getErrorCode, ProviderErrors } from "../errors";
+import type { Model, TProvider } from "@/shared/lib/types.ts";
 import type { TData, TErrorData } from "../base";
+import { getErrorCode, ProviderErrors } from "../errors";
 import { OpenAIProvider } from "../openai";
 import { onlyOfficeInfo } from "./info";
 
