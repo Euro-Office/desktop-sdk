@@ -1,6 +1,8 @@
-// Re-export utilities from npm_lib
+// Re-export utilities from @onlyoffice/ai-chat
 export {
   cn,
+  convertMessagesToMd,
+  getMessageTitleFromMd,
   isDjVu,
   isDocument,
   isPdf,
@@ -9,13 +11,9 @@ export {
   isSpreadsheet,
   isVisio,
   isXps,
-  sanitizeProviderName,
-} from "../../../npm_lib/lib/utils.ts";
-export {
-  convertMessagesToMd,
-  getMessageTitleFromMd,
   removeSpecialCharacter,
-} from "../../../npm_lib/utils.ts";
+  sanitizeProviderName,
+} from "@onlyoffice/ai-chat";
 
 // Host-specific helpers — only meaningful in the ONLYOFFICE Desktop context
 export const isDesktopEditor = (): boolean => {

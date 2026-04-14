@@ -1,4 +1,4 @@
-import type { PlatformFileOperations } from "../../../../npm_lib/platform/types.ts";
+import type { PlatformFileOperations } from "@onlyoffice/ai-chat";
 
 declare const window: {
   AscDesktopEditor: {

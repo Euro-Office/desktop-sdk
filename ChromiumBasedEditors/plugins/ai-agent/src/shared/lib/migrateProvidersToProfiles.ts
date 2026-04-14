@@ -11,7 +11,7 @@ const CURRENT_PROVIDER_KEY = "current-provider";
 const CURRENT_MODEL_KEY = "current-model";
 const DEFAULT_PROFILE_KEY = "default-profile";
 
-import { getStorageInstance } from "../../../npm_lib/storage/storage-holder.ts";
+import { getStorageInstance } from "@onlyoffice/ai-chat";
 
 type MigrationModel = {
   id: string;

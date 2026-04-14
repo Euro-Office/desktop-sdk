@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@import "../../npm_lib/styles/themes.css";
+@import "@onlyoffice/ai-chat/styles/themes";
+@import "@onlyoffice/ai-chat/styles";
 
 :root {
   font-family: Arial, "Segoe UI", system-ui, Avenir, Helvetica, sans-serif;

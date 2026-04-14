@@ -1,5 +1,5 @@
+import type { ProfilesStorage } from "@onlyoffice/ai-chat";
 import type { Profile } from "@/shared/lib/types.ts";
-import type { ProfilesStorage } from "../../../../npm_lib/storage/types.ts";
 
 export class IndexedDBProfilesStorage implements ProfilesStorage {
   constructor(private getDB: () => IDBDatabase) {}

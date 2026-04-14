@@ -13,4 +13,4 @@ export type {
   TMCPItem,
   TProcess,
   TProvider,
-} from "../../../npm_lib/types.ts";
+} from "@onlyoffice/ai-chat";

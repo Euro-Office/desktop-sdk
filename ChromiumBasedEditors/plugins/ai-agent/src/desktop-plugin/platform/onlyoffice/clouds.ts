@@ -1,5 +1,4 @@
-import type { PlatformClouds } from "../../../../npm_lib/platform/types.ts";
-import type { TCloud, TCloudKey } from "../../../../npm_lib/types.ts";
+import type { PlatformClouds, TCloud, TCloudKey } from "@onlyoffice/ai-chat";
 
 export class OnlyOfficeClouds implements PlatformClouds {
   async getClouds(): Promise<TCloud[]> {

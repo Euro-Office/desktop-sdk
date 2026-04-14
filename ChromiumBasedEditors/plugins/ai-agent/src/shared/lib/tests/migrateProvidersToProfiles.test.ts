@@ -27,7 +27,7 @@ const mockStorage = {
   },
 };
 
-vi.mock("../../../npm_lib/storage/storage-holder", () => ({
+vi.mock("@onlyoffice/ai-chat", () => ({
   getStorageInstance: () => mockStorage,
 }));
 

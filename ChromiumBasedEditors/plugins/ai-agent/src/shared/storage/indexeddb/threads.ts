@@ -1,5 +1,5 @@
+import type { ThreadsStorage } from "@onlyoffice/ai-chat";
 import type { Model, Thread, TProvider } from "@/shared/lib/types.ts";
-import type { ThreadsStorage } from "../../../../npm_lib/storage/types.ts";
 
 export class IndexedDBThreadsStorage implements ThreadsStorage {
   constructor(private getDB: () => IDBDatabase) {}

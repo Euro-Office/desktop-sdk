@@ -1,4 +1,4 @@
-import type { PlatformEnvironment } from "../../../../npm_lib/platform/types.ts";
+import type { PlatformEnvironment } from "@onlyoffice/ai-chat";
 
 export class OnlyOfficeEnvironment implements PlatformEnvironment {
   get theme(): string {

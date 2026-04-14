@@ -1,5 +1,5 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-import type { MessagesStorage } from "../../../../npm_lib/storage/types.ts";
+import type { MessagesStorage } from "@onlyoffice/ai-chat";
 
 interface Message {
   id: string;

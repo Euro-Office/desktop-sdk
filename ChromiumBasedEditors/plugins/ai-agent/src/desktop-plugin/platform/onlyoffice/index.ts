@@ -1,4 +1,4 @@
-import type { PlatformAdapter } from "../../../../npm_lib/platform/types.ts";
+import type { PlatformAdapter } from "@onlyoffice/ai-chat";
 import { OnlyOfficeClouds } from "./clouds.ts";
 import { OnlyOfficeEnvironment } from "./environment.ts";
 import { OnlyOfficeFileOps } from "./file-ops.ts";

@@ -1,4 +1,4 @@
-import type { StoreKeys } from "../../../npm_lib";
+import type { StoreKeys } from "@onlyoffice/ai-chat";
 
 export const DEFAULT_STORE_KEYS: StoreKeys = {
   defaultProfile: "default-profile",

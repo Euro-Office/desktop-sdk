@@ -1,4 +1,4 @@
-import type { SettingsAdapter } from "../../../npm_lib/settings/types.ts";
+import type { SettingsAdapter } from "@onlyoffice/ai-chat";
 
 /**
  * SettingsAdapter backed by browser localStorage.

@@ -1,5 +1,5 @@
+import type { PlatformHostTools } from "@onlyoffice/ai-chat";
 import type { TMCPItem } from "@/shared/lib/types.ts";
-import type { PlatformHostTools } from "../../../../npm_lib/platform/types.ts";
 
 export class OnlyOfficeHostTools implements PlatformHostTools {
   getTools(): TMCPItem[] {

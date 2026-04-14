@@ -1,8 +1,5 @@
+import type { PromptFoldersStorage, PromptsStorage } from "@onlyoffice/ai-chat";
 import type { Prompt, PromptFolder } from "@/shared/lib/types.ts";
-import type {
-  PromptFoldersStorage,
-  PromptsStorage,
-} from "../../../../npm_lib/storage/types.ts";
 
 export class IndexedDBPromptsStorage implements PromptsStorage {
   constructor(private getDB: () => IDBDatabase) {}

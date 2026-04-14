@@ -1,4 +1,4 @@
-import type { PlatformAdapter } from "../../../../npm_lib/platform/types.ts";
+import type { PlatformAdapter } from "@onlyoffice/ai-chat";
 
 export class NoopPlatform implements PlatformAdapter {
   file = null;

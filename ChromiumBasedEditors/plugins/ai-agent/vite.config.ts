@@ -34,12 +34,12 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["src/**/*.{test,spec}.{ts,tsx}", "npm_lib/**/*.{test,spec}.{ts,tsx}"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
-      include: ["src/**/*.ts", "npm_lib/**/*.ts", "npm_lib/**/*.tsx"],
-      exclude: ["src/**/*.test.ts", "src/**/*.d.ts", "npm_lib/**/*.test.ts"],
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/*.test.ts", "src/**/*.d.ts"],
     },
   },
 });

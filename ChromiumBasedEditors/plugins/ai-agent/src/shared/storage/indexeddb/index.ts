@@ -1,4 +1,4 @@
-import type { StorageAdapter } from "../../../../npm_lib/storage/types.ts";
+import type { StorageAdapter } from "@onlyoffice/ai-chat";
 import { IndexedDBMessagesStorage } from "./messages.ts";
 import { IndexedDBProfilesStorage } from "./profiles.ts";
 import {

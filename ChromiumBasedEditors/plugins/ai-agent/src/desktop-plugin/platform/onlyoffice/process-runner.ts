@@ -1,5 +1,5 @@
+import type { PlatformProcessRunner } from "@onlyoffice/ai-chat";
 import type { TProcess } from "@/shared/lib/types.ts";
-import type { PlatformProcessRunner } from "../../../../npm_lib/platform/types.ts";
 
 export class OnlyOfficeProcessRunner implements PlatformProcessRunner {
   createProcess(
