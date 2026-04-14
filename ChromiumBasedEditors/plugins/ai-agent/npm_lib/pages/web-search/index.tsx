@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { WebSearch } from "../../components/web-search";
+import { WebSearch } from "./sub-components";
 
 const WebSearchPage = () => {
   const { t } = useTranslation();

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../../../../components/button";
-import { ModelCard } from "../../../../components/model-card";
-import { AddModelCard } from "../../../../components/model-config-cards";
-import { useStores } from "../../../../store/context";
+import { Button } from "../../../components/button";
+import { ModelCard } from "../../../components/model-card";
+import { AddModelCard } from "../../../components/model-config-cards";
+import { useStores } from "../../../store/context";
 
 export const Models = () => {
   const { t } = useTranslation();

@@ -137,3 +137,12 @@ export {
   getMessageTitleFromMd,
   removeSpecialCharacter,
 } from "./utils";
+// --- Pages ---
+export { default as AiModelsPage } from "./pages/ai-models";
+export { default as ModelAssignmentPage } from "./pages/model-assignment";
+export { default as McpServersPage } from "./pages/mcp-servers";
+export { default as WebSearchPage } from "./pages/web-search";
+export { default as SettingsPage } from "./pages/settings";
+export { default as InitialSetupPage } from "./pages/initial-setup";
+export { default as EmptyScreenPage } from "./pages/empty-screen";
+export { default as ChatPage } from "./pages/chat";

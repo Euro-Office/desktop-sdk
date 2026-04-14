@@ -1,8 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useDirection } from "../../hooks/useDirection";
-import { cn } from "../../lib/utils";
-import { Button } from "../button";
+import { useDirection } from "../../../hooks/useDirection";
+import { cn } from "../../../lib/utils";
+import { Button } from "../../../components/button";
 import AvailableTools from "./AvailableTools";
 import ConfigDialog from "./ConfigDialog";
 import ToolsCounter from "./ToolsCounter";

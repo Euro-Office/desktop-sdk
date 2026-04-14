@@ -1,10 +1,10 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useToolsContext } from "../../tools/context";
-import { MAX_TOOL_COUNT, MAX_TOOL_COUNT_WITH_WEB_SEARCH } from "../../config";
-import { useDirection } from "../../hooks/useDirection";
-import { cn } from "../../lib/utils";
-import { useStores } from "../../store/context";
+import { useToolsContext } from "../../../tools/context";
+import { MAX_TOOL_COUNT, MAX_TOOL_COUNT_WITH_WEB_SEARCH } from "../../../config";
+import { useDirection } from "../../../hooks/useDirection";
+import { cn } from "../../../lib/utils";
+import { useStores } from "../../../store/context";
 import AvailableToolsItem from "./AvailableToolsItem";
 import ToolsCounter from "./ToolsCounter";
 

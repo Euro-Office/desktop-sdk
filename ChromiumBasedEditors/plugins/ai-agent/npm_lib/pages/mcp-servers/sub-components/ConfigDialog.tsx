@@ -4,10 +4,10 @@ import type { ViewUpdate } from "@codemirror/view";
 import { basicSetup, EditorView } from "codemirror";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { usePlatform } from "../../platform/context";
-import { useStores } from "../../store/context";
-import { Button } from "../button";
-import { Dialog, DialogContent } from "../dialog";
+import { usePlatform } from "../../../platform/context";
+import { useStores } from "../../../store/context";
+import { Button } from "../../../components/button";
+import { Dialog, DialogContent } from "../../../components/dialog";
 
 import "./ConfigDialog.css";
 

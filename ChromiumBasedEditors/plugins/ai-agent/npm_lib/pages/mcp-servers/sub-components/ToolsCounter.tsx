@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { MAX_TOOL_COUNT, MAX_TOOL_COUNT_WITH_WEB_SEARCH } from "../../config";
-import { useStores } from "../../store/context";
+import { MAX_TOOL_COUNT, MAX_TOOL_COUNT_WITH_WEB_SEARCH } from "../../../config";
+import { useStores } from "../../../store/context";
 
 const TOOLS_COUNTER_THRESHOLD = 90;
 

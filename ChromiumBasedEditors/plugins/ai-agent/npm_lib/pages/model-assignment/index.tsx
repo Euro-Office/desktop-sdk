@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { ModelAssignment } from "../../components/model-assignment";
+import { ModelAssignment } from "./sub-components";
 
 const ModelAssignmentPage = () => {
   const { t } = useTranslation();

@@ -1,14 +1,14 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useToolsContext } from "../../tools/context";
-import { useDirection } from "../../hooks/useDirection";
-import { getApiKeyLink } from "../../lib/api-key-links";
-import { cn } from "../../lib/utils";
-import { useStores } from "../../store/context";
-import { ComboBox } from "../combo-box";
-import { FieldContainer } from "../field-container";
-import { Input } from "../input";
-import { Link } from "../link";
+import { useToolsContext } from "../../../tools/context";
+import { useDirection } from "../../../hooks/useDirection";
+import { getApiKeyLink } from "../../../lib/api-key-links";
+import { cn } from "../../../lib/utils";
+import { useStores } from "../../../store/context";
+import { ComboBox } from "../../../components/combo-box";
+import { FieldContainer } from "../../../components/field-container";
+import { Input } from "../../../components/input";
+import { Link } from "../../../components/link";
 
 type WebSearchProps = {
   variant?: "tab" | "page";

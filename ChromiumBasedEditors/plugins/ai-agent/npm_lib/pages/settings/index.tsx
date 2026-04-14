@@ -1,10 +1,10 @@
 import { useTranslation } from "react-i18next";
-import { ModelAssignment } from "../../components/model-assignment";
-import { Servers } from "../../components/servers";
 import { Tabs } from "../../components/tabs";
-import { WebSearch } from "../../components/web-search";
+import { ModelAssignment } from "../model-assignment/sub-components";
+import { Servers } from "../mcp-servers/sub-components";
+import { WebSearch } from "../web-search/sub-components";
 import { useStores } from "../../store/context";
-import { Models } from "./sub-components/models";
+import { Models } from "../ai-models/sub-components";
 
 const Settings = () => {
   const { t } = useTranslation();

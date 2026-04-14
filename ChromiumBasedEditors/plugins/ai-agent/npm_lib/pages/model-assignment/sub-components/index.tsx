@@ -1,9 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { CapabilitiesUI } from "../../capabilities";
-import { useStores } from "../../store/context";
-import type { Profile } from "../../types";
-import { ComboBox } from "../combo-box";
-import { FieldContainer } from "../field-container";
+import { CapabilitiesUI } from "../../../capabilities";
+import { useStores } from "../../../store/context";
+import type { Profile } from "../../../types";
+import { ComboBox } from "../../../components/combo-box";
+import { FieldContainer } from "../../../components/field-container";
 
 const ModelAssignment = () => {
   const { t } = useTranslation();

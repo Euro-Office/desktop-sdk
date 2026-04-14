@@ -1,15 +1,15 @@
 import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useToolsContext } from "../../tools/context";
-import { useDirection } from "../../hooks/useDirection";
-import { cn } from "../../lib/utils";
-import { useStores } from "../../store/context";
-import type { TMCPItem } from "../../types";
-import { DropdownMenu } from "../dropdown";
-import { Icon } from "../icon";
-import { IconButton } from "../icon-button";
-import { Loader } from "../loader";
-import { ToggleButton } from "../toggle-button";
+import { useToolsContext } from "../../../tools/context";
+import { useDirection } from "../../../hooks/useDirection";
+import { cn } from "../../../lib/utils";
+import { useStores } from "../../../store/context";
+import type { TMCPItem } from "../../../types";
+import { DropdownMenu } from "../../../components/dropdown";
+import { Icon } from "../../../components/icon";
+import { IconButton } from "../../../components/icon-button";
+import { Loader } from "../../../components/loader";
+import { ToggleButton } from "../../../components/toggle-button";
 
 type AvailableToolsItemProps = {
   name: string;
