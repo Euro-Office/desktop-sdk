@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-docs
 .env
 /config.ts
 settings.local.json
@@ -8,6 +9,8 @@ coverage
 # Ignore built JS and CSS files in deploy directory
 deploy/{9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}/*.js
 deploy/{9DC93CDB-B576-4F0C-B55E-FCC9C48DD777}/*.css
+deploy/{8D67F3C0-7654-4BBC-98A2-71342BD73A4E}/*.js
+deploy/{8D67F3C0-7654-4BBC-98A2-71342BD73A4E}/*.css
 
 scripts/dev.js
 

@@ -1,0 +1,20 @@
+{
+  "guid": "asc.{8D67F3C0-7654-4BBC-98A2-71342BD73A4E}",
+  "name": "AI Agent",
+  "variations": [
+    {
+      "description": "AI Assistant Panel",
+      "url": "index.html",
+      "isViewer": false,
+      "EditorsSupport": [
+        "word",
+        "cell",
+        "slide",
+        "pdf"
+      ],
+      "type": "panelRight",
+      "initDataType": "none",
+      "events": []
+    }
+  ]
+}

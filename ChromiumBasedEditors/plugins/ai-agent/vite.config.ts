@@ -5,41 +5,49 @@ import tailwindcss from "@tailwindcss/vite";
 import svgr from "vite-plugin-svgr";
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    svgr({
-      svgrOptions: {
-        exportType: "default",
-      },
-      include: "**/*.svg?react",
-    }),
-  ],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  base: "./",
-  build: {
-    rollupOptions: {
-      output: {
-        entryFileNames: "[name].js",
-        chunkFileNames: "[name].js",
-        assetFileNames: "[name].[ext]",
+export default defineConfig(({ mode }) => {
+  const isDocs = mode === "docs";
+
+  return {
+    plugins: [
+      react(),
+      tailwindcss(),
+      svgr({
+        svgrOptions: {
+          exportType: "default",
+        },
+        include: "**/*.svg?react",
+      }),
+    ],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
       },
     },
-  },
-  test: {
-    globals: true,
-    environment: "node",
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "html"],
-      include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/**/*.d.ts"],
+    base: "./",
+    build: {
+      outDir: isDocs ? "dist-docs" : "dist",
+      rollupOptions: {
+        input: isDocs
+          ? { "docs-plugin": path.resolve(__dirname, "src/docs-plugin/main.tsx") }
+          : undefined,
+        output: {
+          entryFileNames: "[name].js",
+          chunkFileNames: "[name].js",
+          assetFileNames: "[name].[ext]",
+        },
+      },
     },
-  },
+    test: {
+      globals: true,
+      environment: "node",
+      include: ["src/**/*.{test,spec}.{ts,tsx}"],
+      coverage: {
+        provider: "v8",
+        reporter: ["text", "html"],
+        include: ["src/**/*.ts"],
+        exclude: ["src/**/*.test.ts", "src/**/*.d.ts"],
+      },
+    },
+  };
 });
