@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { chatEvents } from "../../events";
 import { CustomServers } from "../sources/CustomServers";
 
 // =============================================================================
 // Mock Setup
 // =============================================================================
 
-const mockEmit = vi.spyOn(chatEvents, "emit");
+const mockEventBus = {
+  on: vi.fn(),
+  off: vi.fn(),
+  emit: vi.fn(),
+};
+
 const mockFetch = vi.fn();
 
 // Track processes
@@ -34,18 +38,18 @@ class MockExternalProcess {
 
 vi.stubGlobal("fetch", mockFetch);
 
-// Mock platform holder to return a process runner that uses MockExternalProcess
-vi.mock("../../platform/platform-holder", () => ({
-  getPlatformInstance: () => ({
-    process: {
-      createProcess: (cmd: string, env?: Record<string, string>) => {
-        const p = new MockExternalProcess(cmd, env ?? {});
-        return p;
-      },
-      isAvailable: () => true,
+const mockPlatform = {
+  process: {
+    createProcess: (cmd: string, env?: Record<string, string>) => {
+      const p = new MockExternalProcess(cmd, env ?? {});
+      return p;
     },
-  }),
-}));
+    isAvailable: () => true,
+  },
+  file: null,
+  env: { platform: "desktop" },
+  hostTools: null,
+};
 
 // Helper to create mock fetch response with text() method
 const createMockResponse = (data: unknown, ok = true) => ({
@@ -69,7 +73,7 @@ describe("CustomServers", () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     processCount = 0;
-    customServers = new CustomServers();
+    customServers = new CustomServers(mockPlatform as any, mockEventBus as any);
   });
 
   afterEach(() => {
@@ -370,7 +374,7 @@ describe("CustomServers", () => {
 
       expect(customServers.initedCustomServers.httpServer).toBe(false);
       expect(customServers.tools.httpServer).toEqual([]);
-      expect(mockEmit).toHaveBeenCalled();
+      expect(mockEventBus.emit).toHaveBeenCalled();
     });
 
     it("should restart HTTP server without abortController", async () => {
@@ -439,7 +443,7 @@ describe("CustomServers", () => {
     it("should dispatch tools-changed", () => {
       customServers.deleteCustomServer("test");
 
-      expect(mockEmit).toHaveBeenCalled();
+      expect(mockEventBus.emit).toHaveBeenCalled();
     });
 
     it("should delete tools when they exist", () => {

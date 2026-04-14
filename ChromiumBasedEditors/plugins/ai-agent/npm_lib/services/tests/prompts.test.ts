@@ -20,9 +20,14 @@ const mockStorage = {
   },
 };
 
-vi.mock("../../storage/storage-holder", () => ({
-  getStorageInstance: () => mockStorage,
-}));
+const mockCtx = {
+  storage: mockStorage,
+  settings: {} as never,
+  platform: {} as never,
+  provider: {} as never,
+  servers: {} as never,
+  eventBus: {} as never,
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -63,7 +68,7 @@ describe("PromptsService", () => {
     mockStorage.promptFolders.delete.mockResolvedValue(undefined);
 
     const { PromptsService } = await import("../prompts");
-    service = new PromptsService();
+    service = new PromptsService(mockCtx as any);
   });
 
   // -----------------------------------------------------------------------

@@ -7,10 +7,12 @@ import {
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import type { AppContext } from "./app-context";
 import { Layout } from "./components/layout";
 import { ManageToolDialog } from "./components/manage-tool-dialog";
 import type { FeatureFlags, StoreKeys } from "./config";
-import { DEFAULT_FEATURE_FLAGS, DEFAULT_STORE_KEYS } from "./config";
+import { DEFAULT_STORE_KEYS } from "./config";
+import { ChatEventBus } from "./events";
 import useMessages from "./hooks/useMessages";
 import useProfiles from "./hooks/useProfiles";
 import useServers from "./hooks/useServers";
@@ -20,17 +22,21 @@ import Thread from "./pages/chat";
 const EmptyScreen = lazy(() => import("./pages/empty-screen"));
 const InitialSetup = lazy(() => import("./pages/initial-setup"));
 const Settings = lazy(() => import("./pages/settings"));
-import { PlatformProvider, usePlatform } from "./platform/context";
+import { PlatformProvider } from "./platform/context";
 import type { PlatformAdapter } from "./platform/types";
 import Provider from "./providers";
 import { setProviderInstance } from "./providers/provider-holder";
 import { SettingsProvider } from "./settings/context";
+import { setSettingsInstance } from "./settings/settings-holder";
 import type { SettingsAdapter } from "./settings/types";
 import { StorageProvider } from "./storage/context";
+import { setStorageInstance } from "./storage/storage-holder";
 import type { StorageAdapter } from "./storage/types";
 import { StoresProvider, useStores } from "./store/context";
 import { createStores } from "./store/create-stores";
 import { ToolsProvider } from "./tools/context";
+import Servers from "./tools/servers";
+import { setServersInstance } from "./tools/tools-holder";
 import type { HostToolGroup } from "./tools/types";
 
 export interface AIChatWidgetProps {
@@ -53,7 +59,6 @@ export const AIChatWidget = ({
   locale,
   translations,
   storeKeys,
-  features,
   hostToolGroups: hostToolGroupsProp,
   onMigrate,
 }: AIChatWidgetProps) => {
@@ -67,28 +72,35 @@ export const AIChatWidget = ({
       });
   }, [locale, translations]);
 
-  // Create Provider instance
-  useMemo(() => {
-    const p = new Provider();
-    setProviderInstance(p);
-    return p;
-  }, []);
+  // Build AppContext — single DI container for this widget instance
+  const { ctx, stores } = useMemo(() => {
+    const provider = new Provider();
+    provider.setSettings(settings);
+    const eventBus = new ChatEventBus();
+    const servers = new Servers(settings, platform, eventBus);
 
-  // Create stores with optional custom keys
-  const stores = useMemo(
-    () =>
-      createStores(
-        storeKeys
-          ? { keys: { ...DEFAULT_STORE_KEYS, ...storeKeys } }
-          : undefined
-      ),
-    [storeKeys]
-  );
+    const ctx: AppContext = {
+      settings,
+      storage,
+      platform,
+      provider,
+      servers,
+      eventBus,
+    };
 
-  const mergedFeatures = useMemo(
-    () => ({ ...DEFAULT_FEATURE_FLAGS, ...features }),
-    [features]
-  );
+    // Deprecated: set global holders for backward compatibility
+    setProviderInstance(provider);
+    setSettingsInstance(settings);
+    setStorageInstance(storage);
+    setServersInstance(servers);
+
+    const keys = storeKeys
+      ? { ...DEFAULT_STORE_KEYS, ...storeKeys }
+      : DEFAULT_STORE_KEYS;
+    const stores = createStores({ keys, ctx });
+
+    return { ctx, stores };
+  }, [settings, storage, platform, storeKeys]);
 
   if (!i18nReady) return null;
 
@@ -100,7 +112,8 @@ export const AIChatWidget = ({
             storage={storage}
             hostToolGroupsProp={hostToolGroupsProp}
             onMigrate={onMigrate}
-            features={mergedFeatures}
+            servers={ctx.servers}
+            eventBus={ctx.eventBus}
           />
         </StoresProvider>
       </PlatformProvider>
@@ -113,41 +126,24 @@ const AppWithTools = ({
   storage,
   hostToolGroupsProp,
   onMigrate,
-  features,
+  servers,
+  eventBus,
 }: {
   storage: StorageAdapter;
   hostToolGroupsProp?: HostToolGroup[];
   onMigrate?: () => Promise<void>;
-  features: FeatureFlags;
+  servers: Servers;
+  eventBus: ChatEventBus;
 }) => {
-  const platform = usePlatform();
-
   const hostToolGroups: HostToolGroup[] = useMemo(() => {
     if (hostToolGroupsProp) return hostToolGroupsProp;
-
-    const ht = platform.hostTools;
-    if (!ht) return [];
-
-    const tools = ht.getTools();
-    if (!tools.length) return [];
-
-    return [
-      {
-        id: "desktop-editor",
-        name: "Desktop Editor",
-        tools: tools.map((tool) => ({
-          ...tool,
-          handler: (args: Record<string, unknown>) =>
-            ht.callTool(tool.name, args),
-        })),
-      },
-    ];
-  }, [platform.hostTools, hostToolGroupsProp]);
+    return [];
+  }, [hostToolGroupsProp]);
 
   return (
-    <ToolsProvider hostToolGroups={hostToolGroups}>
+    <ToolsProvider hostToolGroups={hostToolGroups} servers={servers} eventBus={eventBus}>
       <StorageProvider storage={storage}>
-        <AppInner onMigrate={onMigrate} features={features} />
+        <AppInner onMigrate={onMigrate} />
       </StorageProvider>
     </ToolsProvider>
   );
@@ -155,10 +151,8 @@ const AppWithTools = ({
 
 const AppInner = ({
   onMigrate,
-  features: _features,
 }: {
   onMigrate?: () => Promise<void>;
-  features: FeatureFlags;
 }) => {
   const [isReady, setIsReady] = useState(false);
   const [isManageToolOpen, setIsManageToolOpen] = useState(false);

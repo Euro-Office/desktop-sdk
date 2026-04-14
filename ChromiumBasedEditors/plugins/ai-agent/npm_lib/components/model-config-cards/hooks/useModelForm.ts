@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getProviderInstance } from "../../../providers/provider-holder";
+import { useStores } from "../../../store/context";
 import { useDebouncedCallback } from "../../../hooks/useDebouncedCallback";
 import type { Model, ProviderType } from "../../../types";
 import type {
@@ -18,6 +18,7 @@ const fieldToErrorKey: Partial<
 
 export const useModelForm = (initialValues: ModelFormValues) => {
   const { t } = useTranslation();
+  const { provider } = useStores();
   const [values, setValues] = useState<ModelFormValues>(initialValues);
   const [models, setModels] = useState<Model[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,9 +56,9 @@ export const useModelForm = (initialValues: ModelFormValues) => {
     });
     setIsLoading(true);
     const requestId = ++fetchModelsRequestIdRef.current;
-    const providerInfo = getProviderInstance().getProviderInfo(providerType);
+    const providerInfo = provider.getProviderInfo(providerType);
     const { models: result, errors: fetchErrors } =
-      await getProviderInstance().getProvidersModels([
+      await provider.getProvidersModels([
         { type: providerType, name: providerInfo.name, key: apiKey, baseUrl },
       ]);
     if (requestId !== fetchModelsRequestIdRef.current) return;
@@ -98,7 +99,7 @@ export const useModelForm = (initialValues: ModelFormValues) => {
     if (errorKey) setErrors((prev) => ({ ...prev, [errorKey]: undefined }));
 
     if (field === "provider") {
-      const providerInfo = getProviderInstance().getProviderInfo(
+      const providerInfo = provider.getProviderInfo(
         value as ProviderType
       );
       const newBaseUrl = providerInfo.baseUrl ?? "";
@@ -133,7 +134,7 @@ export const useModelForm = (initialValues: ModelFormValues) => {
     }
     if (field === "model") {
       const modelObj = models.find((m) => m.id === value);
-      const providerInfo = getProviderInstance().getProviderInfo(
+      const providerInfo = provider.getProviderInfo(
         valuesRef.current.provider as ProviderType
       );
       setValues((prev) => ({

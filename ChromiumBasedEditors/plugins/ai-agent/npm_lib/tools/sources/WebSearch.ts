@@ -1,13 +1,7 @@
-import { chatEvents } from "../../events";
-import { getPlatformInstance } from "../../platform/platform-holder";
-import { getSettingsInstance } from "../../settings/settings-holder";
+import type { ChatEventBus } from "../../events";
+import type { PlatformAdapter } from "../../platform/types";
+import type { SettingsAdapter } from "../../settings/types";
 import type { TMCPItem } from "../../types";
-
-/** Use platform fetchProxy if available, otherwise standard fetch */
-const platformFetch = (url: string, init?: RequestInit): Promise<Response> => {
-  const proxy = getPlatformInstance()?.fetchProxy;
-  return proxy ? proxy(url, init) : fetch(url, init);
-};
 
 const WEB_SEARCH_DATA = "webSearchProviderData";
 
@@ -21,10 +15,14 @@ class WebSearch {
 
   private webSearchData: WebSearchData = null;
 
-  constructor() {
+  constructor(
+    private settings: SettingsAdapter,
+    private platform: PlatformAdapter,
+    private eventBus: ChatEventBus
+  ) {
     this.tools = [];
 
-    const data = getSettingsInstance().get(WEB_SEARCH_DATA);
+    const data = this.settings.get(WEB_SEARCH_DATA);
 
     if (data) {
       try {
@@ -39,12 +37,21 @@ class WebSearch {
     this.initTools();
   }
 
+  /** Use platform fetchProxy if available, otherwise standard fetch */
+  private platformFetch = (
+    url: string,
+    init?: RequestInit
+  ): Promise<Response> => {
+    const proxy = this.platform.fetchProxy;
+    return proxy ? proxy(url, init) : fetch(url, init);
+  };
+
   setWebSearchData = (data: WebSearchData) => {
     this.webSearchData = data;
     if (data) {
-      getSettingsInstance().set(WEB_SEARCH_DATA, JSON.stringify(data));
+      this.settings.set(WEB_SEARCH_DATA, JSON.stringify(data));
     } else {
-      getSettingsInstance().remove(WEB_SEARCH_DATA);
+      this.settings.remove(WEB_SEARCH_DATA);
     }
     this.initTools();
   };
@@ -64,7 +71,7 @@ class WebSearch {
   webSearch = async (args: Record<string, unknown>) => {
     if (this.webSearchData?.provider === "Exa") {
       try {
-        const response = await platformFetch("https://api.exa.ai/search", {
+        const response = await this.platformFetch("https://api.exa.ai/search", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -104,7 +111,7 @@ class WebSearch {
   webCrawling = async (args: Record<string, unknown>) => {
     if (this.webSearchData?.provider === "Exa") {
       try {
-        const response = await platformFetch("https://api.exa.ai/contents", {
+        const response = await this.platformFetch("https://api.exa.ai/contents", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -190,7 +197,7 @@ class WebSearch {
       },
     ]);
 
-    chatEvents.emit("tools-changed");
+    this.eventBus.emit("tools-changed");
   };
 
   getWebSearchEnabled = () => {

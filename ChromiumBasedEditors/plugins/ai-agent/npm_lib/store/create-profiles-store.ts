@@ -1,4 +1,5 @@
 import { create, type StoreApi, type UseBoundStore } from "zustand";
+import type { AppContext } from "../app-context";
 import { ActionType, inferCapabilities } from "../capabilities";
 import type { StoreKeys } from "../config";
 import type { TErrorData } from "../providers/base";
@@ -7,7 +8,6 @@ import {
   initActionHolders,
 } from "../services/action-holders";
 import type { ProfilesService } from "../services/profiles";
-import { getSettingsInstance } from "../settings/settings-holder";
 import type { Profile } from "../types";
 
 export interface ProfilesStoreState {
@@ -45,8 +45,9 @@ export interface ProfilesStoreState {
 export function createProfilesStore(deps: {
   keys: StoreKeys;
   profilesService: ProfilesService;
+  ctx: AppContext;
 }): UseBoundStore<StoreApi<ProfilesStoreState>> {
-  const { keys, profilesService } = deps;
+  const { keys, profilesService, ctx } = deps;
 
   const TASK_PROFILE_KEYS = [
     keys.chatProfile,
@@ -133,7 +134,7 @@ export function createProfilesStore(deps: {
 
       extendedThinking: (() => {
         try {
-          const saved = getSettingsInstance().get(keys.deepMode);
+          const saved = ctx.settings.get(keys.deepMode);
           if (!saved) return false;
           return JSON.parse(saved);
         } catch {
@@ -369,7 +370,7 @@ export function createProfilesStore(deps: {
       toggleExtendedThinking: () => {
         set((state) => {
           const next = !state.extendedThinking;
-          getSettingsInstance().set(keys.deepMode, JSON.stringify(next));
+          ctx.settings.set(keys.deepMode, JSON.stringify(next));
           return { extendedThinking: next };
         });
       },

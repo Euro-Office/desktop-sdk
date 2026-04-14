@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { setStorageInstance } from "./storage-holder";
 import type { StorageAdapter } from "./types";
 
 const StorageContext = createContext<StorageAdapter | null>(null);
@@ -20,13 +19,9 @@ interface StorageProviderProps {
 
 /**
  * Initializes and provides the storage layer.
- * Sets the global holder synchronously so Zustand stores can access it immediately.
  * Renders children only after storage.init() completes.
  */
 export function StorageProvider({ storage, children }: StorageProviderProps) {
-  // Set holder synchronously — Zustand stores may call getStorageInstance() during render
-  setStorageInstance(storage);
-
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {

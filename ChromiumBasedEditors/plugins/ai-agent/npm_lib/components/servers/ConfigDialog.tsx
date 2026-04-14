@@ -4,7 +4,7 @@ import type { ViewUpdate } from "@codemirror/view";
 import { basicSetup, EditorView } from "codemirror";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getPlatformInstance } from "../../platform/platform-holder";
+import { usePlatform } from "../../platform/context";
 import { useStores } from "../../store/context";
 import { Button } from "../button";
 import { Dialog, DialogContent } from "../dialog";
@@ -18,6 +18,7 @@ type ConfigDialogProps = {
 
 const ConfigDialog = ({ open, onClose }: ConfigDialogProps) => {
   const { t } = useTranslation();
+  const platform = usePlatform();
   const { useServersStore } = useStores();
   const { saveConfig, getConfig } = useServersStore();
 
@@ -33,7 +34,7 @@ const ConfigDialog = ({ open, onClose }: ConfigDialogProps) => {
         const parsed = JSON.parse(jsonString);
         if (parsed.mcpServers) {
           if (
-            !getPlatformInstance()?.process?.isAvailable() &&
+            !platform?.process?.isAvailable() &&
             Object.values(
               parsed.mcpServers as Record<string, Record<string, unknown>>
             ).some((config) => typeof config.url !== "string")

@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { getServersInstance } from "../../tools/tools-holder";
+import { useToolsContext } from "../../tools/context";
 import { useDirection } from "../../hooks/useDirection";
 import { cn } from "../../lib/utils";
 import { useStores } from "../../store/context";
@@ -26,6 +26,7 @@ const AvailableToolsItem = ({
 }: AvailableToolsItemProps) => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
+  const { servers: serversInstance } = useToolsContext();
 
   const [opened, setOpened] = React.useState(false);
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -58,7 +59,7 @@ const AvailableToolsItem = ({
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setIsStoped(getServersInstance().getCustomServersStoped().includes(name));
+      setIsStoped(serversInstance.getCustomServersStoped().includes(name));
     }, 1000);
 
     return () => clearInterval(interval);

@@ -1,7 +1,7 @@
 import type { ToolCallMessagePartComponent } from "@assistant-ui/react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getServersInstance } from "../../tools/tools-holder";
+import { useToolsContext } from "../../tools/context";
 import { useDirection } from "../../hooks/useDirection";
 import { Icon } from "../icon";
 import { IconButton } from "../icon-button";
@@ -15,6 +15,7 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
 }) => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
+  const { servers: serversInstance } = useToolsContext();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isArgsCopied, setIsArgsCopied] = useState(false);
   const [isResultCopied, setIsResultCopied] = useState(false);
@@ -35,7 +36,7 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
     }
   }, [isResultCopied]);
 
-  const type = getServersInstance().getServerType(toolName);
+  const type = serversInstance.getServerType(toolName);
   const name = toolName.replace(`${type}_`, "");
 
   const isLoading = result === undefined;

@@ -1,6 +1,6 @@
 type EventHandler = () => void;
 
-class ChatEventBus {
+export class ChatEventBus {
   private listeners = new Map<string, Set<EventHandler>>();
 
   on(event: string, handler: EventHandler) {

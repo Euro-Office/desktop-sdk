@@ -133,12 +133,15 @@ describe("OpenRouterProvider", () => {
 
   describe("getProviderModels", () => {
     it("should return all models mapped with openrouter provider", async () => {
-      modelsListMock.mockResolvedValue({
-        data: [
-          { id: "openai/gpt-5.1" },
-          { id: "anthropic/claude-sonnet-4.5" },
-          { id: "unknown-model" },
-        ],
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            { id: "openai/gpt-5.1" },
+            { id: "anthropic/claude-sonnet-4.5" },
+            { id: "unknown-model" },
+          ],
+        }),
       });
 
       const result = await provider.getProviderModels({
@@ -152,8 +155,11 @@ describe("OpenRouterProvider", () => {
     });
 
     it("should use model.id as name", async () => {
-      modelsListMock.mockResolvedValue({
-        data: [{ id: "openai/gpt-5.2" }],
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [{ id: "openai/gpt-5.2" }],
+        }),
       });
 
       const result = await provider.getProviderModels({
@@ -167,8 +173,14 @@ describe("OpenRouterProvider", () => {
     });
 
     it("should mark reasoning models", async () => {
-      modelsListMock.mockResolvedValue({
-        data: [{ id: "openai/gpt-5.2" }, { id: "anthropic/claude-haiku-4.5" }],
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            { id: "openai/gpt-5.2" },
+            { id: "anthropic/claude-haiku-4.5" },
+          ],
+        }),
       });
 
       const result = await provider.getProviderModels({
@@ -186,8 +198,9 @@ describe("OpenRouterProvider", () => {
     });
 
     it("should return empty array when response has no models", async () => {
-      modelsListMock.mockResolvedValue({
-        data: [],
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [] }),
       });
 
       const result = await provider.getProviderModels({

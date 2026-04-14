@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getServersInstance } from "../../tools/tools-holder";
+import { useToolsContext } from "../../tools/context";
 import { useDirection } from "../../hooks/useDirection";
 import { getApiKeyLink } from "../../lib/api-key-links";
 import { cn } from "../../lib/utils";
@@ -16,12 +16,13 @@ type WebSearchProps = {
 const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
+  const { servers: serversInstance } = useToolsContext();
 
   const [selectedProvider, setSelectedProvider] = React.useState<string>("Exa");
   const [apiKey, setApiKey] = React.useState<string>("");
 
   React.useEffect(() => {
-    const data = getServersInstance().getWebSearchData();
+    const data = serversInstance.getWebSearchData();
 
     if (data) {
       setSelectedProvider(data.provider);
@@ -31,12 +32,12 @@ const WebSearch = ({ variant = "tab" }: WebSearchProps) => {
 
   const handleApiKeyBlur = React.useCallback(() => {
     if (selectedProvider && apiKey) {
-      getServersInstance().setWebSearchData({
+      serversInstance.setWebSearchData({
         provider: selectedProvider,
         key: apiKey,
       });
     } else {
-      getServersInstance().setWebSearchData(null);
+      serversInstance.setWebSearchData(null);
     }
   }, [selectedProvider, apiKey]);
 

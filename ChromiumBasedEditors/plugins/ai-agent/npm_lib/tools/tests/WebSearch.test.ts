@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { chatEvents } from "../../events";
 import { WebSearch, type WebSearchData } from "../sources/WebSearch";
 
 // =============================================================================
@@ -7,7 +6,6 @@ import { WebSearch, type WebSearchData } from "../sources/WebSearch";
 // =============================================================================
 
 const mockFetch = vi.fn();
-const mockEmit = vi.spyOn(chatEvents, "emit");
 
 const createMockLocalStorage = () => {
   let store: Record<string, string> = {};
@@ -27,19 +25,24 @@ const createMockLocalStorage = () => {
 
 const mockLocalStorage = createMockLocalStorage();
 
-// Mock settings holder — WebSearch now uses getSettingsInstance() instead of localStorage directly
-vi.mock("../../settings/settings-holder", () => ({
-  getSettingsInstance: () => ({
-    get: (key: string) => mockLocalStorage.getItem(key),
-    set: (key: string, value: string) => mockLocalStorage.setItem(key, value),
-    remove: (key: string) => mockLocalStorage.removeItem(key),
-  }),
-}));
+const mockSettings = {
+  get: (key: string) => mockLocalStorage.getItem(key),
+  set: (key: string, value: string) => mockLocalStorage.setItem(key, value),
+  remove: (key: string) => mockLocalStorage.removeItem(key),
+};
 
-// Mock platform holder — WebSearch uses platformFetch (falls back to fetch if no proxy)
-vi.mock("../../platform/platform-holder", () => ({
-  getPlatformInstance: () => null,
-}));
+const mockPlatform = {
+  file: null,
+  process: null,
+  env: { platform: "desktop" },
+  hostTools: null,
+};
+
+const mockEventBus = {
+  on: vi.fn(),
+  off: vi.fn(),
+  emit: vi.fn(),
+};
 
 vi.stubGlobal("fetch", mockFetch);
 
@@ -49,7 +52,7 @@ describe("WebSearch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockLocalStorage.clear();
-    webSearch = new WebSearch();
+    webSearch = new WebSearch(mockSettings as any, mockPlatform as any, mockEventBus as any);
   });
 
   // ==========================================================================
@@ -69,7 +72,7 @@ describe("WebSearch", () => {
         JSON.stringify(savedData)
       );
 
-      const newWebSearch = new WebSearch();
+      const newWebSearch = new WebSearch(mockSettings as any, mockPlatform as any, mockEventBus as any);
 
       expect(newWebSearch.getWebSearchData()).toEqual(savedData);
       expect(newWebSearch.getTools()).toHaveLength(2);
@@ -481,11 +484,11 @@ describe("WebSearch", () => {
     it("should dispatch tools-changed event when configured", () => {
       webSearch.setWebSearchData({ provider: "Exa", key: "key" });
 
-      expect(mockEmit).toHaveBeenCalled();
+      expect(mockEventBus.emit).toHaveBeenCalled();
     });
 
     it("should not dispatch event when clearing data", () => {
-      mockEmit.mockClear();
+      mockEventBus.emit.mockClear();
 
       webSearch.setWebSearchData(null);
 

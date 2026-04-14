@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import Provider from "../index";
 import type { Model, TProvider } from "../types";
 
-// Mock settings holder (used by Provider for model restoration)
+// Mock settings adapter (used by Provider for model restoration)
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
 
@@ -20,10 +20,6 @@ const localStorageMock = (() => {
     }),
   };
 })();
-
-vi.mock("../../settings/settings-holder", () => ({
-  getSettingsInstance: () => localStorageMock,
-}));
 
 // Create mock provider instance
 const createMockProvider = () => ({
@@ -86,6 +82,7 @@ describe("Provider", () => {
 
   beforeEach(() => {
     provider = new Provider();
+    provider.setSettings(localStorageMock);
     localStorageMock.clear();
     vi.clearAllMocks();
     provider.setCurrentProvider(undefined);
@@ -96,10 +93,10 @@ describe("Provider", () => {
   // ==========================================================================
 
   describe("setCurrentProvider", () => {
-    it("should clear provider when called with undefined", () => {
+    it("should reset to null provider when called with undefined", () => {
       provider.setCurrentProvider(undefined);
 
-      expect(provider.currentProvider).toBeUndefined();
+      expect(provider.currentProvider).toBeDefined(); // NullProvider, not undefined
       expect(provider.currentProviderInfo).toBeUndefined();
       expect(provider.currentProviderType).toBeUndefined();
     });
@@ -304,11 +301,11 @@ describe("Provider", () => {
       expect(modelKey).toBe("gpt-4");
     });
 
-    it("should return undefined when no current provider", () => {
+    it("should return empty string when no real provider set", () => {
       provider.setCurrentProvider(undefined);
 
       const modelKey = provider.getCurrentProviderModel();
-      expect(modelKey).toBeUndefined();
+      expect(modelKey).toBe("");
     });
   });
 
@@ -409,7 +406,7 @@ describe("Provider", () => {
       }
     });
 
-    it("should return undefined when no current provider", () => {
+    it("should return empty generator when no real provider set", async () => {
       provider.setCurrentProvider(undefined);
 
       const messages: ThreadMessageLike[] = [
@@ -417,7 +414,9 @@ describe("Provider", () => {
       ];
 
       const generator = provider.sendMessage(messages);
-      expect(generator).toBeUndefined();
+      expect(generator).toBeDefined();
+      const result = await generator.next();
+      expect(result.done).toBe(true);
     });
 
     it("should pass withThinking parameter", () => {
@@ -477,7 +476,7 @@ describe("Provider", () => {
       expect(generator).toBeDefined();
     });
 
-    it("should return undefined when no current provider", () => {
+    it("should return empty generator when no real provider set", async () => {
       provider.setCurrentProvider(undefined);
 
       const message: ThreadMessageLike = {
@@ -486,7 +485,9 @@ describe("Provider", () => {
       };
 
       const generator = provider.sendMessageAfterToolCall(message);
-      expect(generator).toBeUndefined();
+      expect(generator).toBeDefined();
+      const result = await generator.next();
+      expect(result.done).toBe(true);
     });
 
     it("should pass withThinking parameter", () => {

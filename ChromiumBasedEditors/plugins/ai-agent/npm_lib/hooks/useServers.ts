@@ -1,6 +1,4 @@
 import { useEffect } from "react";
-import { chatEvents } from "../events";
-import { getProviderInstance } from "../providers/provider-holder";
 import { useStores } from "../store/context";
 import { useToolsContext } from "../tools/context";
 
@@ -9,11 +7,11 @@ type UseServersProps = {
 };
 
 const useServers = ({ isReady }: UseServersProps) => {
-  const { useServersStore, useProfilesStore, selectCurrentChatProfile } =
+  const { useServersStore, useProfilesStore, selectCurrentChatProfile, provider } =
     useStores();
   const { initServers, getTools, tools } = useServersStore();
   const currentProfile = useProfilesStore(selectCurrentChatProfile);
-  const { servers, hostToolGroups } = useToolsContext();
+  const { servers, hostToolGroups, eventBus } = useToolsContext();
 
   // Sync host tool groups into servers
   useEffect(() => {
@@ -44,18 +42,18 @@ const useServers = ({ isReady }: UseServersProps) => {
       getTools();
     };
 
-    chatEvents.on("tools-changed", handler);
+    eventBus.on("tools-changed", handler);
 
     return () => {
-      chatEvents.off("tools-changed", handler);
+      eventBus.off("tools-changed", handler);
     };
   }, [getTools]);
 
   useEffect(() => {
     if (!tools || !currentProfile) return;
 
-    getProviderInstance().setCurrentProviderTools(tools);
-  }, [tools, currentProfile]);
+    provider.setCurrentProviderTools(tools);
+  }, [tools, currentProfile, provider]);
 
   return {};
 };

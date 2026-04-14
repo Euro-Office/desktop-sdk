@@ -7,9 +7,18 @@ const mockSettings = {
   remove: vi.fn(),
 };
 
-vi.mock("../../settings/settings-holder", () => ({
-  getSettingsInstance: () => mockSettings,
-}));
+const mockPlatform = {
+  file: null,
+  process: null,
+  env: { platform: "desktop" },
+  hostTools: null,
+};
+
+const mockEventBus = {
+  on: vi.fn(),
+  off: vi.fn(),
+  emit: vi.fn(),
+};
 
 const mockHostToolSource = {
   getGroupIds: vi.fn().mockReturnValue([]),
@@ -66,7 +75,7 @@ describe("Servers", () => {
     mockHostToolSource.isAutoAllow.mockReturnValue(false);
     mockCustomServers.getTools.mockResolvedValue({});
     mockWebSearch.getTools.mockResolvedValue([]);
-    servers = new Servers();
+    servers = new Servers(mockSettings as any, mockPlatform as any, mockEventBus as any);
   });
 
   describe("constructor", () => {
@@ -76,7 +85,7 @@ describe("Servers", () => {
 
     it("parses stored allowAlways tools", () => {
       mockSettings.get.mockReturnValue("server_tool1,server_tool2");
-      const s = new Servers();
+      const s = new Servers(mockSettings as any, mockPlatform as any, mockEventBus as any);
       expect(s.allowAlways).toEqual(["server_tool1", "server_tool2"]);
     });
 

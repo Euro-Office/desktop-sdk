@@ -1,3 +1,5 @@
+// --- AppContext ---
+export type { AppContext } from "./app-context";
 // --- Capabilities ---
 
 // --- Widget ---

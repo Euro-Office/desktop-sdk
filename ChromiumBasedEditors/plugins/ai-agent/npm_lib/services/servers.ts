@@ -1,5 +1,4 @@
-import { getSettingsInstance } from "../settings/settings-holder";
-import { getServersInstance } from "../tools/tools-holder";
+import type { AppContext } from "../app-context";
 import type { TMCPItem } from "../types";
 
 const MAX_TOOL_COUNT = 100;
@@ -22,18 +21,19 @@ export type ChangeToolStatusResult = {
 export class ServersService {
   constructor(
     private serversKey: string,
-    private disabledToolsKey: string
+    private disabledToolsKey: string,
+    private ctx: AppContext
   ) {}
 
   initServers(): void {
-    const settings = getSettingsInstance();
+    const settings = this.ctx.settings;
     const customServers = settings.get(this.serversKey);
 
     if (customServers) {
       try {
         const parsed = JSON.parse(customServers);
-        getServersInstance().setCustomServers(parsed);
-        getServersInstance().startCustomServers();
+        this.ctx.servers.setCustomServers(parsed);
+        this.ctx.servers.startCustomServers();
       } catch {
         // Ignore invalid JSON in settings
       }
@@ -41,8 +41,8 @@ export class ServersService {
   }
 
   async buildToolsList(): Promise<ToolsListResult> {
-    const allTools = await getServersInstance().getTools();
-    const settings = getSettingsInstance();
+    const allTools = await this.ctx.servers.getTools();
+    const settings = this.ctx.settings;
     const disabledToolsStr = settings.get(this.disabledToolsKey);
 
     const tools: TMCPItem[] = [];
@@ -152,7 +152,7 @@ export class ServersService {
       webSearchEnabled: boolean;
     }
   ): ChangeToolStatusResult {
-    const settings = getSettingsInstance();
+    const settings = this.ctx.settings;
     const { servers, disabledTools } = currentState;
     const tool = servers[type]?.find((t) => t.name === name);
     if (!tool) return null;
@@ -232,7 +232,7 @@ export class ServersService {
     args: Record<string, unknown>,
     disabledTools: Record<string, string[]>
   ): Promise<unknown> {
-    const servers = getServersInstance();
+    const servers = this.ctx.servers;
     const type = servers.getServerType(name);
     const toolName = name.replace(`${type}_`, "");
 
@@ -242,15 +242,15 @@ export class ServersService {
   }
 
   checkAllowAlways(type: string, name: string): boolean {
-    return getServersInstance().checkAllowAlways(type, name);
+    return this.ctx.servers.checkAllowAlways(type, name);
   }
 
   setAllowAlways(value: boolean, type: string, name: string): void {
-    getServersInstance().setAllowAlways(value, type, name);
+    this.ctx.servers.setAllowAlways(value, type, name);
   }
 
   getConfig(): Record<string, Record<string, unknown>> {
-    const settings = getSettingsInstance();
+    const settings = this.ctx.settings;
     const raw = settings.get(this.serversKey);
     if (!raw) return { mcpServers: {} };
     try {
@@ -263,25 +263,25 @@ export class ServersService {
   saveConfig(config: {
     mcpServers: Record<string, Record<string, unknown>>;
   }): void {
-    const settings = getSettingsInstance();
+    const settings = this.ctx.settings;
     const currConfig = config.mcpServers ? config : { mcpServers: {} };
     settings.set(this.serversKey, JSON.stringify(currConfig));
-    getServersInstance().setCustomServers(currConfig);
-    getServersInstance().startCustomServers();
+    this.ctx.servers.setCustomServers(currConfig);
+    this.ctx.servers.startCustomServers();
   }
 
   deleteCustomServer(name: string): void {
-    getServersInstance().deleteCustomServer(name);
+    this.ctx.servers.deleteCustomServer(name);
     const config = this.getConfig();
     delete config.mcpServers[name];
-    getSettingsInstance().set(this.serversKey, JSON.stringify(config));
+    this.ctx.settings.set(this.serversKey, JSON.stringify(config));
   }
 
   getCustomServersLogs(): Record<string, string[]> {
-    return getServersInstance().getCustomServersLogs();
+    return this.ctx.servers.getCustomServersLogs();
   }
 
   getWebSearchEnabled(): boolean {
-    return getServersInstance().getWebSearchEnabled();
+    return this.ctx.servers.getWebSearchEnabled();
   }
 }

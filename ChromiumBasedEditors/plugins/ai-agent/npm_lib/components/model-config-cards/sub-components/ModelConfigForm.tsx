@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { getProviderInstance } from "../../../providers/provider-holder";
+import { useStores } from "../../../store/context";
 import { getApiKeyLink } from "../../../lib/api-key-links";
 import type { Model } from "../../../types";
 import { ComboBox } from "../../combo-box";
@@ -33,7 +33,8 @@ export const ModelConfigForm = ({
   isHorizontal,
 }: ModelConfigFormProps) => {
   const { t } = useTranslation();
-  const providersInfo = getProviderInstance().getProvidersInfo();
+  const { provider } = useStores();
+  const providersInfo = provider.getProvidersInfo();
   const isFieldsDisabled = !values.provider;
 
   const modelItems = models.map((m) => ({

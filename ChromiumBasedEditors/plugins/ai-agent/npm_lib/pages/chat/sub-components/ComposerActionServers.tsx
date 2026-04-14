@@ -3,11 +3,12 @@ import { useTranslation } from "react-i18next";
 import { DropdownMenu } from "../../../components/dropdown";
 import { IconButton } from "../../../components/icon-button";
 import { TooltipIconButton } from "../../../components/tooltip-icon-button";
-import { chatEvents } from "../../../events";
 import { useStores } from "../../../store/context";
+import { useToolsContext } from "../../../tools/context";
 
 const ServersSettings = () => {
   const { useServersStore, useProfilesStore } = useStores();
+  const { eventBus } = useToolsContext();
   const { servers, changeToolStatus, webSearchEnabled, getWebSearchEnabled } =
     useServersStore();
   const { extendedThinking, toggleExtendedThinking } = useProfilesStore();
@@ -49,7 +50,7 @@ const ServersSettings = () => {
             servers["web-search"][0].name,
             !webSearchEnabled
           );
-          chatEvents.emit("tools-changed");
+          eventBus.emit("tools-changed");
         },
       },
       {

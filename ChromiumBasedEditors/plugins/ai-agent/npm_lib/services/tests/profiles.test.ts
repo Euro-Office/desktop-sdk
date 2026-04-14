@@ -33,17 +33,14 @@ const { settingsMap, mockSettings, mockStorage, mockProvider } = vi.hoisted(
   }
 );
 
-vi.mock("../../settings/settings-holder", () => ({
-  getSettingsInstance: () => mockSettings,
-}));
-
-vi.mock("../../storage/storage-holder", () => ({
-  getStorageInstance: () => mockStorage,
-}));
-
-vi.mock("../../providers/provider-holder", () => ({
-  getProviderInstance: () => mockProvider,
-}));
+const mockCtx = {
+  settings: mockSettings,
+  storage: mockStorage,
+  provider: mockProvider,
+  platform: {} as never,
+  servers: {} as never,
+  eventBus: {} as never,
+};
 
 import type { Profile } from "../../types";
 import { ProfilesService } from "../profiles";
@@ -65,7 +62,7 @@ function makeProfile(overrides: Partial<Profile> = {}): Profile {
 }
 
 function createService() {
-  return new ProfilesService();
+  return new ProfilesService(mockCtx as any);
 }
 
 // ---------------------------------------------------------------------------

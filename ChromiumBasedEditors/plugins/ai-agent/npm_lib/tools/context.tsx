@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useMemo } from "react";
-import Servers from "./servers";
-import { setServersInstance } from "./tools-holder";
+import { createContext, useContext, useEffect } from "react";
+import type { ChatEventBus } from "../events";
+import type Servers from "./servers";
 import type { HostToolGroup } from "./types";
 
 interface ToolsContextValue {
@@ -8,6 +8,8 @@ interface ToolsContextValue {
   hostToolGroups: HostToolGroup[];
   /** Servers instance managing all tool sources */
   servers: Servers;
+  /** Instance-scoped event bus for tool-change events */
+  eventBus: ChatEventBus;
 }
 
 const ToolsContext = createContext<ToolsContextValue | null>(null);
@@ -23,30 +25,30 @@ export function useToolsContext(): ToolsContextValue {
 interface ToolsProviderProps {
   /** Host tool groups. If empty array — no host tools available */
   hostToolGroups: HostToolGroup[];
+  /** Pre-created Servers instance from AppContext */
+  servers: Servers;
+  /** Instance-scoped event bus */
+  eventBus: ChatEventBus;
   children: React.ReactNode;
 }
 
 /**
- * Creates and provides the Servers instance.
+ * Provides the Servers instance to the component tree.
  * Syncs host tool groups into the Servers.hostToolSource.
- * Sets the global tools-holder so Zustand stores can access Servers outside React.
  */
 export function ToolsProvider({
   hostToolGroups,
+  servers,
+  eventBus,
   children,
 }: ToolsProviderProps) {
-  const servers = useMemo(() => new Servers(), []);
-
-  // Set holder synchronously so Zustand stores can access it immediately
-  setServersInstance(servers);
-
   // Sync host tool groups into servers
   useEffect(() => {
     servers.hostToolSource.setGroups(hostToolGroups);
   }, [servers, hostToolGroups]);
 
   return (
-    <ToolsContext.Provider value={{ hostToolGroups, servers }}>
+    <ToolsContext.Provider value={{ hostToolGroups, servers, eventBus }}>
       {children}
     </ToolsContext.Provider>
   );

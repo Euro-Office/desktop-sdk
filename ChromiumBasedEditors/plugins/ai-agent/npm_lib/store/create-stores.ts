@@ -1,5 +1,7 @@
 import type { StoreApi, UseBoundStore } from "zustand";
+import type { AppContext } from "../app-context";
 import { DEFAULT_STORE_KEYS, type StoreKeys } from "../config";
+import type Provider from "../providers";
 import { ChatEngine } from "../services/chat-engine";
 import { ProfilesService } from "../services/profiles";
 import { PromptsService } from "../services/prompts";
@@ -59,6 +61,7 @@ export interface Stores {
   useThemeStore: UseBoundStore<StoreApi<ThemeStoreState>>;
   useRouter: UseBoundStore<StoreApi<RouterStoreState>>;
   chatEngine: ChatEngine;
+  provider: Provider;
   selectCurrentChatProfile: (s: ProfilesStoreState) => Profile | null;
 }
 
@@ -68,26 +71,33 @@ export interface Stores {
 
 export interface CreateStoresConfig {
   keys?: Partial<StoreKeys>;
+  ctx: AppContext;
 }
 
 import type { Profile } from "../types";
 
-export function createStores(config?: CreateStoresConfig): Stores {
-  const keys: StoreKeys = { ...DEFAULT_STORE_KEYS, ...config?.keys };
+export function createStores(config: CreateStoresConfig): Stores {
+  const keys: StoreKeys = { ...DEFAULT_STORE_KEYS, ...config.keys };
+  const { ctx } = config;
 
   // Services (scoped to this store instance)
-  const profilesService = new ProfilesService();
-  const threadsService = new ThreadsService();
+  const profilesService = new ProfilesService(ctx);
+  const threadsService = new ThreadsService(ctx);
   const serversService = new ServersService(
     keys.mcpServers,
-    keys.disabledTools
+    keys.disabledTools,
+    ctx
   );
-  const promptsService = new PromptsService();
-  const chatEngine = new ChatEngine();
+  const promptsService = new PromptsService(ctx);
+  const chatEngine = new ChatEngine(ctx);
 
   // Create stores, passing dependencies
-  const useMessageStore = createMessageStore();
-  const useProfilesStore = createProfilesStore({ keys, profilesService });
+  const useMessageStore = createMessageStore(ctx);
+  const useProfilesStore = createProfilesStore({
+    keys,
+    profilesService,
+    ctx,
+  });
   const useThreadsStore = createThreadsStore({
     threadsService,
     useProfilesStore,
@@ -96,7 +106,7 @@ export function createStores(config?: CreateStoresConfig): Stores {
   const useServersStore = createServersStore({ serversService });
   const usePromptsStore = createPromptsStore({ promptsService });
   const useAttachmentsStore = createAttachmentsStore();
-  const useThemeStore = createThemeStore();
+  const useThemeStore = createThemeStore(ctx);
   const useRouter = createRouterStore();
 
   // Selector
@@ -113,6 +123,7 @@ export function createStores(config?: CreateStoresConfig): Stores {
     useThemeStore,
     useRouter,
     chatEngine,
+    provider: ctx.provider,
     selectCurrentChatProfile,
   };
 }

@@ -74,21 +74,34 @@ const mockPlatform = {
   hostTools: null,
 };
 
-vi.mock("../../storage/storage-holder", () => ({
-  getStorageInstance: () => mockStorage,
-}));
+const mockServers = {
+  getTools: vi.fn().mockResolvedValue({}),
+  callTools: vi.fn(),
+  getServerType: vi.fn(),
+  checkAllowAlways: vi.fn(),
+  setAllowAlways: vi.fn(),
+  setCustomServers: vi.fn(),
+  startCustomServers: vi.fn(),
+  deleteCustomServer: vi.fn(),
+  getCustomServersLogs: vi.fn().mockReturnValue({}),
+  getWebSearchEnabled: vi.fn().mockReturnValue(false),
+  hostToolSource: { setGroups: vi.fn() },
+};
 
-vi.mock("../../settings/settings-holder", () => ({
-  getSettingsInstance: () => mockSettings,
-}));
+const mockEventBus = {
+  on: vi.fn(),
+  off: vi.fn(),
+  emit: vi.fn(),
+};
 
-vi.mock("../../providers/provider-holder", () => ({
-  getProviderInstance: () => mockProvider,
-}));
-
-vi.mock("../../platform/platform-holder", () => ({
-  getPlatformInstance: () => mockPlatform,
-}));
+const mockCtx = {
+  settings: mockSettings,
+  storage: mockStorage,
+  provider: mockProvider,
+  platform: mockPlatform,
+  servers: mockServers,
+  eventBus: mockEventBus,
+};
 
 // ---------------------------------------------------------------------------
 // Service mocks — hoisted so they exist before module evaluation
@@ -198,7 +211,7 @@ vi.mock("../../services/servers", () => ({
   ServersService: class {
     // biome-ignore lint/complexity/noUselessConstructor: accepts constructor args from create-stores
     // biome-ignore lint/suspicious/noEmptyBlockStatements: mock constructor
-    constructor(_mcpKey: string, _disabledKey: string) {}
+    constructor(_mcpKey: string, _disabledKey: string, _ctx: unknown) {}
     initServers = mockServersService.initServers;
     buildToolsList = mockServersService.buildToolsList;
     changeToolStatus = mockServersService.changeToolStatus;
@@ -280,7 +293,7 @@ describe("createStores", () => {
   // ---- Factory basics ----
 
   it("returns all 8 stores, chatEngine, and selectCurrentChatProfile", () => {
-    const stores = createStores();
+    const stores = createStores({ ctx: mockCtx as any });
     expect(stores.useMessageStore).toBeDefined();
     expect(stores.useProfilesStore).toBeDefined();
     expect(stores.useThreadsStore).toBeDefined();
@@ -294,8 +307,8 @@ describe("createStores", () => {
   });
 
   it("creates independent store instances", () => {
-    const stores1 = createStores();
-    const stores2 = createStores();
+    const stores1 = createStores({ ctx: mockCtx as any });
+    const stores2 = createStores({ ctx: mockCtx as any });
 
     stores1.useRouter.getState().goToSettings();
     expect(stores1.useRouter.getState().currentPage).toBe("settings");
@@ -303,7 +316,7 @@ describe("createStores", () => {
   });
 
   it("uses default keys when no config provided", () => {
-    const stores = createStores();
+    const stores = createStores({ ctx: mockCtx as any });
     // Toggle extended thinking — should use default deepMode key
     stores.useProfilesStore.getState().toggleExtendedThinking();
     expect(mockSettings.set).toHaveBeenCalledWith(
@@ -315,6 +328,7 @@ describe("createStores", () => {
   it("accepts custom keys via config", () => {
     const stores = createStores({
       keys: { deepMode: "my-custom-deep-mode" },
+      ctx: mockCtx as any,
     });
     stores.useProfilesStore.getState().toggleExtendedThinking();
     expect(mockSettings.set).toHaveBeenCalledWith(
@@ -327,18 +341,18 @@ describe("createStores", () => {
 
   describe("useRouter", () => {
     it("starts on chat page", () => {
-      const { useRouter } = createStores();
+      const { useRouter } = createStores({ ctx: mockCtx as any });
       expect(useRouter.getState().currentPage).toBe("chat");
     });
 
     it("setCurrentPage sets arbitrary page", () => {
-      const { useRouter } = createStores();
+      const { useRouter } = createStores({ ctx: mockCtx as any });
       useRouter.getState().setCurrentPage("history");
       expect(useRouter.getState().currentPage).toBe("history");
     });
 
     it("navigates between pages", () => {
-      const { useRouter } = createStores();
+      const { useRouter } = createStores({ ctx: mockCtx as any });
       useRouter.getState().goToSettings();
       expect(useRouter.getState().currentPage).toBe("settings");
       useRouter.getState().goToChat();
@@ -352,13 +366,13 @@ describe("createStores", () => {
 
   describe("useThemeStore", () => {
     it("starts with light theme", () => {
-      const { useThemeStore } = createStores();
+      const { useThemeStore } = createStores({ ctx: mockCtx as any });
       expect(useThemeStore.getState().themeId).toBe("theme-light");
       expect(useThemeStore.getState().themeType).toBe("light");
     });
 
     it("sets theme and derives themeType", () => {
-      const { useThemeStore } = createStores();
+      const { useThemeStore } = createStores({ ctx: mockCtx as any });
       useThemeStore.getState().setThemeId("theme-night");
       expect(useThemeStore.getState().themeType).toBe("dark");
 
@@ -370,13 +384,13 @@ describe("createStores", () => {
     });
 
     it("setScale updates scale", () => {
-      const { useThemeStore } = createStores();
+      const { useThemeStore } = createStores({ ctx: mockCtx as any });
       useThemeStore.getState().setScale(3);
       expect(useThemeStore.getState().scale).toBe(3);
     });
 
     it("initializes from platform once", () => {
-      const { useThemeStore } = createStores();
+      const { useThemeStore } = createStores({ ctx: mockCtx as any });
       useThemeStore.getState().initFromPlatform();
       expect(useThemeStore.getState().themeId).toBe("theme-dark");
       expect(useThemeStore.getState().scale).toBe(2);
@@ -396,7 +410,7 @@ describe("createStores", () => {
 
   describe("useAttachmentsStore", () => {
     it("adds and clears files", () => {
-      const { useAttachmentsStore } = createStores();
+      const { useAttachmentsStore } = createStores({ ctx: mockCtx as any });
       const file = { path: "/test.pdf", content: "data", type: "pdf" };
 
       useAttachmentsStore.getState().addAttachmentFile(file);
@@ -407,7 +421,7 @@ describe("createStores", () => {
     });
 
     it("limits files to 5", () => {
-      const { useAttachmentsStore } = createStores();
+      const { useAttachmentsStore } = createStores({ ctx: mockCtx as any });
       for (let i = 0; i < 7; i++) {
         useAttachmentsStore
           .getState()
@@ -417,7 +431,7 @@ describe("createStores", () => {
     });
 
     it("clears all attachment images", () => {
-      const { useAttachmentsStore } = createStores();
+      const { useAttachmentsStore } = createStores({ ctx: mockCtx as any });
       useAttachmentsStore
         .getState()
         .addAttachmentImage({ name: "a", base64: "" });
@@ -431,7 +445,7 @@ describe("createStores", () => {
     });
 
     it("limits images to 5", () => {
-      const { useAttachmentsStore } = createStores();
+      const { useAttachmentsStore } = createStores({ ctx: mockCtx as any });
       for (let i = 0; i < 7; i++) {
         useAttachmentsStore
           .getState()
@@ -441,7 +455,7 @@ describe("createStores", () => {
     });
 
     it("deletes specific files and images", () => {
-      const { useAttachmentsStore } = createStores();
+      const { useAttachmentsStore } = createStores({ ctx: mockCtx as any });
       useAttachmentsStore
         .getState()
         .addAttachmentFile({ path: "/a", content: "", type: "" });
@@ -468,14 +482,14 @@ describe("createStores", () => {
 
   describe("useMessageStore", () => {
     it("starts with empty messages", () => {
-      const { useMessageStore } = createStores();
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
       expect(useMessageStore.getState().messages).toEqual([]);
       expect(useMessageStore.getState().isStreamRunning).toBe(false);
       expect(useMessageStore.getState().isRequestRunning).toBe(false);
     });
 
     it("adds and clears messages", () => {
-      const { useMessageStore } = createStores();
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
       const msg = {
         role: "user" as const,
         content: [{ type: "text" as const, text: "hi" }],
@@ -492,7 +506,7 @@ describe("createStores", () => {
     });
 
     it("updates last message", () => {
-      const { useMessageStore } = createStores();
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
       const msg1 = {
         role: "user" as const,
         content: [{ type: "text" as const, text: "hi" }],
@@ -516,7 +530,7 @@ describe("createStores", () => {
     });
 
     it("replaces incomplete message when adding", () => {
-      const { useMessageStore } = createStores();
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
       const incomplete = {
         role: "assistant" as const,
         content: [{ type: "text" as const, text: "partial" }],
@@ -546,7 +560,7 @@ describe("createStores", () => {
       ];
       mockStorage.messages.getByThread.mockResolvedValue(stored);
 
-      const { useMessageStore } = createStores();
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
       await useMessageStore.getState().fetchPrevMessages("thread-1");
 
       expect(mockStorage.messages.getByThread).toHaveBeenCalledWith("thread-1");
@@ -557,7 +571,7 @@ describe("createStores", () => {
     });
 
     it("stopMessage stops stream and provider", () => {
-      const { useMessageStore } = createStores();
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
       useMessageStore.setState({ isStreamRunning: true });
       useMessageStore.getState().stopMessage();
       expect(useMessageStore.getState().isStreamRunning).toBe(false);
@@ -569,7 +583,7 @@ describe("createStores", () => {
 
   describe("usePromptsStore", () => {
     it("starts with empty prompts and folders", () => {
-      const { usePromptsStore } = createStores();
+      const { usePromptsStore } = createStores({ ctx: mockCtx as any });
       expect(usePromptsStore.getState().prompts).toEqual([]);
       expect(usePromptsStore.getState().folders).toEqual([]);
     });
@@ -579,7 +593,7 @@ describe("createStores", () => {
 
   describe("useProfilesStore", () => {
     it("starts with no profiles", () => {
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       const state = useProfilesStore.getState();
       expect(state.profiles).toEqual([]);
       expect(state.defaultProfile).toBeNull();
@@ -588,12 +602,12 @@ describe("createStores", () => {
 
     it("reads extendedThinking from settings on creation", () => {
       localStorageMap.set(DEFAULT_STORE_KEYS.deepMode, "true");
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       expect(useProfilesStore.getState().extendedThinking).toBe(true);
     });
 
     it("toggleExtendedThinking persists to settings", () => {
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       expect(useProfilesStore.getState().extendedThinking).toBe(false);
 
       useProfilesStore.getState().toggleExtendedThinking();
@@ -605,7 +619,7 @@ describe("createStores", () => {
     });
 
     it("getProfileById returns matching profile", () => {
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       const profile = makeProfile({ id: "p1" });
       useProfilesStore.setState({ profiles: [profile] });
 
@@ -614,7 +628,7 @@ describe("createStores", () => {
     });
 
     it("getProfileByName supports case-insensitive search", () => {
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       const profile = makeProfile({ name: "MyProfile" });
       useProfilesStore.setState({ profiles: [profile] });
 
@@ -631,7 +645,7 @@ describe("createStores", () => {
 
   describe("selectCurrentChatProfile", () => {
     it("prefers sessionChatProfile over chatProfile over defaultProfile", () => {
-      const { useProfilesStore, selectCurrentChatProfile } = createStores();
+      const { useProfilesStore, selectCurrentChatProfile } = createStores({ ctx: mockCtx as any });
       const defaultP = makeProfile({ name: "default" });
       const chatP = makeProfile({ name: "chat" });
       const sessionP = makeProfile({ name: "session" });
@@ -657,7 +671,7 @@ describe("createStores", () => {
 
   describe("cross-store references", () => {
     it("threads store accesses profiles store for session profile", () => {
-      const stores = createStores();
+      const stores = createStores({ ctx: mockCtx as any });
       const profile = makeProfile({ id: "p1" });
       stores.useProfilesStore.setState({
         profiles: [profile],
@@ -675,7 +689,7 @@ describe("createStores", () => {
     });
 
     it("threads store clears messages when clearing thread history", async () => {
-      const stores = createStores();
+      const stores = createStores({ ctx: mockCtx as any });
       const msg = {
         role: "user" as const,
         content: [{ type: "text" as const, text: "hi" }],
@@ -694,14 +708,14 @@ describe("createStores", () => {
 
   describe("useServersStore", () => {
     it("starts with empty state", () => {
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       expect(useServersStore.getState().servers).toEqual({});
       expect(useServersStore.getState().tools).toEqual([]);
       expect(useServersStore.getState().manageToolData).toBeUndefined();
     });
 
     it("sets and clears manageToolData", () => {
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       const data = {
         message: { role: "assistant" as const, content: [] },
         idx: 0,
@@ -720,27 +734,27 @@ describe("createStores", () => {
 
   describe("useThreadsStore", () => {
     it("starts with a random threadId and empty threads", () => {
-      const { useThreadsStore } = createStores();
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       expect(useThreadsStore.getState().threadId).toBeTruthy();
       expect(useThreadsStore.getState().threads).toEqual([]);
     });
 
     it("inserts a thread", () => {
-      const { useThreadsStore } = createStores();
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       useThreadsStore.getState().insertThread("My Chat", { profileId: "p1" });
       expect(useThreadsStore.getState().threads).toHaveLength(1);
       expect(useThreadsStore.getState().threads[0].title).toBe("My Chat");
     });
 
     it("switches to a new thread generating new ID", () => {
-      const { useThreadsStore } = createStores();
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       const oldId = useThreadsStore.getState().threadId;
       useThreadsStore.getState().onSwitchToNewThread();
       expect(useThreadsStore.getState().threadId).not.toBe(oldId);
     });
 
     it("renames a thread", () => {
-      const { useThreadsStore } = createStores();
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       const thread = makeThread({ threadId: "t1", title: "Old" });
       useThreadsStore.setState({ threads: [thread] });
 
@@ -749,7 +763,7 @@ describe("createStores", () => {
     });
 
     it("deletes a thread and switches if active", () => {
-      const { useThreadsStore } = createStores();
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       const thread = makeThread({ threadId: "t1" });
       useThreadsStore.setState({ threadId: "t1", threads: [thread] });
 
@@ -765,7 +779,7 @@ describe("createStores", () => {
       ];
       mockThreadsService.loadAll.mockResolvedValue(threads);
 
-      const { useThreadsStore } = createStores();
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       await useThreadsStore.getState().initThreads();
 
       expect(mockThreadsService.loadAll).toHaveBeenCalled();
@@ -773,7 +787,7 @@ describe("createStores", () => {
     });
 
     it("insertNewMessageToThread updates thread lastEditDate and profileId", () => {
-      const { useThreadsStore } = createStores();
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       const thread = makeThread({
         threadId: "t1",
         lastEditDate: 1000,
@@ -791,7 +805,7 @@ describe("createStores", () => {
     });
 
     it("insertNewMessageToThread without opts does not set profileId", () => {
-      const { useThreadsStore } = createStores();
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       const thread = makeThread({ threadId: "t1" });
       useThreadsStore.setState({ threadId: "t1", threads: [thread] });
 
@@ -811,7 +825,7 @@ describe("createStores", () => {
       });
       mockThreadsService.migrateThreadToProfile.mockReturnValue(migratedThread);
 
-      const stores = createStores();
+      const stores = createStores({ ctx: mockCtx as any });
       stores.useProfilesStore.setState({
         profiles: [profile],
         defaultProfile: profile,
@@ -840,7 +854,7 @@ describe("createStores", () => {
     });
 
     it("onDownloadThread calls service.downloadThread", async () => {
-      const { useThreadsStore } = createStores();
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       const thread = makeThread({ threadId: "t1", title: "My Chat" });
       useThreadsStore.setState({ threads: [thread] });
 
@@ -853,7 +867,7 @@ describe("createStores", () => {
     });
 
     it("onDownloadThread with unknown thread passes undefined title", async () => {
-      const { useThreadsStore } = createStores();
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       useThreadsStore.setState({ threads: [] });
 
       await useThreadsStore.getState().onDownloadThread("unknown");
@@ -886,7 +900,7 @@ describe("createStores", () => {
         },
       });
 
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       await useProfilesStore.getState().init();
 
       const state = useProfilesStore.getState();
@@ -904,7 +918,7 @@ describe("createStores", () => {
         profile: newProfile,
       });
 
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       const result = await useProfilesStore.getState().addProfile({
         name: "New",
         providerType: "openai",
@@ -924,7 +938,7 @@ describe("createStores", () => {
         profile: firstProfile,
       });
 
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       // Ensure no profiles exist
       expect(useProfilesStore.getState().profiles).toHaveLength(0);
 
@@ -947,7 +961,7 @@ describe("createStores", () => {
         error,
       });
 
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       const result = await useProfilesStore.getState().addProfile({
         name: "Dup",
         providerType: "openai",
@@ -965,7 +979,7 @@ describe("createStores", () => {
 
       mockProfilesService.editProfile.mockResolvedValue({ success: true });
 
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       useProfilesStore.setState({
         profiles: [original],
         defaultProfile: original,
@@ -992,7 +1006,7 @@ describe("createStores", () => {
       });
 
       const original = makeProfile({ id: "p1", name: "Old" });
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       useProfilesStore.setState({ profiles: [original] });
 
       const result = await useProfilesStore
@@ -1016,7 +1030,7 @@ describe("createStores", () => {
       );
       mockProfilesService.reassignDefault.mockReturnValue(p2);
 
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       useProfilesStore.setState({
         profiles: [p1, p2],
         defaultProfile: p1,
@@ -1048,7 +1062,7 @@ describe("createStores", () => {
       mockProfilesService.clearTaskProfileIfMatch.mockReturnValue(null);
       mockProfilesService.reassignDefault.mockReturnValue(null);
 
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       useProfilesStore.setState({
         profiles: [p1],
         defaultProfile: p1,
@@ -1079,7 +1093,7 @@ describe("createStores", () => {
       );
       mockProfilesService.reassignDefault.mockReturnValue(null);
 
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       useProfilesStore.setState({
         profiles: [p1],
         defaultProfile: p1,
@@ -1117,7 +1131,7 @@ describe("createStores", () => {
 
       mockProfilesService.editProfile.mockResolvedValue({ success: true });
 
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       useProfilesStore.setState({
         profiles: [original],
         defaultProfile: null,
@@ -1146,7 +1160,7 @@ describe("createStores", () => {
 
       mockProfilesService.editProfile.mockResolvedValue({ success: true });
 
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       useProfilesStore.setState({
         profiles: [original],
         defaultProfile: original,
@@ -1176,7 +1190,7 @@ describe("createStores", () => {
 
     it("setChatProfile sets chatProfile and calls applyCurrentChatProvider", () => {
       const profile = makeProfile({ id: "cp1" });
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
 
       useProfilesStore.getState().setChatProfile(profile);
 
@@ -1189,7 +1203,7 @@ describe("createStores", () => {
     });
 
     it("setChatProfile(null) clears chatProfile", () => {
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
       const profile = makeProfile({ id: "cp1" });
       useProfilesStore.setState({ chatProfile: profile });
 
@@ -1200,7 +1214,7 @@ describe("createStores", () => {
 
     it("setSummarizationProfile persists via setTaskProfile", () => {
       const profile = makeProfile({ id: "sp1" });
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
 
       useProfilesStore.getState().setSummarizationProfile(profile);
 
@@ -1213,7 +1227,7 @@ describe("createStores", () => {
 
     it("setTranslationProfile persists via setTaskProfile", () => {
       const profile = makeProfile({ id: "tp1" });
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
 
       useProfilesStore.getState().setTranslationProfile(profile);
 
@@ -1226,7 +1240,7 @@ describe("createStores", () => {
 
     it("setTextAnalysisProfile persists via setTaskProfile", () => {
       const profile = makeProfile({ id: "tap1" });
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
 
       useProfilesStore.getState().setTextAnalysisProfile(profile);
 
@@ -1239,7 +1253,7 @@ describe("createStores", () => {
 
     it("setImageGenerationProfile persists via setTaskProfile", () => {
       const profile = makeProfile({ id: "igp1" });
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
 
       useProfilesStore.getState().setImageGenerationProfile(profile);
 
@@ -1254,7 +1268,7 @@ describe("createStores", () => {
 
     it("setOcrProfile persists via setTaskProfile", () => {
       const profile = makeProfile({ id: "op1" });
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
 
       useProfilesStore.getState().setOcrProfile(profile);
 
@@ -1267,7 +1281,7 @@ describe("createStores", () => {
 
     it("setVisionProfile persists via setTaskProfile", () => {
       const profile = makeProfile({ id: "vp1" });
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
 
       useProfilesStore.getState().setVisionProfile(profile);
 
@@ -1280,7 +1294,7 @@ describe("createStores", () => {
 
     it("setSessionChatProfile calls applyCurrentChatProvider", () => {
       const profile = makeProfile({ id: "scp1" });
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
 
       useProfilesStore.getState().setSessionChatProfile(profile);
 
@@ -1290,7 +1304,7 @@ describe("createStores", () => {
 
     it("setDefaultProfile calls setTaskProfile and applyCurrentChatProvider", () => {
       const profile = makeProfile({ id: "dp1" });
-      const { useProfilesStore } = createStores();
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
 
       useProfilesStore.getState().setDefaultProfile(profile);
 
@@ -1311,7 +1325,7 @@ describe("createStores", () => {
       const folders = [{ id: "f1", name: "Folder", createdAt: 1 }];
       mockPromptsService.loadAll.mockResolvedValue({ prompts, folders });
 
-      const { usePromptsStore } = createStores();
+      const { usePromptsStore } = createStores({ ctx: mockCtx as any });
       await usePromptsStore.getState().initPrompts();
 
       expect(usePromptsStore.getState().prompts).toEqual(prompts);
@@ -1322,7 +1336,7 @@ describe("createStores", () => {
       const prompt = { id: "pr2", name: "n", text: "test", createdAt: 2 };
       mockPromptsService.createPrompt.mockReturnValue(prompt);
 
-      const { usePromptsStore } = createStores();
+      const { usePromptsStore } = createStores({ ctx: mockCtx as any });
       usePromptsStore.getState().addPrompt("test");
 
       expect(usePromptsStore.getState().prompts[0]).toEqual(prompt);
@@ -1333,7 +1347,7 @@ describe("createStores", () => {
       const updated = [{ ...original, text: "new" }];
       mockPromptsService.updatePrompt.mockReturnValue(updated);
 
-      const { usePromptsStore } = createStores();
+      const { usePromptsStore } = createStores({ ctx: mockCtx as any });
       usePromptsStore.setState({ prompts: [original] });
       usePromptsStore.getState().editPrompt("pr3", { text: "new" });
 
@@ -1343,7 +1357,7 @@ describe("createStores", () => {
     it("removePrompt removes from state and calls service", () => {
       const prompt = { id: "pr4", name: "n", text: "t", createdAt: 4 };
 
-      const { usePromptsStore } = createStores();
+      const { usePromptsStore } = createStores({ ctx: mockCtx as any });
       usePromptsStore.setState({ prompts: [prompt] });
       usePromptsStore.getState().removePrompt("pr4");
 
@@ -1355,7 +1369,7 @@ describe("createStores", () => {
       const folder = { id: "f2", name: "New Folder", createdAt: 5 };
       mockPromptsService.createFolder.mockReturnValue(folder);
 
-      const { usePromptsStore } = createStores();
+      const { usePromptsStore } = createStores({ ctx: mockCtx as any });
       const id = usePromptsStore.getState().addFolder("New Folder");
 
       expect(id).toBe("f2");
@@ -1367,7 +1381,7 @@ describe("createStores", () => {
       const renamed = [{ ...folder, name: "New" }];
       mockPromptsService.renameFolder.mockReturnValue(renamed);
 
-      const { usePromptsStore } = createStores();
+      const { usePromptsStore } = createStores({ ctx: mockCtx as any });
       usePromptsStore.setState({ folders: [folder] });
       usePromptsStore.getState().renameFolder("f3", "New");
 
@@ -1398,7 +1412,7 @@ describe("createStores", () => {
           )
       );
 
-      const { usePromptsStore } = createStores();
+      const { usePromptsStore } = createStores({ ctx: mockCtx as any });
       usePromptsStore.setState({
         folders: [folder],
         prompts: [promptInFolder, promptOutside],
@@ -1420,7 +1434,7 @@ describe("createStores", () => {
 
   describe("useServersStore — service-backed methods", () => {
     it("initServers calls service.initServers", () => {
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       useServersStore.getState().initServers();
 
       expect(mockServersService.initServers).toHaveBeenCalled();
@@ -1434,7 +1448,7 @@ describe("createStores", () => {
         webSearchEnabled: true,
       });
 
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       await useServersStore.getState().getTools();
 
       expect(useServersStore.getState().tools).toEqual([
@@ -1446,7 +1460,7 @@ describe("createStores", () => {
     it("getConfig delegates to service", () => {
       mockServersService.getConfig.mockReturnValue({ myServer: {} });
 
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       const config = useServersStore.getState().getConfig();
 
       expect(config).toEqual({ myServer: {} });
@@ -1455,7 +1469,7 @@ describe("createStores", () => {
     it("getWebSearchEnabled delegates to service", () => {
       mockServersService.getWebSearchEnabled.mockReturnValue(true);
 
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       expect(useServersStore.getState().getWebSearchEnabled()).toBe(true);
     });
 
@@ -1468,7 +1482,7 @@ describe("createStores", () => {
       };
       mockServersService.changeToolStatus.mockReturnValue(result);
 
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       useServersStore.getState().changeToolStatus("custom", "tool1", false);
 
       expect(useServersStore.getState().disabledTools).toEqual({
@@ -1491,7 +1505,7 @@ describe("createStores", () => {
       };
       mockServersService.changeToolStatus.mockReturnValue(result);
 
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       useServersStore.getState().changeToolStatus("web-search", "search", true);
 
       expect(useServersStore.getState().webSearchEnabled).toBe(true);
@@ -1501,7 +1515,7 @@ describe("createStores", () => {
     it("changeToolStatus does nothing when service returns null", () => {
       mockServersService.changeToolStatus.mockReturnValue(null);
 
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       useServersStore.getState().changeToolStatus("custom", "tool1", true);
 
       expect(useServersStore.getState().tools).toEqual([]);
@@ -1510,7 +1524,7 @@ describe("createStores", () => {
     it("callTools delegates to service", async () => {
       mockServersService.callTools.mockResolvedValue("result");
 
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       const result = await useServersStore
         .getState()
         .callTools("tool1", { arg: "val" });
@@ -1526,14 +1540,14 @@ describe("createStores", () => {
     it("checkAllowAlways delegates to service", () => {
       mockServersService.checkAllowAlways.mockReturnValue(true);
 
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       expect(
         useServersStore.getState().checkAllowAlways("custom", "tool1")
       ).toBe(true);
     });
 
     it("setAllowAlways delegates to service", () => {
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       useServersStore.getState().setAllowAlways(true, "custom", "tool1");
 
       expect(mockServersService.setAllowAlways).toHaveBeenCalledWith(
@@ -1546,14 +1560,14 @@ describe("createStores", () => {
     it("saveConfig delegates to service", () => {
       const config = { mcpServers: { myServer: {} } };
 
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       useServersStore.getState().saveConfig(config);
 
       expect(mockServersService.saveConfig).toHaveBeenCalledWith(config);
     });
 
     it("deleteCustomServer delegates to service", () => {
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       useServersStore.getState().deleteCustomServer("myServer");
 
       expect(mockServersService.deleteCustomServer).toHaveBeenCalledWith(
@@ -1566,7 +1580,7 @@ describe("createStores", () => {
         server1: ["log1"],
       });
 
-      const { useServersStore } = createStores();
+      const { useServersStore } = createStores({ ctx: mockCtx as any });
       expect(useServersStore.getState().getCustomServersLogs()).toEqual({
         server1: ["log1"],
       });

@@ -1,5 +1,4 @@
 import { createContext, useContext } from "react";
-import { setSettingsInstance } from "./settings-holder";
 import type { SettingsAdapter } from "./types";
 
 const SettingsContext = createContext<SettingsAdapter | null>(null);
@@ -20,16 +19,12 @@ interface SettingsProviderProps {
 
 /**
  * Provides the settings layer to the component tree.
- * Sets the global holder synchronously so Zustand stores can access it immediately.
  * Unlike StorageProvider, no async init — settings are synchronous (key-value).
  */
 export function SettingsProvider({
   settings,
   children,
 }: SettingsProviderProps) {
-  // Set holder synchronously — stores may call getSettingsInstance() during render
-  setSettingsInstance(settings);
-
   return (
     <SettingsContext.Provider value={settings}>
       {children}

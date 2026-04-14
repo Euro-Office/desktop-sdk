@@ -1,5 +1,4 @@
 import { createContext, useContext } from "react";
-import { setPlatformInstance } from "./platform-holder";
 import type { PlatformAdapter } from "./types";
 
 const PlatformContext = createContext<PlatformAdapter | null>(null);
@@ -20,14 +19,11 @@ interface PlatformProviderProps {
 
 /**
  * Provides platform-specific operations (file ops, process runner, environment, host tools).
- * Sets the global platform-holder synchronously so Zustand stores can access it immediately.
  */
 export function PlatformProvider({
   platform,
   children,
 }: PlatformProviderProps) {
-  setPlatformInstance(platform);
-
   return (
     <PlatformContext.Provider value={platform}>
       {children}

@@ -26,13 +26,14 @@ const { mockSettings, mockServers } = vi.hoisted(() => {
   };
 });
 
-vi.mock("../../settings/settings-holder", () => ({
-  getSettingsInstance: () => mockSettings,
-}));
-
-vi.mock("../../tools/tools-holder", () => ({
-  getServersInstance: () => mockServers,
-}));
+const mockCtx = {
+  settings: mockSettings,
+  servers: mockServers,
+  storage: {} as never,
+  platform: {} as never,
+  provider: {} as never,
+  eventBus: {} as never,
+};
 
 import { ServersService } from "../servers";
 
@@ -48,7 +49,7 @@ function makeTool(name: string, description = "desc") {
 }
 
 function createService() {
-  return new ServersService(SERVERS_KEY, DISABLED_TOOLS_KEY);
+  return new ServersService(SERVERS_KEY, DISABLED_TOOLS_KEY, mockCtx as any);
 }
 
 // ---------------------------------------------------------------------------

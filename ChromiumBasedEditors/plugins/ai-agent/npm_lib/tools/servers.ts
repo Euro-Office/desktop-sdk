@@ -1,4 +1,6 @@
-import { getSettingsInstance } from "../settings/settings-holder";
+import type { ChatEventBus } from "../events";
+import type { PlatformAdapter } from "../platform/types";
+import type { SettingsAdapter } from "../settings/types";
 import type { TMCPItem } from "../types";
 import { CustomServers } from "./sources/CustomServers";
 import { HostToolSource } from "./sources/HostToolSource";
@@ -13,12 +15,16 @@ class Servers {
 
   allowAlways: string[];
 
-  constructor() {
+  constructor(
+    private settings: SettingsAdapter,
+    platform: PlatformAdapter,
+    eventBus: ChatEventBus
+  ) {
     this.hostToolSource = new HostToolSource();
-    this.customServers = new CustomServers();
-    this.webSearch = new WebSearch();
+    this.customServers = new CustomServers(platform, eventBus);
+    this.webSearch = new WebSearch(settings, platform, eventBus);
 
-    const raw = getSettingsInstance().get(ALLOW_ALWAYS_TOOLS);
+    const raw = this.settings.get(ALLOW_ALWAYS_TOOLS);
     this.allowAlways = raw ? raw.split(",").filter(Boolean) : [];
   }
 
@@ -54,7 +60,7 @@ class Servers {
       );
     }
 
-    getSettingsInstance().set(ALLOW_ALWAYS_TOOLS, this.allowAlways.join(","));
+    this.settings.set(ALLOW_ALWAYS_TOOLS, this.allowAlways.join(","));
   };
 
   getTools = async () => {

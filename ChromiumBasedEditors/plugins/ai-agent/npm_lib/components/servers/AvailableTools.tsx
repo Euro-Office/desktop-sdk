@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getServersInstance } from "../../tools/tools-holder";
+import { useToolsContext } from "../../tools/context";
 import { MAX_TOOL_COUNT, MAX_TOOL_COUNT_WITH_WEB_SEARCH } from "../../config";
 import { useDirection } from "../../hooks/useDirection";
 import { cn } from "../../lib/utils";
@@ -15,6 +15,7 @@ type AvailableToolsProps = {
 const AvailableTools = ({ withHeader = true }: AvailableToolsProps) => {
   const { t } = useTranslation();
   const { isRTL } = useDirection();
+  const { servers: serversInstance } = useToolsContext();
 
   const [customServers, setCustomServers] = React.useState({});
 
@@ -22,10 +23,10 @@ const AvailableTools = ({ withHeader = true }: AvailableToolsProps) => {
   const { servers, tools, webSearchEnabled } = useServersStore();
 
   React.useEffect(() => {
-    setCustomServers(getServersInstance().getCustomServers());
+    setCustomServers(serversInstance.getCustomServers());
 
     const interval = setInterval(() => {
-      setCustomServers(getServersInstance().getCustomServers());
+      setCustomServers(serversInstance.getCustomServers());
     }, 1000);
 
     return () => clearInterval(interval);

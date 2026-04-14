@@ -1,11 +1,11 @@
-import { getPlatformInstance } from "../platform/platform-holder";
-import { getStorageInstance } from "../storage/storage-holder";
+import type { AppContext } from "../app-context";
 import type { Profile, Thread } from "../types";
 import { convertMessagesToMd, removeSpecialCharacter } from "../utils";
 
 export class ThreadsService {
+  constructor(private ctx: AppContext) {}
   async loadAll(): Promise<Thread[]> {
-    const storage = getStorageInstance();
+    const storage = this.ctx.storage;
     return storage.threads.getAll();
   }
 
@@ -16,13 +16,13 @@ export class ThreadsService {
       profileId,
       lastEditDate: Date.now(),
     };
-    const storage = getStorageInstance();
+    const storage = this.ctx.storage;
     storage.threads.create(threadId, title, undefined, undefined, profileId);
     return thread;
   }
 
   touchThread(threadId: string, updates?: { profileId?: string }): void {
-    const storage = getStorageInstance();
+    const storage = this.ctx.storage;
     storage.threads.touch(threadId, {
       ...(updates && "profileId" in updates
         ? { profileId: updates.profileId }
@@ -57,7 +57,7 @@ export class ThreadsService {
 
     const migratedThread: Thread = { ...rest, profileId: matched?.id };
 
-    const storage = getStorageInstance();
+    const storage = this.ctx.storage;
     storage.threads.touch(thread.threadId, {
       profileId: matched?.id ?? null,
       provider: null,
@@ -68,27 +68,26 @@ export class ThreadsService {
   }
 
   async downloadThread(threadId: string, threadTitle?: string): Promise<void> {
-    const storage = getStorageInstance();
+    const storage = this.ctx.storage;
     const messages = await storage.messages.getByThread(threadId);
     const title = removeSpecialCharacter(threadTitle || "Chat Export");
     const content = convertMessagesToMd(messages);
-    const platform = getPlatformInstance();
-    platform?.file?.saveAsFile(content, `${title}.docx`);
+    this.ctx.platform.file?.saveAsFile(content, `${title}.docx`);
   }
 
   renameThread(id: string, title: string): void {
-    const storage = getStorageInstance();
+    const storage = this.ctx.storage;
     storage.threads.update(id, title);
   }
 
   async deleteThread(id: string): Promise<void> {
-    const storage = getStorageInstance();
+    const storage = this.ctx.storage;
     await storage.messages.deleteByThread(id);
     await storage.threads.delete(id);
   }
 
   async clearHistory(id: string): Promise<void> {
-    const storage = getStorageInstance();
+    const storage = this.ctx.storage;
     await storage.messages.deleteByThread(id);
   }
 }

@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getProviderInstance } from "../../providers/provider-holder";
+import { useStores } from "../../store/context";
 import { useDirection } from "../../hooks/useDirection";
 import { cn } from "../../lib/utils";
 import type { Profile } from "../../types";
@@ -16,7 +16,8 @@ type ModelCardProps = {
 };
 
 const ModelCard = ({ profile }: ModelCardProps) => {
-  const providerName = getProviderInstance().getProviderInfo(
+  const { provider } = useStores();
+  const providerName = provider.getProviderInfo(
     profile.providerType
   ).name;
   const [isEditing, setIsEditing] = React.useState(false);

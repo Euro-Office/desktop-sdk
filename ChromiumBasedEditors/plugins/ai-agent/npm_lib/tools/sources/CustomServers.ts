@@ -1,12 +1,6 @@
-import { chatEvents } from "../../events";
-import { getPlatformInstance } from "../../platform/platform-holder";
+import type { ChatEventBus } from "../../events";
+import type { PlatformAdapter } from "../../platform/types";
 import type { TMCPItem, TProcess } from "../../types";
-
-/** Use platform fetchProxy if available, otherwise standard fetch */
-const platformFetch = (url: string, init?: RequestInit): Promise<Response> => {
-  const proxy = getPlatformInstance()?.fetchProxy;
-  return proxy ? proxy(url, init) : fetch(url, init);
-};
 
 type THttpServer = {
   url: string;
@@ -111,7 +105,10 @@ class CustomServers {
     { resolve: (value: unknown) => void; reject: (reason: unknown) => void }
   >;
 
-  constructor() {
+  constructor(
+    private platform: PlatformAdapter,
+    private eventBus: ChatEventBus
+  ) {
     this.customServers = {};
     this.startedCustomServers = {};
     this.initedCustomServers = {};
@@ -122,6 +119,15 @@ class CustomServers {
     this.stoppedCustomServers = [];
     this._pendingRequests = new Map();
   }
+
+  /** Use platform fetchProxy if available, otherwise standard fetch */
+  private platformFetch = (
+    url: string,
+    init?: RequestInit
+  ): Promise<Response> => {
+    const proxy = this.platform.fetchProxy;
+    return proxy ? proxy(url, init) : fetch(url, init);
+  };
 
   private _appendLog(type: string, line: string) {
     const logs = this.customServersLogs[type];
@@ -151,7 +157,7 @@ class CustomServers {
 
         if (jsonId && jsonId.startsWith(`tools-${type}`)) {
           this.tools[type] = correctJson.result.tools;
-          chatEvents.emit("tools-changed");
+          this.eventBus.emit("tools-changed");
         }
 
         // Dispatch to pending request resolvers
@@ -200,15 +206,17 @@ class CustomServers {
   };
 
   getServerType = (name: string) => {
-    let type: string = "";
-
-    Object.keys(this.customServers).forEach((serverType) => {
+    // Sort by length descending so longer prefixes match first
+    // (e.g., "my-server-v2" matches before "my-server")
+    const keys = Object.keys(this.customServers).sort(
+      (a, b) => b.length - a.length
+    );
+    for (const serverType of keys) {
       if (name.startsWith(`${serverType}_`)) {
-        type = serverType;
+        return serverType;
       }
-    });
-
-    return type;
+    }
+    return "";
   };
 
   startCustomServers = () => {
@@ -282,8 +290,7 @@ class CustomServers {
       `${new Date().toLocaleString()}: ${commandLine}\n`,
     ];
 
-    const platform = getPlatformInstance();
-    const process = platform?.process?.createProcess(commandLine, env);
+    const process = this.platform.process?.createProcess(commandLine, env);
     if (!process) return;
 
     process.onprocess = this.onProcess.bind(this, type);
@@ -330,7 +337,7 @@ class CustomServers {
     };
 
     this.initHttpServer(type);
-    chatEvents.emit("tools-changed");
+    this.eventBus.emit("tools-changed");
   };
 
   restartStdioServer = (type: string, config: Record<string, unknown>) => {
@@ -344,8 +351,7 @@ class CustomServers {
 
     this.tools[type] = [];
 
-    const platform = getPlatformInstance();
-    const process = platform?.process?.createProcess(commandLine, env);
+    const process = this.platform.process?.createProcess(commandLine, env);
     if (!process) return;
 
     process.onprocess = this.onProcess.bind(this, type);
@@ -355,7 +361,7 @@ class CustomServers {
     process.start();
 
     this.initCustomServer(type);
-    chatEvents.emit("tools-changed");
+    this.eventBus.emit("tools-changed");
   };
 
   deleteCustomServer = (type: string) => {
@@ -383,7 +389,7 @@ class CustomServers {
     if (this.tools[type]) {
       delete this.tools[type];
     }
-    chatEvents.emit("tools-changed");
+    this.eventBus.emit("tools-changed");
   };
 
   initHttpServer = async (type: string) => {
@@ -405,7 +411,7 @@ class CustomServers {
         },
       };
 
-      const response = await platformFetch(server.url, {
+      const response = await this.platformFetch(server.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -505,7 +511,7 @@ class CustomServers {
         params: {},
       };
 
-      const response = await platformFetch(server.url, {
+      const response = await this.platformFetch(server.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -596,7 +602,7 @@ class CustomServers {
         },
       };
 
-      const response = await platformFetch(server.url, {
+      const response = await this.platformFetch(server.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

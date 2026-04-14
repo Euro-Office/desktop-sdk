@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { chatEvents } from "../../events";
 
 // ---------------------------------------------------------------------------
 // Capture useEffect callbacks and cleanup functions
@@ -51,8 +50,18 @@ const mockHostToolSource = {
   setGroups: vi.fn(),
 };
 
+const mockEventBus = {
+  on: vi.fn(),
+  off: vi.fn(),
+  emit: vi.fn(),
+};
+
 const mockServersInstance = {
   hostToolSource: mockHostToolSource,
+};
+
+const mockProvider = {
+  setCurrentProviderTools: mockSetCurrentProviderTools,
 };
 
 const mockStores = {
@@ -64,17 +73,13 @@ const mockStores = {
     }
   ),
   selectCurrentChatProfile: mockSelectCurrentChatProfile,
+  provider: mockProvider,
 };
 
 vi.mock("../../store/context", () => ({
   useStores: () => mockStores,
 }));
 
-vi.mock("../../providers/provider-holder", () => ({
-  getProviderInstance: () => ({
-    setCurrentProviderTools: mockSetCurrentProviderTools,
-  }),
-}));
 
 const mockHostToolGroups = [{ name: "host-group", tools: [] }];
 
@@ -82,6 +87,7 @@ vi.mock("../../tools/context", () => ({
   useToolsContext: () => ({
     servers: mockServersInstance,
     hostToolGroups: mockHostToolGroups,
+    eventBus: mockEventBus,
   }),
 }));
 
@@ -160,19 +166,16 @@ describe("useServers", () => {
     expect(mockInitServers).not.toHaveBeenCalled();
   });
 
-  it("tools-changed effect registers on chatEvents and calls getTools on event", () => {
-    const mockOn = vi.spyOn(chatEvents, "on");
-    const mockOff = vi.spyOn(chatEvents, "off");
-
+  it("tools-changed effect registers on eventBus and calls getTools on event", () => {
     useServers({ isReady: true });
 
     // The tools-changed effect is the third one (index 2)
     const cleanup = effectCallbacks[2]();
 
-    expect(mockOn).toHaveBeenCalledWith("tools-changed", expect.any(Function));
+    expect(mockEventBus.on).toHaveBeenCalledWith("tools-changed", expect.any(Function));
 
     // Simulate the event firing
-    const handler = mockOn.mock.calls.find(
+    const handler = mockEventBus.on.mock.calls.find(
       (call: unknown[]) => call[0] === "tools-changed"
     )?.[1] as () => void;
     expect(handler).toBeDefined();
@@ -185,10 +188,7 @@ describe("useServers", () => {
     if (typeof cleanup === "function") {
       cleanup();
     }
-    expect(mockOff).toHaveBeenCalledWith("tools-changed", expect.any(Function));
-
-    mockOn.mockRestore();
-    mockOff.mockRestore();
+    expect(mockEventBus.off).toHaveBeenCalledWith("tools-changed", expect.any(Function));
   });
 
   it("third effect sets provider tools when tools and profile exist", () => {

@@ -1,7 +1,5 @@
+import type { AppContext } from "../app-context";
 import type { TErrorData } from "../providers/base";
-import { getProviderInstance } from "../providers/provider-holder";
-import { getSettingsInstance } from "../settings/settings-holder";
-import { getStorageInstance } from "../storage/storage-holder";
 import type { Profile } from "../types";
 
 const NAME_EXISTS_ERROR = {
@@ -21,8 +19,10 @@ export type ProfilesInitResult = {
 };
 
 export class ProfilesService {
+  constructor(private ctx: AppContext) {}
+
   loadProfileById(profiles: Profile[], key: string): Profile | null {
-    const settings = getSettingsInstance();
+    const settings = this.ctx.settings;
     const id = settings.get(key);
     if (!id) return null;
     const found = profiles.find((p) => p.id === id);
@@ -40,24 +40,24 @@ export class ProfilesService {
   ): void {
     const active = sessionChatProfile ?? chatProfile ?? defaultProfile;
     if (active) {
-      getProviderInstance().setCurrentProvider({
+      this.ctx.provider.setCurrentProvider({
         type: active.providerType,
         name: active.name,
         baseUrl: active.baseUrl,
         key: active.key,
       });
-      getProviderInstance().setCurrentProviderModel(
+      this.ctx.provider.setCurrentProviderModel(
         active.modelId,
         active.reasoning
       );
     } else {
-      getProviderInstance().setCurrentProvider(undefined);
+      this.ctx.provider.setCurrentProvider(undefined);
     }
   }
 
   async init(keys: TaskProfileKeys): Promise<ProfilesInitResult> {
-    const storage = getStorageInstance();
-    const settings = getSettingsInstance();
+    const storage = this.ctx.storage;
+    const settings = this.ctx.settings;
     const profiles = (await storage.profiles.getAll()).reverse();
 
     const defaultProfile =
@@ -88,13 +88,13 @@ export class ProfilesService {
       return { success: false, error: NAME_EXISTS_ERROR };
     }
 
-    const checkResult = await getProviderInstance().checkNewProvider(
+    const checkResult = await this.ctx.provider.checkNewProvider(
       data.providerType,
       { url: data.baseUrl, apiKey: data.key }
     );
 
     if (checkResult === true) {
-      const storage = getStorageInstance();
+      const storage = this.ctx.storage;
       const newProfile: Profile = { ...data, id: crypto.randomUUID() };
       await storage.profiles.create(newProfile);
       return { success: true, profile: newProfile };
@@ -123,13 +123,13 @@ export class ProfilesService {
       return { success: false, error: NAME_EXISTS_ERROR };
     }
 
-    const checkResult = await getProviderInstance().checkNewProvider(
+    const checkResult = await this.ctx.provider.checkNewProvider(
       profile.providerType,
       { url: profile.baseUrl, apiKey: profile.key }
     );
 
     if (checkResult === true) {
-      const storage = getStorageInstance();
+      const storage = this.ctx.storage;
       await storage.profiles.update(profile);
       return { success: true };
     }
@@ -145,7 +145,7 @@ export class ProfilesService {
   }
 
   async deleteProfile(id: string): Promise<void> {
-    const storage = getStorageInstance();
+    const storage = this.ctx.storage;
     await storage.profiles.delete(id);
   }
 
@@ -155,7 +155,7 @@ export class ProfilesService {
     key: string
   ): Profile | null {
     if (profile?.id === id) {
-      getSettingsInstance().remove(key);
+      this.ctx.settings.remove(key);
       return null;
     }
     return profile;
@@ -167,7 +167,7 @@ export class ProfilesService {
     currentDefault: Profile | null,
     defaultKey: string
   ): Profile | null {
-    const settings = getSettingsInstance();
+    const settings = this.ctx.settings;
     if (currentDefault?.id !== deletedId) return currentDefault;
 
     const nextDefault = profiles[0] ?? null;
@@ -180,7 +180,7 @@ export class ProfilesService {
   }
 
   setTaskProfile(key: string, profile: Profile | null): void {
-    const settings = getSettingsInstance();
+    const settings = this.ctx.settings;
     if (profile) {
       settings.set(key, profile.id);
     } else {

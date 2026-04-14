@@ -74,10 +74,18 @@ const {
   };
 });
 
-// Mock settings holder (Servers uses getSettingsInstance() for allowAlways)
-vi.mock("../../settings/settings-holder", () => ({
-  getSettingsInstance: () => localStorageMock,
-}));
+const mockPlatform = {
+  file: null,
+  process: null,
+  env: { platform: "desktop" },
+  hostTools: null,
+};
+
+const mockEventBus = {
+  on: vi.fn(),
+  off: vi.fn(),
+  emit: vi.fn(),
+};
 
 // Mock the dependencies
 vi.mock("../sources/HostToolSource", () => ({
@@ -122,7 +130,7 @@ describe("Servers", () => {
   let servers: InstanceType<typeof Servers>;
 
   beforeEach(() => {
-    servers = new Servers();
+    servers = new Servers(localStorageMock as any, mockPlatform as any, mockEventBus as any);
     vi.clearAllMocks();
     localStorageMock.clear();
 

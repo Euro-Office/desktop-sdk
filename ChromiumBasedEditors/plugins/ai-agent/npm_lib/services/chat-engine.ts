@@ -3,10 +3,8 @@ import type {
   ImageMessagePart,
   ThreadMessageLike,
 } from "@assistant-ui/react";
+import type { AppContext } from "../app-context";
 import type { SendMessageReturnType } from "../providers";
-import { getProviderInstance } from "../providers/provider-holder";
-import { getStorageInstance } from "../storage/storage-holder";
-import { getServersInstance } from "../tools/tools-holder";
 import type { TAttachmentFile, TAttachmentImage } from "../types";
 
 // --- Event types ---
@@ -37,6 +35,8 @@ export type ToolCallData = {
 // --- ChatEngine ---
 
 export class ChatEngine {
+  constructor(private ctx: AppContext) {}
+
   async *sendMessage(params: {
     text: string;
     threadId: string;
@@ -71,7 +71,7 @@ export class ChatEngine {
       content,
     };
 
-    const storage = getStorageInstance();
+    const storage = this.ctx.storage;
     const existingThread = await storage.threads.getById(params.threadId);
 
     if (!existingThread) {
@@ -103,12 +103,15 @@ export class ChatEngine {
         userMessage
       );
 
-      this._pendingTitlePromise = getProviderInstance()
-        .createChatName(textForTitle)
-        .then((title) => {
-          if (!title) return null;
-          return { title, profileId: params.profileId };
-        });
+      this._pendingTitlePromises.set(
+        params.threadId,
+        this.ctx.provider
+          .createChatName(textForTitle)
+          .then((title) => {
+            if (!title) return null;
+            return { title, profileId: params.profileId };
+          })
+      );
     } else {
       storage.threads.touch(params.threadId, {
         ...(params.profileId !== undefined
@@ -122,19 +125,18 @@ export class ChatEngine {
       );
     }
 
-    const stream = getProviderInstance().sendMessage(
+    const stream = this.ctx.provider.sendMessage(
       [userMessage],
       params.extendedThinking
     );
 
-    if (stream) {
-      yield* this._processStream(stream, params.threadId, false);
-    }
+    yield* this._processStream(stream, params.threadId, false);
 
     // Await title generation and yield if ready
-    if (this._pendingTitlePromise) {
-      const titleResult = await this._pendingTitlePromise;
-      this._pendingTitlePromise = null;
+    const pendingTitle = this._pendingTitlePromises.get(params.threadId);
+    if (pendingTitle) {
+      this._pendingTitlePromises.delete(params.threadId);
+      const titleResult = await pendingTitle;
       if (titleResult) {
         yield {
           type: "thread-title" as const,
@@ -160,11 +162,11 @@ export class ChatEngine {
       return;
 
     const toolName = toolCall.toolName;
-    const type = getServersInstance().getServerType(toolName);
+    const type = this.ctx.servers.getServerType(toolName);
     const name = toolName.replace(`${type}_`, "");
 
     if (allowAlways) {
-      getServersInstance().setAllowAlways(true, type, name);
+      this.ctx.servers.setAllowAlways(true, type, name);
     }
 
     yield* this._executeToolCall(
@@ -190,15 +192,15 @@ export class ChatEngine {
   }
 
   stop(): void {
-    getProviderInstance().stopMessage();
+    this.ctx.provider.stopMessage();
   }
 
   // --- Internal ---
 
-  private _pendingTitlePromise: Promise<{
-    title: string;
-    profileId?: string;
-  } | null> | null = null;
+  private _pendingTitlePromises = new Map<
+    string,
+    Promise<{ title: string; profileId?: string } | null>
+  >();
 
   async *handleToolCall(
     msg: ThreadMessageLike,
@@ -216,10 +218,10 @@ export class ChatEngine {
       return;
 
     const toolName = toolCall.toolName;
-    const type = getServersInstance().getServerType(toolName);
+    const type = this.ctx.servers.getServerType(toolName);
     const name = toolName.replace(`${type}_`, "");
 
-    if (getServersInstance().checkAllowAlways(type, name)) {
+    if (this.ctx.servers.checkAllowAlways(type, name)) {
       yield* this._executeToolCall(
         msg,
         idx,
@@ -255,10 +257,10 @@ export class ChatEngine {
 
     const result = deny
       ? "User deny tool call"
-      : await getServersInstance().callTools(
-          getServersInstance().getServerType(toolCall.toolName),
+      : await this.ctx.servers.callTools(
+          this.ctx.servers.getServerType(toolCall.toolName),
           toolCall.toolName.replace(
-            `${getServersInstance().getServerType(toolCall.toolName)}_`,
+            `${this.ctx.servers.getServerType(toolCall.toolName)}_`,
             ""
           ),
           toolCall.args as Record<string, unknown>
@@ -277,16 +279,14 @@ export class ChatEngine {
       message: updatedMessage,
       messageUID,
     };
-    getStorageInstance().messages.update(messageUID, updatedMessage);
+    this.ctx.storage.messages.update(messageUID, updatedMessage);
 
-    const streamAfterToolCall = getProviderInstance().sendMessageAfterToolCall(
+    const streamAfterToolCall = this.ctx.provider.sendMessageAfterToolCall(
       updatedMessage,
       extendedThinking
     );
 
-    if (streamAfterToolCall) {
-      yield* this._processStream(streamAfterToolCall, "", true, messageUID);
-    }
+    yield* this._processStream(streamAfterToolCall, "", true, messageUID);
   }
 
   private async *_processStream(
@@ -345,11 +345,11 @@ export class ChatEngine {
           messageUID,
         };
         if (!afterToolCall) {
-          getStorageInstance().messages.create(threadId, messageUID, message);
+          this.ctx.storage.messages.create(threadId, messageUID, message);
         }
         initedMessage = true;
       } else {
-        getStorageInstance().messages.update(messageUID, message);
+        this.ctx.storage.messages.update(messageUID, message);
         yield {
           type: "message-delta" as const,
           message,

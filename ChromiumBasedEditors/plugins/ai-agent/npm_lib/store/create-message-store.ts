@@ -1,7 +1,6 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { create, type StoreApi, type UseBoundStore } from "zustand";
-import { getProviderInstance } from "../providers/provider-holder";
-import { getStorageInstance } from "../storage/storage-holder";
+import type { AppContext } from "../app-context";
 
 export interface MessageStoreState {
   messages: ThreadMessageLike[];
@@ -17,9 +16,9 @@ export interface MessageStoreState {
   clearMessages: () => void;
 }
 
-export function createMessageStore(): UseBoundStore<
-  StoreApi<MessageStoreState>
-> {
+export function createMessageStore(
+  ctx: AppContext
+): UseBoundStore<StoreApi<MessageStoreState>> {
   return create<MessageStoreState>((set, get) => ({
     messages: [],
     isStreamRunning: false,
@@ -28,13 +27,13 @@ export function createMessageStore(): UseBoundStore<
 
     fetchPrevMessages: async (threadId: string) => {
       set({ _currentThreadId: threadId });
-      const storage = getStorageInstance();
+      const storage = ctx.storage;
       const fetchedMessages = await storage.messages.getByThread(threadId);
       // Guard: if thread changed while awaiting, discard stale results
       const current = get();
       if (current._currentThreadId !== threadId) return;
       set({ messages: fetchedMessages });
-      getProviderInstance().setCurrentProviderPrevMessages(fetchedMessages);
+      ctx.provider.setCurrentProviderPrevMessages(fetchedMessages);
     },
 
     setIsStreamRunning: (value) => set({ isStreamRunning: value }),
@@ -59,12 +58,12 @@ export function createMessageStore(): UseBoundStore<
 
     stopMessage: () => {
       get().setIsStreamRunning(false);
-      getProviderInstance().stopMessage();
+      ctx.provider.stopMessage();
     },
 
     clearMessages: () => {
       set({ messages: [] });
-      getProviderInstance().setCurrentProviderPrevMessages([]);
+      ctx.provider.setCurrentProviderPrevMessages([]);
     },
   }));
 }

@@ -5,7 +5,7 @@ import { DropdownMenu } from "../../../components/dropdown";
 import type { DropDownItemProps } from "../../../components/dropdown-item/DropDownItem.types";
 import { IconButton } from "../../../components/icon-button";
 import { TooltipIconButton } from "../../../components/tooltip-icon-button";
-import { chatEvents } from "../../../events";
+import { useToolsContext } from "../../../tools/context";
 import {
   isDjVu,
   isDocument,
@@ -34,6 +34,7 @@ const ComposerActionAttachment = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const platform = usePlatform();
+  const { eventBus } = useToolsContext();
   const { useAttachmentsStore, useServersStore, useProfilesStore } =
     useStores();
 
@@ -172,7 +173,7 @@ const ComposerActionAttachment = () => {
       const webSearchTool = servers["web-search"]?.[0];
       if (!webSearchTool) return;
       changeToolStatus("web-search", webSearchTool.name, !webSearchEnabled);
-      chatEvents.emit("tools-changed");
+      eventBus.emit("tools-changed");
     },
   });
 

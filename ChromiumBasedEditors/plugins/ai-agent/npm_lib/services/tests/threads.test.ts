@@ -26,13 +26,14 @@ const mockPlatform = {
   hostTools: null,
 };
 
-vi.mock("../../storage/storage-holder", () => ({
-  getStorageInstance: () => mockStorage,
-}));
-
-vi.mock("../../platform/platform-holder", () => ({
-  getPlatformInstance: () => mockPlatform,
-}));
+const mockCtx = {
+  storage: mockStorage,
+  platform: mockPlatform,
+  settings: {} as never,
+  provider: {} as never,
+  servers: {} as never,
+  eventBus: {} as never,
+};
 
 vi.mock("../../utils", () => ({
   convertMessagesToMd: vi.fn(() => "# Exported content"),
@@ -78,7 +79,7 @@ describe("ThreadsService", () => {
     mockStorage.messages.deleteByThread.mockResolvedValue(undefined);
 
     const { ThreadsService } = await import("../threads");
-    service = new ThreadsService();
+    service = new ThreadsService(mockCtx as any);
   });
 
   // -----------------------------------------------------------------------

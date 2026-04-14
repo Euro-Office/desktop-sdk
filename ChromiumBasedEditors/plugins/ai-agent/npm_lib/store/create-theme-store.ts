@@ -1,5 +1,5 @@
 import { create, type StoreApi, type UseBoundStore } from "zustand";
-import { getPlatformInstance } from "../platform/platform-holder";
+import type { AppContext } from "../app-context";
 
 type ThemeType = "light" | "dark";
 
@@ -24,7 +24,9 @@ export interface ThemeStoreState {
   initFromPlatform: () => void;
 }
 
-export function createThemeStore(): UseBoundStore<StoreApi<ThemeStoreState>> {
+export function createThemeStore(
+  ctx: AppContext
+): UseBoundStore<StoreApi<ThemeStoreState>> {
   return create<ThemeStoreState>((set, get) => ({
     themeId: "theme-light",
     themeType: "light",
@@ -37,13 +39,11 @@ export function createThemeStore(): UseBoundStore<StoreApi<ThemeStoreState>> {
 
     initFromPlatform: () => {
       if (get().initialized) return;
-      const platform = getPlatformInstance();
-      if (!platform) return;
-      const themeId = platform.env.theme;
+      const themeId = ctx.platform.env.theme;
       set({
         themeId,
         themeType: getThemeType(themeId),
-        scale: platform.env.devicePixelRatio,
+        scale: ctx.platform.env.devicePixelRatio,
         initialized: true,
       });
     },

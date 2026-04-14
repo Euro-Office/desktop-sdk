@@ -32,17 +32,14 @@ const mockServers = {
   setAllowAlways: vi.fn(),
 };
 
-vi.mock("../../storage/storage-holder", () => ({
-  getStorageInstance: () => mockStorage,
-}));
-
-vi.mock("../../providers/provider-holder", () => ({
-  getProviderInstance: () => mockProvider,
-}));
-
-vi.mock("../../tools/tools-holder", () => ({
-  getServersInstance: () => mockServers,
-}));
+const mockCtx = {
+  storage: mockStorage,
+  provider: mockProvider,
+  servers: mockServers,
+  settings: {} as never,
+  platform: {} as never,
+  eventBus: {} as never,
+};
 
 // ---------------------------------------------------------------------------
 // Import after mocks
@@ -88,7 +85,7 @@ describe("ChatEngine", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    engine = new ChatEngine();
+    engine = new ChatEngine(mockCtx as any);
     mockStorage.threads.getById.mockResolvedValue(null);
   });
 
@@ -233,8 +230,8 @@ describe("ChatEngine", () => {
       expect(pending?.idx).toBe(0);
     });
 
-    it("handles null stream gracefully", async () => {
-      mockProvider.sendMessage.mockReturnValue(undefined);
+    it("handles empty stream gracefully", async () => {
+      mockProvider.sendMessage.mockReturnValue((async function* () {})());
 
       const events = [];
       for await (const event of engine.sendMessage({

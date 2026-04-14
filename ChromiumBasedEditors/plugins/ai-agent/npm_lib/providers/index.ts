@@ -1,9 +1,10 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { CURRENT_MODEL_KEY } from "../constants";
-import { getSettingsInstance } from "../settings/settings-holder";
+import type { SettingsAdapter } from "../settings/types";
 import type { Model, ProviderType, TMCPItem, TProvider } from "../types";
 import type { TData, TErrorData } from "./base";
 import { mapFetchError } from "./errors";
+import { NullProvider } from "./null-provider";
 import { SYSTEM_PROMPT } from "./prompts";
 import {
   type BaseProvider,
@@ -22,28 +23,41 @@ export type SendMessageReturnType = AsyncGenerator<
 >;
 
 class Provider {
-  currentProvider?: BaseProvider;
+  currentProvider: BaseProvider = new NullProvider();
   currentProviderInfo?: TProvider;
   currentProviderType?: ProviderType;
+  private settings?: SettingsAdapter;
+
+  /** Set the settings adapter for model restoration. Called once during init. */
+  setSettings(settings: SettingsAdapter): void {
+    this.settings = settings;
+  }
 
   setCurrentProvider = (provider?: TProvider) => {
     if (!provider) {
-      this.currentProvider = undefined;
+      this.currentProvider = new NullProvider();
       this.currentProviderInfo = undefined;
       this.currentProviderType = undefined;
       return;
     }
 
     this.currentProviderInfo = provider;
-    this.currentProvider = getProvider(provider.type);
-    this.currentProviderType = this.currentProvider ? provider.type : undefined;
+    const resolved = getProvider(provider.type);
 
-    if (this.currentProvider) {
-      this.currentProvider.setProvider(provider);
-      this.currentProvider.setSystemPrompt(SYSTEM_PROMPT);
+    if (!resolved) {
+      this.currentProvider = new NullProvider();
+      this.currentProviderType = undefined;
+      return;
+    }
 
-      // Restore model from localStorage to handle initialization race condition
-      const savedModel = getSettingsInstance().get(CURRENT_MODEL_KEY);
+    this.currentProvider = resolved;
+    this.currentProviderType = provider.type;
+    this.currentProvider.setProvider(provider);
+    this.currentProvider.setSystemPrompt(SYSTEM_PROMPT);
+
+    // Restore model from settings to handle initialization race condition
+    if (this.settings) {
+      const savedModel = this.settings.get(CURRENT_MODEL_KEY);
       if (savedModel) {
         try {
           const parsed: Model = JSON.parse(savedModel);
@@ -57,34 +71,25 @@ class Provider {
   };
 
   setCurrentProviderModel = (modelKey: string, isReasoning?: boolean) => {
-    if (!this.currentProvider) return;
-
     this.currentProvider.setModelKey(modelKey);
     this.currentProvider.isReasoning = isReasoning ?? false;
   };
 
   setCurrentProviderTools = (tools: TMCPItem[]) => {
-    if (!this.currentProvider) return;
-
     this.currentProvider.setTools(tools);
   };
 
   setCurrentProviderPrevMessages = (prevMessages: ThreadMessageLike[]) => {
-    if (!this.currentProvider) return;
-
     this.currentProvider.setPrevMessages(prevMessages);
   };
 
   getCurrentProviderModel = () => {
-    if (!this.currentProvider) return;
-
     return this.currentProvider.modelKey;
   };
 
   createChatName = async (message: string) => {
-    if (!this.currentProvider) return "";
-
     const title = await this.currentProvider.createChatName(message);
+    if (!title) return "";
 
     return title.includes("</think>")
       ? title.split("</think>")[1].slice(0, 128)
@@ -94,9 +99,7 @@ class Provider {
   sendMessage = (
     messages: ThreadMessageLike[],
     withThinking?: boolean
-  ): SendMessageReturnType | undefined => {
-    if (!this.currentProvider) return;
-
+  ): SendMessageReturnType => {
     return this.currentProvider.sendMessage(
       messages,
       false,
@@ -108,15 +111,11 @@ class Provider {
   sendMessageAfterToolCall = (
     message: ThreadMessageLike,
     withThinking?: boolean
-  ): SendMessageReturnType | undefined => {
-    if (!this.currentProvider) return;
-
+  ): SendMessageReturnType => {
     return this.currentProvider.sendMessageAfterToolCall(message, withThinking);
   };
 
   stopMessage = () => {
-    if (!this.currentProvider) return;
-
     this.currentProvider.stopMessage();
   };
 
@@ -133,11 +132,9 @@ class Provider {
 
   getProviderInfo = (type: ProviderType) => {
     const p = getProvider(type);
-
     if (!p) {
       return { name: "", baseUrl: "" };
     }
-
     return {
       type,
       name: p.getName(),
@@ -147,9 +144,7 @@ class Provider {
 
   checkNewProvider = (type: ProviderType, data: TData) => {
     const p = getProvider(type);
-
     if (!p) return false;
-
     return p.checkProvider(data);
   };
 
