@@ -3,37 +3,14 @@ import { ModelAssignment } from "../../components/model-assignment";
 import { Servers } from "../../components/servers";
 import { Tabs } from "../../components/tabs";
 import { WebSearch } from "../../components/web-search";
-import { useDirection } from "../../hooks/useDirection";
-import { cn } from "../../lib/utils";
 import { useStores } from "../../store/context";
 import { Models } from "./sub-components/models";
 
 const Settings = () => {
   const { t } = useTranslation();
-  const { isRTL } = useDirection();
   const { useProfilesStore } = useStores();
 
   const profiles = useProfilesStore((s) => s.profiles);
-
-  const aiSettingsTab = (
-    <div className="flex flex-col gap-[16px] select-none max-w-full">
-      <div className={cn("flex gap-[12px]", isRTL ? "justify-end" : "")}>
-        <div className="select-none flex flex-col gap-[12px] w-full">
-          <div className="flex flex-col gap-[4px] ">
-            <p
-              className={cn(
-                "text-[14px] leading-[20px] text-[var(--settings-description-color)]",
-                isRTL ? "text-end" : ""
-              )}
-            >
-              {t("AIProvidersDescription")}
-            </p>
-          </div>
-          <Models />
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="flex justify-center">
@@ -46,7 +23,11 @@ const Settings = () => {
             {
               value: "ai-settings",
               label: t("AIModels"),
-              content: aiSettingsTab,
+              content: (
+                <div className="max-w-[480px]">
+                  <Models />
+                </div>
+              ),
             },
             {
               value: "model-assignment",

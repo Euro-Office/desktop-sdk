@@ -42,6 +42,7 @@ export type {
   PlatformFileOperations,
   PlatformHostTools,
   PlatformProcessRunner,
+  PlatformClouds,
 } from "./platform/types";
 export { default as Provider, type SendMessageReturnType } from "./providers";
 // --- Providers ---
@@ -127,6 +128,8 @@ export type {
   TMCPItem,
   TProcess,
   TProvider,
+  TCloud,
+  TCloudProvider,
 } from "./types";
 // --- Utils ---
 export {

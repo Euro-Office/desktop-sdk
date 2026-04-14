@@ -19,6 +19,7 @@ import useServers from "./hooks/useServers";
 import useThread from "./hooks/useThreads";
 import { initAIChatI18n } from "./i18n";
 import Thread from "./pages/chat";
+
 const EmptyScreen = lazy(() => import("./pages/empty-screen"));
 const InitialSetup = lazy(() => import("./pages/initial-setup"));
 const Settings = lazy(() => import("./pages/settings"));
@@ -157,13 +158,19 @@ const AppInner = ({
   const [isReady, setIsReady] = useState(false);
   const [isManageToolOpen, setIsManageToolOpen] = useState(false);
 
-  const { useMessageStore, useProfilesStore, useServersStore, useRouter } =
-    useStores();
+  const {
+    useMessageStore,
+    useProfilesStore,
+    useServersStore,
+    useRouter,
+    useCloudsStore,
+  } = useStores();
 
   const { messages, stopMessage } = useMessageStore();
   const { currentPage } = useRouter();
   const { manageToolData, setManageToolData } = useServersStore();
   const { profiles } = useProfilesStore();
+  const { fetchClouds } = useCloudsStore();
 
   useThread({ isReady });
   useServers({ isReady });
@@ -176,6 +183,10 @@ const AppInner = ({
   useEffect(() => {
     if (manageToolData) setIsManageToolOpen(true);
   }, [manageToolData]);
+
+  useEffect(() => {
+    fetchClouds();
+  }, [fetchClouds]);
 
   useEffect(() => {
     if (onMigrate) {

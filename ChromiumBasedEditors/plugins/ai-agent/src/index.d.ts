@@ -1,4 +1,4 @@
-import type { TProcess } from "./lib/types";
+import type { TCloud, TProcess } from "./lib/types";
 
 declare global {
   interface Window {
@@ -6,6 +6,9 @@ declare global {
       getOfficeFileType: (file: string) => number;
       getToolFunctions: () => string;
       callToolFunction: (name: string, args?: string) => string;
+      getClouds: () => TCloud[];
+      getCloudKeys: () => TCloudKey[];
+      openConnectCloud: () => void;
       openTemplate: (file: string, name: string) => void;
       saveAndOpen: (
         content: string,
@@ -41,6 +44,7 @@ declare global {
       };
     };
     on_update_plugin_info: (info: { theme: string; lang: string }) => void;
+    onUpdateClouds?: () => void;
     ExternalProcess: new (
       command: string,
       env?: Record<string, string>

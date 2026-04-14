@@ -8,6 +8,8 @@ const WEB_SEARCH_DATA = "webSearchProviderData";
 export type WebSearchData = {
   provider: string;
   key: string;
+  baseUrl?: string;
+  isCloudProvider?: boolean;
 } | null;
 
 class WebSearch {
@@ -69,6 +71,42 @@ class WebSearch {
   };
 
   webSearch = async (args: Record<string, unknown>) => {
+    if (
+      this.webSearchData?.isCloudProvider ||
+      this.webSearchData?.provider === "ONLYOFFICE"
+    ) {
+      try {
+        const baseUrl = this.webSearchData.isCloudProvider
+          ? this.webSearchData.provider
+          : (this.webSearchData.baseUrl ?? "");
+        const searchUrl = new URL("/api/2.0/ai/web-search/v1/search", baseUrl);
+        const response = await fetch(`onlyoffice-proxy://${searchUrl.href}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.webSearchData.key}`,
+          },
+          body: JSON.stringify({ query: args.query, numResults: 5 }),
+        });
+
+        if (!response.ok) {
+          return JSON.stringify({
+            error: response.status,
+            message: `Network error: ${response.status}`,
+          });
+        }
+
+        const parsedData = await response.json();
+        const data = parsedData.error
+          ? { error: parsedData.error }
+          : parsedData.results;
+
+        return JSON.stringify({ data });
+      } catch (e) {
+        console.error("WebSearch error:", e);
+        return JSON.stringify({ error: e });
+      }
+    }
     if (this.webSearchData?.provider === "Exa") {
       try {
         const response = await this.platformFetch("https://api.exa.ai/search", {
@@ -109,6 +147,44 @@ class WebSearch {
   };
 
   webCrawling = async (args: Record<string, unknown>) => {
+    if (
+      this.webSearchData?.isCloudProvider ||
+      this.webSearchData?.provider === "ONLYOFFICE"
+    ) {
+      try {
+        const baseUrl = this.webSearchData.isCloudProvider
+          ? this.webSearchData.provider
+          : (this.webSearchData.baseUrl ?? "");
+        const crawlUrl = new URL("/api/2.0/ai/web-search/v1/contents", baseUrl);
+        const response = await fetch(`onlyoffice-proxy://${crawlUrl.href}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.webSearchData.key}`,
+          },
+          body: JSON.stringify({
+            url: (args.urls as string[])[0],
+          }),
+        });
+
+        if (!response.ok) {
+          return JSON.stringify({
+            error: response.status,
+            message: `Network error: ${response.status}`,
+          });
+        }
+
+        const parsedData = await response.json();
+        const data = parsedData.error
+          ? { error: parsedData.error }
+          : parsedData.results;
+
+        return JSON.stringify({ data });
+      } catch (e) {
+        console.error(e);
+        return JSON.stringify({ error: e });
+      }
+    }
     if (this.webSearchData?.provider === "Exa") {
       try {
         const response = await this.platformFetch("https://api.exa.ai/contents", {

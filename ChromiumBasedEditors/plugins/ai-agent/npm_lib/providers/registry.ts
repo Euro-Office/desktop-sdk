@@ -7,6 +7,7 @@ import { GroqProvider, groqProvider } from "./groq";
 import { LMStudioProvider, lmStudioProvider } from "./lm-studio";
 import { MistralProvider, mistralProvider } from "./mistral";
 import { OllamaProvider, ollamaProvider } from "./ollama";
+import { OnlyOfficeProvider, onlyOfficeProvider } from "./onlyoffice";
 import { OpenAIProvider, openaiProvider } from "./openai";
 import {
   OpenAICompatibleProvider,
@@ -33,7 +34,8 @@ export type BuiltinProvider =
   | GroqProvider
   | ZhipuProvider
   | StabilityAIProvider
-  | GPT4AllProvider;
+  | GPT4AllProvider
+  | OnlyOfficeProvider;
 
 // biome-ignore lint/suspicious/noExplicitAny: custom providers can have any generic params
 export type BaseProvider =
@@ -44,6 +46,7 @@ export type BaseProvider =
  * Built-in registry mapping provider types to their singleton instances.
  */
 const builtinProviders: Record<ProviderType, BuiltinProvider> = {
+  onlyoffice: onlyOfficeProvider,
   anthropic: anthropicProvider,
   ollama: ollamaProvider,
   openai: openaiProvider,
@@ -123,6 +126,7 @@ const builtinFactories: Record<ProviderType, () => BuiltinProvider> = {
   zhipu: () => new ZhipuProvider(),
   stabilityai: () => new StabilityAIProvider(),
   gpt4all: () => new GPT4AllProvider(),
+  onlyoffice: () => new OnlyOfficeProvider(),
 };
 
 /**

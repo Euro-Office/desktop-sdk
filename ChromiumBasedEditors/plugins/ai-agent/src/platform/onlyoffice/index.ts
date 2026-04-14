@@ -1,4 +1,5 @@
 import type { PlatformAdapter } from "../../../npm_lib/platform/types";
+import { OnlyOfficeClouds } from "./clouds";
 import { OnlyOfficeEnvironment } from "./environment";
 import { OnlyOfficeFileOps } from "./file-ops";
 import { OnlyOfficeHostTools } from "./host-tools";
@@ -9,12 +10,14 @@ export class OnlyOfficePlatform implements PlatformAdapter {
   process: OnlyOfficeProcessRunner;
   env: OnlyOfficeEnvironment;
   hostTools: OnlyOfficeHostTools;
+  clouds: OnlyOfficeClouds;
 
   constructor() {
     this.file = new OnlyOfficeFileOps();
     this.process = new OnlyOfficeProcessRunner();
     this.env = new OnlyOfficeEnvironment();
     this.hostTools = new OnlyOfficeHostTools();
+    this.clouds = new OnlyOfficeClouds();
   }
 
   fetchProxy = (url: string, init?: RequestInit): Promise<Response> => {

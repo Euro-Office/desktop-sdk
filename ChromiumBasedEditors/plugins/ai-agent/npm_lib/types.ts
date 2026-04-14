@@ -29,7 +29,8 @@ export type BuiltinProviderType =
   | "groq"
   | "zhipu"
   | "stabilityai"
-  | "gpt4all";
+  | "gpt4all"
+  | "onlyoffice";
 
 /** Accepts builtin provider types with autocomplete + any custom string */
 export type ProviderType = BuiltinProviderType | (string & {});
@@ -92,4 +93,23 @@ export type Profile = {
   modelId: string;
   reasoning?: boolean;
   capabilities?: number;
+  isCloudProvider?: boolean;
+};
+
+export type TCloud = {
+  portal: string;
+  provider: string;
+  user: string;
+  email: string;
+};
+
+export type TCloudKey = {
+  url: string;
+  keys: { id: string; value: string }[];
+};
+
+export type TCloudProvider = {
+  url: string;
+  label: string;
+  apiKey: string;
 };

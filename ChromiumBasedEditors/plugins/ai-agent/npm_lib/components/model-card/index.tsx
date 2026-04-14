@@ -17,9 +17,9 @@ type ModelCardProps = {
 
 const ModelCard = ({ profile }: ModelCardProps) => {
   const { provider } = useStores();
-  const providerName = provider.getProviderInfo(
-    profile.providerType
-  ).name;
+  const providerName = profile.isCloudProvider
+    ? new URL(profile.baseUrl).hostname
+    : provider.getProviderInfo(profile.providerType).name;
   const [isEditing, setIsEditing] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const { isRTL } = useDirection();

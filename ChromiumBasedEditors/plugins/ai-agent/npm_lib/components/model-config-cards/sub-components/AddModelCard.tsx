@@ -61,6 +61,7 @@ export const AddModelCard = ({
       key: values.apiKey || undefined,
       modelId: values.model,
       capabilities: selectedModel?.capabilities,
+      isCloudProvider: values.isCloudProvider,
     });
 
     setIsLoading(false);

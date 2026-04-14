@@ -1,4 +1,4 @@
-import type { TMCPItem, TProcess } from "../types";
+import type { TCloud, TCloudKey, TMCPItem, TProcess } from "../types";
 
 export interface PlatformFileOperations {
   /** Show a native file picker dialog and return selected file paths, or null if cancelled */
@@ -50,6 +50,17 @@ export interface PlatformEnvironment {
   ) => () => void;
 }
 
+export interface PlatformClouds {
+  /** Get the list of connected cloud accounts from the host application */
+  getClouds(): Promise<TCloud[]>;
+
+  /** Get the list of cloud keys */
+  getCloudKeys(): TCloudKey[];
+
+  /** Subscribe to cloud account list changes. Returns an unsubscribe function */
+  onCloudsChange?(callback: () => void): () => void;
+}
+
 export interface PlatformHostTools {
   /** Get the list of built-in tools provided by the host application (e.g. ONLYOFFICE editor tools) */
   getTools(): TMCPItem[];
@@ -73,4 +84,7 @@ export interface PlatformAdapter {
 
   /** Optional fetch wrapper for proxied HTTP requests (e.g. CORS proxy). If null — standard fetch is used */
   fetchProxy?: (url: string, init?: RequestInit) => Promise<Response>;
+
+  /** Cloud accounts connected in the host application. If null — cloud provider features are unavailable */
+  clouds: PlatformClouds | null;
 }

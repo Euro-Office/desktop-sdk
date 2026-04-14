@@ -78,6 +78,10 @@ npm_lib/
     ├── deepseek/                  # DeepSeek
     ├── xai/                       # xAI (Grok)
     ├── openaicompatible/          # Generic OpenAI-compatible
+    ├── groq/                      # Groq (OpenAI-compatible, LPU inference)
+    ├── zhipu/                     # Zhipu (OpenAI-compatible, GLM-4)
+    ├── gpt4all/                   # GPT4All (local, OpenAI-compatible)
+    ├── stabilityai/               # Stability AI (image-only, FormData API)
     └── tests/
 ```
 
@@ -248,7 +252,7 @@ Services contain all chat business logic. They depend on holders (`getStorageIns
 
 ### providers/ — AI Provider System
 
-11 built-in providers + runtime registration for custom ones.
+15 built-in providers + runtime registration for custom ones.
 
 **AbstractBaseProvider<TOOL, MESSAGE, CLIENT>** — base class:
 

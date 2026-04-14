@@ -12,6 +12,10 @@ import {
   createAttachmentsStore,
 } from "./create-attachments-store";
 import {
+  type CloudsStoreState,
+  createCloudsStore,
+} from "./create-clouds-store.ts";
+import {
   createMessageStore,
   type MessageStoreState,
 } from "./create-message-store";
@@ -39,6 +43,7 @@ import {
 
 // Re-export all state types for backwards compatibility
 export type { AttachmentsStoreState } from "./create-attachments-store";
+export type { CloudsStoreState } from "./create-clouds-store";
 export type { MessageStoreState } from "./create-message-store";
 export type { ProfilesStoreState } from "./create-profiles-store";
 export type { PromptsStoreState } from "./create-prompts-store";
@@ -63,6 +68,7 @@ export interface Stores {
   chatEngine: ChatEngine;
   provider: Provider;
   selectCurrentChatProfile: (s: ProfilesStoreState) => Profile | null;
+  useCloudsStore: UseBoundStore<StoreApi<CloudsStoreState>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +114,7 @@ export function createStores(config: CreateStoresConfig): Stores {
   const useAttachmentsStore = createAttachmentsStore();
   const useThemeStore = createThemeStore(ctx);
   const useRouter = createRouterStore();
+  const useCloudsStore = createCloudsStore();
 
   // Selector
   const selectCurrentChatProfile = (s: ProfilesStoreState) =>
@@ -122,6 +129,7 @@ export function createStores(config: CreateStoresConfig): Stores {
     useAttachmentsStore,
     useThemeStore,
     useRouter,
+    useCloudsStore,
     chatEngine,
     provider: ctx.provider,
     selectCurrentChatProfile,
