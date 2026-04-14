@@ -20,7 +20,7 @@ src/
 ├── components/         # 30 component directories (layout, dialog, markdown, servers, model-config-cards, etc.)
 ├── store/              # Zustand stores (8 files)
 ├── database/           # IndexedDB: ChatDB class + CRUD modules
-├── providers/          # AI provider implementations (11 providers)
+├── providers/          # AI provider implementations (15 providers)
 ├── servers/            # MCP server management (Desktop, WebSearch, Custom)
 ├── hooks/              # React hooks (useMessages, useProfiles, useThreads, useServers, useDirection)
 ├── lib/                # Types, constants, utilities
@@ -29,7 +29,7 @@ src/
 └── assets/             # Provider logos, format icons, theme assets
 ```
 
-## AI Providers (11)
+## AI Providers (15)
 
 All extend `AbstractBaseProvider<TOOL, MESSAGE, CLIENT>` with async generator streaming.
 
@@ -43,6 +43,10 @@ All extend `AbstractBaseProvider<TOOL, MESSAGE, CLIENT>` with async generator st
 | OpenRouter | @openrouter/ai-sdk-provider | |
 | DeepSeek | (OpenAI-compatible) | |
 | XAI | (OpenAI-compatible) | |
+| Groq | (OpenAI-compatible) | LPU inference |
+| Zhipu | (OpenAI-compatible) | GLM-4 models, fallback model list |
+| GPT4All | (OpenAI-compatible) | Local models |
+| Stability AI | (custom, FormData) | Image-only (Stable Diffusion) |
 | Ollama | ollama | Local models |
 | LM Studio | @lmstudio/sdk | Local models |
 | OpenAI Compatible | (extends OpenAI) | Custom endpoints |

@@ -135,12 +135,6 @@ const useMessages = ({ isReady }: UseMessagesProps) => {
           if (handled) return;
         } else {
           handleEventRef.current(event);
-          if (
-            event.type === "message-end" ||
-            event.type === "message-incomplete"
-          ) {
-            return;
-          }
         }
       }
 
