@@ -10,8 +10,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import type { AppContext } from "./app-context";
 import { Layout } from "./components/layout";
 import { ManageToolDialog } from "./components/manage-tool-dialog";
-import type { FeatureFlags, StoreKeys } from "./config";
-import { DEFAULT_STORE_KEYS } from "./config";
+import type { StoreKeys } from "./config";
 import { ChatEventBus } from "./events";
 import useMessages from "./hooks/useMessages";
 import useProfiles from "./hooks/useProfiles";
@@ -47,8 +46,7 @@ export interface AIChatWidgetProps {
   locale?: string;
   translations?: Record<string, { translation: object }>;
   theme?: string;
-  storeKeys?: Partial<StoreKeys>;
-  features?: Partial<FeatureFlags>;
+  storeKeys: StoreKeys;
   hostToolGroups?: HostToolGroup[];
   onMigrate?: () => Promise<void>;
 }
@@ -95,10 +93,7 @@ export const AIChatWidget = ({
     setStorageInstance(storage);
     setServersInstance(servers);
 
-    const keys = storeKeys
-      ? { ...DEFAULT_STORE_KEYS, ...storeKeys }
-      : DEFAULT_STORE_KEYS;
-    const stores = createStores({ keys, ctx });
+    const stores = createStores({ keys: storeKeys, ctx });
 
     return { ctx, stores };
   }, [settings, storage, platform, storeKeys]);

@@ -1,6 +1,6 @@
 import type { StoreApi, UseBoundStore } from "zustand";
 import type { AppContext } from "../app-context";
-import { DEFAULT_STORE_KEYS, type StoreKeys } from "../config";
+import type { StoreKeys } from "../config";
 import type Provider from "../providers";
 import { ChatEngine } from "../services/chat-engine";
 import { ProfilesService } from "../services/profiles";
@@ -76,14 +76,14 @@ export interface Stores {
 // ---------------------------------------------------------------------------
 
 export interface CreateStoresConfig {
-  keys?: Partial<StoreKeys>;
+  keys: StoreKeys;
   ctx: AppContext;
 }
 
 import type { Profile } from "../types";
 
 export function createStores(config: CreateStoresConfig): Stores {
-  const keys: StoreKeys = { ...DEFAULT_STORE_KEYS, ...config.keys };
+  const { keys } = config;
   const { ctx } = config;
 
   // Services (scoped to this store instance)

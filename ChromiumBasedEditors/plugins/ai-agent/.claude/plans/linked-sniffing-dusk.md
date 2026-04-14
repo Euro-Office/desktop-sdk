@@ -42,7 +42,6 @@
 | 31 | `setWebSearchData(null)` → пустая строка | ✅ `settings.remove()` |
 | 32 | Inconsistent null/undefined в Storage API | ❌ `ProfilesStorage.getById` → undefined, остальные → null |
 | 33 | `chatEvents` module-level singleton | ❌ Не исправлено |
-| 34 | Empty `FeatureFlags` type | ❌ Не исправлено |
 | 35 | `fieldToErrorKey` пересоздаётся при рендере | ✅ Module-level constant |
 
 ---

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { AIChatWidget } from "../npm_lib";
+import { DEFAULT_STORE_KEYS } from "./config/store-keys";
 import { migrateProvidersToProfiles } from "./lib/migrateProvidersToProfiles";
 import { isDesktopEditor } from "./lib/utils";
 import { NoopPlatform } from "./platform/noop";
@@ -20,6 +21,7 @@ const App = () => {
       storage={storage}
       settings={settings}
       platform={platform}
+      storeKeys={DEFAULT_STORE_KEYS}
       onMigrate={migrateProvidersToProfiles}
     />
   );
