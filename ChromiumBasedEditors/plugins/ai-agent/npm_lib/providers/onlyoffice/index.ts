@@ -171,7 +171,7 @@ class OnlyOfficeProvider extends OpenAIProvider {
       : {};
 
     const response = await fetch(
-      `onlyoffice-proxy://${baseUrl}/api/2.0/ai/chats/models?provider=${ONLYOFFICE_PROVIDER_ID}`,
+      `${baseUrl}/api/2.0/ai/chats/models?provider=${ONLYOFFICE_PROVIDER_ID}`,
       { headers }
     );
 

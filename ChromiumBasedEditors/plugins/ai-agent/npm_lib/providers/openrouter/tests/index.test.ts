@@ -197,6 +197,306 @@ describe("OpenRouterProvider", () => {
       expect(nonReasoning?.reasoning).toBe(false);
     });
 
+    it("should default to Chat for models with no modality", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [{ id: "some-model" }],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x01); // Chat
+    });
+
+    it("should default to Chat for empty modality string", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "model-1",
+              architecture: { modality: "" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x01); // Chat
+    });
+
+    it("should detect text->text as Chat", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "chat-model",
+              architecture: { modality: "text->text" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x01); // Chat
+    });
+
+    it("should detect text+image->text as Chat+Vision", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "vision-model",
+              architecture: { modality: "text+image->text" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities & 0x01).toBeTruthy(); // Chat
+      expect(result[0].capabilities & 0x80).toBeTruthy(); // Vision
+    });
+
+    it("should detect text+audio->text as Chat+Audio", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "audio-model",
+              architecture: { modality: "text+audio->text" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities & 0x01).toBeTruthy(); // Chat
+      expect(result[0].capabilities & 0x08).toBeTruthy(); // Audio
+    });
+
+    it("should detect embedding modality as Embeddings", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "embed-model",
+              architecture: { modality: "text->embedding" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x04); // Embeddings
+    });
+
+    it("should detect image->image as Image", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "image-edit-model",
+              architecture: { modality: "image->image" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities & 0x02).toBeTruthy(); // Image
+    });
+
+    it("should detect image->text as Chat+Vision (image-only input)", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "image-to-text",
+              architecture: { modality: "image->text" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities & 0x01).toBeTruthy(); // Chat
+      expect(result[0].capabilities & 0x80).toBeTruthy(); // Vision
+    });
+
+    it("should detect audio->text as Chat+Audio (audio-only input)", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "audio-to-text",
+              architecture: { modality: "audio->text" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities & 0x01).toBeTruthy(); // Chat
+      expect(result[0].capabilities & 0x08).toBeTruthy(); // Audio
+    });
+
+    it("should detect embedding in input as Embeddings", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "embed-model",
+              architecture: { modality: "embedding->text" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x04); // Embeddings
+    });
+
+    it("should handle modality without arrow separator", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "no-arrow",
+              architecture: { modality: "text" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      // output is undefined, so modOut is [], falls through to Chat
+      expect(result[0].capabilities).toBe(0x01); // Chat
+    });
+
+    it("should fallback to Chat for unknown modality patterns", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: "unknown-modality",
+              architecture: { modality: "something->something" },
+            },
+          ],
+        }),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x01); // Chat fallback
+    });
+
+    it("should use default URL when not provided", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [] }),
+      });
+
+      await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "",
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://openrouter.ai/api/v1/models",
+        expect.any(Object),
+      );
+    });
+
+    it("should not include auth header when no apiKey", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [] }),
+      });
+
+      await provider.getProviderModels({
+        apiKey: "",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ headers: {} }),
+      );
+    });
+
+    it("should handle response without data field", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://openrouter.ai/api/v1",
+      });
+
+      expect(result).toEqual([]);
+    });
+
     it("should return empty array when response has no models", async () => {
       mockFetch.mockResolvedValue({
         ok: true,

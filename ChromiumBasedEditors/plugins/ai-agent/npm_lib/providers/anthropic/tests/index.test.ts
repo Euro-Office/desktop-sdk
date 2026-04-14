@@ -844,6 +844,60 @@ describe("AnthropicProvider", () => {
       expect(haiku?.reasoning).toBe(false);
     });
 
+    it("should assign Chat-only capability to claude-2 models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [
+          { id: "claude-2.1", display_name: "Claude 2.1" },
+        ],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.anthropic.com",
+      });
+
+      // claude-2 should only have Chat, not Vision
+      expect(result[0].capabilities).toBe(0x01); // Chat only
+    });
+
+    it("should assign Chat-only capability to claude-3-5-haiku models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [
+          {
+            id: "claude-3-5-haiku-20241022",
+            display_name: "Claude 3.5 Haiku",
+          },
+        ],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.anthropic.com",
+      });
+
+      // claude-3-5-haiku should only have Chat, not Vision
+      expect(result[0].capabilities).toBe(0x01); // Chat only
+    });
+
+    it("should assign Chat+Vision capability to other claude models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [
+          {
+            id: "claude-sonnet-4-5-20241022",
+            display_name: "Claude Sonnet 4.5",
+          },
+        ],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.anthropic.com",
+      });
+
+      // Other models should have Chat + Vision
+      expect(result[0].capabilities).toBe(0x01 | 0x80); // Chat | Vision
+    });
+
     it("should return empty array when response has no models", async () => {
       modelsListMock.mockResolvedValue({
         data: [],

@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
+  createProvider,
   getProvider,
   getSupportedProviderTypes,
   isValidProviderType,
@@ -193,6 +194,46 @@ describe("Provider Registry", () => {
       expect(getProvider("anthropic")).toBeDefined();
       unregisterProvider("custom-llm");
       expect(getProvider("anthropic")).toBeDefined();
+    });
+  });
+
+  describe("createProvider", () => {
+    it("should create a new instance for each builtin type", () => {
+      const types: ProviderType[] = [
+        "anthropic",
+        "ollama",
+        "openai",
+        "openaicompatible",
+        "together",
+        "openrouter",
+        "genai",
+        "deepseek",
+        "xai",
+        "lm-studio",
+        "mistral",
+        "groq",
+        "zhipu",
+        "stabilityai",
+        "gpt4all",
+        "onlyoffice",
+      ];
+
+      for (const type of types) {
+        const instance = createProvider(type);
+        expect(instance).toBeDefined();
+        expect(instance).not.toBe(getProvider(type)); // Not the singleton
+      }
+    });
+
+    it("should return undefined for unknown type", () => {
+      const instance = createProvider("nonexistent");
+      expect(instance).toBeUndefined();
+    });
+
+    it("should create independent instances", () => {
+      const a = createProvider("openai");
+      const b = createProvider("openai");
+      expect(a).not.toBe(b);
     });
   });
 });

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CapabilitiesUI } from "../../../capabilities";
 import { XAIProvider } from "../index";
 
 // Mock OpenAI client
@@ -83,6 +84,50 @@ describe("XAIProvider", () => {
       expect(models.every((m) => m.reasoning === true)).toBe(true);
     });
 
+    it("should assign Chat capability to regular models", async () => {
+      mockList.mockResolvedValue({
+        data: [{ id: "grok-2" }],
+      });
+
+      const provider = new XAIProvider();
+      const models = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "",
+      });
+
+      expect(models[0].capabilities).toBe(CapabilitiesUI.Chat);
+    });
+
+    it("should assign Chat | Vision capability to vision models", async () => {
+      mockList.mockResolvedValue({
+        data: [{ id: "grok-2-vision" }],
+      });
+
+      const provider = new XAIProvider();
+      const models = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "",
+      });
+
+      expect(models[0].capabilities).toBe(
+        CapabilitiesUI.Chat | CapabilitiesUI.Vision,
+      );
+    });
+
+    it("should assign Image capability to image models", async () => {
+      mockList.mockResolvedValue({
+        data: [{ id: "aurora-image-v1" }],
+      });
+
+      const provider = new XAIProvider();
+      const models = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "",
+      });
+
+      expect(models[0].capabilities).toBe(CapabilitiesUI.Image);
+    });
+
     it("should reverse the models array", async () => {
       mockList.mockResolvedValue({
         data: [{ id: "model-1" }, { id: "model-2" }, { id: "model-3" }],
@@ -105,6 +150,18 @@ describe("XAIProvider", () => {
       await provider.getProviderModels({
         apiKey: "test-key",
         url: "https://custom.x.ai/v1",
+      });
+
+      expect(mockList).toHaveBeenCalled();
+    });
+
+    it("should use default baseUrl when url is empty", async () => {
+      mockList.mockResolvedValue({ data: [] });
+
+      const provider = new XAIProvider();
+      await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "",
       });
 
       expect(mockList).toHaveBeenCalled();

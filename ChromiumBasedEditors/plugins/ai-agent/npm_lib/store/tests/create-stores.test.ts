@@ -488,6 +488,14 @@ describe("createStores", () => {
       expect(useMessageStore.getState().isRequestRunning).toBe(false);
     });
 
+    it("setIsRequestRunning updates state", () => {
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
+      useMessageStore.getState().setIsRequestRunning(true);
+      expect(useMessageStore.getState().isRequestRunning).toBe(true);
+      useMessageStore.getState().setIsRequestRunning(false);
+      expect(useMessageStore.getState().isRequestRunning).toBe(false);
+    });
+
     it("adds and clears messages", () => {
       const { useMessageStore } = createStores({ ctx: mockCtx as any });
       const msg = {
@@ -577,6 +585,90 @@ describe("createStores", () => {
       expect(useMessageStore.getState().isStreamRunning).toBe(false);
       expect(mockProvider.stopMessage).toHaveBeenCalled();
     });
+
+    it("addMessage appends to empty messages array (short-circuit on length=0)", () => {
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
+      expect(useMessageStore.getState().messages).toHaveLength(0);
+
+      const msg = {
+        role: "user" as const,
+        content: [{ type: "text" as const, text: "first" }],
+      };
+      useMessageStore.getState().addMessage(msg);
+
+      expect(useMessageStore.getState().messages).toHaveLength(1);
+      expect(useMessageStore.getState().messages[0]).toEqual(msg);
+    });
+
+    it("addMessage appends when last message has no status property", () => {
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
+      const existing = {
+        role: "assistant" as const,
+        content: [{ type: "text" as const, text: "done" }],
+      };
+      useMessageStore.getState().addMessage(existing);
+
+      const next = {
+        role: "user" as const,
+        content: [{ type: "text" as const, text: "follow-up" }],
+      };
+      useMessageStore.getState().addMessage(next);
+
+      expect(useMessageStore.getState().messages).toHaveLength(2);
+      expect(useMessageStore.getState().messages[1]).toEqual(next);
+    });
+
+    it("addMessage appends when last message status type is not incomplete", () => {
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
+      const complete = {
+        role: "assistant" as const,
+        content: [{ type: "text" as const, text: "complete" }],
+        status: { type: "complete" as const },
+      };
+      useMessageStore.getState().addMessage(complete);
+
+      const next = {
+        role: "user" as const,
+        content: [{ type: "text" as const, text: "another" }],
+      };
+      useMessageStore.getState().addMessage(next);
+
+      expect(useMessageStore.getState().messages).toHaveLength(2);
+    });
+
+    it("fetchPrevMessages discards stale results when thread changes", async () => {
+      const staleMessages = [
+        {
+          role: "user" as const,
+          content: [{ type: "text" as const, text: "stale" }],
+        },
+      ];
+      // Make getByThread return slowly so we can change the thread in between
+      mockStorage.messages.getByThread.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => resolve(staleMessages), 50);
+          })
+      );
+
+      const { useMessageStore } = createStores({ ctx: mockCtx as any });
+
+      // Start fetching thread-1
+      const fetchPromise = useMessageStore
+        .getState()
+        .fetchPrevMessages("thread-1");
+
+      // While thread-1 is being fetched, switch to thread-2
+      useMessageStore.setState({ _currentThreadId: "thread-2" });
+
+      await fetchPromise;
+
+      // Messages should NOT be set because thread changed (stale guard)
+      expect(useMessageStore.getState().messages).toEqual([]);
+      expect(
+        mockProvider.setCurrentProviderPrevMessages
+      ).not.toHaveBeenCalledWith(staleMessages);
+    });
   });
 
   // ---- Prompts Store ----
@@ -638,6 +730,81 @@ describe("createStores", () => {
       expect(
         useProfilesStore.getState().getProfileByName("myprofile", false)
       ).toBeNull();
+    });
+
+    it("getProfileByName with exact match (ignoreCase omitted/default)", () => {
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
+      const profile = makeProfile({ name: "ExactName" });
+      useProfilesStore.setState({ profiles: [profile] });
+
+      // Exact match should work without ignoreCase
+      expect(
+        useProfilesStore.getState().getProfileByName("ExactName")
+      ).toEqual(profile);
+      // Wrong case should fail when ignoreCase is not set
+      expect(
+        useProfilesStore.getState().getProfileByName("exactname")
+      ).toBeNull();
+    });
+
+    it("extendedThinking defaults to false when settings.get throws", () => {
+      // Make settings.get throw for deepMode key
+      mockSettings.get.mockImplementation((key: string) => {
+        if (key === DEFAULT_STORE_KEYS.deepMode) throw new Error("corrupted");
+        return localStorageMap.get(key) ?? null;
+      });
+
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
+      expect(useProfilesStore.getState().extendedThinking).toBe(false);
+
+      // Restore normal mock behavior
+      mockSettings.get.mockImplementation(
+        (key: string) => localStorageMap.get(key) ?? null
+      );
+    });
+
+    it("extendedThinking defaults to false when saved value is falsy/null", () => {
+      // Ensure no saved value (get returns null)
+      localStorageMap.delete(DEFAULT_STORE_KEYS.deepMode);
+
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
+      expect(useProfilesStore.getState().extendedThinking).toBe(false);
+    });
+
+    it("init() backfills capabilities only for profiles missing them", async () => {
+      const withCaps = makeProfile({
+        id: "p1",
+        capabilities: { chat: true, vision: false },
+      } as Partial<Profile>);
+      const withoutCaps = makeProfile({ id: "p2" });
+      // Explicitly remove capabilities
+      delete (withoutCaps as Record<string, unknown>).capabilities;
+
+      mockProfilesService.init.mockResolvedValue({
+        profiles: [withCaps, withoutCaps],
+        defaultProfile: withCaps,
+        taskProfiles: {
+          [DEFAULT_STORE_KEYS.chatProfile]: null,
+          [DEFAULT_STORE_KEYS.summarizationProfile]: null,
+          [DEFAULT_STORE_KEYS.translationProfile]: null,
+          [DEFAULT_STORE_KEYS.textAnalysisProfile]: null,
+          [DEFAULT_STORE_KEYS.imageGenerationProfile]: null,
+          [DEFAULT_STORE_KEYS.ocrProfile]: null,
+          [DEFAULT_STORE_KEYS.visionProfile]: null,
+        },
+      });
+
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
+      await useProfilesStore.getState().init();
+
+      const state = useProfilesStore.getState();
+      // Profile with existing capabilities should keep them
+      expect(state.profiles[0].capabilities).toEqual({
+        chat: true,
+        vision: false,
+      });
+      // Profile without capabilities should have been backfilled
+      expect(state.profiles[1].capabilities).toBeDefined();
     });
   });
 
@@ -762,6 +929,19 @@ describe("createStores", () => {
       expect(useThreadsStore.getState().threads[0].title).toBe("New");
     });
 
+    it("onRenameThread leaves non-matching threads unchanged", () => {
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
+      const t1 = makeThread({ threadId: "t1", title: "First" });
+      const t2 = makeThread({ threadId: "t2", title: "Second" });
+      useThreadsStore.setState({ threads: [t1, t2] });
+
+      useThreadsStore.getState().onRenameThread("t1", "Renamed");
+
+      const threads = useThreadsStore.getState().threads;
+      expect(threads[0].title).toBe("Renamed");
+      expect(threads[1].title).toBe("Second");
+    });
+
     it("deletes a thread and switches if active", () => {
       const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       const thread = makeThread({ threadId: "t1" });
@@ -784,6 +964,29 @@ describe("createStores", () => {
 
       expect(mockThreadsService.loadAll).toHaveBeenCalled();
       expect(useThreadsStore.getState().threads).toEqual(threads);
+    });
+
+    it("insertNewMessageToThread leaves non-matching threads unchanged", () => {
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
+      const matchThread = makeThread({ threadId: "t1", lastEditDate: 1000 });
+      const otherThread = makeThread({
+        threadId: "t2",
+        title: "Other",
+        lastEditDate: 2000,
+      });
+      useThreadsStore.setState({
+        threadId: "t1",
+        threads: [matchThread, otherThread],
+      });
+
+      useThreadsStore.getState().insertNewMessageToThread({ profileId: "p1" });
+
+      const threads = useThreadsStore.getState().threads;
+      expect(threads[0].lastEditDate).toBeGreaterThan(1000);
+      // Other thread should be completely untouched
+      expect(threads[1].threadId).toBe("t2");
+      expect(threads[1].lastEditDate).toBe(2000);
+      expect(threads[1].title).toBe("Other");
     });
 
     it("insertNewMessageToThread updates thread lastEditDate and profileId", () => {
@@ -853,6 +1056,42 @@ describe("createStores", () => {
       );
     });
 
+    it("onSwitchToThread migrates only matching thread in multi-thread list", () => {
+      const profile = makeProfile({ id: "p1" });
+      const migratedThread = makeThread({
+        threadId: "t1",
+        profileId: "p1",
+      });
+      mockThreadsService.migrateThreadToProfile.mockReturnValue(migratedThread);
+
+      const stores = createStores({ ctx: mockCtx as any });
+      stores.useProfilesStore.setState({
+        profiles: [profile],
+        defaultProfile: profile,
+      });
+      const threadWithProvider = makeThread({
+        threadId: "t1",
+        provider: {
+          type: "openai",
+          baseUrl: "https://api.openai.com",
+          key: "k",
+        },
+        model: { id: "gpt-4", name: "GPT-4" },
+      } as Partial<Thread>);
+      const otherThread = makeThread({ threadId: "t2", title: "Other" });
+      stores.useThreadsStore.setState({
+        threads: [threadWithProvider, otherThread],
+      });
+
+      stores.useThreadsStore.getState().onSwitchToThread("t1");
+
+      const threads = stores.useThreadsStore.getState().threads;
+      expect(threads[0]).toEqual(migratedThread);
+      // Other thread should remain untouched
+      expect(threads[1].threadId).toBe("t2");
+      expect(threads[1].title).toBe("Other");
+    });
+
     it("onDownloadThread calls service.downloadThread", async () => {
       const { useThreadsStore } = createStores({ ctx: mockCtx as any });
       const thread = makeThread({ threadId: "t1", title: "My Chat" });
@@ -876,6 +1115,107 @@ describe("createStores", () => {
         "unknown",
         undefined
       );
+    });
+
+    it("onDeleteThread does not switch when deleting non-active thread", () => {
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
+      const activeId = useThreadsStore.getState().threadId;
+      const thread = makeThread({ threadId: "other-thread" });
+      useThreadsStore.setState({ threads: [thread] });
+
+      useThreadsStore.getState().onDeleteThread("other-thread");
+
+      // threadId should remain unchanged (no switch)
+      expect(useThreadsStore.getState().threadId).toBe(activeId);
+      expect(useThreadsStore.getState().threads).toHaveLength(0);
+      expect(mockThreadsService.deleteThread).toHaveBeenCalledWith(
+        "other-thread"
+      );
+    });
+
+    it("onClearThreadHistory does not clear messages for non-active thread", async () => {
+      const stores = createStores({ ctx: mockCtx as any });
+      const msg = {
+        role: "user" as const,
+        content: [{ type: "text" as const, text: "keep me" }],
+      };
+      stores.useMessageStore.getState().addMessage(msg);
+      expect(stores.useMessageStore.getState().messages).toHaveLength(1);
+
+      // Clear history for a different thread, not the active one
+      await stores.useThreadsStore
+        .getState()
+        .onClearThreadHistory("different-thread-id");
+
+      // Messages should NOT be cleared since it's a different thread
+      expect(stores.useMessageStore.getState().messages).toHaveLength(1);
+      expect(mockThreadsService.clearHistory).toHaveBeenCalledWith(
+        "different-thread-id"
+      );
+    });
+
+    it("onSwitchToThread with thread that has no provider/model skips migration", () => {
+      const stores = createStores({ ctx: mockCtx as any });
+      const profile = makeProfile({ id: "p1" });
+      stores.useProfilesStore.setState({
+        profiles: [profile],
+        defaultProfile: profile,
+      });
+
+      // Thread with profileId but no provider/model — no migration needed
+      const thread = makeThread({ threadId: "t1", profileId: "p1" });
+      stores.useThreadsStore.setState({ threads: [thread] });
+
+      stores.useThreadsStore.getState().onSwitchToThread("t1");
+
+      expect(
+        mockThreadsService.migrateThreadToProfile
+      ).not.toHaveBeenCalled();
+      expect(stores.useThreadsStore.getState().threadId).toBe("t1");
+      expect(stores.useProfilesStore.getState().sessionChatProfile).toEqual(
+        profile
+      );
+    });
+
+    it("onSwitchToThread with unknown thread id skips migration and sets null profile", () => {
+      const stores = createStores({ ctx: mockCtx as any });
+      stores.useThreadsStore.setState({ threads: [] });
+
+      stores.useThreadsStore.getState().onSwitchToThread("nonexistent");
+
+      expect(
+        mockThreadsService.migrateThreadToProfile
+      ).not.toHaveBeenCalled();
+      expect(stores.useThreadsStore.getState().threadId).toBe("nonexistent");
+      expect(stores.useProfilesStore.getState().sessionChatProfile).toBeNull();
+    });
+
+    it("insertNewMessageToThread with opts lacking profileId does not spread profileId", () => {
+      const { useThreadsStore } = createStores({ ctx: mockCtx as any });
+      const thread = makeThread({ threadId: "t1", profileId: "original" });
+      useThreadsStore.setState({ threadId: "t1", threads: [thread] });
+
+      // Pass opts object that exists but does not have profileId key
+      useThreadsStore
+        .getState()
+        .insertNewMessageToThread({} as { profileId?: string });
+
+      const updated = useThreadsStore.getState().threads[0];
+      // profileId should remain the original since opts has no profileId key
+      expect(updated.profileId).toBe("original");
+      expect(updated.lastEditDate).toBeGreaterThan(0);
+    });
+
+    it("onSwitchToThread applies null session profile for thread without profileId", () => {
+      const stores = createStores({ ctx: mockCtx as any });
+      // Thread that has no profileId
+      const thread = makeThread({ threadId: "t1" });
+      delete (thread as Record<string, unknown>).profileId;
+      stores.useThreadsStore.setState({ threads: [thread] });
+
+      stores.useThreadsStore.getState().onSwitchToThread("t1");
+
+      expect(stores.useProfilesStore.getState().sessionChatProfile).toBeNull();
     });
   });
 
@@ -929,6 +1269,34 @@ describe("createStores", () => {
 
       expect(result).toBe(true);
       expect(useProfilesStore.getState().profiles).toContainEqual(newProfile);
+    });
+
+    it("addProfile() non-first profile — does not set as default", async () => {
+      const existing = makeProfile({ id: "existing", name: "Existing" });
+      const newProfile = makeProfile({ id: "new-2", name: "Second" });
+      mockProfilesService.addProfile.mockResolvedValue({
+        success: true,
+        profile: newProfile,
+      });
+
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
+      useProfilesStore.setState({
+        profiles: [existing],
+        defaultProfile: existing,
+      });
+
+      const result = await useProfilesStore.getState().addProfile({
+        name: "Second",
+        providerType: "openai",
+        baseUrl: "https://api.openai.com",
+        key: "sk-test",
+        modelId: "gpt-4",
+      });
+
+      expect(result).toBe(true);
+      expect(useProfilesStore.getState().profiles).toHaveLength(2);
+      // Default profile should remain unchanged
+      expect(useProfilesStore.getState().defaultProfile).toEqual(existing);
     });
 
     it("addProfile() first profile — sets as default", async () => {
@@ -1123,6 +1491,36 @@ describe("createStores", () => {
       expect(mockProfilesService.clearTaskProfileIfMatch).toHaveBeenCalledTimes(
         7
       );
+    });
+
+    it("editProfile() leaves non-matching profiles unchanged in list", async () => {
+      const p1 = makeProfile({ id: "p1", name: "First" });
+      const p2 = makeProfile({ id: "p2", name: "Second" });
+      const editedP1 = { ...p1, name: "First Edited" };
+
+      mockProfilesService.editProfile.mockResolvedValue({ success: true });
+
+      const { useProfilesStore } = createStores({ ctx: mockCtx as any });
+      useProfilesStore.setState({
+        profiles: [p1, p2],
+        defaultProfile: p1,
+        chatProfile: null,
+        summarizationProfile: null,
+        translationProfile: null,
+        textAnalysisProfile: null,
+        imageGenerationProfile: null,
+        ocrProfile: null,
+        visionProfile: null,
+        sessionChatProfile: null,
+      });
+
+      await useProfilesStore.getState().editProfile(editedP1);
+
+      const state = useProfilesStore.getState();
+      expect(state.profiles[0].name).toBe("First Edited");
+      // p2 should remain untouched
+      expect(state.profiles[1].name).toBe("Second");
+      expect(state.profiles[1].id).toBe("p2");
     });
 
     it("editProfile() updates profile assigned as summarizationProfile", async () => {

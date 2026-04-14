@@ -114,7 +114,7 @@ export function createStores(config: CreateStoresConfig): Stores {
   const useAttachmentsStore = createAttachmentsStore();
   const useThemeStore = createThemeStore(ctx);
   const useRouter = createRouterStore();
-  const useCloudsStore = createCloudsStore();
+  const useCloudsStore = createCloudsStore(ctx);
 
   // Selector
   const selectCurrentChatProfile = (s: ProfilesStoreState) =>

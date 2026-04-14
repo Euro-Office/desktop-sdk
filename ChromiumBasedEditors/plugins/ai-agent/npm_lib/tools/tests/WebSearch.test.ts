@@ -77,6 +77,15 @@ describe("WebSearch", () => {
       expect(newWebSearch.getWebSearchData()).toEqual(savedData);
       expect(newWebSearch.getTools()).toHaveLength(2);
     });
+
+    it("should set null when localStorage contains invalid JSON", () => {
+      mockLocalStorage.setItem("webSearchProviderData", "not-valid-json{{{");
+
+      const newWebSearch = new WebSearch(mockSettings as any, mockPlatform as any, mockEventBus as any);
+
+      expect(newWebSearch.getWebSearchData()).toBeNull();
+      expect(newWebSearch.getTools()).toEqual([]);
+    });
   });
 
   // ==========================================================================
@@ -262,6 +271,17 @@ describe("WebSearch", () => {
       expect(parsed.message).toBe("Network error: 500");
     });
 
+    it("should handle non-Error exception with String(e)", async () => {
+      webSearch.setWebSearchData({ provider: "Exa", key: "key" });
+
+      mockFetch.mockRejectedValue("string error");
+
+      const result = await webSearch.webSearch({ query: "test" });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBe("string error");
+    });
+
     it("should handle fetch exception", async () => {
       webSearch.setWebSearchData({ provider: "Exa", key: "key" });
 
@@ -297,6 +317,150 @@ describe("WebSearch", () => {
           },
         })
       );
+    });
+
+    // ========================================================================
+    // ONLYOFFICE provider paths
+    // ========================================================================
+
+    it("should make ONLYOFFICE API request with correct parameters", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "oo-token",
+        baseUrl: "https://oo.example.com",
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({ results: [{ title: "OO Result" }] }),
+      });
+
+      const result = await webSearch.webSearch({ query: "test query" });
+      const parsed = JSON.parse(result);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://oo.example.com/api/2.0/ai/web-search/v1/search",
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer oo-token",
+          },
+        })
+      );
+
+      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(callBody).toEqual({ query: "test query", numResults: 5 });
+      expect(parsed.data).toEqual([{ title: "OO Result" }]);
+    });
+
+    it("should handle ONLYOFFICE non-ok response", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "key",
+        baseUrl: "https://oo.example.com",
+      });
+
+      mockFetch.mockResolvedValue({ ok: false, status: 403 });
+
+      const result = await webSearch.webSearch({ query: "test" });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBe(403);
+      expect(parsed.message).toBe("Network error: 403");
+    });
+
+    it("should handle ONLYOFFICE API error in response", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "key",
+        baseUrl: "https://oo.example.com",
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ error: "rate_limit_exceeded" }),
+      });
+
+      const result = await webSearch.webSearch({ query: "test" });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.data).toEqual({ error: "rate_limit_exceeded" });
+    });
+
+    it("should handle ONLYOFFICE fetch exception", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "key",
+        baseUrl: "https://oo.example.com",
+      });
+
+      mockFetch.mockRejectedValue(new Error("Connection refused"));
+
+      const result = await webSearch.webSearch({ query: "test" });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBeDefined();
+    });
+
+    it("should use provider as baseUrl when isCloudProvider is true", async () => {
+      webSearch.setWebSearchData({
+        provider: "https://cloud.example.com",
+        key: "cloud-token",
+        isCloudProvider: true,
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: [] }),
+      });
+
+      await webSearch.webSearch({ query: "test" });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://cloud.example.com/api/2.0/ai/web-search/v1/search",
+        expect.objectContaining({
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer cloud-token",
+          },
+        })
+      );
+    });
+
+    it("should use baseUrl for ONLYOFFICE provider when provided", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "key",
+        baseUrl: "https://custom-base.example.com",
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: [] }),
+      });
+
+      await webSearch.webSearch({ query: "test" });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://custom-base.example.com/api/2.0/ai/web-search/v1/search",
+        expect.anything()
+      );
+    });
+
+    it("should handle missing baseUrl for ONLYOFFICE provider gracefully", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "key",
+      });
+
+      // No baseUrl means the ?? "" fallback is hit, which causes an Invalid URL error
+      const result = await webSearch.webSearch({ query: "test" });
+      const parsed = JSON.parse(result);
+
+      // The catch block handles the error
+      expect(parsed.error).toBeDefined();
     });
   });
 
@@ -429,6 +593,156 @@ describe("WebSearch", () => {
         })
       );
     });
+
+    // ========================================================================
+    // ONLYOFFICE provider paths
+    // ========================================================================
+
+    it("should make ONLYOFFICE crawl request with correct parameters", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "oo-token",
+        baseUrl: "https://oo.example.com",
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            results: [{ url: "https://example.com", text: "Content" }],
+          }),
+      });
+
+      const result = await webSearch.webCrawling({
+        urls: ["https://example.com"],
+      });
+      const parsed = JSON.parse(result);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://oo.example.com/api/2.0/ai/web-search/v1/contents",
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer oo-token",
+          },
+        })
+      );
+
+      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(callBody).toEqual({ url: "https://example.com" });
+      expect(parsed.data).toEqual([
+        { url: "https://example.com", text: "Content" },
+      ]);
+    });
+
+    it("should handle ONLYOFFICE crawl non-ok response", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "key",
+        baseUrl: "https://oo.example.com",
+      });
+
+      mockFetch.mockResolvedValue({ ok: false, status: 502 });
+
+      const result = await webSearch.webCrawling({
+        urls: ["https://example.com"],
+      });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBe(502);
+      expect(parsed.message).toBe("Network error: 502");
+    });
+
+    it("should handle ONLYOFFICE crawl API error in response", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "key",
+        baseUrl: "https://oo.example.com",
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ error: "invalid_url" }),
+      });
+
+      const result = await webSearch.webCrawling({
+        urls: ["https://example.com"],
+      });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.data).toEqual({ error: "invalid_url" });
+    });
+
+    it("should handle ONLYOFFICE crawl fetch exception", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "key",
+        baseUrl: "https://oo.example.com",
+      });
+
+      mockFetch.mockRejectedValue(new Error("Timeout"));
+
+      const result = await webSearch.webCrawling({
+        urls: ["https://example.com"],
+      });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBeDefined();
+    });
+
+    it("should handle non-Error exception with String(e) in Exa crawl", async () => {
+      webSearch.setWebSearchData({ provider: "Exa", key: "key" });
+
+      mockFetch.mockRejectedValue("string crawl error");
+
+      const result = await webSearch.webCrawling({
+        urls: ["https://example.com"],
+      });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBe("string crawl error");
+    });
+
+    it("should handle missing baseUrl for ONLYOFFICE crawling gracefully", async () => {
+      webSearch.setWebSearchData({
+        provider: "ONLYOFFICE",
+        key: "key",
+      });
+
+      // No baseUrl means the ?? "" fallback is hit, which causes an Invalid URL error
+      const result = await webSearch.webCrawling({
+        urls: ["https://example.com"],
+      });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBeDefined();
+    });
+
+    it("should use provider as baseUrl for crawling when isCloudProvider is true", async () => {
+      webSearch.setWebSearchData({
+        provider: "https://cloud.example.com",
+        key: "cloud-token",
+        isCloudProvider: true,
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: [] }),
+      });
+
+      await webSearch.webCrawling({ urls: ["https://example.com"] });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://cloud.example.com/api/2.0/ai/web-search/v1/contents",
+        expect.objectContaining({
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer cloud-token",
+          },
+        })
+      );
+    });
   });
 
   // ==========================================================================
@@ -473,6 +787,41 @@ describe("WebSearch", () => {
 
       expect(result).toBeUndefined();
       expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  // ==========================================================================
+  // platformFetch
+  // ==========================================================================
+
+  describe("platformFetch", () => {
+    it("should use platform.fetchProxy when available", async () => {
+      const mockProxy = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ results: [{ title: "Proxied" }] }),
+      });
+
+      const platformWithProxy = {
+        ...mockPlatform,
+        fetchProxy: mockProxy,
+      };
+
+      const wsWithProxy = new WebSearch(
+        mockSettings as any,
+        platformWithProxy as any,
+        mockEventBus as any
+      );
+      wsWithProxy.setWebSearchData({ provider: "Exa", key: "key" });
+
+      const result = await wsWithProxy.webSearch({ query: "test" });
+      const parsed = JSON.parse(result);
+
+      expect(mockProxy).toHaveBeenCalledWith(
+        "https://api.exa.ai/search",
+        expect.anything()
+      );
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(parsed.data).toEqual([{ title: "Proxied" }]);
     });
   });
 

@@ -152,6 +152,106 @@ describe("TogetherProvider", () => {
       expect(result[0].name).toBe("deepseek-ai/DeepSeek-V3.1");
     });
 
+    it("should assign Chat capability to chat type models", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "model-chat", type: "chat" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.together.xyz/v1",
+      });
+
+      expect(result[0].capabilities & 0x01).toBeTruthy(); // Chat
+    });
+
+    it("should add Vision for chat models with 'vision' in id", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => [
+          { id: "llama-3.2-90b-vision-instruct", type: "chat" },
+        ],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.together.xyz/v1",
+      });
+
+      expect(result[0].capabilities & 0x80).toBeTruthy(); // Vision
+    });
+
+    it("should assign Image capability to image type models", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "flux-1-dev", type: "image" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.together.xyz/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x02); // Image
+    });
+
+    it("should assign Embeddings capability to embedding type models", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "m2-bert-embed", type: "embedding" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.together.xyz/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x04); // Embeddings
+    });
+
+    it("should assign Chat capability to code type models", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "codellama-13b", type: "code" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.together.xyz/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x01); // Chat
+    });
+
+    it("should assign None capability to rerank type models", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "rerank-model", type: "rerank" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.together.xyz/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x00); // None
+    });
+
+    it("should default to Chat for models with no type", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "unknown-model" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.together.xyz/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x01); // Chat
+    });
+
     it("should handle fetch errors by throwing", async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
         new Error("Network error")
@@ -166,7 +266,7 @@ describe("TogetherProvider", () => {
     });
 
     it("should call fetch with correct parameters", async () => {
-      const mockResponse = [];
+      const mockResponse: unknown[] = [];
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,

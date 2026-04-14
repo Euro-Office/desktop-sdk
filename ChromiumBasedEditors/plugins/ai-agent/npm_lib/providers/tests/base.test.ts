@@ -188,4 +188,178 @@ describe("AbstractBaseProvider", () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe("isSupportStreaming", () => {
+    it("should return true by default", () => {
+      const provider = new TestProvider();
+      expect(provider.isSupportStreaming()).toBe(true);
+    });
+  });
+
+  describe("isReasoning", () => {
+    it("should default to false", () => {
+      const provider = new TestProvider();
+      expect(provider.isReasoning).toBe(false);
+    });
+
+    it("should be settable", () => {
+      const provider = new TestProvider();
+      provider.isReasoning = true;
+      expect(provider.isReasoning).toBe(true);
+    });
+  });
+
+  describe("sendMessageSync", () => {
+    it("should return text from sendMessage isEnd response with string content", async () => {
+      class StreamingTestProvider extends TestProvider {
+        async *sendMessage(): AsyncGenerator<
+          | ThreadMessageLike
+          | { isEnd: true; responseMessage: ThreadMessageLike }
+        > {
+          yield {
+            isEnd: true as const,
+            responseMessage: {
+              role: "assistant",
+              content: "Hello world",
+            },
+          };
+        }
+      }
+
+      const provider = new StreamingTestProvider();
+      const result = await provider.sendMessageSync([
+        { role: "user", content: "Hi" },
+      ]);
+
+      expect(result).toBe("Hello world");
+    });
+
+    it("should return joined text from array content", async () => {
+      class StreamingTestProvider extends TestProvider {
+        async *sendMessage(): AsyncGenerator<
+          | ThreadMessageLike
+          | { isEnd: true; responseMessage: ThreadMessageLike }
+        > {
+          yield {
+            isEnd: true as const,
+            responseMessage: {
+              role: "assistant",
+              content: [
+                { type: "text" as const, text: "Hello " },
+                { type: "text" as const, text: "world" },
+              ],
+            },
+          };
+        }
+      }
+
+      const provider = new StreamingTestProvider();
+      const result = await provider.sendMessageSync([
+        { role: "user", content: "Hi" },
+      ]);
+
+      expect(result).toBe("Hello world");
+    });
+
+    it("should handle content parts without text property", async () => {
+      class StreamingTestProvider extends TestProvider {
+        async *sendMessage(): AsyncGenerator<
+          | ThreadMessageLike
+          | { isEnd: true; responseMessage: ThreadMessageLike }
+        > {
+          yield {
+            isEnd: true as const,
+            responseMessage: {
+              role: "assistant",
+              content: [
+                { type: "text" as const, text: "Hello" },
+                { type: "image" as const, image: new URL("https://example.com/img.png") },
+              ],
+            },
+          };
+        }
+      }
+
+      const provider = new StreamingTestProvider();
+      const result = await provider.sendMessageSync([
+        { role: "user", content: "Hi" },
+      ]);
+
+      expect(result).toBe("Hello");
+    });
+
+    it("should return empty string when no isEnd message", async () => {
+      class StreamingTestProvider extends TestProvider {
+        async *sendMessage(): AsyncGenerator<
+          | ThreadMessageLike
+          | { isEnd: true; responseMessage: ThreadMessageLike }
+        > {
+          yield {
+            role: "assistant",
+            content: [{ type: "text" as const, text: "partial" }],
+          };
+        }
+      }
+
+      const provider = new StreamingTestProvider();
+      const result = await provider.sendMessageSync([
+        { role: "user", content: "Hi" },
+      ]);
+
+      expect(result).toBe("");
+    });
+  });
+
+  describe("imageVision", () => {
+    it("should call sendMessageSync with image and prompt", async () => {
+      class VisionTestProvider extends TestProvider {
+        async *sendMessage(): AsyncGenerator<
+          | ThreadMessageLike
+          | { isEnd: true; responseMessage: ThreadMessageLike }
+        > {
+          yield {
+            isEnd: true as const,
+            responseMessage: {
+              role: "assistant",
+              content: "A cat sitting on a mat",
+            },
+          };
+        }
+      }
+
+      const provider = new VisionTestProvider();
+      const result = await provider.imageVision({
+        image: "base64imagedata",
+        prompt: "Describe this image",
+      });
+
+      expect(result).toBe("A cat sitting on a mat");
+    });
+  });
+
+  describe("imageOCR", () => {
+    it("should call imageVision with OCR prompt", async () => {
+      class OCRTestProvider extends TestProvider {
+        async *sendMessage(): AsyncGenerator<
+          | ThreadMessageLike
+          | { isEnd: true; responseMessage: ThreadMessageLike }
+        > {
+          yield {
+            isEnd: true as const,
+            responseMessage: {
+              role: "assistant",
+              content: "Extracted text from image",
+            },
+          };
+        }
+      }
+
+      const provider = new OCRTestProvider();
+      const result = await provider.imageOCR({
+        image: "base64imagedata",
+      });
+
+      expect(result).toBe("Extracted text from image");
+    });
+  });
 });

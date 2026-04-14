@@ -129,6 +129,30 @@ describe("openai utils", () => {
         expect(content[0].text).toContain("filename");
       });
 
+      it("should convert user message with image part", () => {
+        const messages: ThreadMessageLike[] = [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                image: "data:image/png;base64,abc123",
+              },
+            ],
+          },
+        ];
+
+        const result = convertMessagesToModelFormat(messages);
+
+        expect(result[0].role).toBe("user");
+        const content = result[0].content as Array<{
+          type: string;
+          image_url?: { url: string };
+        }>;
+        expect(content[0].type).toBe("image_url");
+        expect(content[0].image_url?.url).toBe("data:image/png;base64,abc123");
+      });
+
       it("should handle unknown part type in user message", () => {
         const messages: ThreadMessageLike[] = [
           {
@@ -382,6 +406,36 @@ describe("openai utils", () => {
         const msg = result[0] as { tool_calls?: Array<{ type: string }> };
         expect(msg.tool_calls).toBeDefined();
         expect(msg.tool_calls?.[0].type).toBe("function");
+      });
+
+      it("should handle tool call with undefined argsText", () => {
+        const messages: ThreadMessageLike[] = [
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "tool-call",
+                toolCallId: "tool_123",
+                toolName: "test_tool",
+                args: { key: "value" },
+              } as unknown as {
+                type: "tool-call";
+                toolCallId: string;
+                toolName: string;
+                args: Record<string, string>;
+                argsText: string;
+              },
+            ],
+          },
+        ];
+
+        const result = convertMessagesToModelFormat(messages);
+
+        const msg = result[0] as {
+          tool_calls?: Array<{ function: { arguments: string } }>;
+        };
+        // Should fallback to "" when argsText is undefined
+        expect(msg.tool_calls?.[0].function.arguments).toBe("");
       });
 
       it("should handle tool call with falsy argsText", () => {

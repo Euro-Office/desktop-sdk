@@ -198,6 +198,34 @@ describe("checkProvider", () => {
     expect(result).toEqual({ field: "key", message: "Invalid API key" });
   });
 
+  it("should return invalidKey when Error message includes 'API key'", async () => {
+    // Standard Error has no enumerable own keys, so Object.keys returns [].
+    // Add an enumerable property to avoid the isEmptyObject branch.
+    const error = new Error("API key not valid. Please pass a valid API key.");
+    (error as Record<string, unknown>).code = 403;
+    mockList.mockRejectedValue(error);
+    const provider = new GenAIProvider();
+
+    const result = await provider.checkProvider({
+      apiKey: "bad-key",
+      url: "",
+    });
+
+    expect(result).toEqual({ field: "key", message: "Invalid API key" });
+  });
+
+  it("should return invalidUrl for empty object error without url", async () => {
+    mockList.mockRejectedValue({});
+    const provider = new GenAIProvider();
+
+    const result = await provider.checkProvider({
+      apiKey: "key",
+      url: "",
+    });
+
+    expect(result).toEqual({ field: "url", message: "Invalid URL" });
+  });
+
   it("should return emptyKey when no apiKey provided", async () => {
     // Use object with extra key to avoid "empty object" detection
     const error = { message: "Some error", code: 500 };
@@ -262,6 +290,127 @@ describe("getProviderModels", () => {
     expect(result[1].id).toBe("unknown-model");
     expect(result[1].name).toBe("Unknown");
     expect(result.every((m) => m.provider === "genai")).toBe(true);
+  });
+
+  it("should assign Embeddings capability for embedContent models", async () => {
+    mockList.mockResolvedValue({
+      page: Promise.resolve([
+        {
+          name: "models/text-embedding-004",
+          displayName: "Text Embedding 004",
+          supportedGenerationMethods: ["embedContent"],
+        },
+      ]),
+      hasNextPage: () => false,
+      nextPage: vi.fn(),
+    });
+    const provider = new GenAIProvider();
+
+    const result = await provider.getProviderModels({
+      apiKey: "valid",
+      url: "",
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("text-embedding-004");
+    // CapabilitiesUI.Embeddings = 0x04
+    expect(result[0].capabilities).toBe(0x04);
+  });
+
+  it("should assign Chat|Vision|Tools capability for generateContent models", async () => {
+    mockList.mockResolvedValue({
+      page: Promise.resolve([
+        {
+          name: "models/gemini-2-flash",
+          displayName: "Gemini 2 Flash",
+          supportedGenerationMethods: ["generateContent"],
+        },
+      ]),
+      hasNextPage: () => false,
+      nextPage: vi.fn(),
+    });
+    const provider = new GenAIProvider();
+
+    const result = await provider.getProviderModels({
+      apiKey: "valid",
+      url: "",
+    });
+
+    expect(result).toHaveLength(1);
+    // CapabilitiesUI.Chat | CapabilitiesUI.Vision | CapabilitiesUI.Tools = 0x01 | 0x80 | 0x100
+    expect(result[0].capabilities).toBe(0x01 | 0x80 | 0x100);
+  });
+
+  it("should handle model.name being undefined", async () => {
+    mockList.mockResolvedValue({
+      page: Promise.resolve([
+        {
+          name: undefined,
+          displayName: "No Name Model",
+          supportedGenerationMethods: ["generateContent"],
+        },
+      ]),
+      hasNextPage: () => false,
+      nextPage: vi.fn(),
+    });
+    const provider = new GenAIProvider();
+
+    const result = await provider.getProviderModels({
+      apiKey: "valid",
+      url: "",
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("");
+    expect(result[0].name).toBe("No Name Model");
+  });
+
+  it("should default capabilities for models with no supportedGenerationMethods", async () => {
+    mockList.mockResolvedValue({
+      page: Promise.resolve([
+        {
+          name: "models/some-model",
+          displayName: "Some Model",
+          supportedGenerationMethods: undefined,
+        },
+      ]),
+      hasNextPage: () => false,
+      nextPage: vi.fn(),
+    });
+    const provider = new GenAIProvider();
+
+    const result = await provider.getProviderModels({
+      apiKey: "valid",
+      url: "",
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("some-model");
+    // Falls through to else branch: Chat | Vision | Tools
+    expect(result[0].capabilities).toBe(0x01 | 0x80 | 0x100);
+  });
+
+  it("should use modelId as name when displayName is empty", async () => {
+    mockList.mockResolvedValue({
+      page: Promise.resolve([
+        {
+          name: "models/fallback-model",
+          displayName: "",
+          supportedGenerationMethods: [],
+        },
+      ]),
+      hasNextPage: () => false,
+      nextPage: vi.fn(),
+    });
+    const provider = new GenAIProvider();
+
+    const result = await provider.getProviderModels({
+      apiKey: "valid",
+      url: "",
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("fallback-model");
   });
 
   it("should paginate through all pages", async () => {
@@ -490,6 +639,137 @@ describe("sendMessageAfterToolCall with tool result", () => {
 
     // Should have added function response to prevMessages
     expect(provider.prevMessages.length).toBeGreaterThan(0);
+  });
+});
+
+describe("filterAfterToolCallContent via sendMessage", () => {
+  it("should filter content when afterToolCall completes with string content response", async () => {
+    // When responseMessage ends up with string content, filterAfterToolCallContent returns it as-is
+    mockGenerateContentStream.mockResolvedValue({
+      [Symbol.asyncIterator]: async function* () {
+        yield { candidates: [{ content: { parts: [{ text: "Result" }] } }] };
+      },
+    });
+
+    const provider = new GenAIProvider();
+    provider.setProvider({
+      type: "genai",
+      name: "Test",
+      key: "key",
+      baseUrl: "",
+    });
+
+    // afterToolCall with originalMessage that has string content
+    const originalMessage: ThreadMessageLike = {
+      role: "assistant",
+      content: "original string content",
+    };
+
+    const generator = provider.sendMessage([], true, originalMessage);
+    const results = [];
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(results.length).toBeGreaterThan(0);
+    const lastResult = results[results.length - 1] as { isEnd: boolean };
+    expect(lastResult.isEnd).toBe(true);
+  });
+
+  it("should filter content when afterToolCall completes without originalMessage", async () => {
+    mockGenerateContentStream.mockResolvedValue({
+      [Symbol.asyncIterator]: async function* () {
+        yield { candidates: [{ content: { parts: [{ text: "Result" }] } }] };
+      },
+    });
+
+    const provider = new GenAIProvider();
+    provider.setProvider({
+      type: "genai",
+      name: "Test",
+      key: "key",
+      baseUrl: "",
+    });
+
+    // afterToolCall=true but message=undefined triggers filterAfterToolCallContent with undefined originalMessage
+    const generator = provider.sendMessage([], true, undefined);
+    const results = [];
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(results.length).toBeGreaterThan(0);
+    const lastResult = results[results.length - 1] as { isEnd: boolean };
+    expect(lastResult.isEnd).toBe(true);
+  });
+});
+
+describe("hasContent branches via stop flag", () => {
+  it("should detect content in string message and add to prevMessages when stopped", async () => {
+    // This tests hasContent with string content: message.content.length > 0
+    let yieldCount = 0;
+    mockGenerateContentStream.mockResolvedValue({
+      [Symbol.asyncIterator]: async function* () {
+        yield { candidates: [{ content: { parts: [{ text: "Some text" }] } }] };
+        yieldCount++;
+        yield { candidates: [{ content: { parts: [{ text: " more" }] } }] };
+        yieldCount++;
+      },
+    });
+
+    const provider = new GenAIProvider();
+    provider.setProvider({
+      type: "genai",
+      name: "Test",
+      key: "key",
+      baseUrl: "",
+    });
+
+    const initialLength = provider.prevMessages.length;
+    const generator = provider.sendMessage([{ role: "user", content: "Hi" }]);
+
+    for await (const result of generator) {
+      if (yieldCount >= 1) {
+        provider.stopMessage();
+      }
+      if ((result as { isEnd?: boolean }).isEnd) break;
+    }
+
+    // prevMessages should have grown (user message + partial response added on stop)
+    expect(provider.prevMessages.length).toBeGreaterThan(initialLength);
+  });
+
+  it("should not add empty array content to prevMessages when stopped early", async () => {
+    // This tests hasContent with empty array: message.content.length === 0
+    mockGenerateContentStream.mockResolvedValue({
+      [Symbol.asyncIterator]: async function* () {
+        // Yield nothing meaningful before stop
+        yield { candidates: [{ content: { parts: [] } }] };
+      },
+    });
+
+    const provider = new GenAIProvider();
+    provider.setProvider({
+      type: "genai",
+      name: "Test",
+      key: "key",
+      baseUrl: "",
+    });
+
+    // Stop immediately
+    provider.stopMessage();
+
+    const initialLength = provider.prevMessages.length;
+    const generator = provider.sendMessage([{ role: "user", content: "Hi" }]);
+
+    const results = [];
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    // The user message was pushed, but no model response should be added since content is empty
+    // prevMessages should have exactly 1 new entry (the user message only)
+    expect(provider.prevMessages.length).toBe(initialLength + 1);
   });
 });
 

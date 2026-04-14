@@ -5,7 +5,9 @@ import type { TProvider } from "../../../types";
 import {
   createFinishChunk,
   createMockStream,
+  createMockStreamWithIterator,
   createReasoningChunk,
+  createTextChunk,
   createTextDeltaChunk,
   createToolCallChunk,
 } from "../../tests/test-utils";
@@ -16,16 +18,20 @@ import { openaiInfo } from "../info";
 // Mock Setup
 // =============================================================================
 
-const { modelsListMock, chatCreateMock } = vi.hoisted(() => ({
-  modelsListMock: vi.fn(),
-  chatCreateMock: vi.fn(),
-}));
+const { modelsListMock, chatCreateMock, imagesGenerateMock } = vi.hoisted(
+  () => ({
+    modelsListMock: vi.fn(),
+    chatCreateMock: vi.fn(),
+    imagesGenerateMock: vi.fn(),
+  })
+);
 
 // Mock the OpenAI SDK
 vi.mock("openai", () => ({
   default: class MockOpenAI {
     chat = { completions: { create: chatCreateMock } };
     models = { list: modelsListMock };
+    images = { generate: imagesGenerateMock };
   },
 }));
 
@@ -742,6 +748,459 @@ describe("OpenAIProvider", () => {
 
       expect(results.length).toBeGreaterThan(0);
       expect(mockStream.controller.abort).toHaveBeenCalled();
+    });
+  });
+
+  // ==========================================================================
+  // checkModelCapabilities (via getProviderModels)
+  // ==========================================================================
+
+  describe("checkModelCapabilities", () => {
+    it("should return Audio capability for whisper models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "whisper-1" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.openai.com/v1",
+      });
+
+      // CapabilitiesUI.Audio = 0x08 = 8
+      expect(result[0].capabilities).toBe(0x08);
+    });
+
+    it("should return Audio capability for tts-1 models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "tts-1-hd" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.openai.com/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x08);
+    });
+
+    it("should return Embeddings capability for embedding models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "text-embedding-3-large" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.openai.com/v1",
+      });
+
+      // CapabilitiesUI.Embeddings = 0x04 = 4
+      expect(result[0].capabilities).toBe(0x04);
+    });
+
+    it("should return Image capability for dall-e models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "dall-e-2" }, { id: "dall-e-3" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.openai.com/v1",
+      });
+
+      // CapabilitiesUI.Image = 0x02 = 2
+      expect(result[0].capabilities).toBe(0x02);
+      expect(result[1].capabilities).toBe(0x02);
+    });
+
+    it("should return Image capability for models with -image- in id", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "gpt-4o-mini-image-preview" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.openai.com/v1",
+      });
+
+      expect(result[0].capabilities).toBe(0x02);
+    });
+
+    it("should return Chat only for gpt-3.5-turbo-instruct", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "gpt-3.5-turbo-instruct" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.openai.com/v1",
+      });
+
+      // CapabilitiesUI.Chat = 0x01 = 1
+      expect(result[0].capabilities).toBe(0x01);
+    });
+
+    it("should return Chat | Vision for regular chat models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "gpt-4.1" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.openai.com/v1",
+      });
+
+      // CapabilitiesUI.Chat | CapabilitiesUI.Vision = 0x01 | 0x80 = 0x81 = 129
+      expect(result[0].capabilities).toBe(0x81);
+    });
+  });
+
+  // ==========================================================================
+  // imageGeneration
+  // ==========================================================================
+
+  describe("imageGeneration", () => {
+    it("should return empty string if no client", async () => {
+      const result = await provider.imageGeneration({
+        prompt: "a cat",
+      });
+
+      expect(result).toBe("");
+    });
+
+    it("should use custom size when width and height are provided", async () => {
+      const testProvider: TProvider = {
+        type: "openai",
+        name: "OpenAI",
+        key: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+      };
+      provider.setProvider(testProvider);
+      provider.setModelKey("dall-e-3");
+
+      imagesGenerateMock.mockResolvedValue({
+        data: [{ b64_json: "base64imagedata" }],
+      });
+
+      const result = await provider.imageGeneration({
+        prompt: "a cat",
+        width: 1792,
+        height: 1024,
+      });
+
+      expect(result).toBe("base64imagedata");
+      expect(imagesGenerateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          size: "1792x1024",
+          response_format: "b64_json",
+        })
+      );
+    });
+
+    it("should use default 1024x1024 size when dimensions are not provided", async () => {
+      const testProvider: TProvider = {
+        type: "openai",
+        name: "OpenAI",
+        key: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+      };
+      provider.setProvider(testProvider);
+      provider.setModelKey("dall-e-3");
+
+      imagesGenerateMock.mockResolvedValue({
+        data: [{ b64_json: "base64imagedata" }],
+      });
+
+      const result = await provider.imageGeneration({
+        prompt: "a cat",
+      });
+
+      expect(result).toBe("base64imagedata");
+      expect(imagesGenerateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          size: "1024x1024",
+        })
+      );
+    });
+
+    it("should return empty string when b64_json is undefined", async () => {
+      const testProvider: TProvider = {
+        type: "openai",
+        name: "OpenAI",
+        key: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+      };
+      provider.setProvider(testProvider);
+      provider.setModelKey("dall-e-3");
+
+      imagesGenerateMock.mockResolvedValue({
+        data: [{}],
+      });
+
+      const result = await provider.imageGeneration({
+        prompt: "a cat",
+      });
+
+      expect(result).toBe("");
+    });
+  });
+
+  // ==========================================================================
+  // getStream early return
+  // ==========================================================================
+
+  describe("getStream", () => {
+    it("should return undefined when client is not set", async () => {
+      // provider has no client set
+      const result = await provider.getStream(
+        { role: "system", content: "test" },
+        []
+      );
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  // ==========================================================================
+  // reasoning_effort branch
+  // ==========================================================================
+
+  describe("reasoning_effort", () => {
+    it("should pass reasoning_effort when withThinking is true and model is reasoning", async () => {
+      const testProvider: TProvider = {
+        type: "openai",
+        name: "OpenAI",
+        key: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+      };
+      provider.setProvider(testProvider);
+      provider.setModelKey("gpt-5.2-2025-12-11");
+
+      chatCreateMock.mockResolvedValue(
+        createMockStream([createFinishChunk()])
+      );
+
+      const results: unknown[] = [];
+      for await (const msg of provider.sendMessage(
+        [{ role: "user", content: "Hi" }],
+        false,
+        undefined,
+        true
+      )) {
+        results.push(msg);
+      }
+
+      expect(chatCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reasoning_effort: "medium",
+        })
+      );
+    });
+
+    it("should not pass reasoning_effort when withThinking is false", async () => {
+      const testProvider: TProvider = {
+        type: "openai",
+        name: "OpenAI",
+        key: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+      };
+      provider.setProvider(testProvider);
+      provider.setModelKey("gpt-5.2-2025-12-11");
+
+      chatCreateMock.mockResolvedValue(
+        createMockStream([createFinishChunk()])
+      );
+
+      const results: unknown[] = [];
+      for await (const msg of provider.sendMessage([
+        { role: "user", content: "Hi" },
+      ])) {
+        results.push(msg);
+      }
+
+      expect(chatCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reasoning_effort: undefined,
+        })
+      );
+    });
+  });
+
+  // ==========================================================================
+  // Stream ended without finish reason
+  // ==========================================================================
+
+  describe("stream ended without finish reason", () => {
+    it("should yield isEnd with content when stream ends with content but no finish_reason", async () => {
+      const testProvider: TProvider = {
+        type: "openai",
+        name: "OpenAI",
+        key: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+      };
+      provider.setProvider(testProvider);
+
+      // Stream with text but no finish chunk
+      const events: ChatCompletionChunk[] = [
+        createTextDeltaChunk("Partial response"),
+      ];
+
+      chatCreateMock.mockResolvedValue(createMockStream(events));
+
+      const results: unknown[] = [];
+      for await (const msg of provider.sendMessage([
+        { role: "user", content: "Hi" },
+      ])) {
+        results.push(msg);
+      }
+
+      // Last result should be isEnd with responseMessage
+      const lastResult = results[results.length - 1] as {
+        isEnd: boolean;
+        responseMessage: ThreadMessageLike;
+      };
+      expect(lastResult.isEnd).toBe(true);
+      expect(lastResult.responseMessage).toBeDefined();
+    });
+
+    it("should yield error when stream ends without content or finish_reason", async () => {
+      const testProvider: TProvider = {
+        type: "openai",
+        name: "OpenAI",
+        key: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+      };
+      provider.setProvider(testProvider);
+
+      // Stream with empty delta (no content, no finish)
+      const emptyChunk = {
+        id: "chatcmpl-123",
+        object: "chat.completion.chunk",
+        created: Date.now(),
+        model: "gpt-4",
+        choices: [
+          {
+            index: 0,
+            delta: {},
+            finish_reason: null,
+          },
+        ],
+      } as ChatCompletionChunk;
+
+      chatCreateMock.mockResolvedValue(createMockStream([emptyChunk]));
+
+      const results: unknown[] = [];
+      for await (const msg of provider.sendMessage([
+        { role: "user", content: "Hi" },
+      ])) {
+        results.push(msg);
+      }
+
+      const lastResult = results[results.length - 1] as {
+        isEnd: boolean;
+        responseMessage: ThreadMessageLike;
+      };
+      expect(lastResult.isEnd).toBe(true);
+      expect(lastResult.responseMessage.status?.type).toBe("incomplete");
+    });
+  });
+
+  // ==========================================================================
+  // getLastToolCall with string content
+  // ==========================================================================
+
+  describe("getLastToolCall with string content", () => {
+    it("should return early when sendMessageAfterToolCall receives string content", async () => {
+      const message: ThreadMessageLike = {
+        role: "assistant",
+        content: "just a string",
+      };
+
+      const generator = provider.sendMessageAfterToolCall(message);
+      const result = await generator.next();
+
+      expect(result.done).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // Reasoning during tool calls
+  // ==========================================================================
+
+  describe("reasoning during tool calls", () => {
+    it("should finalize reasoning when tool_calls are received", async () => {
+      const testProvider: TProvider = {
+        type: "openai",
+        name: "OpenAI",
+        key: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+      };
+      provider.setProvider(testProvider);
+
+      const events: ChatCompletionChunk[] = [
+        createReasoningChunk("Let me think about this..."),
+        createToolCallChunk("tool_123", "get_weather", '{"city":"NYC"}'),
+        createFinishChunk(),
+      ];
+
+      chatCreateMock.mockResolvedValue(createMockStream(events));
+
+      const results: unknown[] = [];
+      for await (const msg of provider.sendMessage([
+        { role: "user", content: "What is the weather?" },
+      ])) {
+        results.push(msg);
+      }
+
+      expect(results.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ==========================================================================
+  // Reasoning during stop (hasUnfinalizedReasoning when user stops)
+  // ==========================================================================
+
+  describe("reasoning during stop", () => {
+    it("should finalize reasoning when user stops during active reasoning", async () => {
+      const testProvider: TProvider = {
+        type: "openai",
+        name: "OpenAI",
+        key: "test-key",
+        baseUrl: "https://api.openai.com/v1",
+      };
+      provider.setProvider(testProvider);
+
+      const mockStream = {
+        controller: { abort: vi.fn() },
+        async *[Symbol.asyncIterator]() {
+          yield createReasoningChunk("Deep thinking...");
+          yield createReasoningChunk(" still thinking...");
+        },
+      };
+
+      chatCreateMock.mockResolvedValue(mockStream);
+
+      const results: unknown[] = [];
+      let eventCount = 0;
+
+      for await (const msg of provider.sendMessage([
+        { role: "user", content: "Think deeply" },
+      ])) {
+        results.push(msg);
+        eventCount++;
+        if (eventCount === 1) {
+          provider.stopMessage();
+        }
+      }
+
+      expect(results.length).toBeGreaterThan(0);
+      expect(mockStream.controller.abort).toHaveBeenCalled();
+
+      // The last yielded result should be the final isEnd message
+      const lastResult = results[results.length - 1] as {
+        isEnd: boolean;
+        responseMessage: ThreadMessageLike;
+      };
+      expect(lastResult.isEnd).toBe(true);
     });
   });
 });

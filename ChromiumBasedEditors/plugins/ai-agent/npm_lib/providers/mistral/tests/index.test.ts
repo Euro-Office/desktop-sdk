@@ -1022,5 +1022,103 @@ describe("MistralProvider", () => {
       expect(result[0].id).toBe("");
       expect(result[0].name).toBe("Unknown");
     });
+
+    it("should assign Embeddings capability to mistral-embed models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "mistral-embed" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.mistral.ai",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].capabilities).toBe(0x04); // CapabilitiesUI.Embeddings
+    });
+
+    it("should assign Chat+Vision capability to pixtral models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "pixtral-large-latest" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.mistral.ai",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].capabilities).toBe(0x01 | 0x80); // Chat | Vision
+    });
+
+    it("should assign Chat capability to mistral-small models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "mistral-small-latest" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.mistral.ai",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].capabilities).toBe(0x01); // CapabilitiesUI.Chat
+    });
+
+    it("should assign Chat capability to mistral-medium models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "mistral-medium-latest" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.mistral.ai",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].capabilities).toBe(0x01); // CapabilitiesUI.Chat
+    });
+
+    it("should assign Chat capability to codestral models", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "codestral-latest" }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.mistral.ai",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].capabilities).toBe(0x01); // CapabilitiesUI.Chat
+    });
+
+    it("should assign Chat+Vision capability when model has vision capability flag", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "some-custom-model", capabilities: { vision: true } }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.mistral.ai",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].capabilities).toBe(0x01 | 0x80); // Chat | Vision
+    });
+
+    it("should assign Chat capability when model has no vision capability flag", async () => {
+      modelsListMock.mockResolvedValue({
+        data: [{ id: "some-custom-model", capabilities: { vision: false } }],
+      });
+
+      const result = await provider.getProviderModels({
+        apiKey: "test-key",
+        url: "https://api.mistral.ai",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].capabilities).toBe(0x01); // CapabilitiesUI.Chat
+    });
   });
 });

@@ -80,7 +80,7 @@ class WebSearch {
           ? this.webSearchData.provider
           : (this.webSearchData.baseUrl ?? "");
         const searchUrl = new URL("/api/2.0/ai/web-search/v1/search", baseUrl);
-        const response = await fetch(`onlyoffice-proxy://${searchUrl.href}`, {
+        const response = await fetch(`${searchUrl.href}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -156,7 +156,7 @@ class WebSearch {
           ? this.webSearchData.provider
           : (this.webSearchData.baseUrl ?? "");
         const crawlUrl = new URL("/api/2.0/ai/web-search/v1/contents", baseUrl);
-        const response = await fetch(`onlyoffice-proxy://${crawlUrl.href}`, {
+        const response = await fetch(`${crawlUrl.href}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
