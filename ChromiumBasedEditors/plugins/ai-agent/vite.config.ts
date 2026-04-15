@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import svgr from "vite-plugin-svgr";
+import { viteStaticCopy } from "vite-plugin-static-copy";
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -18,6 +19,15 @@ export default defineConfig(({ mode }) => {
         },
         include: "**/*.svg?react",
       }),
+      isDocs &&
+        viteStaticCopy({
+          targets: [
+            {
+              src: "src/docs-plugin/resources",
+              dest: ".",
+            },
+          ],
+        }),
     ],
     resolve: {
       alias: {

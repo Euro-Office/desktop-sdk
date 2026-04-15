@@ -3,8 +3,22 @@
   "name": "AI Agent",
   "variations": [
     {
-      "description": "AI Assistant Panel",
+      "description": "AI Agent Background",
       "url": "index.html",
+      "isViewer": false,
+      "EditorsSupport": [
+        "word",
+        "cell",
+        "slide",
+        "pdf"
+      ],
+      "type": "background",
+      "initDataType": "none",
+      "events": []
+    },
+    {
+      "description": "AI Agent Panel",
+      "url": "index.html?page=panel",
       "isViewer": false,
       "EditorsSupport": [
         "word",
