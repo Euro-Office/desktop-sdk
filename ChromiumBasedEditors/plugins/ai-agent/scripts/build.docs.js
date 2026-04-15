@@ -19,7 +19,7 @@ if (!fs.existsSync(targetDir)) {
 }
 
 function cleanTargetDir(dirPath) {
-  const preserveFiles = ["index.html", "config.json"];
+  const preserveFiles = ["index.html", "chat.html", "config.json"];
 
   if (!fs.existsSync(dirPath)) return;
 
@@ -51,7 +51,7 @@ function copyFiles(srcDir, destDir) {
     const srcPath = path.join(srcDir, item);
     const destPath = path.join(destDir, item);
 
-    // Skip the built HTML — index.html lives permanently in deploy
+    // Skip Vite-generated HTML stubs — real HTML files live permanently in deploy
     if (item === "docs-plugin.html") {
       console.log(`Skipping: ${item}`);
       return;

@@ -11,6 +11,29 @@ declare global {
     attachOnClick: (handler: () => void) => void;
   }
 
+  interface AscPluginWindowVariation {
+    url: string;
+    description?: string;
+    type: "window" | "panel" | "panelRight";
+    EditorsSupport?: Array<"word" | "slide" | "cell" | "pdf">;
+    isModal?: boolean;
+    isVisual?: boolean;
+    size?: [number, number];
+    buttons?: Array<{
+      text: string;
+      primary?: boolean;
+      isviewer?: boolean;
+      textLocale?: Record<string, string>;
+    }>;
+    isActivated?: boolean;
+    icons?: string;
+  }
+
+  interface AscPluginWindow {
+    show: (variation: AscPluginWindowVariation) => void;
+    activate: () => void;
+  }
+
   interface Window {
     Asc: {
       plugin: {
@@ -23,8 +46,10 @@ declare global {
         ) => void;
         callCommand: (func: () => void, isClose?: boolean) => void;
         attachToolbarMenuClickEvent: (id: string, handler: () => void) => void;
+        event_onToolbarMenuClick: (id: string) => void;
       };
       ButtonToolbar: new (parent?: AscButtonToolbar) => AscButtonToolbar;
+      PluginWindow: new () => AscPluginWindow;
       Buttons: {
         registerToolbarMenu: () => void;
         registerContextMenu: () => void;

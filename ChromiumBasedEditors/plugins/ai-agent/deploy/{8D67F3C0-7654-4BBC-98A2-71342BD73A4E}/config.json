@@ -14,21 +14,11 @@
       ],
       "type": "background",
       "initDataType": "none",
-      "events": []
-    },
-    {
-      "description": "AI Agent Panel",
-      "url": "index.html?page=panel",
-      "isViewer": false,
-      "EditorsSupport": [
-        "word",
-        "cell",
-        "slide",
-        "pdf"
-      ],
-      "type": "panelRight",
-      "initDataType": "none",
-      "events": []
+      "events": [
+        "onContextMenuShow",
+        "onContextMenuClick",
+        "onToolbarMenuClick"
+      ]
     }
   ]
 }

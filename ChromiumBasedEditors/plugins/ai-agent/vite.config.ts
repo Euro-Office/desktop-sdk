@@ -32,7 +32,13 @@ export default defineConfig(({ mode }) => {
       outDir: isDocs ? "dist-docs" : "dist",
       rollupOptions: {
         input: isDocs
-          ? { "docs-plugin": path.resolve(__dirname, "src/docs-plugin/main.tsx") }
+          ? {
+              "docs-plugin": path.resolve(
+                __dirname,
+                "src/docs-plugin/main.tsx"
+              ),
+              chat: path.resolve(__dirname, "src/docs-plugin/chat.tsx"),
+            }
           : undefined,
         output: {
           entryFileNames: "[name].js",
