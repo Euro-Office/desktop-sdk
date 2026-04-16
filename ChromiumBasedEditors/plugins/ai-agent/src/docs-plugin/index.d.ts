@@ -39,7 +39,35 @@ declare global {
     type: string;
   }
 
+  interface AscDesktopEditor {
+    OpenFilenameDialog: (
+      initialPath: string,
+      multiSelect: boolean,
+      callback: (path: string | string[] | null) => void
+    ) => void;
+    convertFileExternal: (
+      path: string,
+      format: number,
+      callback: (data: { content: ArrayBuffer }) => void
+    ) => void;
+    getOfficeFileType: (path: string) => number;
+    callToolFunction: (name: string, args?: string) => Promise<string>;
+    SaveFilenameDialog: (
+      fileName: string,
+      callback: (path: string | null) => void
+    ) => void;
+    saveAndOpen: (
+      content: string,
+      inputFormat: number,
+      path: string,
+      outputFormat: number,
+      callback: (code: number) => void
+    ) => void;
+    openTemplate: (path: string, name: string) => void;
+  }
+
   interface Window {
+    AscDesktopEditor?: AscDesktopEditor;
     Asc: {
       plugin: {
         init: () => void;
