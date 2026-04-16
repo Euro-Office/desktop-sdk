@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => {
                 "src/docs-plugin/main.tsx"
               ),
               chat: path.resolve(__dirname, "src/docs-plugin/chat.tsx"),
+              index: path.resolve(__dirname, "src/shared/index.css"),
             }
           : undefined,
         output: {
