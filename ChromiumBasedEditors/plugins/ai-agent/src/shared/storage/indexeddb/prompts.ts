@@ -2,7 +2,11 @@ import type { PromptFoldersStorage, PromptsStorage } from "@onlyoffice/ai-chat";
 import type { Prompt, PromptFolder } from "@/shared/lib/types.ts";
 
 export class IndexedDBPromptsStorage implements PromptsStorage {
-  constructor(private getDB: () => IDBDatabase) {}
+  private getDB: () => IDBDatabase;
+
+  constructor(getDB: () => IDBDatabase) {
+    this.getDB = getDB;
+  }
 
   async create(prompt: Prompt): Promise<void> {
     const db = this.getDB();
@@ -121,10 +125,13 @@ export class IndexedDBPromptsStorage implements PromptsStorage {
 }
 
 export class IndexedDBPromptFoldersStorage implements PromptFoldersStorage {
-  constructor(
-    private getDB: () => IDBDatabase,
-    private prompts: IndexedDBPromptsStorage
-  ) {}
+  private getDB: () => IDBDatabase;
+  private prompts: IndexedDBPromptsStorage;
+
+  constructor(getDB: () => IDBDatabase, prompts: IndexedDBPromptsStorage) {
+    this.getDB = getDB;
+    this.prompts = prompts;
+  }
 
   async create(folder: PromptFolder): Promise<void> {
     const db = this.getDB();

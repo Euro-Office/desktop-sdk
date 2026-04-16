@@ -2,7 +2,11 @@ import type { ProfilesStorage } from "@onlyoffice/ai-chat";
 import type { Profile } from "@/shared/lib/types.ts";
 
 export class IndexedDBProfilesStorage implements ProfilesStorage {
-  constructor(private getDB: () => IDBDatabase) {}
+  private getDB: () => IDBDatabase;
+
+  constructor(getDB: () => IDBDatabase) {
+    this.getDB = getDB;
+  }
 
   async create(profile: Profile): Promise<void> {
     const db = this.getDB();

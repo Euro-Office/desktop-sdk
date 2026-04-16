@@ -14,7 +14,6 @@ const { localStorageMap, localStorageMock } = vi.hoisted(() => {
     },
     key: vi.fn(),
   };
-  // @ts-expect-error — setting global before modules load
   globalThis.localStorage = mock;
   return { localStorageMap: map, localStorageMock: mock };
 });
@@ -162,7 +161,7 @@ describe("migrateProvidersToProfiles", () => {
     );
     const profiles = mockStorage.profiles.createMany.mock.calls[0][0];
     const defaultId = localStorageMock.setItem.mock.calls.find(
-      ([key]: [string]) => key === "default-profile"
+      ([key]: [string, string]) => key === "default-profile"
     )?.[1];
     expect(defaultId).toBe(profiles[0].id);
   });
@@ -273,7 +272,7 @@ describe("migrateProvidersToProfiles", () => {
 
     // Should not have set default-profile since one already exists
     const setItemCalls = localStorageMock.setItem.mock.calls.filter(
-      ([key]: [string]) => key === "default-profile"
+      ([key]: [string, string]) => key === "default-profile"
     );
     expect(setItemCalls).toHaveLength(0);
   });

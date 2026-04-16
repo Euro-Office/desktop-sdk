@@ -1,38 +1,8 @@
-import type { TCloud, TProcess } from "../shared/lib/types.ts";
+import type { AscDesktopEditor, TProcess } from "../shared/lib/types.ts";
 
 declare global {
   interface Window {
-    AscDesktopEditor: {
-      getOfficeFileType: (file: string) => number;
-      getToolFunctions: () => string;
-      callToolFunction: (name: string, args?: string) => string;
-      getClouds: () => TCloud[];
-      getCloudKeys: () => TCloudKey[];
-      openConnectCloud: () => void;
-      openTemplate: (file: string, name: string) => void;
-      saveAndOpen: (
-        content: string,
-        type: number,
-        path: string,
-        flags: number,
-        callback: (code: number) => void
-      ) => void;
-      OpenFilenameDialog: (
-        type: string,
-        multiple: boolean,
-        callback: (path: string | string[]) => void
-      ) => void;
-      convertFileExternal: (
-        file: string,
-        type: number,
-        callback: (data: { content: Uint8Array }, error: unknown) => void
-      ) => void;
-      SaveFilenameDialog: (
-        fileName: string,
-        callback: (path: string) => void,
-        content?: string
-      ) => void;
-    };
+    AscDesktopEditor: AscDesktopEditor;
     RendererProcessVariable: {
       lang: string;
       rtl: boolean;

@@ -1,4 +1,5 @@
 import type { PlatformClouds, TCloud, TCloudKey } from "@onlyoffice/ai-chat";
+import { isDesktopEditor } from "@/shared/lib/utils.ts";
 
 export class OnlyOfficeClouds implements PlatformClouds {
   async getClouds(): Promise<TCloud[]> {
@@ -14,6 +15,10 @@ export class OnlyOfficeClouds implements PlatformClouds {
   }
 
   onCloudsChange(callback: () => void): () => void {
+    if (!isDesktopEditor()) {
+      return () => undefined;
+    }
+
     window.onUpdateClouds = callback;
 
     return () => {

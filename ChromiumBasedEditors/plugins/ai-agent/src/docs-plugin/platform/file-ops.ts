@@ -6,7 +6,7 @@ export class OnlyOfficeFileOps implements PlatformFileOperations {
     if (!isDesktopEditor()) return null;
 
     return new Promise((resolve) => {
-      window.AscDesktopEditor!.OpenFilenameDialog("", true, (result) => {
+      window.AscDesktopEditor?.OpenFilenameDialog("", true, (result) => {
         if (!result) {
           resolve(null);
           return;
@@ -34,7 +34,7 @@ export class OnlyOfficeFileOps implements PlatformFileOperations {
     if (!isDesktopEditor()) return "";
 
     return new Promise((resolve) => {
-      window.AscDesktopEditor!.convertFileExternal(
+      window.AscDesktopEditor?.convertFileExternal(
         path,
         format,
         (data: { content: ArrayBuffer }) => {
@@ -49,14 +49,14 @@ export class OnlyOfficeFileOps implements PlatformFileOperations {
   getFileType(path: string): number {
     if (!isDesktopEditor()) return 0;
 
-    return window.AscDesktopEditor!.getOfficeFileType(path);
+    return window.AscDesktopEditor?.getOfficeFileType(path) ?? 0;
   }
 
   async getRecentFiles(): Promise<string> {
     if (!isDesktopEditor()) return "{}";
 
     return (
-      window.AscDesktopEditor!.callToolFunction("recent_files_reader") ?? "{}"
+      window.AscDesktopEditor?.callToolFunction("recent_files_reader") ?? "{}"
     );
   }
 
@@ -64,12 +64,12 @@ export class OnlyOfficeFileOps implements PlatformFileOperations {
     if (!isDesktopEditor()) return;
 
     return new Promise((resolve) => {
-      window.AscDesktopEditor!.SaveFilenameDialog(defaultName, (path) => {
+      window.AscDesktopEditor?.SaveFilenameDialog(defaultName, (path) => {
         if (!path) {
           resolve();
           return;
         }
-        window.AscDesktopEditor!.saveAndOpen(content, 0x5c, path, 0x41, () => {
+        window.AscDesktopEditor?.saveAndOpen(content, 0x5c, path, 0x41, () => {
           resolve();
         });
       });
@@ -79,6 +79,6 @@ export class OnlyOfficeFileOps implements PlatformFileOperations {
   openFile(path: string, name: string): void {
     if (!isDesktopEditor()) return;
 
-    window.AscDesktopEditor!.openTemplate(path, name);
+    window.AscDesktopEditor?.openTemplate(path, name);
   }
 }

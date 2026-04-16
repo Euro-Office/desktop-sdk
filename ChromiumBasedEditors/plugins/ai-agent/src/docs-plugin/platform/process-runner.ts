@@ -8,8 +8,9 @@ export class OnlyOfficeProcessRunner implements PlatformProcessRunner {
   ): TProcess | null {
     if (!this.isAvailable()) return null;
 
-    const process = new window.ExternalProcess(command, env);
-    return process as TProcess;
+    const ExternalProcess = window.ExternalProcess;
+    if (!ExternalProcess) return null;
+    return new ExternalProcess(command, env);
   }
 
   isAvailable(): boolean {

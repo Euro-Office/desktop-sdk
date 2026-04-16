@@ -9,7 +9,11 @@ interface Message {
 }
 
 export class IndexedDBMessagesStorage implements MessagesStorage {
-  constructor(private getDB: () => IDBDatabase) {}
+  private getDB: () => IDBDatabase;
+
+  constructor(getDB: () => IDBDatabase) {
+    this.getDB = getDB;
+  }
 
   async create(
     threadId: string,
