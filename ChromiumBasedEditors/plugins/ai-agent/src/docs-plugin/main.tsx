@@ -3,7 +3,6 @@ const CHAT_PANEL_VARIATION: AscPluginWindowVariation = {
   description: "AI Chat",
   type: "panelRight",
   EditorsSupport: ["word", "slide", "cell", "pdf"],
-  isModal: false,
   isVisual: true,
   icons: "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
 };
@@ -13,7 +12,6 @@ const SETTINGS_PANEL_VARIATION: AscPluginWindowVariation = {
   description: "AI Settings",
   type: "window",
   EditorsSupport: ["word", "slide", "cell", "pdf"],
-  isModal: false,
   isVisual: true,
   icons: "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
   size: [412, 510],
