@@ -8,24 +8,31 @@ const CHAT_PANEL_VARIATION: AscPluginWindowVariation = {
   icons: "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
 };
 
+const SETTINGS_PANEL_VARIATION: AscPluginWindowVariation = {
+  url: "settings.html",
+  description: "AI Settings",
+  type: "window",
+  EditorsSupport: ["word", "slide", "cell", "pdf"],
+  isModal: false,
+  isVisual: true,
+  icons: "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
+  size: [412, 510],
+};
+
 let chatWindow: AscPluginWindow | null = null;
+let settingsWindow: AscPluginWindow | null = null;
 
 function onSettignsClick() {
-  console.log("Settings clicked");
+  if (!settingsWindow) {
+    settingsWindow = new window.Asc.PluginWindow();
+    settingsWindow.show(SETTINGS_PANEL_VARIATION);
+  } else {
+    settingsWindow.activate();
+  }
 }
 
 window.Asc.plugin.init = () => {
-  // Register toolbar menu group
-  const tab = new window.Asc.ButtonToolbar();
-  tab.text = "AI Actions";
-
-  const btnSettings = new window.Asc.ButtonToolbar(tab);
-  btnSettings.text = "AI Settings";
-  btnSettings.icons =
-    "resources/%theme-type%(light|dark)/big/settings%scale%(default).png";
-  btnSettings.attachOnClick(onSettignsClick);
-
-  // Register AI Chat button in the Home tab toolbar
+  // Register AI Chat button in the Home tab and Settings button in the plugin tab
   window.Asc.plugin.executeMethod("AddToolbarMenuItem", [
     {
       guid: "asc.{8D67F3C0-7654-4BBC-98A2-71342BD73A4E}",
@@ -43,6 +50,19 @@ window.Asc.plugin.init = () => {
             },
           ],
         },
+        {
+          id: "ai-actions",
+          text: "AI Actions",
+          items: [
+            {
+              id: "ai-settings",
+              type: "big-button",
+              text: "AI Settings",
+              icons:
+                "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
+            },
+          ],
+        },
       ],
     },
   ]);
@@ -56,6 +76,8 @@ window.Asc.plugin.init = () => {
       } else {
         chatWindow.activate();
       }
+    } else if (id === "ai-settings") {
+      onSettignsClick();
     }
   };
 
