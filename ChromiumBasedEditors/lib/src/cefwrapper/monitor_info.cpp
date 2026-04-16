@@ -381,7 +381,7 @@ int Core_GetMonitorRawDpi(WindowHandleId handle, unsigned int* uiX, unsigned int
     if (g_monitor_info.m_func_GetDpiForMonitor)
     {
         HMONITOR hMonitor = MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST);
-        g_monitor_info.m_func_GetDpiForMonitor(hMonitor, MDT_RAW_DPI, uiX, uiY);
+        g_monitor_info.m_func_GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, uiX, uiY);
         return 0;
     }
     return -1;
@@ -429,7 +429,7 @@ int Core_GetMonitorRawDpiByIndex(int index, unsigned int* uiX, unsigned int* uiY
         }
 
         if (g_monitor_info.m_func_GetDpiForMonitor)
-            g_monitor_info.m_func_GetDpiForMonitor(hMonitor, MDT_RAW_DPI, uiX, uiY);
+            g_monitor_info.m_func_GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, uiX, uiY);
 
         return 0;
     }
