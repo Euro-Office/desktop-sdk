@@ -34,6 +34,11 @@ declare global {
     activate: () => void;
   }
 
+  interface AscTheme {
+    name: string;
+    type: string;
+  }
+
   interface Window {
     Asc: {
       plugin: {
@@ -47,6 +52,13 @@ declare global {
         callCommand: (func: () => void, isClose?: boolean) => void;
         attachToolbarMenuClickEvent: (id: string, handler: () => void) => void;
         event_onToolbarMenuClick: (id: string) => void;
+        info: {
+          theme: AscTheme;
+          lang: string;
+        };
+        onThemeChangedBase?: (theme: AscTheme) => void;
+        onThemeChanged?: (theme: AscTheme) => void;
+        onTranslate?: () => void;
       };
       ButtonToolbar: new (parent?: AscButtonToolbar) => AscButtonToolbar;
       PluginWindow: new () => AscPluginWindow;
