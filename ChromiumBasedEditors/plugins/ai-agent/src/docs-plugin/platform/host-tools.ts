@@ -1,0 +1,40 @@
+import type { PlatformHostTools } from "@onlyoffice/ai-chat";
+import type { TMCPItem } from "@/shared/lib/types.ts";
+import { isDesktopEditor } from "@/shared/lib/utils.ts";
+
+export class OnlyOfficeHostTools implements PlatformHostTools {
+  getTools(): TMCPItem[] {
+    if (!isDesktopEditor()) {
+      return [];
+    }
+
+    try {
+      const stringFunctions: string =
+        // biome-ignore lint/suspicious/noExplicitAny: ONLYOFFICE global API
+        (window as any).AscDesktopEditor?.getToolFunctions() ?? "";
+      const parsed = JSON.parse(stringFunctions) as (TMCPItem & {
+        parameters: Record<string, unknown>;
+      })[];
+
+      return parsed.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.parameters,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async callTool(name: string, args: Record<string, unknown>): Promise<string> {
+    if (!isDesktopEditor()) {
+      return "{}";
+    }
+
+    const result = await window.AscDesktopEditor?.callToolFunction(
+      name,
+      JSON.stringify(args)
+    );
+    return result ?? "{}";
+  }
+}
