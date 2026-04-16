@@ -2527,7 +2527,7 @@ public:
 		{
 			m_bIsDisableResizeOnLoadedOneCall = true;
 			m_pParent->resizeEvent();
-			m_pParent->focus();
+            // m_pParent->focus();
 
 			if (!m_bIsLoaded)
 			{
