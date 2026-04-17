@@ -38,7 +38,7 @@ const SettingsInit = () => {
     fetchClouds();
   }, [fetchClouds]);
 
-  return <SettingsPage hideHeader noPadding />;
+  return <SettingsPage hideHeader noPadding isWebSearchHorizontal={false} />;
 };
 
 const Settings = () => {
