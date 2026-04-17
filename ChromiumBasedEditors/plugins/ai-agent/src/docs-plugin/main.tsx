@@ -1,29 +1,19 @@
-const CHAT_PANEL_VARIATION: AscPluginWindowVariation = {
-  url: "chat.html",
-  description: "AI Chat",
-  type: "panelRight",
-  EditorsSupport: ["word", "slide", "cell", "pdf"],
-  isVisual: true,
-  icons: "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
-};
-
-const SETTINGS_WINDOW_VARIATION: AscPluginWindowVariation = {
-  url: "settings.html",
-  description: "AI Settings",
-  type: "window",
-  EditorsSupport: ["word", "slide", "cell", "pdf"],
-  isVisual: true,
-  icons: "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
-  size: [470, 510],
-};
-
 let chatWindow: AscPluginWindow | null = null;
 let settingsWindow: AscPluginWindow | null = null;
 
 function onSettignsClick() {
   if (!settingsWindow) {
     settingsWindow = new window.Asc.PluginWindow();
-    settingsWindow.show(SETTINGS_WINDOW_VARIATION);
+    settingsWindow.show({
+      url: "settings.html",
+      description: "AI Settings",
+      type: "window",
+      EditorsSupport: ["word", "slide", "cell", "pdf"],
+      isVisual: true,
+      icons:
+        "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
+      size: [470, 510],
+    });
   } else {
     settingsWindow.activate();
   }
@@ -70,7 +60,15 @@ window.Asc.plugin.init = () => {
       console.log({ chatWindow });
       if (!chatWindow) {
         chatWindow = new window.Asc.PluginWindow();
-        chatWindow.show(CHAT_PANEL_VARIATION);
+        chatWindow.show({
+          url: "chat.html",
+          description: "AI Chat",
+          type: "panelRight",
+          EditorsSupport: ["word", "slide", "cell", "pdf"],
+          isVisual: true,
+          icons:
+            "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
+        });
       } else {
         chatWindow.activate();
       }
