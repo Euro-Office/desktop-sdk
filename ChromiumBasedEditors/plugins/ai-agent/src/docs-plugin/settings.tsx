@@ -78,7 +78,13 @@ const Settings = () => {
                       eventBus={eventBus}
                     >
                       <StorageProvider storage={storage}>
-                        <SettingsPage />
+                        <div style={{ padding: "20px 15px" }}>
+                          <SettingsPage
+                            isAddModelCardHorizontal
+                            hideHeader
+                            noPadding
+                          />
+                        </div>
                       </StorageProvider>
                     </ToolsProvider>
                   </ImagesProvider>
