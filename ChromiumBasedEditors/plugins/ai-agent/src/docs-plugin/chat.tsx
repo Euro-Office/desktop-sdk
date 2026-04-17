@@ -24,6 +24,10 @@ const Chat = () => {
 };
 
 window.Asc.plugin.init = () => {
+  window.Asc.plugin.attachEvent("onSettingsChanged", (data) => {
+    console.log("onSettingsChanged", data);
+  });
+
   const container = document.getElementById("chat_panel");
 
   if (container) {

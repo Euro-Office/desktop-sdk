@@ -85,7 +85,26 @@ const Settings = () => {
   );
 
   return (
-    <EventsProvider callbacksManager={callbacksManager}>
+    <EventsProvider
+      callbacksManager={callbacksManager}
+      callbacks={{
+        onProfileChanged: (data) =>
+          window.Asc.plugin.sendToPlugin("onSettingsChanged", {
+            event: "profileChanged",
+            data,
+          }),
+        onProfileCreated: (data) =>
+          window.Asc.plugin.sendToPlugin("onSettingsChanged", {
+            event: "profileCreated",
+            data,
+          }),
+        onProfileDeleted: (data) =>
+          window.Asc.plugin.sendToPlugin("onSettingsChanged", {
+            event: "profileDeleted",
+            data,
+          }),
+      }}
+    >
       <SettingsProvider settings={settings}>
         <PlatformProvider platform={platform}>
           <I18nProvider locale={platform.env.locale ?? "en"}>

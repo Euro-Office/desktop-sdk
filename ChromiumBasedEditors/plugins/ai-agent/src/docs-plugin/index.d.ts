@@ -34,6 +34,8 @@ declare global {
     id: number;
     show: (variation: AscPluginWindowVariation) => void;
     activate: () => void;
+    command: (name: string, data: string) => void;
+    attachEvent: (id: string, action: (data: unknown) => void) => void;
   }
 
   interface AscTheme {
@@ -58,6 +60,8 @@ declare global {
           theme: AscTheme;
           lang: string;
         };
+        sendToPlugin: (name: string, data: object) => boolean;
+        attachEvent: (id: string, action: (data: unknown) => void) => void;
         onThemeChangedBase?: (theme: AscTheme) => void;
         onThemeChanged?: (theme: AscTheme) => void;
         onTranslate?: () => void;

@@ -4,6 +4,9 @@ let settingsWindow: AscPluginWindow | null = null;
 function onSettignsClick() {
   if (!settingsWindow) {
     settingsWindow = new window.Asc.PluginWindow();
+    settingsWindow.attachEvent("onSettingsChanged", (data) => {
+      chatWindow?.command("onSettingsChanged", JSON.stringify(data));
+    });
     settingsWindow.show({
       url: "settings.html",
       description: "AI Settings",
