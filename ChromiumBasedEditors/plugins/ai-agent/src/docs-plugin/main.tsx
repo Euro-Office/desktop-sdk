@@ -80,4 +80,16 @@ window.Asc.plugin.init = () => {
   };
 
   window.Asc.Buttons.registerToolbarMenu();
+
+  window.Asc.plugin.button = (_buttonId, windowId) => {
+    if (_buttonId === -1) {
+      window.Asc.plugin.executeMethod("CloseWindow", [windowId]);
+
+      if (chatWindow && chatWindow.id === windowId) {
+        chatWindow = null;
+      } else if (settingsWindow && settingsWindow.id === windowId) {
+        settingsWindow = null;
+      }
+    }
+  };
 };

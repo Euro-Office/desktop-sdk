@@ -31,6 +31,7 @@ declare global {
   }
 
   interface AscPluginWindow {
+    id: number;
     show: (variation: AscPluginWindowVariation) => void;
     activate: () => void;
   }
@@ -44,7 +45,7 @@ declare global {
     Asc: {
       plugin: {
         init: () => void;
-        button: (id: number) => void;
+        button: (buttonId: number, windowId: number) => void;
         executeMethod: (
           method: string,
           params?: unknown[],
