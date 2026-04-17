@@ -12,7 +12,7 @@ function onSettignsClick() {
       isVisual: true,
       icons:
         "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
-      size: [470, 510],
+      size: [470, 600],
     });
   } else {
     settingsWindow.activate();
