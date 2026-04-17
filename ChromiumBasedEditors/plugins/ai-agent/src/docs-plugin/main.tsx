@@ -14,7 +14,7 @@ const SETTINGS_WINDOW_VARIATION: AscPluginWindowVariation = {
   EditorsSupport: ["word", "slide", "cell", "pdf"],
   isVisual: true,
   icons: "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
-  size: [412, 510],
+  size: [470, 510],
 };
 
 let chatWindow: AscPluginWindow | null = null;

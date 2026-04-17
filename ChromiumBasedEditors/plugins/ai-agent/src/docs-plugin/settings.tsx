@@ -16,13 +16,30 @@ import {
   StoresProvider,
   ThemeProvider,
   ToolsProvider,
+  useProfiles,
+  useServers,
+  useStores,
 } from "@onlyoffice/ai-chat";
-import { StrictMode, useMemo } from "react";
+import { StrictMode, useEffect, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import { OnlyOfficePlatform } from "./platform/index";
+
+const SettingsInit = () => {
+  const { useCloudsStore } = useStores();
+  const { fetchClouds } = useCloudsStore();
+
+  useProfiles({ isReady: true });
+  useServers({ isReady: true });
+
+  useEffect(() => {
+    fetchClouds();
+  }, [fetchClouds]);
+
+  return <SettingsPage hideHeader noPadding />;
+};
 
 const Settings = () => {
   const storage = useMemo(() => new IndexedDBStorage(), []);
@@ -31,7 +48,11 @@ const Settings = () => {
   const eventBus = useMemo(() => new ChatEventBus(), []);
   const callbacksManager = useMemo(() => new CallbacksManager(), []);
   const middlewareRunner = useMemo(() => new MiddlewareRunner([]), []);
-  const provider = useMemo(() => new Provider(), []);
+  const provider = useMemo(() => {
+    const p = new Provider();
+    p.setSettings(settings);
+    return p;
+  }, [settings]);
   const servers = useMemo(
     () => new Servers(settings, platform, eventBus),
     [settings, platform, eventBus]
@@ -67,7 +88,7 @@ const Settings = () => {
     <EventsProvider callbacksManager={callbacksManager}>
       <SettingsProvider settings={settings}>
         <PlatformProvider platform={platform}>
-          <I18nProvider locale="en">
+          <I18nProvider locale={platform.env.locale ?? "en"}>
             <ComponentsProvider>
               <StoresProvider stores={stores}>
                 <ThemeProvider>
@@ -78,12 +99,14 @@ const Settings = () => {
                       eventBus={eventBus}
                     >
                       <StorageProvider storage={storage}>
-                        <div style={{ padding: "20px 15px" }}>
-                          <SettingsPage
-                            isAddModelCardHorizontal
-                            hideHeader
-                            noPadding
-                          />
+                        <div
+                          style={{
+                            padding: "20px 15px",
+                            height: "100vh",
+                            width: "100vw",
+                          }}
+                        >
+                          <SettingsInit />
                         </div>
                       </StorageProvider>
                     </ToolsProvider>
@@ -98,12 +121,14 @@ const Settings = () => {
   );
 };
 
-const container = document.getElementById("settings_window");
+window.Asc.plugin.init = () => {
+  const container = document.getElementById("settings_window");
 
-if (container) {
-  createRoot(container).render(
-    <StrictMode>
-      <Settings />
-    </StrictMode>
-  );
-}
+  if (container) {
+    createRoot(container).render(
+      <StrictMode>
+        <Settings />
+      </StrictMode>
+    );
+  }
+};
