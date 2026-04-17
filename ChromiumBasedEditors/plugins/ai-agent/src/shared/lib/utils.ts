@@ -1,6 +1,5 @@
 // Re-export utilities from @onlyoffice/ai-chat
 export {
-  cn,
   convertMessagesToMd,
   getMessageTitleFromMd,
   isDjVu,
@@ -11,7 +10,6 @@ export {
   isSpreadsheet,
   isVisio,
   isXps,
-  removeSpecialCharacter,
   sanitizeProviderName,
 } from "@onlyoffice/ai-chat";
 
