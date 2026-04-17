@@ -7,7 +7,7 @@ const CHAT_PANEL_VARIATION: AscPluginWindowVariation = {
   icons: "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
 };
 
-const SETTINGS_PANEL_VARIATION: AscPluginWindowVariation = {
+const SETTINGS_WINDOW_VARIATION: AscPluginWindowVariation = {
   url: "settings.html",
   description: "AI Settings",
   type: "window",
@@ -23,7 +23,7 @@ let settingsWindow: AscPluginWindow | null = null;
 function onSettignsClick() {
   if (!settingsWindow) {
     settingsWindow = new window.Asc.PluginWindow();
-    settingsWindow.show(SETTINGS_PANEL_VARIATION);
+    settingsWindow.show(SETTINGS_WINDOW_VARIATION);
   } else {
     settingsWindow.activate();
   }
