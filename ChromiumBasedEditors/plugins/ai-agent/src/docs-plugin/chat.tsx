@@ -23,12 +23,14 @@ const Chat = () => {
   );
 };
 
-const container = document.getElementById("chat_panel");
+window.Asc.plugin.init = () => {
+  const container = document.getElementById("chat_panel");
 
-if (container) {
-  createRoot(container).render(
-    <StrictMode>
-      <Chat />
-    </StrictMode>
-  );
-}
+  if (container) {
+    createRoot(container).render(
+      <StrictMode>
+        <Chat />
+      </StrictMode>
+    );
+  }
+};
