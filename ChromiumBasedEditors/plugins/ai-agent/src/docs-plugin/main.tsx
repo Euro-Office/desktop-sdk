@@ -1,51 +1,115 @@
-import type { ModelAssignmentUpdatedEvent } from "@onlyoffice/ai-chat";
-import { crossPluginBus } from "@/shared/sync/crossPluginBus";
+import {
+  type CrossPluginEvents,
+  crossPluginBus,
+} from "@/shared/sync/crossPluginBus";
 
-type SettingsChangedPayload = {
-  event: "modelAssignmentUpdated";
-  data: ModelAssignmentUpdatedEvent;
-};
+const AI_STATE_EVENT = "onAiStateChanged";
 
-let chatWindow: AscPluginWindow | null = null;
-let settingsWindow: AscPluginWindow | null = null;
+type SyncEventName = keyof CrossPluginEvents;
 
-function onSettignsClick() {
-  if (!settingsWindow) {
-    settingsWindow = new window.Asc.PluginWindow();
-    settingsWindow.attachEvent("onSettingsChanged", (raw) => {
-      chatWindow?.command("onSettingsChanged", JSON.stringify(raw));
+type SyncPayload = {
+  [K in SyncEventName]: { event: K; data: CrossPluginEvents[K] };
+}[SyncEventName];
 
-      const payload =
-        typeof raw === "string"
-          ? (JSON.parse(raw) as SettingsChangedPayload)
-          : (raw as SettingsChangedPayload);
+const SYNC_EVENT_NAMES: readonly SyncEventName[] = [
+  "modelAssignmentUpdated",
+  "currentChatProfileUpdated",
+  "profilesUpdated",
+  "serversUpdated",
+  "webSearchUpdated",
+  "threadsUpdated",
+];
 
-      if (payload.event === "modelAssignmentUpdated") {
-        crossPluginBus.publish("modelAssignmentUpdated", payload.data);
-      }
-    });
-    settingsWindow.show({
-      url: "settings.html",
-      description: "AI Settings",
-      type: "window",
-      EditorsSupport: ["word", "slide", "cell", "pdf"],
-      isVisual: true,
-      icons:
-        "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
-      size: [470, 600],
-    });
-  } else {
-    settingsWindow.activate();
+function parsePayload(raw: unknown): SyncPayload | null {
+  const payload =
+    typeof raw === "string"
+      ? (JSON.parse(raw) as SyncPayload)
+      : (raw as SyncPayload);
+
+  if (!payload || typeof payload !== "object" || !("event" in payload)) {
+    return null;
+  }
+
+  if (!SYNC_EVENT_NAMES.includes(payload.event)) {
+    return null;
+  }
+
+  return payload;
+}
+
+function publishToBus(payload: SyncPayload): void {
+  switch (payload.event) {
+    case "modelAssignmentUpdated":
+      crossPluginBus.publish("modelAssignmentUpdated", payload.data);
+      return;
+    case "currentChatProfileUpdated":
+      crossPluginBus.publish("currentChatProfileUpdated", payload.data);
+      return;
+    case "profilesUpdated":
+      crossPluginBus.publish("profilesUpdated", payload.data);
+      return;
+    case "serversUpdated":
+      crossPluginBus.publish("serversUpdated", payload.data);
+      return;
+    case "webSearchUpdated":
+      crossPluginBus.publish("webSearchUpdated", payload.data);
+      return;
+    case "threadsUpdated":
+      crossPluginBus.publish("threadsUpdated", payload.data);
+      return;
   }
 }
 
-window.Asc.plugin.init = () => {
-  crossPluginBus.subscribe("modelAssignmentUpdated", (data) => {
-    chatWindow?.command(
-      "onSettingsChanged",
-      JSON.stringify({ event: "modelAssignmentUpdated", data })
-    );
+type WindowId = "chat" | "settings";
+
+const windows = new Map<WindowId, AscPluginWindow | null>([
+  ["chat", null],
+  ["settings", null],
+]);
+
+function broadcastToLocal(serialized: string, except?: WindowId): void {
+  for (const [id, win] of windows) {
+    if (id !== except) win?.command(AI_STATE_EVENT, serialized);
+  }
+}
+
+function registerWindow(id: WindowId, win: AscPluginWindow): void {
+  windows.set(id, win);
+  win.attachEvent(AI_STATE_EVENT, (raw) => {
+    const payload = parsePayload(raw);
+    if (!payload) return;
+    publishToBus(payload);
+    broadcastToLocal(JSON.stringify(payload), id);
   });
+}
+
+function onSettignsClick() {
+  const existing = windows.get("settings");
+  if (existing) {
+    existing.activate();
+    return;
+  }
+
+  const settingsWindow = new window.Asc.PluginWindow();
+  registerWindow("settings", settingsWindow);
+  settingsWindow.show({
+    url: "settings.html",
+    description: "AI Settings",
+    type: "window",
+    EditorsSupport: ["word", "slide", "cell", "pdf"],
+    isVisual: true,
+    icons:
+      "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
+    size: [470, 600],
+  });
+}
+
+window.Asc.plugin.init = () => {
+  for (const event of SYNC_EVENT_NAMES) {
+    crossPluginBus.subscribe(event, (data) => {
+      broadcastToLocal(JSON.stringify({ event, data }));
+    });
+  }
 
   // Register AI Chat button in the Home tab and Settings button in the plugin tab
   window.Asc.plugin.executeMethod("AddToolbarMenuItem", [
@@ -84,21 +148,23 @@ window.Asc.plugin.init = () => {
 
   window.Asc.plugin.event_onToolbarMenuClick = (id) => {
     if (id === "ai-open-chat") {
-      if (!chatWindow) {
-        chatWindow = new window.Asc.PluginWindow();
-        chatWindow.attachEvent("ai-open-settings", onSettignsClick);
-        chatWindow.show({
-          url: "chat.html",
-          description: "AI Chat",
-          type: "panelRight",
-          EditorsSupport: ["word", "slide", "cell", "pdf"],
-          isVisual: true,
-          icons:
-            "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
-        });
-      } else {
-        chatWindow.activate();
+      const existing = windows.get("chat");
+      if (existing) {
+        existing.activate();
+        return;
       }
+      const chatWindow = new window.Asc.PluginWindow();
+      chatWindow.attachEvent("ai-open-settings", onSettignsClick);
+      registerWindow("chat", chatWindow);
+      chatWindow.show({
+        url: "chat.html",
+        description: "AI Chat",
+        type: "panelRight",
+        EditorsSupport: ["word", "slide", "cell", "pdf"],
+        isVisual: true,
+        icons:
+          "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
+      });
     } else if (id === "ai-settings") {
       onSettignsClick();
     }
@@ -110,10 +176,11 @@ window.Asc.plugin.init = () => {
     if (_buttonId === -1) {
       window.Asc.plugin.executeMethod("CloseWindow", [windowId]);
 
-      if (chatWindow && chatWindow.id === windowId) {
-        chatWindow = null;
-      } else if (settingsWindow && settingsWindow.id === windowId) {
-        settingsWindow = null;
+      for (const [id, win] of windows) {
+        if (win && win.id === windowId) {
+          windows.set(id, null);
+          break;
+        }
       }
     }
   };

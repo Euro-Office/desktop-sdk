@@ -1,7 +1,19 @@
-import type { ModelAssignmentUpdatedEvent } from "@onlyoffice/ai-chat";
+import type {
+  CurrentChatProfileUpdatedEvent,
+  ModelAssignmentUpdatedEvent,
+  ProfilesUpdatedEvent,
+  ServersUpdatedEvent,
+  ThreadsUpdatedEvent,
+  WebSearchUpdatedEvent,
+} from "@onlyoffice/ai-chat";
 
 export interface CrossPluginEvents {
   modelAssignmentUpdated: ModelAssignmentUpdatedEvent;
+  currentChatProfileUpdated: CurrentChatProfileUpdatedEvent;
+  profilesUpdated: ProfilesUpdatedEvent;
+  serversUpdated: ServersUpdatedEvent;
+  webSearchUpdated: WebSearchUpdatedEvent;
+  threadsUpdated: ThreadsUpdatedEvent;
 }
 
 type EventName = keyof CrossPluginEvents;

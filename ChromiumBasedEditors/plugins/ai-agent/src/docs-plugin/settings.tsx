@@ -19,6 +19,7 @@ import {
   useProfiles,
   useServers,
   useStores,
+  useToolsContext,
   WidgetConfigProvider,
 } from "@onlyoffice/ai-chat";
 import { StrictMode, useEffect, useMemo } from "react";
@@ -26,11 +27,17 @@ import { createRoot } from "react-dom/client";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
+import type { CrossPluginEvents } from "@/shared/sync/crossPluginBus";
 import { OnlyOfficePlatform } from "./platform/index";
 
+type SyncPayload = {
+  [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
+}[keyof CrossPluginEvents];
+
 const SettingsInit = () => {
-  const { useCloudsStore } = useStores();
+  const { useCloudsStore, useProfilesStore, useServersStore } = useStores();
   const { fetchClouds } = useCloudsStore();
+  const { servers } = useToolsContext();
 
   useProfiles({ isReady: true });
   useServers({ isReady: true });
@@ -38,6 +45,34 @@ const SettingsInit = () => {
   useEffect(() => {
     fetchClouds();
   }, [fetchClouds]);
+
+  useEffect(() => {
+    window.Asc.plugin.attachEvent("onAiStateChanged", (raw) => {
+      const payload =
+        typeof raw === "string"
+          ? (JSON.parse(raw) as SyncPayload)
+          : (raw as SyncPayload);
+
+      switch (payload.event) {
+        case "modelAssignmentUpdated":
+          useProfilesStore.getState().reloadCurrentChat();
+          useProfilesStore.getState().reloadModelAssignment();
+          return;
+        case "currentChatProfileUpdated":
+          useProfilesStore.getState().reloadCurrentChat();
+          return;
+        case "profilesUpdated":
+          useProfilesStore.getState().reloadProfiles();
+          return;
+        case "serversUpdated":
+          useServersStore.getState().reload();
+          return;
+        case "webSearchUpdated":
+          servers.webSearch.reload();
+          return;
+      }
+    });
+  }, [useProfilesStore, useServersStore, servers]);
 
   return <SettingsPage hideHeader noPadding isWebSearchHorizontal={false} />;
 };
@@ -90,8 +125,33 @@ const Settings = () => {
       callbacksManager={callbacksManager}
       callbacks={{
         onModelAssignmentUpdated: (data) => {
-          window.Asc.plugin.sendToPlugin("onSettingsChanged", {
+          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
             event: "modelAssignmentUpdated",
+            data,
+          });
+        },
+        onCurrentChatProfileUpdated: (data) => {
+          if (data.scope !== "persisted") return;
+          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
+            event: "currentChatProfileUpdated",
+            data,
+          });
+        },
+        onProfilesUpdated: (data) => {
+          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
+            event: "profilesUpdated",
+            data,
+          });
+        },
+        onServersUpdated: (data) => {
+          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
+            event: "serversUpdated",
+            data,
+          });
+        },
+        onWebSearchUpdated: (data) => {
+          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
+            event: "webSearchUpdated",
             data,
           });
         },

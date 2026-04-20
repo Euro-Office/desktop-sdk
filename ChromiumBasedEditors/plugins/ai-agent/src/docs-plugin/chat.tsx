@@ -5,7 +5,12 @@ import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { migrateProvidersToProfiles } from "@/shared/lib/migrateProvidersToProfiles";
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
+import type { CrossPluginEvents } from "@/shared/sync/crossPluginBus";
 import { OnlyOfficePlatform } from "./platform/index";
+
+type SyncPayload = {
+  [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
+}[keyof CrossPluginEvents];
 
 const Chat = () => {
   const storage = useMemo(() => new IndexedDBStorage(), []);
@@ -14,14 +19,27 @@ const Chat = () => {
   const widgetRef = useRef<AIChatWidgetRef>(null);
 
   useEffect(() => {
-    window.Asc.plugin.attachEvent("onSettingsChanged", (raw) => {
+    window.Asc.plugin.attachEvent("onAiStateChanged", (raw) => {
       const payload =
         typeof raw === "string"
-          ? (JSON.parse(raw) as { event: string })
-          : (raw as { event: string });
+          ? (JSON.parse(raw) as SyncPayload)
+          : (raw as SyncPayload);
 
-      if (payload.event === "modelAssignmentUpdated") {
-        widgetRef.current?.updateCurrentChat();
+      const widget = widgetRef.current;
+      if (!widget) return;
+
+      switch (payload.event) {
+        case "threadsUpdated":
+          widget.updateThreads();
+          return;
+        case "modelAssignmentUpdated":
+          widget.updateCurrentChat();
+          widget.updateModelAssignment();
+          return;
+        case "profilesUpdated":
+        case "currentChatProfileUpdated":
+          widget.updateCurrentChat();
+          return;
       }
     });
   }, []);
@@ -36,6 +54,15 @@ const Chat = () => {
       onMigrate={migrateProvidersToProfiles}
       onSettingsClick={() => {
         window.Asc.plugin.sendToPlugin("ai-open-settings", {});
+      }}
+      callbacks={{
+        onThreadsUpdated: (data) => {
+          if (data.kind === "switched") return;
+          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
+            event: "threadsUpdated",
+            data,
+          });
+        },
       }}
     />
   );

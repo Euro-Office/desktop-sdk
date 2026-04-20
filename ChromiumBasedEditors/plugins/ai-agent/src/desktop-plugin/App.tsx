@@ -19,9 +19,32 @@ const App = () => {
   const widgetRef = useRef<AIChatWidgetRef>(null);
 
   useEffect(() => {
-    return crossPluginBus.subscribe("modelAssignmentUpdated", () => {
-      widgetRef.current?.updateCurrentChat();
-    });
+    const unsubscribers = [
+      crossPluginBus.subscribe("modelAssignmentUpdated", () => {
+        widgetRef.current?.updateCurrentChat();
+        widgetRef.current?.updateModelAssignment();
+      }),
+      crossPluginBus.subscribe("currentChatProfileUpdated", () => {
+        widgetRef.current?.updateCurrentChat();
+      }),
+      crossPluginBus.subscribe("profilesUpdated", () => {
+        widgetRef.current?.updateCurrentChat();
+        widgetRef.current?.updateProfiles();
+      }),
+      crossPluginBus.subscribe("serversUpdated", () => {
+        widgetRef.current?.updateMCPServer();
+      }),
+      crossPluginBus.subscribe("webSearchUpdated", () => {
+        widgetRef.current?.updateWebSearch();
+      }),
+      crossPluginBus.subscribe("threadsUpdated", () => {
+        widgetRef.current?.updateThreads();
+      }),
+    ];
+
+    return () => {
+      for (const unsub of unsubscribers) unsub();
+    };
   }, []);
 
   return (
@@ -35,6 +58,23 @@ const App = () => {
       callbacks={{
         onModelAssignmentUpdated: (data) => {
           crossPluginBus.publish("modelAssignmentUpdated", data);
+        },
+        onCurrentChatProfileUpdated: (data) => {
+          if (data.scope !== "persisted") return;
+          crossPluginBus.publish("currentChatProfileUpdated", data);
+        },
+        onProfilesUpdated: (data) => {
+          crossPluginBus.publish("profilesUpdated", data);
+        },
+        onServersUpdated: (data) => {
+          crossPluginBus.publish("serversUpdated", data);
+        },
+        onWebSearchUpdated: (data) => {
+          crossPluginBus.publish("webSearchUpdated", data);
+        },
+        onThreadsUpdated: (data) => {
+          if (data.kind === "switched") return;
+          crossPluginBus.publish("threadsUpdated", data);
         },
       }}
     />
