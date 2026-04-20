@@ -19,6 +19,9 @@ const Chat = () => {
       platform={platform}
       storeKeys={DEFAULT_STORE_KEYS}
       onMigrate={migrateProvidersToProfiles}
+      onSettingsClick={() => {
+        console.log("Settings button clicked in chat");
+      }}
     />
   );
 };
