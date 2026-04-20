@@ -42,6 +42,10 @@ const Chat = () => {
           return;
       }
     });
+
+    return () => {
+      window.Asc.plugin.detachEvent("onAiStateChanged");
+    };
   }, []);
 
   return (

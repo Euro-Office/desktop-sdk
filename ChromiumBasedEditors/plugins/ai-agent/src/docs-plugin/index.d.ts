@@ -62,6 +62,7 @@ declare global {
         };
         sendToPlugin: (name: string, data: object) => boolean;
         attachEvent: (id: string, action: (data: unknown) => void) => void;
+        detachEvent: (id: string) => void;
         onThemeChangedBase?: (theme: AscTheme) => void;
         onThemeChanged?: (theme: AscTheme) => void;
         onTranslate?: () => void;

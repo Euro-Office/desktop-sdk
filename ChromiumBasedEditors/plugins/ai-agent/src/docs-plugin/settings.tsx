@@ -72,6 +72,10 @@ const SettingsInit = () => {
           return;
       }
     });
+
+    return () => {
+      window.Asc.plugin.detachEvent("onAiStateChanged");
+    };
   }, [useProfilesStore, useServersStore, servers]);
 
   return <SettingsPage hideHeader noPadding isWebSearchHorizontal={false} />;
