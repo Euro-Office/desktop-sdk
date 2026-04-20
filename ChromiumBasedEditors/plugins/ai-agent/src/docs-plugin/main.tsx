@@ -38,7 +38,7 @@ function parsePayload(raw: unknown): SyncPayload | null {
   return payload;
 }
 
-function publishToBus(payload: SyncPayload): void {
+function notifyDesktopPlugin(payload: SyncPayload): void {
   switch (payload.event) {
     case "modelAssignmentUpdated":
       crossPluginBus.publish("modelAssignmentUpdated", payload.data);
@@ -68,9 +68,17 @@ const windows = new Map<WindowId, AscPluginWindow | null>([
   ["settings", null],
 ]);
 
-function broadcastToLocal(serialized: string, except?: WindowId): void {
+function notifyPluginWindows(serialized: string, except?: WindowId): void {
   for (const [id, win] of windows) {
     if (id !== except) win?.command(AI_STATE_EVENT, serialized);
+  }
+}
+
+function listenForDesktopPluginUpdates(): void {
+  for (const event of SYNC_EVENT_NAMES) {
+    crossPluginBus.subscribe(event, (data) => {
+      notifyPluginWindows(JSON.stringify({ event, data }));
+    });
   }
 }
 
@@ -79,12 +87,12 @@ function registerWindow(id: WindowId, win: AscPluginWindow): void {
   win.attachEvent(AI_STATE_EVENT, (raw) => {
     const payload = parsePayload(raw);
     if (!payload) return;
-    if (isDesktopEditor()) publishToBus(payload);
-    broadcastToLocal(JSON.stringify(payload), id);
+    if (isDesktopEditor()) notifyDesktopPlugin(payload);
+    notifyPluginWindows(JSON.stringify(payload), id);
   });
 }
 
-function onSettignsClick() {
+function openSettings() {
   const existing = windows.get("settings");
   if (existing) {
     existing.activate();
@@ -105,14 +113,28 @@ function onSettignsClick() {
   });
 }
 
-window.Asc.plugin.init = () => {
-  if (isDesktopEditor()) {
-    for (const event of SYNC_EVENT_NAMES) {
-      crossPluginBus.subscribe(event, (data) => {
-        broadcastToLocal(JSON.stringify({ event, data }));
-      });
-    }
+function openChat() {
+  const existing = windows.get("chat");
+  if (existing) {
+    existing.activate();
+    return;
   }
+
+  const chatWindow = new window.Asc.PluginWindow();
+  chatWindow.attachEvent("ai-open-settings", openSettings);
+  registerWindow("chat", chatWindow);
+  chatWindow.show({
+    url: "chat.html",
+    description: "AI Chat",
+    type: "panelRight",
+    EditorsSupport: ["word", "slide", "cell", "pdf"],
+    isVisual: true,
+    icons: "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
+  });
+}
+
+window.Asc.plugin.init = () => {
+  if (isDesktopEditor()) listenForDesktopPluginUpdates();
 
   // Register AI Chat button in the Home tab and Settings button in the plugin tab
   window.Asc.plugin.executeMethod("AddToolbarMenuItem", [
@@ -151,25 +173,9 @@ window.Asc.plugin.init = () => {
 
   window.Asc.plugin.event_onToolbarMenuClick = (id) => {
     if (id === "ai-open-chat") {
-      const existing = windows.get("chat");
-      if (existing) {
-        existing.activate();
-        return;
-      }
-      const chatWindow = new window.Asc.PluginWindow();
-      chatWindow.attachEvent("ai-open-settings", onSettignsClick);
-      registerWindow("chat", chatWindow);
-      chatWindow.show({
-        url: "chat.html",
-        description: "AI Chat",
-        type: "panelRight",
-        EditorsSupport: ["word", "slide", "cell", "pdf"],
-        isVisual: true,
-        icons:
-          "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
-      });
+      openChat();
     } else if (id === "ai-settings") {
-      onSettignsClick();
+      openSettings();
     }
   };
 
