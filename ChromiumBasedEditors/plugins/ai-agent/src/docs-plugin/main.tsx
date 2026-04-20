@@ -1,11 +1,28 @@
+import type { ModelAssignmentUpdatedEvent } from "@onlyoffice/ai-chat";
+import { crossPluginBus } from "@/shared/sync/crossPluginBus";
+
+type SettingsChangedPayload = {
+  event: "modelAssignmentUpdated";
+  data: ModelAssignmentUpdatedEvent;
+};
+
 let chatWindow: AscPluginWindow | null = null;
 let settingsWindow: AscPluginWindow | null = null;
 
 function onSettignsClick() {
   if (!settingsWindow) {
     settingsWindow = new window.Asc.PluginWindow();
-    settingsWindow.attachEvent("onSettingsChanged", (data) => {
-      chatWindow?.command("onSettingsChanged", JSON.stringify(data));
+    settingsWindow.attachEvent("onSettingsChanged", (raw) => {
+      chatWindow?.command("onSettingsChanged", JSON.stringify(raw));
+
+      const payload =
+        typeof raw === "string"
+          ? (JSON.parse(raw) as SettingsChangedPayload)
+          : (raw as SettingsChangedPayload);
+
+      if (payload.event === "modelAssignmentUpdated") {
+        crossPluginBus.publish("modelAssignmentUpdated", payload.data);
+      }
     });
     settingsWindow.show({
       url: "settings.html",
@@ -23,6 +40,13 @@ function onSettignsClick() {
 }
 
 window.Asc.plugin.init = () => {
+  crossPluginBus.subscribe("modelAssignmentUpdated", (data) => {
+    chatWindow?.command(
+      "onSettingsChanged",
+      JSON.stringify({ event: "modelAssignmentUpdated", data })
+    );
+  });
+
   // Register AI Chat button in the Home tab and Settings button in the plugin tab
   window.Asc.plugin.executeMethod("AddToolbarMenuItem", [
     {
