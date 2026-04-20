@@ -20,7 +20,7 @@ const Chat = () => {
       storeKeys={DEFAULT_STORE_KEYS}
       onMigrate={migrateProvidersToProfiles}
       onSettingsClick={() => {
-        console.log("Settings button clicked in chat");
+        window.Asc.plugin.sendToPlugin("ai-open-settings", {});
       }}
     />
   );

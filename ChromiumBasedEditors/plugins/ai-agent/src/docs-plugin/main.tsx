@@ -63,6 +63,7 @@ window.Asc.plugin.init = () => {
       console.log({ chatWindow });
       if (!chatWindow) {
         chatWindow = new window.Asc.PluginWindow();
+        chatWindow.attachEvent("ai-open-settings", onSettignsClick);
         chatWindow.show({
           url: "chat.html",
           description: "AI Chat",
