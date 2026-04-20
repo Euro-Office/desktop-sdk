@@ -89,21 +89,12 @@ const Settings = () => {
     <EventsProvider
       callbacksManager={callbacksManager}
       callbacks={{
-        onProfileChanged: (data) =>
+        onModelAssignmentUpdated: (data) => {
           window.Asc.plugin.sendToPlugin("onSettingsChanged", {
-            event: "profileChanged",
+            event: "modelAssignmentUpdated",
             data,
-          }),
-        onProfileCreated: (data) =>
-          window.Asc.plugin.sendToPlugin("onSettingsChanged", {
-            event: "profileCreated",
-            data,
-          }),
-        onProfileDeleted: (data) =>
-          window.Asc.plugin.sendToPlugin("onSettingsChanged", {
-            event: "profileDeleted",
-            data,
-          }),
+          });
+        },
       }}
     >
       <SettingsProvider settings={settings}>

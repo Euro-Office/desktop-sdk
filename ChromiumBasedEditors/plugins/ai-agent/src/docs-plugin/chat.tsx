@@ -1,5 +1,5 @@
-import { AIChatWidget } from "@onlyoffice/ai-chat";
-import { StrictMode, useMemo } from "react";
+import { AIChatWidget, type AIChatWidgetRef } from "@onlyoffice/ai-chat";
+import { StrictMode, useEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { migrateProvidersToProfiles } from "@/shared/lib/migrateProvidersToProfiles";
@@ -11,9 +11,24 @@ const Chat = () => {
   const storage = useMemo(() => new IndexedDBStorage(), []);
   const settings = useMemo(() => new LocalStorageSettings(), []);
   const platform = useMemo(() => new OnlyOfficePlatform(), []);
+  const widgetRef = useRef<AIChatWidgetRef>(null);
+
+  useEffect(() => {
+    window.Asc.plugin.attachEvent("onSettingsChanged", (raw) => {
+      const payload =
+        typeof raw === "string"
+          ? (JSON.parse(raw) as { event: string })
+          : (raw as { event: string });
+
+      if (payload.event === "modelAssignmentUpdated") {
+        widgetRef.current?.updateCurrentChat();
+      }
+    });
+  }, []);
 
   return (
     <AIChatWidget
+      ref={widgetRef}
       storage={storage}
       settings={settings}
       platform={platform}
@@ -27,10 +42,6 @@ const Chat = () => {
 };
 
 window.Asc.plugin.init = () => {
-  window.Asc.plugin.attachEvent("onSettingsChanged", (data) => {
-    console.log("onSettingsChanged", data);
-  });
-
   const container = document.getElementById("chat_panel");
 
   if (container) {
