@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-const RTL_LANGUAGES = ["ar-SA"];
+const RTL_LANGUAGES = ["ar-SA", "he", "ur"];
 
 export const useDirection = () => {
   const { i18n } = useTranslation();
