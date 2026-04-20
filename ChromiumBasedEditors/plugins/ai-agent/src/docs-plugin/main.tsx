@@ -1,3 +1,4 @@
+import { isDesktopEditor } from "@/shared/lib/utils";
 import {
   type CrossPluginEvents,
   crossPluginBus,
@@ -78,7 +79,7 @@ function registerWindow(id: WindowId, win: AscPluginWindow): void {
   win.attachEvent(AI_STATE_EVENT, (raw) => {
     const payload = parsePayload(raw);
     if (!payload) return;
-    publishToBus(payload);
+    if (isDesktopEditor()) publishToBus(payload);
     broadcastToLocal(JSON.stringify(payload), id);
   });
 }
@@ -105,10 +106,12 @@ function onSettignsClick() {
 }
 
 window.Asc.plugin.init = () => {
-  for (const event of SYNC_EVENT_NAMES) {
-    crossPluginBus.subscribe(event, (data) => {
-      broadcastToLocal(JSON.stringify({ event, data }));
-    });
+  if (isDesktopEditor()) {
+    for (const event of SYNC_EVENT_NAMES) {
+      crossPluginBus.subscribe(event, (data) => {
+        broadcastToLocal(JSON.stringify({ event, data }));
+      });
+    }
   }
 
   // Register AI Chat button in the Home tab and Settings button in the plugin tab
