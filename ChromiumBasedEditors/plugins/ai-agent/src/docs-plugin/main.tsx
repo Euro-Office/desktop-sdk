@@ -60,7 +60,6 @@ window.Asc.plugin.init = () => {
 
   window.Asc.plugin.event_onToolbarMenuClick = (id) => {
     if (id === "ai-open-chat") {
-      console.log({ chatWindow });
       if (!chatWindow) {
         chatWindow = new window.Asc.PluginWindow();
         chatWindow.attachEvent("ai-open-settings", onSettignsClick);
