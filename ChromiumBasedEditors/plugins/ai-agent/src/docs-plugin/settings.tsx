@@ -19,6 +19,7 @@ import {
   useProfiles,
   useServers,
   useStores,
+  WidgetConfigProvider,
 } from "@onlyoffice/ai-chat";
 import { StrictMode, useEffect, useMemo } from "react";
 import { createRoot } from "react-dom/client";
@@ -109,29 +110,31 @@ const Settings = () => {
         <PlatformProvider platform={platform}>
           <I18nProvider locale={platform.env.locale ?? "en"}>
             <ComponentsProvider>
-              <StoresProvider stores={stores}>
-                <ThemeProvider>
-                  <ImagesProvider>
-                    <ToolsProvider
-                      hostToolGroups={[]}
-                      servers={servers}
-                      eventBus={eventBus}
-                    >
-                      <StorageProvider storage={storage}>
-                        <div
-                          style={{
-                            padding: "20px 15px",
-                            height: "100vh",
-                            width: "100vw",
-                          }}
-                        >
-                          <SettingsInit />
-                        </div>
-                      </StorageProvider>
-                    </ToolsProvider>
-                  </ImagesProvider>
-                </ThemeProvider>
-              </StoresProvider>
+              <WidgetConfigProvider config={{ isDialogFullscreen: true }}>
+                <StoresProvider stores={stores}>
+                  <ThemeProvider>
+                    <ImagesProvider>
+                      <ToolsProvider
+                        hostToolGroups={[]}
+                        servers={servers}
+                        eventBus={eventBus}
+                      >
+                        <StorageProvider storage={storage}>
+                          <div
+                            style={{
+                              padding: "20px 15px",
+                              height: "100vh",
+                              width: "100vw",
+                            }}
+                          >
+                            <SettingsInit />
+                          </div>
+                        </StorageProvider>
+                      </ToolsProvider>
+                    </ImagesProvider>
+                  </ThemeProvider>
+                </StoresProvider>
+              </WidgetConfigProvider>
             </ComponentsProvider>
           </I18nProvider>
         </PlatformProvider>
