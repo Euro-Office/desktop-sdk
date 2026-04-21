@@ -96,8 +96,8 @@ const Settings = () => {
     return p;
   }, [settings]);
   const servers = useMemo(
-    () => new Servers(settings, platform, eventBus),
-    [settings, platform, eventBus]
+    () => new Servers(settings, platform, eventBus, callbacksManager),
+    [settings, platform, eventBus, callbacksManager]
   );
   const stores = useMemo(
     () =>
