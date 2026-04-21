@@ -48,6 +48,10 @@ const Chat = () => {
         case "serversUpdated":
           widget.updateMCPServer();
           return;
+        case "webSearchUpdated":
+          widget.updateWebSearch();
+          widget.updateMCPServer();
+          return;
       }
     });
 

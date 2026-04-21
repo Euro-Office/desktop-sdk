@@ -41,6 +41,7 @@ const App = () => {
       crossPluginBus.subscribe("webSearchUpdated", (data) => {
         console.log("[Desktop] ← webSearchUpdated", data);
         widgetRef.current?.updateWebSearch();
+        widgetRef.current?.updateMCPServer();
       }),
       crossPluginBus.subscribe("threadsUpdated", (data) => {
         console.log("[Desktop] ← threadsUpdated", data);
