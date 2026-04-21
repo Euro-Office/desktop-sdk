@@ -53,6 +53,8 @@ const SettingsInit = () => {
           ? (JSON.parse(raw) as SyncPayload)
           : (raw as SyncPayload);
 
+      console.log(`[Docs settings] ← ${payload.event}`, payload.data);
+
       switch (payload.event) {
         case "modelAssignmentUpdated":
           useProfilesStore.getState().reloadCurrentChat();
@@ -68,7 +70,6 @@ const SettingsInit = () => {
           useServersStore.getState().reload();
           return;
         case "webSearchUpdated":
-          console.log("[Docs] webSearchUpdated");
           servers.webSearch.reload();
           return;
       }
@@ -130,6 +131,7 @@ const Settings = () => {
       callbacksManager={callbacksManager}
       callbacks={{
         onModelAssignmentUpdated: (data) => {
+          console.log("[Docs settings] → modelAssignmentUpdated", data);
           window.Asc.plugin.sendToPlugin("onAiStateChanged", {
             event: "modelAssignmentUpdated",
             data,
@@ -137,24 +139,28 @@ const Settings = () => {
         },
         onCurrentChatProfileUpdated: (data) => {
           if (data.scope !== "persisted") return;
+          console.log("[Docs settings] → currentChatProfileUpdated", data);
           window.Asc.plugin.sendToPlugin("onAiStateChanged", {
             event: "currentChatProfileUpdated",
             data,
           });
         },
         onProfilesUpdated: (data) => {
+          console.log("[Docs settings] → profilesUpdated", data);
           window.Asc.plugin.sendToPlugin("onAiStateChanged", {
             event: "profilesUpdated",
             data,
           });
         },
         onServersUpdated: (data) => {
+          console.log("[Docs settings] → serversUpdated", data);
           window.Asc.plugin.sendToPlugin("onAiStateChanged", {
             event: "serversUpdated",
             data,
           });
         },
         onWebSearchUpdated: (data) => {
+          console.log("[Docs settings] → webSearchUpdated", data);
           window.Asc.plugin.sendToPlugin("onAiStateChanged", {
             event: "webSearchUpdated",
             data,

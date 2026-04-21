@@ -20,28 +20,34 @@ const App = () => {
 
   useEffect(() => {
     const unsubscribers = [
-      crossPluginBus.subscribe("modelAssignmentUpdated", () => {
+      crossPluginBus.subscribe("modelAssignmentUpdated", (data) => {
+        console.log("[Desktop] ← modelAssignmentUpdated", data);
         widgetRef.current?.updateCurrentChat();
         widgetRef.current?.updateModelAssignment();
       }),
-      crossPluginBus.subscribe("currentChatProfileUpdated", () => {
+      crossPluginBus.subscribe("currentChatProfileUpdated", (data) => {
+        console.log("[Desktop] ← currentChatProfileUpdated", data);
         widgetRef.current?.updateCurrentChat();
       }),
-      crossPluginBus.subscribe("profilesUpdated", () => {
+      crossPluginBus.subscribe("profilesUpdated", (data) => {
+        console.log("[Desktop] ← profilesUpdated", data);
         widgetRef.current?.updateCurrentChat();
         widgetRef.current?.updateProfiles();
       }),
-      crossPluginBus.subscribe("serversUpdated", () => {
+      crossPluginBus.subscribe("serversUpdated", (data) => {
+        console.log("[Desktop] ← serversUpdated", data);
         widgetRef.current?.updateMCPServer();
       }),
-      crossPluginBus.subscribe("webSearchUpdated", () => {
-        console.log("[Desktop] web search updated");
+      crossPluginBus.subscribe("webSearchUpdated", (data) => {
+        console.log("[Desktop] ← webSearchUpdated", data);
         widgetRef.current?.updateWebSearch();
       }),
-      crossPluginBus.subscribe("threadsUpdated", () => {
+      crossPluginBus.subscribe("threadsUpdated", (data) => {
+        console.log("[Desktop] ← threadsUpdated", data);
         widgetRef.current?.updateThreads();
       }),
-      crossPluginBus.subscribe("extendedThinkingUpdated", () => {
+      crossPluginBus.subscribe("extendedThinkingUpdated", (data) => {
+        console.log("[Desktop] ← extendedThinkingUpdated", data);
         widgetRef.current?.updateExtendedThinking();
       }),
     ];
@@ -61,26 +67,33 @@ const App = () => {
       onMigrate={migrateProvidersToProfiles}
       callbacks={{
         onModelAssignmentUpdated: (data) => {
+          console.log("[Desktop] → modelAssignmentUpdated", data);
           crossPluginBus.publish("modelAssignmentUpdated", data);
         },
         onCurrentChatProfileUpdated: (data) => {
           if (data.scope !== "persisted") return;
+          console.log("[Desktop] → currentChatProfileUpdated", data);
           crossPluginBus.publish("currentChatProfileUpdated", data);
         },
         onProfilesUpdated: (data) => {
+          console.log("[Desktop] → profilesUpdated", data);
           crossPluginBus.publish("profilesUpdated", data);
         },
         onServersUpdated: (data) => {
+          console.log("[Desktop] → serversUpdated", data);
           crossPluginBus.publish("serversUpdated", data);
         },
         onWebSearchUpdated: (data) => {
+          console.log("[Desktop] → webSearchUpdated", data);
           crossPluginBus.publish("webSearchUpdated", data);
         },
         onThreadsUpdated: (data) => {
           if (data.kind === "switched") return;
+          console.log("[Desktop] → threadsUpdated", data);
           crossPluginBus.publish("threadsUpdated", data);
         },
         onExtendedThinkingUpdated: (data) => {
+          console.log("[Desktop] → extendedThinkingUpdated", data);
           crossPluginBus.publish("extendedThinkingUpdated", data);
         },
       }}

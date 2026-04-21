@@ -40,6 +40,7 @@ function parsePayload(raw: unknown): SyncPayload | null {
 }
 
 function notifyDesktopPlugin(payload: SyncPayload): void {
+  console.log(`[Docs bg] → bus: ${payload.event}`, payload.data);
   switch (payload.event) {
     case "modelAssignmentUpdated":
       crossPluginBus.publish("modelAssignmentUpdated", payload.data);
@@ -81,6 +82,7 @@ function notifyPluginWindows(serialized: string, except?: WindowId): void {
 function listenForDesktopPluginUpdates(): void {
   for (const event of SYNC_EVENT_NAMES) {
     crossPluginBus.subscribe(event, (data) => {
+      console.log(`[Docs bg] ← bus: ${event}`, data);
       notifyPluginWindows(JSON.stringify({ event, data }));
     });
   }
@@ -91,6 +93,7 @@ function registerWindow(id: WindowId, win: AscPluginWindow): void {
   win.attachEvent(AI_STATE_EVENT, (raw) => {
     const payload = parsePayload(raw);
     if (!payload) return;
+    console.log(`[Docs bg] ← from ${id}: ${payload.event}`, payload.data);
     if (isDesktopEditor()) notifyDesktopPlugin(payload);
     notifyPluginWindows(JSON.stringify(payload), id);
   });

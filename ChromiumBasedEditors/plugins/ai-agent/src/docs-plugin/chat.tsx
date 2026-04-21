@@ -28,6 +28,8 @@ const Chat = () => {
       const widget = widgetRef.current;
       if (!widget) return;
 
+      console.log(`[Docs chat] ← ${payload.event}`, payload.data);
+
       switch (payload.event) {
         case "threadsUpdated":
           widget.updateThreads();
@@ -68,18 +70,21 @@ const Chat = () => {
       callbacks={{
         onThreadsUpdated: (data) => {
           if (data.kind === "switched") return;
+          console.log("[Docs chat] → threadsUpdated", data);
           window.Asc.plugin.sendToPlugin("onAiStateChanged", {
             event: "threadsUpdated",
             data,
           });
         },
         onExtendedThinkingUpdated: (data) => {
+          console.log("[Docs chat] → extendedThinkingUpdated", data);
           window.Asc.plugin.sendToPlugin("onAiStateChanged", {
             event: "extendedThinkingUpdated",
             data,
           });
         },
         onServersUpdated: (data) => {
+          console.log("[Docs chat] → serversUpdated", data);
           window.Asc.plugin.sendToPlugin("onAiStateChanged", {
             event: "serversUpdated",
             data,
