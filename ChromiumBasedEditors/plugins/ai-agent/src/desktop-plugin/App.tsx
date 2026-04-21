@@ -35,10 +35,14 @@ const App = () => {
         widgetRef.current?.updateMCPServer();
       }),
       crossPluginBus.subscribe("webSearchUpdated", () => {
+        console.log("[Desktop] web search updated");
         widgetRef.current?.updateWebSearch();
       }),
       crossPluginBus.subscribe("threadsUpdated", () => {
         widgetRef.current?.updateThreads();
+      }),
+      crossPluginBus.subscribe("extendedThinkingUpdated", () => {
+        widgetRef.current?.updateExtendedThinking();
       }),
     ];
 
@@ -75,6 +79,9 @@ const App = () => {
         onThreadsUpdated: (data) => {
           if (data.kind === "switched") return;
           crossPluginBus.publish("threadsUpdated", data);
+        },
+        onExtendedThinkingUpdated: (data) => {
+          crossPluginBus.publish("extendedThinkingUpdated", data);
         },
       }}
     />

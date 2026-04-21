@@ -19,6 +19,7 @@ const SYNC_EVENT_NAMES: readonly SyncEventName[] = [
   "serversUpdated",
   "webSearchUpdated",
   "threadsUpdated",
+  "extendedThinkingUpdated",
 ];
 
 function parsePayload(raw: unknown): SyncPayload | null {
@@ -57,6 +58,9 @@ function notifyDesktopPlugin(payload: SyncPayload): void {
       return;
     case "threadsUpdated":
       crossPluginBus.publish("threadsUpdated", payload.data);
+      return;
+    case "extendedThinkingUpdated":
+      crossPluginBus.publish("extendedThinkingUpdated", payload.data);
       return;
   }
 }

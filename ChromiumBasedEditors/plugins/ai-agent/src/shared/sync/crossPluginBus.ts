@@ -7,6 +7,11 @@ import type {
   WebSearchUpdatedEvent,
 } from "@onlyoffice/ai-chat";
 
+// Not re-exported from @onlyoffice/ai-chat top-level — mirror it locally.
+interface ExtendedThinkingUpdatedEvent {
+  enabled: boolean;
+}
+
 export interface CrossPluginEvents {
   modelAssignmentUpdated: ModelAssignmentUpdatedEvent;
   currentChatProfileUpdated: CurrentChatProfileUpdatedEvent;
@@ -14,6 +19,7 @@ export interface CrossPluginEvents {
   serversUpdated: ServersUpdatedEvent;
   webSearchUpdated: WebSearchUpdatedEvent;
   threadsUpdated: ThreadsUpdatedEvent;
+  extendedThinkingUpdated: ExtendedThinkingUpdatedEvent;
 }
 
 type EventName = keyof CrossPluginEvents;

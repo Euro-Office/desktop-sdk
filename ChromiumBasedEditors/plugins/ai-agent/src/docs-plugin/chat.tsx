@@ -40,6 +40,12 @@ const Chat = () => {
         case "currentChatProfileUpdated":
           widget.updateCurrentChat();
           return;
+        case "extendedThinkingUpdated":
+          widget.updateExtendedThinking();
+          return;
+        case "serversUpdated":
+          widget.updateMCPServer();
+          return;
       }
     });
 
@@ -64,6 +70,18 @@ const Chat = () => {
           if (data.kind === "switched") return;
           window.Asc.plugin.sendToPlugin("onAiStateChanged", {
             event: "threadsUpdated",
+            data,
+          });
+        },
+        onExtendedThinkingUpdated: (data) => {
+          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
+            event: "extendedThinkingUpdated",
+            data,
+          });
+        },
+        onServersUpdated: (data) => {
+          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
+            event: "serversUpdated",
             data,
           });
         },

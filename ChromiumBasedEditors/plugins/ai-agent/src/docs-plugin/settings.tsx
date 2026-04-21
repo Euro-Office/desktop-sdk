@@ -68,6 +68,7 @@ const SettingsInit = () => {
           useServersStore.getState().reload();
           return;
         case "webSearchUpdated":
+          console.log("[Docs] webSearchUpdated");
           servers.webSearch.reload();
           return;
       }
