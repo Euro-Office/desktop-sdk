@@ -11,6 +11,7 @@
     "build:local:nocheck": "vite build && node scripts/build.js && node scripts/move.js",
     "build:docs": "biome check --error-on-warnings ./src && tsc --project tsconfig.docs.json --noEmit && vite build --mode docs && node scripts/build.docs.js",
     "build:docs:local": "biome check --error-on-warnings ./src && tsc --project tsconfig.docs.json --noEmit && vite build --mode docs && node scripts/build.docs.js && node scripts/move.docs.js",
+    "build:all:local": "npm run build:local && npm run build:docs:local",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
