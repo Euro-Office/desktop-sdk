@@ -27,8 +27,8 @@ export async function summarize(
   const provider = getActionProvider("Summarization");
   if (!provider) throw new Error("No provider assigned to Summarization");
   return provider.sendMessageSync(
-    [{ role: "user", content: text }],
-    getSummarizationPrompt(targetLang)
+    [{ role: "user", content: getSummarizationPrompt(targetLang, text) }],
+    ""
   );
 }
 

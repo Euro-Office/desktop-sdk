@@ -3,7 +3,7 @@ import {
   type CrossPluginEvents,
   crossPluginBus,
 } from "@/shared/sync/crossPluginBus";
-import { initAiAgentEngine, translate } from "./engine";
+import { initAiAgentEngine, summarize, translate } from "./engine";
 import {
   DEFAULT_TRANSLATION_LANG,
   TRANSLATION_LANG_KEY,
@@ -83,6 +83,40 @@ function pasteText(text: string): void {
   window.Asc.plugin.executeMethod("PasteText", [text]);
 }
 
+function insertAsComment(text: string): void {
+  window.Asc.plugin.executeMethod("AddComment", [
+    { UserName: "AI", Text: text, Time: Date.now() },
+  ]);
+}
+
+function insertAsText(text: string): void {
+  Asc.scope = { data: (text || "").split("\n\n") };
+  window.Asc.plugin.callCommand(() => {
+    const chunks = Asc.scope.data as string[];
+    const doc = Api.GetDocument();
+    for (const chunk of chunks) {
+      if (chunk.length) {
+        const p = Api.CreateParagraph();
+        p.AddText(chunk);
+        doc.Push(p);
+      }
+    }
+  }, false);
+}
+
+function insertAsReview(text: string): void {
+  window.Asc.plugin.callCommand(() => {
+    const doc = Api.GetDocument();
+    Asc.scope.__prevTrackRevisions = doc.IsTrackRevisions();
+    doc.SetTrackRevisions(true);
+  }, false);
+  window.Asc.plugin.executeMethod("PasteText", [text]);
+  window.Asc.plugin.callCommand(() => {
+    const doc = Api.GetDocument();
+    doc.SetTrackRevisions(Asc.scope.__prevTrackRevisions === true);
+  }, false);
+}
+
 async function handleTranslation(): Promise<void> {
   const text = await getSelectedText();
   if (!text.trim()) return;
@@ -98,12 +132,13 @@ async function handleTranslation(): Promise<void> {
   }
 }
 
-type WindowId = "chat" | "settings" | "translation";
+type WindowId = "chat" | "settings" | "translation" | "summarization";
 
 const windows = new Map<WindowId, AscPluginWindow | null>([
   ["chat", null],
   ["settings", null],
   ["translation", null],
+  ["summarization", null],
 ]);
 
 function notifyPluginWindows(serialized: string, except?: WindowId): void {
@@ -170,6 +205,74 @@ function openTranslationSettings() {
     isVisual: true,
     size: [320, 200],
     buttons: [{ text: "OK", primary: true }, { text: "Cancel" }],
+  });
+}
+
+function openSummarizationWindow() {
+  const existing = windows.get("summarization");
+  if (existing) {
+    existing.activate();
+    return;
+  }
+
+  const win = new window.Asc.PluginWindow();
+
+  win.attachEvent("onInit", async () => {
+    const text = await getSelectedText();
+    win.command("onGetSelection", text);
+  });
+
+  win.attachEvent("Summarize", async (raw: unknown) => {
+    const payload =
+      typeof raw === "string"
+        ? (JSON.parse(raw) as { data: string; lang: string })
+        : (raw as { data: string; lang: string });
+
+    window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
+    try {
+      const result = await summarize(payload.data, payload.lang);
+      win.command("onSummarize", JSON.stringify({ error: 0, data: result }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      win.command("onSummarize", JSON.stringify({ error: 1, message }));
+    } finally {
+      window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
+    }
+  });
+
+  win.attachEvent("onSummarize", (raw: unknown) => {
+    const payload =
+      typeof raw === "string"
+        ? (JSON.parse(raw) as { type: string; data: string })
+        : (raw as { type: string; data: string });
+    const editorType = window.Asc.plugin.info?.editorType;
+    switch (payload.type) {
+      case "review":
+        if (editorType === "word") insertAsReview(payload.data);
+        else insertAsComment(payload.data);
+        break;
+      case "comment":
+        insertAsComment(payload.data);
+        break;
+      case "replace":
+        pasteText(payload.data);
+        break;
+      case "end":
+        insertAsText(payload.data);
+        break;
+    }
+  });
+
+  registerWindow("summarization", win);
+  win.show({
+    url: "summarization.html",
+    description: "Summarization",
+    type: "window",
+    EditorsSupport: ["word", "slide", "cell", "pdf"],
+    isVisual: true,
+    isModal: true,
+    size: [720, 310],
+    buttons: [],
   });
 }
 
@@ -291,7 +394,7 @@ window.Asc.plugin.init = () => {
     } else if (id === "ai-settings") {
       openSettings();
     } else if (id === "ai-summarization") {
-      console.log("[Docs bg] Summarization button clicked");
+      openSummarizationWindow();
     } else if (id === "ai-translation") {
       void handleTranslation();
     } else if (id === "ai-translation-settings") {

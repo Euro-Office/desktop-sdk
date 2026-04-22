@@ -89,7 +89,7 @@
       "semicolons": "always",
       "trailingCommas": "es5"
     },
-    "globals": ["PerfectScrollbar"]
+    "globals": ["PerfectScrollbar", "Api", "Asc"]
   },
   "files": {
     "includes": ["src/**"]

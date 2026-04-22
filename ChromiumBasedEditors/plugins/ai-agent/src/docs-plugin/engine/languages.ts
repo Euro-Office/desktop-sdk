@@ -52,3 +52,21 @@ export const TRANSLATION_LANGUAGES: TranslationLanguage[] = [
 
 export const DEFAULT_TRANSLATION_LANG = "English";
 export const TRANSLATION_LANG_KEY = "onlyoffice_ai_plugin_translate_lang";
+
+export interface SummarizationLanguage {
+  nameEn: string;
+  nameLocale: string;
+  value: string;
+}
+
+export const SUMMARIZATION_LANGUAGES: SummarizationLanguage[] = [
+  { nameEn: "English", nameLocale: "English", value: "en-US" },
+  { nameEn: "French", nameLocale: "Français", value: "fr-FR" },
+  { nameEn: "German", nameLocale: "Deutsch", value: "de-DE" },
+  { nameEn: "Chinese", nameLocale: "中文", value: "zh-CN" },
+  { nameEn: "Japanese", nameLocale: "日本語", value: "ja-JP" },
+  { nameEn: "Russian", nameLocale: "Русский", value: "ru-RU" },
+  { nameEn: "Korean", nameLocale: "한국어", value: "ko-KR" },
+  { nameEn: "Spanish", nameLocale: "Español", value: "es-ES" },
+  { nameEn: "Italian", nameLocale: "Italiano", value: "it-IT" },
+];

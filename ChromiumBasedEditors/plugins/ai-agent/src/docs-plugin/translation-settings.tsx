@@ -5,18 +5,8 @@ import {
   TRANSLATION_LANG_KEY,
   TRANSLATION_LANGUAGES,
 } from "./engine/languages";
+import { updateBodyThemeClasses, updateThemeVariables } from "./theme-utils";
 import "./translation-settings.css";
-
-function updateBodyThemeClasses(themeType?: string, themeName?: string) {
-  const classes = document.body.className.split(" ");
-  for (const className of classes) {
-    if (className.includes("theme-")) {
-      document.body.classList.remove(className);
-    }
-  }
-  if (themeName) document.body.classList.add(themeName);
-  if (themeType) document.body.classList.add(`theme-type-${themeType}`);
-}
 
 function TranslationSettings() {
   const [selected, setSelected] = useState<string>(
@@ -38,12 +28,16 @@ function TranslationSettings() {
     }
 
     const theme = window.Asc.plugin.info?.theme;
-    if (theme) updateBodyThemeClasses(theme.type, theme.name);
+    if (theme) {
+      updateBodyThemeClasses(theme.type, theme.name);
+      updateThemeVariables(theme);
+    }
 
     window.Asc.plugin.attachEvent("onThemeChanged", (rawTheme: unknown) => {
       const nextTheme = rawTheme as AscTheme;
       window.Asc.plugin.onThemeChangedBase?.(nextTheme);
       updateBodyThemeClasses(nextTheme.type, nextTheme.name);
+      updateThemeVariables(nextTheme);
     });
 
     window.Asc.plugin.attachEvent("onKeepLang", () => {

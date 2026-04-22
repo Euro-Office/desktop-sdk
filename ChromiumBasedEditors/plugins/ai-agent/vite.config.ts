@@ -43,6 +43,10 @@ export default defineConfig(({ mode }) => {
                 __dirname,
                 "src/docs-plugin/translation-settings.tsx"
               ),
+              "summarization-dialog": path.resolve(
+                __dirname,
+                "src/docs-plugin/summarization-dialog.tsx"
+              ),
               index: path.resolve(__dirname, "src/docs-plugin/style.css"),
             }
           : undefined,

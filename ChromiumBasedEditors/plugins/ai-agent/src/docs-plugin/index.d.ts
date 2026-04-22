@@ -7,6 +7,28 @@ declare global {
     update(): void;
     destroy(): void;
   }
+
+  // ONLYOFFICE editor globals available inside callCommand callbacks,
+  // plus Asc.scope accessible from plugin code to pass data into callCommand.
+  interface AscEditorDocument {
+    // biome-ignore lint/suspicious/noExplicitAny: editor API surface is dynamic
+    [key: string]: any;
+  }
+  interface AscEditorApi {
+    GetDocument: () => AscEditorDocument;
+    // biome-ignore lint/suspicious/noExplicitAny: editor API surface is dynamic
+    CreateParagraph: () => any;
+    // biome-ignore lint/suspicious/noExplicitAny: editor API surface is dynamic
+    [key: string]: any;
+  }
+  interface AscGlobal {
+    // biome-ignore lint/suspicious/noExplicitAny: Asc.scope is a free-form data channel
+    scope: Record<string, any>;
+    // biome-ignore lint/suspicious/noExplicitAny: other Asc members are dynamic
+    [key: string]: any;
+  }
+  var Api: AscEditorApi;
+  var Asc: AscGlobal;
   interface AscButtonToolbar {
     text: string;
     icons: string;
@@ -46,6 +68,7 @@ declare global {
   interface AscTheme {
     name: string;
     type: string;
+    [key: string]: string | undefined;
   }
 
   interface Window {
