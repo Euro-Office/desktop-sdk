@@ -143,7 +143,31 @@ function openChat() {
 window.Asc.plugin.init = () => {
   if (isDesktopEditor()) listenForDesktopPluginUpdates();
 
-  // Register AI Chat button in the Home tab and Settings button in the plugin tab
+  const editorType = window.Asc.plugin.info?.editorType;
+  const isPdf = editorType === "pdf";
+
+  const aiActionsItems: Array<Record<string, unknown>> = [
+    {
+      id: "ai-settings",
+      type: "big-button",
+      text: "AI Settings",
+      icons:
+        "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
+    },
+  ];
+
+  if (!isPdf) {
+    aiActionsItems.push({
+      id: "ai-summarization",
+      type: "big-button",
+      text: "Summarization",
+      icons:
+        "resources/%theme-type%(light|dark)/big/summarization%scale%(default).png",
+      separator: true,
+    });
+  }
+
+  // Register AI Chat button in the Home tab and AI Actions tab buttons
   window.Asc.plugin.executeMethod("AddToolbarMenuItem", [
     {
       guid: "asc.{8D67F3C0-7654-4BBC-98A2-71342BD73A4E}",
@@ -164,15 +188,7 @@ window.Asc.plugin.init = () => {
         {
           id: "ai-actions",
           text: "AI Actions",
-          items: [
-            {
-              id: "ai-settings",
-              type: "big-button",
-              text: "AI Settings",
-              icons:
-                "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
-            },
-          ],
+          items: aiActionsItems,
         },
       ],
     },
@@ -183,6 +199,8 @@ window.Asc.plugin.init = () => {
       openChat();
     } else if (id === "ai-settings") {
       openSettings();
+    } else if (id === "ai-summarization") {
+      console.log("[Docs bg] Summarization button clicked");
     }
   };
 

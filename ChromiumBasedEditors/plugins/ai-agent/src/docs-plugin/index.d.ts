@@ -59,6 +59,7 @@ declare global {
         info: {
           theme: AscTheme;
           lang: string;
+          editorType?: "word" | "slide" | "cell" | "pdf";
         };
         sendToPlugin: (name: string, data: object) => boolean;
         attachEvent: (id: string, action: (data: unknown) => void) => void;
