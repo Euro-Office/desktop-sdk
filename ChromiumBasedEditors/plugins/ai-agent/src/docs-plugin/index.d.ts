@@ -2,6 +2,11 @@ import type { TProcess } from "@/shared/lib/types.ts";
 import type { AscDesktopEditor } from "../shared/lib/types";
 
 declare global {
+  class PerfectScrollbar {
+    constructor(element: Element | string, options?: object);
+    update(): void;
+    destroy(): void;
+  }
   interface AscButtonToolbar {
     text: string;
     icons: string;
@@ -51,7 +56,7 @@ declare global {
         executeMethod: (
           method: string,
           params?: unknown[],
-          callback?: () => void
+          callback?: (result: unknown) => void
         ) => void;
         callCommand: (func: () => void, isClose?: boolean) => void;
         attachToolbarMenuClickEvent: (id: string, handler: () => void) => void;

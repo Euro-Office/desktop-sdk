@@ -32,16 +32,43 @@ export async function summarize(
   );
 }
 
+function trimResult(data: string, isSpaces: boolean): string {
+  const trimC = ['"', "'", "\n", "\r", "`"];
+  if (isSpaces) trimC.push(" ");
+
+  let start = 0;
+  while (start < data.length && trimC.includes(data[start])) start++;
+
+  let end = data.length - 1;
+  while (end > 0 && trimC.includes(data[end])) end--;
+
+  if (end > start) return data.substring(start, end + 1);
+  return data;
+}
+
+function cleanTranslationResult(raw: string, source: string): string {
+  let cleaned = trimResult(raw, true);
+  const preserveC = ['"', "'", "\n", "\r", " "];
+  if (source.length > 0 && preserveC.includes(source[0])) {
+    cleaned = source[0] + cleaned;
+  }
+  if (source.length > 1 && preserveC.includes(source[source.length - 1])) {
+    cleaned = cleaned + source[source.length - 1];
+  }
+  return cleaned;
+}
+
 export async function translate(
   text: string,
   targetLang: string
 ): Promise<string> {
   const provider = getActionProvider(ActionType.Translation);
   if (!provider) throw new Error("No provider assigned to Translation");
-  return provider.sendMessageSync(
-    [{ role: "user", content: text }],
-    getTranslationPrompt(targetLang)
+  const raw = await provider.sendMessageSync(
+    [{ role: "user", content: getTranslationPrompt(targetLang, text) }],
+    ""
   );
+  return cleanTranslationResult(raw, text);
 }
 
 export async function initAiAgentEngine(): Promise<void> {

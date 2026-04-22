@@ -88,7 +88,8 @@
       "quoteStyle": "double",
       "semicolons": "always",
       "trailingCommas": "es5"
-    }
+    },
+    "globals": ["PerfectScrollbar"]
   },
   "files": {
     "includes": ["src/**"]

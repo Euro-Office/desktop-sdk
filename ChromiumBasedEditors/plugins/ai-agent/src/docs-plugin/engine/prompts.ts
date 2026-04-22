@@ -5,6 +5,6 @@ export function getSummarizationPrompt(lang?: string): string {
   }text.`;
 }
 
-export function getTranslationPrompt(lang: string): string {
-  return `Translate the following text to ${lang}. Return only the resulting text.`;
+export function getTranslationPrompt(lang: string, text: string): string {
+  return `Translate the following text to ${lang}. Return only the resulting text.Text: """\n${text}\n"""`;
 }

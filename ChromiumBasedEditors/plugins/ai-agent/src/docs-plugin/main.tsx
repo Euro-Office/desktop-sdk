@@ -3,7 +3,11 @@ import {
   type CrossPluginEvents,
   crossPluginBus,
 } from "@/shared/sync/crossPluginBus";
-import { initAiAgentEngine } from "./engine";
+import { initAiAgentEngine, translate } from "./engine";
+import {
+  DEFAULT_TRANSLATION_LANG,
+  TRANSLATION_LANG_KEY,
+} from "./engine/languages";
 
 const AI_STATE_EVENT = "onAiStateChanged";
 
@@ -67,11 +71,39 @@ function notifyDesktopPlugin(payload: SyncPayload): void {
   }
 }
 
-type WindowId = "chat" | "settings";
+function getSelectedText(): Promise<string> {
+  return new Promise((resolve) => {
+    window.Asc.plugin.executeMethod("GetSelectedText", [false], (result) => {
+      resolve(typeof result === "string" ? result : "");
+    });
+  });
+}
+
+function pasteText(text: string): void {
+  window.Asc.plugin.executeMethod("PasteText", [text]);
+}
+
+async function handleTranslation(): Promise<void> {
+  const text = await getSelectedText();
+  if (!text.trim()) return;
+  const lang =
+    localStorage.getItem(TRANSLATION_LANG_KEY) ?? DEFAULT_TRANSLATION_LANG;
+
+  window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
+  try {
+    const result = await translate(text, lang);
+    pasteText(result);
+  } finally {
+    window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
+  }
+}
+
+type WindowId = "chat" | "settings" | "translation";
 
 const windows = new Map<WindowId, AscPluginWindow | null>([
   ["chat", null],
   ["settings", null],
+  ["translation", null],
 ]);
 
 function notifyPluginWindows(serialized: string, except?: WindowId): void {
@@ -118,6 +150,26 @@ function openSettings() {
     icons:
       "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
     size: [470, 600],
+  });
+}
+
+function openTranslationSettings() {
+  const existing = windows.get("translation");
+  if (existing) {
+    existing.activate();
+    return;
+  }
+
+  const win = new window.Asc.PluginWindow();
+  registerWindow("translation", win);
+  win.show({
+    url: "translation.html",
+    description: "Translation settings",
+    type: "window",
+    EditorsSupport: ["word", "slide", "cell", "pdf"],
+    isVisual: true,
+    size: [320, 200],
+    buttons: [{ text: "OK", primary: true }, { text: "Cancel" }],
   });
 }
 
@@ -241,9 +293,9 @@ window.Asc.plugin.init = () => {
     } else if (id === "ai-summarization") {
       console.log("[Docs bg] Summarization button clicked");
     } else if (id === "ai-translation") {
-      console.log("[Docs bg] Translation button clicked");
+      void handleTranslation();
     } else if (id === "ai-translation-settings") {
-      console.log("[Docs bg] Translation settings clicked");
+      openTranslationSettings();
     } else if (id === "ai-grammar") {
       console.log("[Docs bg] Grammar & Spelling button clicked");
     } else if (id === "ai-grammar-check-all") {
@@ -256,14 +308,16 @@ window.Asc.plugin.init = () => {
   window.Asc.Buttons.registerToolbarMenu();
 
   window.Asc.plugin.button = (_buttonId, windowId) => {
-    if (_buttonId === -1) {
-      window.Asc.plugin.executeMethod("CloseWindow", [windowId]);
+    const translationWin = windows.get("translation");
+    if (translationWin && translationWin.id === windowId && _buttonId === 0) {
+      translationWin.command("onKeepLang", "");
+    }
 
-      for (const [id, win] of windows) {
-        if (win && win.id === windowId) {
-          windows.set(id, null);
-          break;
-        }
+    window.Asc.plugin.executeMethod("CloseWindow", [windowId]);
+    for (const [id, win] of windows) {
+      if (win && win.id === windowId) {
+        windows.set(id, null);
+        break;
       }
     }
   };
