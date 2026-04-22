@@ -167,6 +167,21 @@ window.Asc.plugin.init = () => {
     });
   }
 
+  aiActionsItems.push({
+    id: "ai-translation",
+    type: "big-button",
+    text: "Translation",
+    icons:
+      "resources/%theme-type%(light|dark)/big/translation%scale%(default).png",
+    split: true,
+    items: [
+      {
+        id: "ai-translation-settings",
+        text: "Settings",
+      },
+    ],
+  });
+
   // Register AI Chat button in the Home tab and AI Actions tab buttons
   window.Asc.plugin.executeMethod("AddToolbarMenuItem", [
     {
@@ -201,6 +216,10 @@ window.Asc.plugin.init = () => {
       openSettings();
     } else if (id === "ai-summarization") {
       console.log("[Docs bg] Summarization button clicked");
+    } else if (id === "ai-translation") {
+      console.log("[Docs bg] Translation button clicked");
+    } else if (id === "ai-translation-settings") {
+      console.log("[Docs bg] Translation settings clicked");
     }
   };
 
