@@ -3,6 +3,7 @@ import {
   type CrossPluginEvents,
   crossPluginBus,
 } from "@/shared/sync/crossPluginBus";
+import { initAiAgentEngine } from "./engine";
 
 const AI_STATE_EVENT = "onAiStateChanged";
 
@@ -141,6 +142,8 @@ function openChat() {
 }
 
 window.Asc.plugin.init = () => {
+  void initAiAgentEngine();
+
   if (isDesktopEditor()) listenForDesktopPluginUpdates();
 
   const editorType = window.Asc.plugin.info?.editorType;

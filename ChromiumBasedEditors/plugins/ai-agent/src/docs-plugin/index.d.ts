@@ -83,5 +83,10 @@ declare global {
       command: string,
       env?: Record<string, string>
     ) => TProcess;
+
+    aiAgent?: {
+      summarize: (text: string, targetLang?: string) => Promise<string>;
+      translate: (text: string, targetLang: string) => Promise<string>;
+    };
   }
 }
