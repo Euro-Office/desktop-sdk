@@ -182,6 +182,27 @@ window.Asc.plugin.init = () => {
     ],
   });
 
+  if (editorType === "word") {
+    aiActionsItems.push({
+      id: "ai-grammar",
+      type: "big-button",
+      text: "Grammar & Spelling",
+      icons:
+        "resources/%theme-type%(light|dark)/big/grammar%scale%(default).png",
+      split: true,
+      items: [
+        {
+          id: "ai-grammar-check-all",
+          text: "Check all",
+        },
+        {
+          id: "ai-grammar-check-current",
+          text: "Check current text",
+        },
+      ],
+    });
+  }
+
   // Register AI Chat button in the Home tab and AI Actions tab buttons
   window.Asc.plugin.executeMethod("AddToolbarMenuItem", [
     {
@@ -220,6 +241,12 @@ window.Asc.plugin.init = () => {
       console.log("[Docs bg] Translation button clicked");
     } else if (id === "ai-translation-settings") {
       console.log("[Docs bg] Translation settings clicked");
+    } else if (id === "ai-grammar") {
+      console.log("[Docs bg] Grammar & Spelling button clicked");
+    } else if (id === "ai-grammar-check-all") {
+      console.log("[Docs bg] Grammar & Spelling — Check all clicked");
+    } else if (id === "ai-grammar-check-current") {
+      console.log("[Docs bg] Grammar & Spelling — Check current text clicked");
     }
   };
 
