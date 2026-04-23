@@ -1,10 +1,8 @@
 import {
-  ActionType,
   type AppContext,
   CallbacksManager,
   ChatEventBus,
   createStores,
-  getActionProvider,
   initActionHolders,
   MiddlewareRunner,
   Provider,
@@ -16,59 +14,40 @@ import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import { crossPluginBus } from "@/shared/sync/crossPluginBus";
 import { OnlyOfficePlatform } from "../platform";
-import { getSummarizationPrompt, getTranslationPrompt } from "./prompts";
 
 let stores: Stores | null = null;
+
+function requireLibrary(): {
+  ai: AIGlobal;
+  prompts: AscPromptsStatic;
+  library: AscLibraryInstance;
+} {
+  const ai = window.AI;
+  const prompts = window.Asc.Prompts;
+  const library = window.Asc.Library;
+  if (!ai || !prompts || !library) throw new Error("Library not installed");
+  return { ai, prompts, library };
+}
 
 export async function summarize(
   text: string,
   targetLang?: string
 ): Promise<string> {
-  const provider = getActionProvider("Summarization");
-  if (!provider) throw new Error("No provider assigned to Summarization");
-  return provider.sendMessageSync(
-    [{ role: "user", content: getSummarizationPrompt(targetLang, text) }],
-    ""
-  );
-}
-
-function trimResult(data: string, isSpaces: boolean): string {
-  const trimC = ['"', "'", "\n", "\r", "`"];
-  if (isSpaces) trimC.push(" ");
-
-  let start = 0;
-  while (start < data.length && trimC.includes(data[start])) start++;
-
-  let end = data.length - 1;
-  while (end > 0 && trimC.includes(data[end])) end--;
-
-  if (end > start) return data.substring(start, end + 1);
-  return data;
-}
-
-function cleanTranslationResult(raw: string, source: string): string {
-  let cleaned = trimResult(raw, true);
-  const preserveC = ['"', "'", "\n", "\r", " "];
-  if (source.length > 0 && preserveC.includes(source[0])) {
-    cleaned = source[0] + cleaned;
-  }
-  if (source.length > 1 && preserveC.includes(source[source.length - 1])) {
-    cleaned = cleaned + source[source.length - 1];
-  }
-  return cleaned;
+  const { ai, prompts } = requireLibrary();
+  const req = ai.Request.create(ai.ActionType.Summarization);
+  const prompt = prompts.getSummarizationPrompt(text, targetLang);
+  return req.chatRequest(prompt);
 }
 
 export async function translate(
   text: string,
   targetLang: string
 ): Promise<string> {
-  const provider = getActionProvider(ActionType.Translation);
-  if (!provider) throw new Error("No provider assigned to Translation");
-  const raw = await provider.sendMessageSync(
-    [{ role: "user", content: getTranslationPrompt(targetLang, text) }],
-    ""
-  );
-  return cleanTranslationResult(raw, text);
+  const { ai, prompts, library } = requireLibrary();
+  const req = ai.Request.create(ai.ActionType.Translation);
+  const prompt = prompts.getTranslatePrompt(text, targetLang);
+  const raw = await req.chatRequest(prompt);
+  return library.getTranslateResult(raw, text);
 }
 
 export async function initAiAgentEngine(): Promise<void> {

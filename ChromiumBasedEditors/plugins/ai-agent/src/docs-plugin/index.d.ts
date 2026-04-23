@@ -81,13 +81,19 @@ declare global {
           params?: unknown[],
           callback?: (result: unknown) => void
         ) => void;
-        callCommand: (func: () => void, isClose?: boolean) => void;
+        callCommand: (
+          func: () => void,
+          isClose?: boolean,
+          isReturnValue?: boolean,
+          callback?: (result: unknown) => void
+        ) => void;
         attachToolbarMenuClickEvent: (id: string, handler: () => void) => void;
         event_onToolbarMenuClick: (id: string) => void;
         info: {
           theme: AscTheme;
           lang: string;
           editorType?: "word" | "slide" | "cell" | "pdf";
+          editorSubType?: string;
         };
         sendToPlugin: (name: string, data: object) => boolean;
         attachEvent: (id: string, action: (data: unknown) => void) => void;
@@ -102,6 +108,10 @@ declare global {
         registerToolbarMenu: () => void;
         registerContextMenu: () => void;
       };
+      Editor?: AscEditorStatic;
+      Library?: AscLibraryInstance;
+      Prompts?: AscPromptsStatic;
+      PluginsMD?: AscPluginsMDStatic;
     };
 
     // desktop only

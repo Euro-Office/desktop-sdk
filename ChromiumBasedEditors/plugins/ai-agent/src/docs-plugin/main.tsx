@@ -8,6 +8,7 @@ import {
   DEFAULT_TRANSLATION_LANG,
   TRANSLATION_LANG_KEY,
 } from "./engine/languages";
+import { install as installLibrary } from "./library";
 
 const AI_STATE_EVENT = "onAiStateChanged";
 
@@ -71,54 +72,10 @@ function notifyDesktopPlugin(payload: SyncPayload): void {
   }
 }
 
-function getSelectedText(): Promise<string> {
-  return new Promise((resolve) => {
-    window.Asc.plugin.executeMethod("GetSelectedText", [false], (result) => {
-      resolve(typeof result === "string" ? result : "");
-    });
-  });
-}
-
-function pasteText(text: string): void {
-  window.Asc.plugin.executeMethod("PasteText", [text]);
-}
-
-function insertAsComment(text: string): void {
-  window.Asc.plugin.executeMethod("AddComment", [
-    { UserName: "AI", Text: text, Time: Date.now() },
-  ]);
-}
-
-function insertAsText(text: string): void {
-  Asc.scope = { data: (text || "").split("\n\n") };
-  window.Asc.plugin.callCommand(() => {
-    const chunks = Asc.scope.data as string[];
-    const doc = Api.GetDocument();
-    for (const chunk of chunks) {
-      if (chunk.length) {
-        const p = Api.CreateParagraph();
-        p.AddText(chunk);
-        doc.Push(p);
-      }
-    }
-  }, false);
-}
-
-function insertAsReview(text: string): void {
-  window.Asc.plugin.callCommand(() => {
-    const doc = Api.GetDocument();
-    Asc.scope.__prevTrackRevisions = doc.IsTrackRevisions();
-    doc.SetTrackRevisions(true);
-  }, false);
-  window.Asc.plugin.executeMethod("PasteText", [text]);
-  window.Asc.plugin.callCommand(() => {
-    const doc = Api.GetDocument();
-    doc.SetTrackRevisions(Asc.scope.__prevTrackRevisions === true);
-  }, false);
-}
-
 async function handleTranslation(): Promise<void> {
-  const text = await getSelectedText();
+  const lib = window.Asc.Library;
+  if (!lib) return;
+  const text = await lib.GetSelectedText();
   if (!text.trim()) return;
   const lang =
     localStorage.getItem(TRANSLATION_LANG_KEY) ?? DEFAULT_TRANSLATION_LANG;
@@ -126,7 +83,7 @@ async function handleTranslation(): Promise<void> {
   window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
   try {
     const result = await translate(text, lang);
-    pasteText(result);
+    await lib.PasteText(result);
   } finally {
     window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
   }
@@ -218,7 +175,7 @@ function openSummarizationWindow() {
   const win = new window.Asc.PluginWindow();
 
   win.attachEvent("onInit", async () => {
-    const text = await getSelectedText();
+    const text = (await window.Asc.Library?.GetSelectedText()) ?? "";
     win.command("onGetSelection", text);
   });
 
@@ -245,20 +202,22 @@ function openSummarizationWindow() {
       typeof raw === "string"
         ? (JSON.parse(raw) as { type: string; data: string })
         : (raw as { type: string; data: string });
+    const lib = window.Asc.Library;
     const editorType = window.Asc.plugin.info?.editorType;
     switch (payload.type) {
       case "review":
-        if (editorType === "word") insertAsReview(payload.data);
-        else insertAsComment(payload.data);
+        if (editorType === "word")
+          void lib?.InsertAsReview(payload.data, false);
+        else void lib?.InsertAsComment(payload.data);
         break;
       case "comment":
-        insertAsComment(payload.data);
+        void lib?.InsertAsComment(payload.data);
         break;
       case "replace":
-        pasteText(payload.data);
+        void lib?.PasteText(payload.data);
         break;
       case "end":
-        insertAsText(payload.data);
+        void lib?.InsertAsText(payload.data);
         break;
     }
   });
@@ -297,7 +256,7 @@ function openChat() {
 }
 
 window.Asc.plugin.init = () => {
-  void initAiAgentEngine();
+  void initAiAgentEngine().then(() => installLibrary());
 
   if (isDesktopEditor()) listenForDesktopPluginUpdates();
 
