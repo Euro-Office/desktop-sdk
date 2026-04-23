@@ -9,6 +9,10 @@ import {
   TRANSLATION_LANG_KEY,
 } from "./engine/languages";
 import { install as installLibrary } from "./library";
+import { editor } from "./library/editor";
+import { TextAnnotationPopup } from "./text-annotations/annotation-popup";
+import { GrammarChecker } from "./text-annotations/grammar-checker";
+import { SpellChecker } from "./text-annotations/spelling-checker";
 
 const AI_STATE_EVENT = "onAiStateChanged";
 
@@ -256,9 +260,54 @@ function openChat() {
 }
 
 window.Asc.plugin.init = () => {
+  const textAnnotatorPopup = new TextAnnotationPopup();
+  const spellchecker = new SpellChecker(textAnnotatorPopup);
+  const grammar = new GrammarChecker(textAnnotatorPopup);
+
   void initAiAgentEngine().then(() => installLibrary());
 
   if (isDesktopEditor()) listenForDesktopPluginUpdates();
+
+  window.Asc.plugin.attachEditorEvent("onParagraphText", (obj: unknown) => {
+    const p = obj as {
+      paragraphId: string;
+      recalcId: string;
+      text: string;
+      annotations: unknown[];
+    };
+    if (!p) return;
+    void spellchecker.onChangeParagraph(
+      p.paragraphId,
+      p.recalcId,
+      p.text,
+      p.annotations
+    );
+    void grammar.onChangeParagraph(
+      p.paragraphId,
+      p.recalcId,
+      p.text,
+      p.annotations
+    );
+  });
+
+  window.Asc.plugin.attachEditorEvent("onBlurAnnotation", (obj: unknown) => {
+    const p = obj as { name: string } | null;
+    if (!p) return;
+    if (p.name === "spelling") spellchecker.onBlur();
+    else if (p.name === "grammar") grammar.onBlur();
+  });
+
+  window.Asc.plugin.attachEditorEvent("onClickAnnotation", (obj: unknown) => {
+    const p = obj as {
+      name: string;
+      paragraphId: string;
+      ranges: number[];
+    } | null;
+    if (!p) return;
+    if (p.name === "grammar") grammar.onClick(p.paragraphId, p.ranges);
+    else if (p.name === "spelling")
+      spellchecker.onClick(p.paragraphId, p.ranges);
+  });
 
   const editorType = window.Asc.plugin.info?.editorType;
   const isPdf = editorType === "pdf";
@@ -320,6 +369,48 @@ window.Asc.plugin.init = () => {
     });
   }
 
+  async function handleGrammarCheck(
+    sc: SpellChecker,
+    gc: GrammarChecker,
+    isCurrent: boolean
+  ): Promise<void> {
+    let paraIds = [];
+    if (isCurrent) {
+      paraIds = await editor.callCommand<string[]>(() => {
+        const result: string[] = [];
+        const range = Api.GetDocument().GetRangeBySelect();
+        if (!range) return [];
+
+        const paragraphs = range.GetAllParagraphs();
+        paragraphs.forEach((p: { GetInternalId: () => string }) => {
+          result.push(p.GetInternalId());
+        });
+        return result;
+      });
+    } else {
+      paraIds = await Asc.Editor.callCommand(() => {
+        const result: string[] = [];
+        const paragraphs = Api.GetDocument().GetAllParagraphs();
+        paragraphs.forEach((p: { GetInternalId: () => string }) => {
+          result.push(p.GetInternalId());
+        });
+        return result;
+      });
+    }
+
+    if (!paraIds.length) return;
+
+    window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
+    try {
+      await Promise.all([
+        sc.checkParagraphs(paraIds),
+        gc.checkParagraphs(paraIds),
+      ]);
+    } finally {
+      window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
+    }
+  }
+
   // Register AI Chat button in the Home tab and AI Actions tab buttons
   window.Asc.plugin.executeMethod("AddToolbarMenuItem", [
     {
@@ -359,19 +450,26 @@ window.Asc.plugin.init = () => {
     } else if (id === "ai-translation-settings") {
       openTranslationSettings();
     } else if (id === "ai-grammar") {
-      console.log("[Docs bg] Grammar & Spelling button clicked");
+      void handleGrammarCheck(spellchecker, grammar, true);
     } else if (id === "ai-grammar-check-all") {
-      console.log("[Docs bg] Grammar & Spelling — Check all clicked");
+      void handleGrammarCheck(spellchecker, grammar, false);
     } else if (id === "ai-grammar-check-current") {
-      console.log("[Docs bg] Grammar & Spelling — Check current text clicked");
+      void handleGrammarCheck(spellchecker, grammar, true);
     }
   };
 
   window.Asc.Buttons.registerToolbarMenu();
 
-  window.Asc.plugin.button = (_buttonId, windowId) => {
+  window.Asc.plugin.button = (buttonId, windowId) => {
+    if (textAnnotatorPopup.currentWindowId === windowId) {
+      if (buttonId === 0) void textAnnotatorPopup.onAcceptCallback?.();
+      else if (buttonId === 1) void textAnnotatorPopup.onRejectCallback?.();
+      else textAnnotatorPopup.reset();
+      return;
+    }
+
     const translationWin = windows.get("translation");
-    if (translationWin && translationWin.id === windowId && _buttonId === 0) {
+    if (translationWin && translationWin.id === windowId && buttonId === 0) {
       translationWin.command("onKeepLang", "");
     }
 

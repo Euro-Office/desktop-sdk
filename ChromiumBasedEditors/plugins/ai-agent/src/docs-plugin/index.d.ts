@@ -42,10 +42,12 @@ declare global {
   interface AscPluginWindowVariation {
     url: string;
     description?: string;
-    type: "window" | "panel" | "panelRight";
+    type?: "window" | "panel" | "panelRight";
     EditorsSupport?: Array<"word" | "slide" | "cell" | "pdf">;
     isModal?: boolean;
     isVisual?: boolean;
+    isTargeted?: boolean;
+    fixedSize?: boolean;
     size?: [number, number];
     buttons?: Array<{
       text: string;
@@ -88,6 +90,10 @@ declare global {
           callback?: (result: unknown) => void
         ) => void;
         attachToolbarMenuClickEvent: (id: string, handler: () => void) => void;
+        attachEditorEvent: (
+          id: string,
+          handler: (obj: unknown) => void
+        ) => void;
         event_onToolbarMenuClick: (id: string) => void;
         info: {
           theme: AscTheme;

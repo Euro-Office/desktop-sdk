@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script
+      type="text/javascript"
+      src="https://onlyoffice.github.io/sdkjs-plugins/v1/plugins.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://onlyoffice.github.io/sdkjs-plugins/v1/plugins-ui.js"
+    ></script>
+    <link
+      rel="stylesheet"
+      href="https://onlyoffice.github.io/sdkjs-plugins/v1/plugins.css"
+    />
+    <style id="pluginStyles"></style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Annotation popup</title>
+  </head>
+  <body style="margin: 0; padding: 0">
+    <script>
+      window.Asc.plugin.init = function () {
+        window.Asc.plugin.sendToPlugin("onWindowReady", {});
+
+        window.Asc.plugin.attachEvent("onUpdateContent", function (obj) {
+          var data = typeof obj === "string" ? JSON.parse(obj) : obj;
+          document.body.innerHTML = data.content;
+          if (data.theme) {
+            onThemeChanged(data.theme);
+          }
+        });
+      };
+
+      window.Asc.plugin.attachEvent("onThemeChanged", onThemeChanged);
+
+      function onThemeChanged(theme) {
+        var backColor = theme["background-normal"];
+        var textColor = theme["text-normal"];
+        var borderColor = theme["border-divider"];
+        var ballonColor = theme["canvas-background"];
+
+        var backColorElements = document.getElementsByClassName("back-color");
+        for (var i = 0; i < backColorElements.length; i++) {
+          backColorElements[i].style.background = backColor;
+        }
+
+        var textColorElements = document.getElementsByClassName("text-color");
+        for (var i = 0; i < textColorElements.length; i++) {
+          textColorElements[i].style.color = textColor;
+        }
+
+        var borderColorElements =
+          document.getElementsByClassName("border-color");
+        for (var i = 0; i < borderColorElements.length; i++) {
+          borderColorElements[i].style.borderColor = borderColor;
+        }
+
+        var ballonColorElements =
+          document.getElementsByClassName("ballon-color");
+        for (var i = 0; i < ballonColorElements.length; i++) {
+          ballonColorElements[i].style.background = ballonColor;
+        }
+
+        var textRules = ".original { color: " + theme["border-error"] + "; }\n";
+        if (
+          theme.name !== "theme-white" &&
+          theme.name !== "theme-night"
+        ) {
+          textRules += ".corrected strong { color: #009900; }\n";
+        }
+        textRules += ".corrected strong { font-weight:normal; }\n";
+
+        var styleTheme = document.getElementById("pluginStyles");
+        if (!styleTheme) {
+          styleTheme = document.createElement("style");
+          styleTheme.id = "pluginStyles";
+          styleTheme.innerHTML = textRules;
+          document.getElementsByTagName("head")[0].appendChild(styleTheme);
+        } else {
+          styleTheme.innerHTML = textRules;
+        }
+      }
+    </script>
+  </body>
+</html>
