@@ -1,4 +1,3 @@
-/* ===== from common.css ===== */
 html,
 body {
   box-sizing: border-box;
@@ -9,7 +8,6 @@ body {
   height: 100%;
 }
 body {
-  padding: 15px;
   background-color: var(
     --background-normal,
     var(--body-background-color, #fff)
@@ -29,6 +27,10 @@ body.theme-contrast-dark {
   --body-background-color: #212121;
 }
 
+#summarization_window {
+  padding: 15px;
+}
+
 textarea {
   resize: none;
 }
@@ -38,7 +40,6 @@ textarea {
   user-select: none;
 }
 
-/* ===== from summarization.css ===== */
 .content {
   display: flex;
 }
@@ -81,7 +82,7 @@ textarea {
   display: flex;
 }
 
-.button-block button {
+.button-block button:not(.oo-select__trigger) {
   display: block;
   flex: 1;
   margin-left: 8px;

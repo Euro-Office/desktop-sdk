@@ -1,5 +1,6 @@
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { Select, type SelectOption } from "./components/Select";
 import { SUMMARIZATION_LANGUAGES } from "./engine/languages";
 import { updateBodyThemeClasses, updateThemeVariables } from "./theme-utils";
 import "./summarization-dialog.css";
@@ -36,6 +37,20 @@ function SummarizationDialog() {
   const insertOptions = useMemo<InsertOption[]>(
     () => (isWord ? INSERT_OPTIONS_WORD : INSERT_OPTIONS_WORD.slice(1, 3)),
     [isWord]
+  );
+
+  const langSelectOptions = useMemo<SelectOption[]>(
+    () =>
+      SUMMARIZATION_LANGUAGES.map((l) => ({
+        value: l.value,
+        label: `${l.nameLocale} – ${l.nameEn}`,
+      })),
+    []
+  );
+
+  const insertSelectOptions = useMemo<SelectOption<InsertMode>[]>(
+    () => insertOptions.map((o) => ({ value: o.value, label: o.name })),
+    [insertOptions]
   );
 
   const [originalText, setOriginalText] = useState("");
@@ -177,17 +192,12 @@ function SummarizationDialog() {
           </label>
         </div>
         <div className="button-block">
-          <select
+          <Select
             id="target-lang-cmb"
             value={targetLang}
-            onChange={(e) => setTargetLang(e.target.value)}
-          >
-            {SUMMARIZATION_LANGUAGES.map((l) => (
-              <option key={l.value} value={l.value}>
-                {`${l.nameLocale} – ${l.nameEn}`}
-              </option>
-            ))}
-          </select>
+            options={langSelectOptions}
+            onValueChange={setTargetLang}
+          />
           <button
             id="summarize-btn"
             type="button"
@@ -240,17 +250,12 @@ function SummarizationDialog() {
           </label>
         </div>
         <div className="button-block">
-          <select
+          <Select<InsertMode>
             id="insert-as-cmb"
             value={insertMode}
-            onChange={(e) => setInsertMode(e.target.value as InsertMode)}
-          >
-            {insertOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.name}
-              </option>
-            ))}
-          </select>
+            options={insertSelectOptions}
+            onValueChange={setInsertMode}
+          />
           <button
             id="insert-btn"
             type="button"
