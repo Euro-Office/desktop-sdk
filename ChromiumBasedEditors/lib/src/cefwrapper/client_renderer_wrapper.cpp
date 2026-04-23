@@ -6185,6 +6185,17 @@ return this.split(str).join(newStr);\
 				curFrame->ExecuteJavaScript("window.RendererProcessVariable = " + sVar + ";", curFrame->GetURL(), 0);
 			}
 
+#ifdef DEBUG_LOCAL_SERVER
+			if (curFrame)
+				curFrame->ExecuteJavaScript("(function() {\n\
+const sw = navigator.serviceWorker;\n\
+if (!sw) return;\n\
+sw.register = () => Promise.reject(new DOMException('Disabled', 'SecurityError'));\n\
+sw.getRegistration = () => Promise.resolve(undefined);\n\
+sw.getRegistrations = () => Promise.resolve([]);\n\
+})();", curFrame->GetURL(), 0);
+#endif
+
 			CefRefPtr<CefProcessMessage> message = CefProcessMessage::Create("on_js_context_created");
 #ifndef MESSAGE_IN_BROWSER
 			curFrame->SendProcessMessage(PID_BROWSER, message);
