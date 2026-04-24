@@ -12,4 +12,5 @@ export const DEFAULT_STORE_KEYS: StoreKeys = {
   deepMode: "deep-mode",
   mcpServers: "mcpServers",
   disabledTools: "disabledTools",
+  systemPromptAppendix: "system-prompt-appendix",
 };
