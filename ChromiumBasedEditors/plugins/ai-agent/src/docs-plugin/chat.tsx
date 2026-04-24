@@ -6,7 +6,10 @@ import { migrateProvidersToProfiles } from "@/shared/lib/migrateProvidersToProfi
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import type { CrossPluginEvents } from "@/shared/sync/crossPluginBus";
+import { editor } from "./library/editor";
+import { install as installLibrary } from "./library/index";
 import { OnlyOfficePlatform } from "./platform/index";
+import { createHostToolGroups } from "./tools";
 
 type SyncPayload = {
   [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
@@ -16,6 +19,10 @@ const Chat = () => {
   const storage = useMemo(() => new IndexedDBStorage(), []);
   const settings = useMemo(() => new LocalStorageSettings(), []);
   const platform = useMemo(() => new OnlyOfficePlatform(), []);
+  const hostToolGroups = useMemo(
+    () => createHostToolGroups(editor.getType()),
+    []
+  );
   const widgetRef = useRef<AIChatWidgetRef>(null);
 
   useEffect(() => {
@@ -67,6 +74,7 @@ const Chat = () => {
       settings={settings}
       platform={platform}
       storeKeys={DEFAULT_STORE_KEYS}
+      hostToolGroups={hostToolGroups}
       onMigrate={migrateProvidersToProfiles}
       onSettingsClick={() => {
         window.Asc.plugin.sendToPlugin("ai-open-settings", {});
@@ -100,6 +108,8 @@ const Chat = () => {
 };
 
 window.Asc.plugin.init = () => {
+  installLibrary();
+
   const container = document.getElementById("chat_panel");
 
   if (container) {

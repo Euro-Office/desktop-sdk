@@ -28,7 +28,10 @@ import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import type { CrossPluginEvents } from "@/shared/sync/crossPluginBus";
+import { editor } from "./library/editor";
+import { install as installLibrary } from "./library/index";
 import { OnlyOfficePlatform } from "./platform/index";
+import { createHostToolGroups } from "./tools";
 
 type SyncPayload = {
   [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
@@ -90,6 +93,10 @@ const Settings = () => {
   const eventBus = useMemo(() => new ChatEventBus(), []);
   const callbacksManager = useMemo(() => new CallbacksManager(), []);
   const middlewareRunner = useMemo(() => new MiddlewareRunner([]), []);
+  const hostToolGroups = useMemo(
+    () => createHostToolGroups(editor.getType()),
+    []
+  );
   const provider = useMemo(() => {
     const p = new Provider();
     p.setSettings(settings);
@@ -177,7 +184,7 @@ const Settings = () => {
                   <ThemeProvider>
                     <ImagesProvider>
                       <ToolsProvider
-                        hostToolGroups={[]}
+                        hostToolGroups={hostToolGroups}
                         servers={servers}
                         eventBus={eventBus}
                       >
@@ -206,6 +213,8 @@ const Settings = () => {
 };
 
 window.Asc.plugin.init = () => {
+  installLibrary();
+
   const container = document.getElementById("settings_window");
 
   if (container) {
