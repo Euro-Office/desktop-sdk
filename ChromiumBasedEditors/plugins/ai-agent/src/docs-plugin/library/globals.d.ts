@@ -66,7 +66,12 @@ declare interface AIRequestInstance {
   chatRequest(
     content: string,
     block?: boolean,
-    streamFunc?: unknown
+    streamFunc?: (delta: string, isFinal: boolean) => void | Promise<void>
+  ): Promise<string>;
+  imageGenerationRequest(
+    prompt: string,
+    width?: number,
+    height?: number
   ): Promise<string>;
 }
 
