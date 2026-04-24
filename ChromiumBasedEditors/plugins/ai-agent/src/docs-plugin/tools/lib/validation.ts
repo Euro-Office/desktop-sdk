@@ -64,6 +64,16 @@ export function requireInteger(
   return value;
 }
 
+export function optionalInteger(
+  params: Record<string, unknown>,
+  key: string,
+  opts: { min?: number; max?: number } = {}
+): number | undefined {
+  const value = params[key];
+  if (value === undefined || value === null) return undefined;
+  return requireInteger(params, key, opts);
+}
+
 export function requireEnum<T extends string>(
   params: Record<string, unknown>,
   key: string,
