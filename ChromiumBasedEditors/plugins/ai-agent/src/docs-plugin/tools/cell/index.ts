@@ -1,8 +1,10 @@
 import type { HostTool } from "@onlyoffice/ai-chat";
 import { addCellValueCondition } from "./addCellValueCondition";
+import { addChart } from "./addChart";
 import { addColorScale } from "./addColorScale";
 import { addDataBars } from "./addDataBars";
 import { addIconSet } from "./addIconSet";
+import { addImage } from "./addImage";
 import { addTop10Condition } from "./addTop10Condition";
 import { explainFormula } from "./explainFormula";
 import { fillMissingData } from "./fillMissingData";
@@ -10,6 +12,7 @@ import { fixFormula } from "./fixFormula";
 import { getCellDetails } from "./getCellDetails";
 import { getRangeData } from "./getRangeData";
 import { getSheetObjects } from "./getSheetObjects";
+import { insertPivotTable } from "./insertPivotTable";
 import { readSheetContext } from "./readSheetContext";
 import { searchData } from "./searchData";
 import { setAutoFilter } from "./setAutoFilter";
@@ -37,4 +40,8 @@ export const cellTools: HostTool[] = [
   setAutoFilter,
   setSort,
   setMultiSort,
+  // Phase 6 — complex tools
+  addChart,
+  addImage,
+  insertPivotTable,
 ];
