@@ -8,6 +8,7 @@ import { addTextToPlaceholder } from "./addTextToPlaceholder";
 import { changeSlideBackground } from "./changeSlideBackground";
 import { deleteSlide } from "./deleteSlide";
 import { duplicateSlide } from "./duplicateSlide";
+import { writeMacro } from "./writeMacro";
 
 export const slideTools: HostTool[] = [
   addNewSlide,
@@ -19,4 +20,5 @@ export const slideTools: HostTool[] = [
   addChartToSlide,
   addTextToPlaceholder,
   addImageByDescription,
+  writeMacro,
 ];

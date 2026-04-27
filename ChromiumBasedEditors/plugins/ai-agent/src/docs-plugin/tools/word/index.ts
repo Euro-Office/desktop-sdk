@@ -8,6 +8,7 @@ import { generateDocx } from "./generateDocx";
 import { generateForm } from "./generateForm";
 import { insertPage } from "./insertPage";
 import { rewriteText } from "./rewriteText";
+import { writeMacro } from "./writeMacro";
 
 export const wordTools: HostTool[] = [
   insertPage,
@@ -19,4 +20,5 @@ export const wordTools: HostTool[] = [
   generateDocx,
   generateForm,
   addImage,
+  writeMacro,
 ];

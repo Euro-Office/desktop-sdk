@@ -18,6 +18,7 @@ import { searchData } from "./searchData";
 import { setAutoFilter } from "./setAutoFilter";
 import { setMultiSort } from "./setMultiSort";
 import { setSort } from "./setSort";
+import { writeMacro } from "./writeMacro";
 
 export const cellTools: HostTool[] = [
   // Conditional formatting
@@ -40,8 +41,10 @@ export const cellTools: HostTool[] = [
   setAutoFilter,
   setSort,
   setMultiSort,
-  // Phase 6 — complex tools
+  // complex tools
   addChart,
   addImage,
   insertPivotTable,
+  // writeMacro
+  writeMacro,
 ];
