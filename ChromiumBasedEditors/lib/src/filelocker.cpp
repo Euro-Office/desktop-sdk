@@ -631,7 +631,12 @@ namespace NSSystem
 			_lock.l_len    = 0;
 			_lock.l_pid    = getpid();
 
+#ifdef _MAC
+			int ret = fcntl(m_nDescriptor, F_SETLK, &_lock);
+			bResult = (ret == 0) || (errno == EACCES) || (errno == EAGAIN);
+#else
 			bResult = (0 == fcntl(m_nDescriptor, F_SETLKW, &_lock));
+#endif
 
 			if (bResult && !lockFile.GetPath().empty())
 			{
@@ -657,7 +662,12 @@ namespace NSSystem
 			_lock.l_len    = 0;
 			_lock.l_pid    = getpid();
 
+#ifdef _MAC
+			fcntl(m_nDescriptor, F_SETLK, &_lock);
+#else
 			fcntl(m_nDescriptor, F_SETLKW, &_lock);
+#endif
+
 			close(m_nDescriptor);
 			m_nDescriptor = -1;
 
@@ -961,7 +971,7 @@ namespace NSSystem
 		else
 			lockType = NSSystem::CFileLockerGIO::IsLockedInternal(file);
 #else
-		lockType = NSSystem::CFileLockerEmpty::IsLockedInternal(file);
+        lockType = NSSystem::CFileLockerFCNTL::IsLockedInternal(file);
 #endif
 #endif
 		return lockType;
@@ -980,7 +990,7 @@ namespace NSSystem
 		else
 			return new NSSystem::CFileLockerGIO(file);
 	#else
-		return new NSSystem::CFileLockerEmpty(file);
+		return new NSSystem::CFileLockerFCNTL(file);
 	#endif
     #endif
 
