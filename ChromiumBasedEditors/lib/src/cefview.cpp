@@ -394,7 +394,7 @@ public:
 		case AVS_OFFICESTUDIO_FILE_CROSSPLATFORM_PDF:
 		case AVS_OFFICESTUDIO_FILE_CROSSPLATFORM_PDFA:
 		{
-			((CPdfFile*)m_pReader)->SetCMapFolder(m_sCMapFolder);
+			((CPdfFile*)m_pReader)->SetCMapFile(m_sCMapFolder + L"/cmap.bin");
 
 			// CHANGES
 			if (!sChangesFile.empty())
