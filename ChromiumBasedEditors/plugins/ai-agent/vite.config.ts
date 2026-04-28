@@ -47,7 +47,18 @@ export default defineConfig(({ mode }) => {
                 __dirname,
                 "src/docs-plugin/summarization-dialog.tsx"
               ),
-              index: path.resolve(__dirname, "src/docs-plugin/style.css"),
+              "custom-assistant-dialog": path.resolve(
+                __dirname,
+                "src/docs-plugin/custom-assistant-dialog.tsx"
+              ),
+              "custom-assistant-delete-dialog": path.resolve(
+                __dirname,
+                "src/docs-plugin/custom-assistant-delete-dialog.tsx"
+              ),
+              "docs-plugin-styles": path.resolve(
+                __dirname,
+                "src/docs-plugin/style.css"
+              ),
             }
           : undefined,
         output: {

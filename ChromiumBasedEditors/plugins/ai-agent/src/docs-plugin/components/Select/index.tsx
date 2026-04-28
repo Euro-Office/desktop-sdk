@@ -1,6 +1,5 @@
 import * as RadixSelect from "@radix-ui/react-select";
 import { useState } from "react";
-import "./style.css";
 
 export interface SelectOption<T extends string = string> {
   value: T;

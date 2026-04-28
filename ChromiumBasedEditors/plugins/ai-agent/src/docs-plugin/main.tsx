@@ -11,8 +11,26 @@ import {
 import { install as installLibrary } from "./library";
 import { editor } from "./library/editor";
 import { TextAnnotationPopup } from "./text-annotations/annotation-popup";
+import type { CustomAssistantData } from "./text-annotations/custom-annotations/custom-annotator";
+import { CustomAssistantManager } from "./text-annotations/custom-annotations/manager";
 import { GrammarChecker } from "./text-annotations/grammar-checker";
 import { SpellChecker } from "./text-annotations/spelling-checker";
+
+const CUSTOM_ASSISTANTS_KEY = "onlyoffice_ai_saved_assistants";
+
+function loadSavedAssistants(): CustomAssistantData[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(CUSTOM_ASSISTANTS_KEY) || "[]"
+    ) as CustomAssistantData[];
+  } catch {
+    return [];
+  }
+}
+
+function saveAssistantsList(list: CustomAssistantData[]): void {
+  localStorage.setItem(CUSTOM_ASSISTANTS_KEY, JSON.stringify(list));
+}
 
 const AI_STATE_EVENT = "onAiStateChanged";
 
@@ -93,13 +111,21 @@ async function handleTranslation(): Promise<void> {
   }
 }
 
-type WindowId = "chat" | "settings" | "translation" | "summarization";
+type WindowId =
+  | "chat"
+  | "settings"
+  | "translation"
+  | "summarization"
+  | "custom-assistant"
+  | "custom-assistant-delete";
 
 const windows = new Map<WindowId, AscPluginWindow | null>([
   ["chat", null],
   ["settings", null],
   ["translation", null],
   ["summarization", null],
+  ["custom-assistant", null],
+  ["custom-assistant-delete", null],
 ]);
 
 function notifyPluginWindows(serialized: string, except?: WindowId): void {
@@ -263,6 +289,15 @@ window.Asc.plugin.init = () => {
   const textAnnotatorPopup = new TextAnnotationPopup();
   const spellchecker = new SpellChecker(textAnnotatorPopup);
   const grammar = new GrammarChecker(textAnnotatorPopup);
+  const customAssistantManager = new CustomAssistantManager(textAnnotatorPopup);
+
+  for (const data of loadSavedAssistants()) {
+    try {
+      customAssistantManager.createAssistant(data);
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
   void initAiAgentEngine().then(() => installLibrary());
 
@@ -288,6 +323,12 @@ window.Asc.plugin.init = () => {
       p.text,
       p.annotations
     );
+    customAssistantManager.onParagraphText(
+      p.paragraphId,
+      p.recalcId,
+      p.text,
+      p.annotations
+    );
   });
 
   window.Asc.plugin.attachEditorEvent("onBlurAnnotation", (obj: unknown) => {
@@ -295,6 +336,7 @@ window.Asc.plugin.init = () => {
     if (!p) return;
     if (p.name === "spelling") spellchecker.onBlur();
     else if (p.name === "grammar") grammar.onBlur();
+    else customAssistantManager.onBlurAnnotation(p.name);
   });
 
   window.Asc.plugin.attachEditorEvent("onClickAnnotation", (obj: unknown) => {
@@ -307,66 +349,264 @@ window.Asc.plugin.init = () => {
     if (p.name === "grammar") grammar.onClick(p.paragraphId, p.ranges);
     else if (p.name === "spelling")
       spellchecker.onClick(p.paragraphId, p.ranges);
+    else
+      customAssistantManager.onClickAnnotation(p.name, p.paragraphId, p.ranges);
   });
 
   const editorType = window.Asc.plugin.info?.editorType;
   const isPdf = editorType === "pdf";
+  const isWord = editorType === "word";
 
-  const aiActionsItems: Array<Record<string, unknown>> = [
-    {
-      id: "ai-settings",
-      type: "big-button",
-      text: "AI Settings",
-      icons:
-        "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
-    },
-  ];
-
-  if (!isPdf) {
-    aiActionsItems.push({
-      id: "ai-summarization",
-      type: "big-button",
-      text: "Summarization",
-      icons:
-        "resources/%theme-type%(light|dark)/big/summarization%scale%(default).png",
-      separator: true,
-    });
-  }
-
-  aiActionsItems.push({
-    id: "ai-translation",
-    type: "big-button",
-    text: "Translation",
-    icons:
-      "resources/%theme-type%(light|dark)/big/translation%scale%(default).png",
-    split: true,
-    items: [
+  function buildAiActionsItems(): Array<Record<string, unknown>> {
+    const items: Array<Record<string, unknown>> = [
       {
-        id: "ai-translation-settings",
-        text: "Settings",
+        id: "ai-settings",
+        type: "big-button",
+        text: "AI Settings",
+        icons:
+          "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
       },
-    ],
-  });
+    ];
 
-  if (editorType === "word") {
-    aiActionsItems.push({
-      id: "ai-grammar",
+    if (!isPdf) {
+      items.push({
+        id: "ai-summarization",
+        type: "big-button",
+        text: "Summarization",
+        icons:
+          "resources/%theme-type%(light|dark)/big/summarization%scale%(default).png",
+        separator: true,
+      });
+    }
+
+    items.push({
+      id: "ai-translation",
       type: "big-button",
-      text: "Grammar & Spelling",
+      text: "Translation",
       icons:
-        "resources/%theme-type%(light|dark)/big/grammar%scale%(default).png",
+        "resources/%theme-type%(light|dark)/big/translation%scale%(default).png",
       split: true,
       items: [
         {
-          id: "ai-grammar-check-all",
-          text: "Check all",
-        },
-        {
-          id: "ai-grammar-check-current",
-          text: "Check current text",
+          id: "ai-translation-settings",
+          text: "Settings",
         },
       ],
     });
+
+    if (isWord) {
+      items.push({
+        id: "ai-grammar",
+        type: "big-button",
+        text: "Grammar & Spelling",
+        icons:
+          "resources/%theme-type%(light|dark)/big/grammar%scale%(default).png",
+        split: true,
+        items: [
+          {
+            id: "ai-grammar-check-all",
+            text: "Check all",
+          },
+          {
+            id: "ai-grammar-check-current",
+            text: "Check current text",
+          },
+        ],
+      });
+
+      items.push({
+        id: "ai-create-assistant",
+        type: "big-button",
+        text: "Create AI assistant",
+        icons:
+          "resources/%theme-type%(light|dark)/big/plugin-writer%scale%(default).png",
+        separator: true,
+      });
+
+      for (const a of loadSavedAssistants()) {
+        items.push({
+          id: `ai-assistant-run-${a.id}`,
+          type: "big-button",
+          text: a.name,
+          icons:
+            "resources/%theme-type%(light|dark)/big/written-plugin%scale%(default).png",
+          split: true,
+          items: [
+            { id: `ai-assistant-edit-${a.id}`, text: "Edit" },
+            { id: `ai-assistant-delete-${a.id}`, text: "Delete" },
+          ],
+        });
+      }
+    }
+
+    return items;
+  }
+
+  function registerToolbar(): void {
+    window.Asc.plugin.executeMethod("AddToolbarMenuItem", [
+      {
+        guid: "asc.{8D67F3C0-7654-4BBC-98A2-71342BD73A4E}",
+        tabs: [
+          {
+            id: "home",
+            items: [
+              {
+                id: "ai-open-chat",
+                type: "big-button",
+                text: "AI Chat",
+                icons:
+                  "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
+                separator: true,
+              },
+            ],
+          },
+          {
+            id: "ai-actions",
+            text: "AI Actions",
+            items: buildAiActionsItems(),
+          },
+        ],
+      },
+    ]);
+  }
+
+  function openCustomAssistantWindow(assistantId?: string): void {
+    const existing = windows.get("custom-assistant");
+    if (existing) {
+      existing.activate();
+      return;
+    }
+
+    const isEdit = !!assistantId;
+    const win = new window.Asc.PluginWindow();
+
+    win.attachEvent("onWindowReady", () => {
+      if (isEdit && assistantId) {
+        win.command("onEditAssistant", assistantId);
+      }
+      if (!window.AI) {
+        win.command(
+          "onWarningAssistant",
+          "AI provider is not configured. Please open AI Settings and assign a model."
+        );
+      }
+    });
+
+    win.attachEvent("onAddEditAssistant", (raw: unknown) => {
+      if (raw === null || raw === undefined) return;
+      const data =
+        typeof raw === "string"
+          ? (JSON.parse(raw) as CustomAssistantData)
+          : (raw as CustomAssistantData);
+      if (!data?.id) return;
+      try {
+        if (customAssistantManager.hasAssistant(data.id)) {
+          customAssistantManager.updateAssistant(data);
+        } else {
+          customAssistantManager.createAssistant(data);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      registerToolbar();
+      windows.set("custom-assistant", null);
+      window.Asc.plugin.executeMethod("CloseWindow", [win.id]);
+    });
+
+    registerWindow("custom-assistant", win);
+    win.show({
+      url: "customAssistant.html",
+      description: isEdit ? "Edit" : "Create a new assistant",
+      type: "window",
+      EditorsSupport: ["word"],
+      isVisual: true,
+      isModal: false,
+      size: [427, 303],
+      buttons: [
+        { text: isEdit ? "Save" : "Create", primary: true },
+        { text: "Cancel", primary: false },
+      ],
+    });
+  }
+
+  function openDeleteConfirmWindow(assistantId: string): void {
+    const existing = windows.get("custom-assistant-delete");
+    if (existing) {
+      existing.activate();
+      return;
+    }
+
+    const win = new window.Asc.PluginWindow();
+
+    win.attachEvent("onWindowReady", () => {
+      win.command("onSetAssistantId", assistantId);
+    });
+
+    win.attachEvent("onDeleteAssistant", (raw: unknown) => {
+      const payload =
+        typeof raw === "string"
+          ? (JSON.parse(raw) as { id: string })
+          : (raw as { id: string });
+      const id = payload?.id;
+      if (!id) return;
+      const list = loadSavedAssistants().filter((a) => a.id !== id);
+      saveAssistantsList(list);
+      customAssistantManager.deleteAssistant(id);
+      registerToolbar();
+      windows.set("custom-assistant-delete", null);
+      window.Asc.plugin.executeMethod("CloseWindow", [win.id]);
+    });
+
+    registerWindow("custom-assistant-delete", win);
+    win.show({
+      url: "customAssistantDelete.html",
+      description: "Delete assistant",
+      type: "window",
+      EditorsSupport: ["word"],
+      isVisual: true,
+      isModal: true,
+      size: [380, 140],
+      buttons: [
+        { text: "Yes", primary: true },
+        { text: "No", primary: false },
+      ],
+    });
+  }
+
+  async function runAssistant(id: string): Promise<void> {
+    if (customAssistantManager.isRunning(id)) {
+      void customAssistantManager.stop(id);
+      return;
+    }
+    const lib = window.Asc.Library;
+    if (!lib) return;
+
+    const selectedText = await lib.GetSelectedText();
+    Asc.scope.hasSelectedText = !!selectedText;
+    const paraIds = await editor.callCommand<string[]>(() => {
+      const result: string[] = [];
+      let paragraphs: Array<{ GetInternalId: () => string }>;
+      if (Asc.scope.hasSelectedText) {
+        const range = Api.GetDocument().GetRangeBySelect();
+        if (!range) return [];
+        paragraphs = range.GetAllParagraphs();
+      } else {
+        paragraphs = Api.GetDocument().GetAllParagraphs();
+      }
+      for (const p of paragraphs) {
+        result.push(p.GetInternalId());
+      }
+      return result;
+    });
+
+    if (!paraIds || !paraIds.length) return;
+
+    window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
+    try {
+      await customAssistantManager.run(id, paraIds);
+    } finally {
+      window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
+    }
   }
 
   async function handleGrammarCheck(
@@ -412,31 +652,7 @@ window.Asc.plugin.init = () => {
   }
 
   // Register AI Chat button in the Home tab and AI Actions tab buttons
-  window.Asc.plugin.executeMethod("AddToolbarMenuItem", [
-    {
-      guid: "asc.{8D67F3C0-7654-4BBC-98A2-71342BD73A4E}",
-      tabs: [
-        {
-          id: "home",
-          items: [
-            {
-              id: "ai-open-chat",
-              type: "big-button",
-              text: "AI Chat",
-              icons:
-                "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
-              separator: true,
-            },
-          ],
-        },
-        {
-          id: "ai-actions",
-          text: "AI Actions",
-          items: aiActionsItems,
-        },
-      ],
-    },
-  ]);
+  registerToolbar();
 
   window.Asc.plugin.event_onToolbarMenuClick = (id) => {
     if (id === "ai-open-chat") {
@@ -455,6 +671,14 @@ window.Asc.plugin.init = () => {
       void handleGrammarCheck(spellchecker, grammar, false);
     } else if (id === "ai-grammar-check-current") {
       void handleGrammarCheck(spellchecker, grammar, true);
+    } else if (id === "ai-create-assistant") {
+      openCustomAssistantWindow();
+    } else if (id.startsWith("ai-assistant-run-")) {
+      void runAssistant(id.slice("ai-assistant-run-".length));
+    } else if (id.startsWith("ai-assistant-edit-")) {
+      openCustomAssistantWindow(id.slice("ai-assistant-edit-".length));
+    } else if (id.startsWith("ai-assistant-delete-")) {
+      openDeleteConfirmWindow(id.slice("ai-assistant-delete-".length));
     }
   };
 
@@ -471,6 +695,22 @@ window.Asc.plugin.init = () => {
     const translationWin = windows.get("translation");
     if (translationWin && translationWin.id === windowId && buttonId === 0) {
       translationWin.command("onKeepLang", "");
+    }
+
+    const assistantWin = windows.get("custom-assistant");
+    if (assistantWin && assistantWin.id === windowId) {
+      if (buttonId === 0) {
+        assistantWin.command("onClickAdd", "");
+        return;
+      }
+    }
+
+    const deleteWin = windows.get("custom-assistant-delete");
+    if (deleteWin && deleteWin.id === windowId) {
+      if (buttonId === 0) {
+        deleteWin.command("onConfirmDelete", "");
+        return;
+      }
     }
 
     window.Asc.plugin.executeMethod("CloseWindow", [windowId]);
