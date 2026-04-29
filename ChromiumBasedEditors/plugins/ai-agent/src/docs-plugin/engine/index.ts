@@ -81,6 +81,4 @@ export async function initAiAgentEngine(): Promise<void> {
   crossPluginBus.subscribe("profilesUpdated", () => {
     stores?.useProfilesStore.getState().reloadProfiles();
   });
-
-  window.aiAgent = { summarize, translate };
 }
