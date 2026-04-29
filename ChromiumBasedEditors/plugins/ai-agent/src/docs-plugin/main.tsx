@@ -431,6 +431,7 @@ window.Asc.plugin.init = () => {
           icons:
             "resources/%theme-type%(light|dark)/big/written-plugin%scale%(default).png",
           split: true,
+          enableToggle: true,
           items: [
             { id: `ai-assistant-edit-${a.id}`, text: "Edit" },
             { id: `ai-assistant-delete-${a.id}`, text: "Delete" },
