@@ -9,8 +9,10 @@ import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import { crossPluginBus } from "@/shared/sync/crossPluginBus";
 import { OnlyOfficePlatform } from "./platform/onlyoffice";
 
+export const sharedStorage = new IndexedDBStorage();
+
 const App = () => {
-  const storage = useMemo(() => new IndexedDBStorage(), []);
+  const storage = useMemo(() => sharedStorage, []);
   const settings = useMemo(() => new LocalStorageSettings(), []);
   const platform = useMemo(
     () => (isDesktopEditor() ? new OnlyOfficePlatform() : new NoopPlatform()),
@@ -65,7 +67,7 @@ const App = () => {
       settings={settings}
       platform={platform}
       storeKeys={DEFAULT_STORE_KEYS}
-      onMigrate={migrateProvidersToProfiles}
+      onMigrate={() => migrateProvidersToProfiles(storage)}
       callbacks={{
         onModelAssignmentUpdated: (data) => {
           console.log("[Desktop] → modelAssignmentUpdated", data);

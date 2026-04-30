@@ -1,9 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
+import App, { sharedStorage } from "./App.tsx";
 import "../shared/index.css";
 
-const initializeApp = () => {
+const initializeApp = async () => {
+  await sharedStorage.init();
   // Try to find root element in current document
   let rootElement = document.getElementById("root");
 

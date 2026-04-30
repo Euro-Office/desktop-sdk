@@ -1,5 +1,5 @@
 import type { ThreadsStorage } from "@onlyoffice/ai-chat";
-import type { Model, Thread, TProvider } from "@/shared/lib/types.ts";
+import type { Thread } from "@/shared/lib/types.ts";
 
 export class IndexedDBThreadsStorage implements ThreadsStorage {
   private getDB: () => IDBDatabase;
@@ -8,20 +8,12 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
     this.getDB = getDB;
   }
 
-  async create(
-    threadId: string,
-    title: string,
-    provider?: TProvider,
-    model?: Model,
-    profileId?: string
-  ): Promise<void> {
+  async create(title: string, profileId?: string): Promise<Thread> {
     const db = this.getDB();
     const threadData: Thread = {
-      threadId,
+      threadId: crypto.randomUUID(),
       title,
       lastEditDate: Date.now(),
-      provider,
-      model,
       profileId,
     };
 
@@ -31,11 +23,11 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
       const request = store.put(threadData);
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => resolve(threadData);
     });
   }
 
-  async getAll(): Promise<Thread[]> {
+  async readAll(): Promise<Thread[]> {
     const db = this.getDB();
 
     return new Promise((resolve, reject) => {
@@ -54,7 +46,7 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
     });
   }
 
-  async getById(threadId: string): Promise<Thread | null> {
+  async readById(threadId: string): Promise<Thread | null> {
     const db = this.getDB();
 
     return new Promise((resolve, reject) => {
@@ -98,9 +90,8 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
 
   async touch(
     threadId: string,
+    lastEditDate: number,
     updates?: {
-      provider?: TProvider | null;
-      model?: Model | null;
       profileId?: string | null;
     }
   ): Promise<void> {
@@ -121,16 +112,10 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
 
         const updatedThread: Thread = {
           ...existingThread,
-          ...(updates && "provider" in updates
-            ? { provider: updates.provider ?? undefined }
-            : {}),
-          ...(updates && "model" in updates
-            ? { model: updates.model ?? undefined }
-            : {}),
           ...(updates && "profileId" in updates
             ? { profileId: updates.profileId ?? undefined }
             : {}),
-          lastEditDate: Date.now(),
+          lastEditDate,
         };
 
         const putRequest = store.put(updatedThread);
@@ -141,8 +126,6 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
   }
 
   async delete(threadId: string): Promise<void> {
-    // Cascading delete is handled by IndexedDBStorage.deleteThread
-    // which calls messages.deleteByThread first, then this
     const db = this.getDB();
 
     return new Promise((resolve, reject) => {

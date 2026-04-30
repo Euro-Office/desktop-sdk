@@ -17,14 +17,21 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
 
   async create(
     threadId: string,
-    id: string,
-    message: ThreadMessageLike
-  ): Promise<void> {
+    message: Omit<ThreadMessageLike, "id" | "createdAt">
+  ): Promise<ThreadMessageLike> {
     const db = this.getDB();
+    const id = crypto.randomUUID();
+    const createdAt = new Date();
+    const fullMessage: ThreadMessageLike = {
+      ...message,
+      id,
+      createdAt,
+    } as ThreadMessageLike;
+
     const messageData: Message = {
       id,
       threadId,
-      message,
+      message: fullMessage,
       timestamp: Date.now(),
     };
 
@@ -34,13 +41,14 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
       const request = store.put(messageData);
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => resolve(fullMessage);
     });
   }
 
-  async getByThread(
+  async readByThread(
     threadId: string,
-    limit?: number
+    limit?: number,
+    startIndex?: number
   ): Promise<ThreadMessageLike[]> {
     const db = this.getDB();
 
@@ -56,8 +64,12 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
           .sort((a: Message, b: Message) => a.timestamp - b.timestamp)
           .map((item: Message) => item.message);
 
+        if (startIndex !== undefined) {
+          messages = messages.slice(startIndex);
+        }
+
         if (limit) {
-          messages = messages.slice(-limit);
+          messages = messages.slice(0, limit);
         }
 
         resolve(messages);
@@ -65,10 +77,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
     });
   }
 
-  async getById(
-    threadId: string,
-    messageId: string
-  ): Promise<ThreadMessageLike | null> {
+  async readById(messageId: string): Promise<ThreadMessageLike | null> {
     const db = this.getDB();
 
     return new Promise((resolve, reject) => {
@@ -79,11 +88,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         const result = request.result;
-        if (result && result.threadId === threadId) {
-          resolve(result.message);
-        } else {
-          resolve(null);
-        }
+        resolve(result ? result.message : null);
       };
     });
   }
@@ -153,75 +158,6 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
       };
 
       request.onerror = () => reject(request.error);
-    });
-  }
-
-  async replaceByThread(
-    threadId: string,
-    messages: ThreadMessageLike[]
-  ): Promise<void> {
-    const db = this.getDB();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["messages"], "readwrite");
-      const store = transaction.objectStore("messages");
-      const index = store.index("threadId");
-
-      const deleteRequest = index.openCursor(IDBKeyRange.only(threadId));
-      deleteRequest.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest).result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-        } else {
-          messages.forEach((message, idx) => {
-            const messageData: Message = {
-              id: `${threadId}-${Date.now()}-${idx}`,
-              threadId,
-              message,
-              timestamp: Date.now() + idx,
-            };
-            store.put(messageData);
-          });
-        }
-      };
-
-      transaction.onerror = () => reject(transaction.error);
-      transaction.oncomplete = () => resolve();
-    });
-  }
-
-  async search(
-    query: string
-  ): Promise<{ threadId: string; message: ThreadMessageLike }[]> {
-    const db = this.getDB();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["messages"], "readonly");
-      const store = transaction.objectStore("messages");
-      const request = store.getAll();
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        const results = request.result.filter((item: Message) => {
-          const content = Array.isArray(item.message.content)
-            ? item.message.content
-            : [{ type: "text", text: item.message.content }];
-
-          return content.some(
-            (part: { type: string; text: string }) =>
-              part.type === "text" &&
-              part.text.toLowerCase().includes(query.toLowerCase())
-          );
-        });
-
-        resolve(
-          results.map((item: Message) => ({
-            threadId: item.threadId,
-            message: item.message,
-          }))
-        );
-      };
     });
   }
 }

@@ -1,5 +1,9 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-import { type ActionType, getActionProvider } from "@onlyoffice/ai-chat";
+import {
+  type ActionType,
+  createProvider,
+  type StorageAdapter,
+} from "@onlyoffice/ai-chat";
 
 export const AiActionType = {
   Chat: "Chat",
@@ -31,11 +35,22 @@ function extractText(message: ThreadMessageLike): string {
   return result;
 }
 
+async function resolveProfile(action: ActionType, storage: StorageAdapter) {
+  const profileId = await storage.assignments.readByType(action);
+  const id =
+    profileId ??
+    (await storage.assignments.readByType("Default" as ActionType));
+  if (!id) return null;
+  return storage.profiles.readById(id);
+}
+
 class AiRequest {
   action: ActionType;
+  private storage: StorageAdapter;
 
-  constructor(action: ActionType) {
+  constructor(action: ActionType, storage: StorageAdapter) {
     this.action = action;
+    this.storage = storage;
   }
 
   async chatRequest(
@@ -43,40 +58,30 @@ class AiRequest {
     _block?: boolean,
     streamFunc?: StreamFunc
   ): Promise<string> {
-    const provider = getActionProvider(this.action);
-    if (!provider) throw new Error(`No provider assigned to ${this.action}`);
+    const profile = await resolveProfile(this.action, this.storage);
+    if (!profile) throw new Error(`No provider assigned to ${this.action}`);
 
-    if (typeof streamFunc !== "function" || !provider.isSupportStreaming()) {
-      const result = await provider.sendMessageSync(
-        [{ role: "user", content }],
-        ""
-      );
-      if (typeof streamFunc === "function") {
-        await streamFunc(result, true);
-      }
+    const provider = createProvider(profile.providerType, {
+      baseUrl: profile.baseUrl,
+      apiKey: profile.key,
+    });
+    if (!provider) throw new Error(`Unknown provider: ${profile.providerType}`);
+
+    const messages: ThreadMessageLike[] = [{ role: "user", content }];
+    const syncArgs = { messages, model: profile.modelId, systemPrompt: "" };
+
+    if (typeof streamFunc !== "function") {
+      const result = await provider.sendMessageSync(syncArgs);
       return result;
     }
 
-    // TODO(ai-chat): replace this block with
-    //   return provider.sendMessageSyncStream(
-    //     [{ role: "user", content }], streamFunc, ""
-    //   );
-    // once the library exposes `sendMessageSyncStream` — a streaming counterpart
-    // to `sendMessageSync` that does not read/mutate `prevMessages` or `tools`.
-    // Until then we piggyback on `sendMessage` and snapshot/restore those fields
-    // to avoid contaminating the surrounding chat flow (the engine reads
-    // `prevMessages` back in `sendMessageAfterToolCall` right after our tool
-    // returns).
-    const savedPrevMessages = provider.prevMessages;
-    const savedTools = provider.tools;
-    provider.prevMessages = [];
-    provider.tools = [];
-
     let accumulated = "";
     try {
-      for await (const chunk of provider.sendMessage([
-        { role: "user", content },
-      ])) {
+      for await (const chunk of provider.sendMessage({
+        messages,
+        model: profile.modelId,
+        systemPrompt: "",
+      })) {
         if ("isEnd" in chunk && chunk.isEnd) {
           const finalText = extractText(chunk.responseMessage);
           const tail = finalText.slice(accumulated.length);
@@ -91,9 +96,11 @@ class AiRequest {
           await streamFunc(delta, false);
         }
       }
-    } finally {
-      provider.prevMessages = savedPrevMessages;
-      provider.tools = savedTools;
+    } catch (e) {
+      if (accumulated && typeof streamFunc === "function") {
+        await streamFunc("", true);
+      }
+      throw e;
     }
 
     return accumulated;
@@ -104,19 +111,30 @@ class AiRequest {
     width?: number,
     height?: number
   ): Promise<string> {
-    const provider = getActionProvider(this.action);
-    if (!provider) throw new Error(`No provider assigned to ${this.action}`);
+    const profile = await resolveProfile(this.action, this.storage);
+    if (!profile) throw new Error(`No provider assigned to ${this.action}`);
+
+    const provider = createProvider(profile.providerType, {
+      baseUrl: profile.baseUrl,
+      apiKey: profile.key,
+    });
+    if (!provider) throw new Error(`Unknown provider: ${profile.providerType}`);
     if (!provider.imageGeneration) {
       throw new Error(
-        `Provider ${provider.getName()} does not support image generation`
+        `Provider ${profile.providerType} does not support image generation`
       );
     }
-    return provider.imageGeneration({ prompt, width, height });
+    return provider.imageGeneration({
+      model: profile.modelId,
+      prompt,
+      width,
+      height,
+    });
   }
 }
 
 export const AiRequestFactory = {
-  create(action: string): AiRequest {
-    return new AiRequest(action as ActionType);
+  create(action: string, storage: StorageAdapter): AiRequest {
+    return new AiRequest(action as ActionType, storage);
   },
 };

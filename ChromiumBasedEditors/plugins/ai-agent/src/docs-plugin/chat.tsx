@@ -15,8 +15,10 @@ type SyncPayload = {
   [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
 }[keyof CrossPluginEvents];
 
+const sharedStorage = new IndexedDBStorage();
+
 const Chat = () => {
-  const storage = useMemo(() => new IndexedDBStorage(), []);
+  const storage = useMemo(() => sharedStorage, []);
   const settings = useMemo(() => new LocalStorageSettings(), []);
   const platform = useMemo(() => new OnlyOfficePlatform(), []);
   const hostToolGroups = useMemo(
@@ -75,7 +77,7 @@ const Chat = () => {
       platform={platform}
       storeKeys={DEFAULT_STORE_KEYS}
       hostToolGroups={hostToolGroups}
-      onMigrate={migrateProvidersToProfiles}
+      onMigrate={() => migrateProvidersToProfiles(storage)}
       onSettingsClick={() => {
         window.Asc.plugin.sendToPlugin("ai-open-settings", {});
       }}
@@ -107,8 +109,9 @@ const Chat = () => {
   );
 };
 
-window.Asc.plugin.init = () => {
-  installLibrary();
+window.Asc.plugin.init = async () => {
+  await sharedStorage.init();
+  installLibrary(sharedStorage);
 
   const container = document.getElementById("chat_panel");
 

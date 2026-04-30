@@ -8,8 +8,17 @@ export class IndexedDBPromptsStorage implements PromptsStorage {
     this.getDB = getDB;
   }
 
-  async create(prompt: Prompt): Promise<void> {
+  async create(
+    input: Omit<Prompt, "id" | "createdAt" | "updatedAt">
+  ): Promise<Prompt> {
     const db = this.getDB();
+    const now = Date.now();
+    const prompt: Prompt = {
+      ...input,
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+    };
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(["prompts"], "readwrite");
@@ -17,11 +26,27 @@ export class IndexedDBPromptsStorage implements PromptsStorage {
       const request = store.put(prompt);
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => resolve(prompt);
     });
   }
 
-  async getAll(): Promise<Prompt[]> {
+  async createMany(prompts: Prompt[]): Promise<void> {
+    const db = this.getDB();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["prompts"], "readwrite");
+      const store = transaction.objectStore("prompts");
+
+      for (const prompt of prompts) {
+        store.put(prompt);
+      }
+
+      transaction.onerror = () => reject(transaction.error);
+      transaction.oncomplete = () => resolve();
+    });
+  }
+
+  async readAll(): Promise<Prompt[]> {
     const db = this.getDB();
 
     return new Promise((resolve, reject) => {
@@ -39,7 +64,7 @@ export class IndexedDBPromptsStorage implements PromptsStorage {
     });
   }
 
-  async getById(id: string): Promise<Prompt | null> {
+  async readById(id: string): Promise<Prompt | null> {
     const db = this.getDB();
 
     return new Promise((resolve, reject) => {
@@ -49,6 +74,38 @@ export class IndexedDBPromptsStorage implements PromptsStorage {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result || null);
+    });
+  }
+
+  async readByFolderId(folderId: string | null): Promise<Prompt[]> {
+    const db = this.getDB();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["prompts"], "readonly");
+      const store = transaction.objectStore("prompts");
+
+      if (folderId !== null) {
+        const index = store.index("folderId");
+        const request = index.getAll(IDBKeyRange.only(folderId));
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const prompts = request.result.sort(
+            (a: Prompt, b: Prompt) => b.createdAt - a.createdAt
+          );
+          resolve(prompts);
+        };
+      } else {
+        const request = store.getAll();
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const prompts = request.result
+            .filter((p: Prompt) => !p.folderId)
+            .sort((a: Prompt, b: Prompt) => b.createdAt - a.createdAt);
+          resolve(prompts);
+        };
+      }
     });
   }
 
@@ -133,8 +190,17 @@ export class IndexedDBPromptFoldersStorage implements PromptFoldersStorage {
     this.prompts = prompts;
   }
 
-  async create(folder: PromptFolder): Promise<void> {
+  async create(
+    input: Omit<PromptFolder, "id" | "createdAt" | "updatedAt">
+  ): Promise<PromptFolder> {
     const db = this.getDB();
+    const now = Date.now();
+    const folder: PromptFolder = {
+      ...input,
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+    };
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(["promptFolders"], "readwrite");
@@ -142,11 +208,27 @@ export class IndexedDBPromptFoldersStorage implements PromptFoldersStorage {
       const request = store.put(folder);
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => resolve(folder);
     });
   }
 
-  async getAll(): Promise<PromptFolder[]> {
+  async createMany(folders: PromptFolder[]): Promise<void> {
+    const db = this.getDB();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["promptFolders"], "readwrite");
+      const store = transaction.objectStore("promptFolders");
+
+      for (const folder of folders) {
+        store.put(folder);
+      }
+
+      transaction.onerror = () => reject(transaction.error);
+      transaction.oncomplete = () => resolve();
+    });
+  }
+
+  async readAll(): Promise<PromptFolder[]> {
     const db = this.getDB();
 
     return new Promise((resolve, reject) => {
@@ -164,7 +246,7 @@ export class IndexedDBPromptFoldersStorage implements PromptFoldersStorage {
     });
   }
 
-  async getById(id: string): Promise<PromptFolder | null> {
+  async readById(id: string): Promise<PromptFolder | null> {
     const db = this.getDB();
 
     return new Promise((resolve, reject) => {

@@ -1,31 +1,38 @@
 import {
+  AIEngine,
+  ApiProvider,
+  AssignmentsEngine,
   CallbacksManager,
   ChatEventBus,
   ComponentsProvider,
+  createServerAPI,
   createStores,
+  DEFAULT_SERVER_API_ROUTES,
   EventsProvider,
   I18nProvider,
   ImagesProvider,
   MiddlewareRunner,
   PlatformProvider,
-  Provider,
+  PreferencesEngine,
+  ProfilesEngine,
+  PromptsEngine,
   Servers,
   SettingsPage,
-  SettingsProvider,
-  StorageProvider,
   StoresProvider,
   ThemeProvider,
+  ThreadsEngine,
+  ToolsEngine,
   ToolsProvider,
+  useApi,
   useProfiles,
   useServers,
   useStores,
-  useToolsContext,
+  WebSearchEngine,
   WidgetConfigProvider,
 } from "@onlyoffice/ai-chat";
 import { StrictMode, useEffect, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
-import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import type { CrossPluginEvents } from "@/shared/sync/crossPluginBus";
 import { editor } from "./library/editor";
@@ -38,16 +45,11 @@ type SyncPayload = {
 }[keyof CrossPluginEvents];
 
 const SettingsInit = () => {
-  const { useCloudsStore, useProfilesStore, useServersStore } = useStores();
-  const { fetchClouds } = useCloudsStore();
-  const { servers } = useToolsContext();
+  const { useProfilesStore, useServersStore } = useStores();
+  const api = useApi();
 
   useProfiles({ isReady: true });
   useServers({ isReady: true });
-
-  useEffect(() => {
-    fetchClouds();
-  }, [fetchClouds]);
 
   useEffect(() => {
     window.Asc.plugin.attachEvent("onAiStateChanged", (raw) => {
@@ -73,7 +75,7 @@ const SettingsInit = () => {
           useServersStore.getState().reload();
           return;
         case "webSearchUpdated":
-          servers.webSearch.reload();
+          api.webSearch.clear();
           return;
       }
     });
@@ -81,14 +83,13 @@ const SettingsInit = () => {
     return () => {
       window.Asc.plugin.detachEvent("onAiStateChanged");
     };
-  }, [useProfilesStore, useServersStore, servers]);
+  }, [useProfilesStore, useServersStore, api]);
 
   return <SettingsPage hideHeader noPadding isWebSearchHorizontal={false} />;
 };
 
 const Settings = () => {
-  const storage = useMemo(() => new IndexedDBStorage(), []);
-  const settings = useMemo(() => new LocalStorageSettings(), []);
+  const storage = useMemo(() => sharedStorage, []);
   const platform = useMemo(() => new OnlyOfficePlatform(), []);
   const eventBus = useMemo(() => new ChatEventBus(), []);
   const callbacksManager = useMemo(() => new CallbacksManager(), []);
@@ -97,41 +98,54 @@ const Settings = () => {
     () => createHostToolGroups(editor.getType()),
     []
   );
-  const provider = useMemo(() => {
-    const p = new Provider();
-    p.setSettings(settings);
-    return p;
-  }, [settings]);
-  const servers = useMemo(
-    () => new Servers(settings, platform, eventBus, callbacksManager),
-    [settings, platform, eventBus, callbacksManager]
-  );
-  const stores = useMemo(
-    () =>
-      createStores({
-        keys: DEFAULT_STORE_KEYS,
-        ctx: {
-          settings,
-          storage,
-          platform,
-          provider,
-          servers,
-          eventBus,
-          callbacksManager,
-          middlewareRunner,
-        },
-      }),
-    [
-      settings,
+
+  const { ctx, stores, engines, serverApiConfig } = useMemo(() => {
+    const assignments = new AssignmentsEngine({ storage });
+    const profiles = new ProfilesEngine({ storage, assignments });
+    const threads = new ThreadsEngine({ storage });
+    const tools = new ToolsEngine({ storage });
+    const prompts = new PromptsEngine({ storage });
+    const webSearch = new WebSearchEngine({ storage });
+    const preferences = new PreferencesEngine({ storage });
+    const ai = new AIEngine({ storage, assignments, threads });
+
+    const servers = new Servers(platform, eventBus);
+
+    const ctx = {
       storage,
       platform,
-      provider,
       servers,
       eventBus,
       callbacksManager,
       middlewareRunner,
-    ]
-  );
+    };
+
+    const engines = {
+      ai,
+      assignments,
+      preferences,
+      profiles,
+      prompts,
+      threads,
+      tools,
+      webSearch,
+    };
+
+    const serverApiConfig = {
+      origin: "",
+      baseUrl: "",
+      routes: DEFAULT_SERVER_API_ROUTES,
+    };
+
+    const api = createServerAPI(serverApiConfig, engines);
+    const stores = createStores({
+      keys: DEFAULT_STORE_KEYS,
+      ctx,
+      api,
+    });
+
+    return { ctx, stores, engines, serverApiConfig };
+  }, [storage, platform, eventBus, callbacksManager, middlewareRunner]);
 
   return (
     <EventsProvider
@@ -175,45 +189,46 @@ const Settings = () => {
         },
       }}
     >
-      <SettingsProvider settings={settings}>
-        <PlatformProvider platform={platform}>
-          <I18nProvider locale={platform.env.locale ?? "en"}>
-            <ComponentsProvider>
-              <WidgetConfigProvider config={{ isDialogFullscreen: true }}>
+      <PlatformProvider platform={platform}>
+        <I18nProvider locale={platform.env.locale ?? "en"}>
+          <ComponentsProvider>
+            <WidgetConfigProvider config={{ isDialogFullscreen: true }}>
+              <ApiProvider config={serverApiConfig} engines={engines}>
                 <StoresProvider stores={stores}>
                   <ThemeProvider>
                     <ImagesProvider>
                       <ToolsProvider
                         hostToolGroups={hostToolGroups}
-                        servers={servers}
+                        servers={ctx.servers}
                         eventBus={eventBus}
                       >
-                        <StorageProvider storage={storage}>
-                          <div
-                            style={{
-                              padding: "20px 15px",
-                              height: "100vh",
-                              width: "100vw",
-                            }}
-                          >
-                            <SettingsInit />
-                          </div>
-                        </StorageProvider>
+                        <div
+                          style={{
+                            padding: "20px 15px",
+                            height: "100vh",
+                            width: "100vw",
+                          }}
+                        >
+                          <SettingsInit />
+                        </div>
                       </ToolsProvider>
                     </ImagesProvider>
                   </ThemeProvider>
                 </StoresProvider>
-              </WidgetConfigProvider>
-            </ComponentsProvider>
-          </I18nProvider>
-        </PlatformProvider>
-      </SettingsProvider>
+              </ApiProvider>
+            </WidgetConfigProvider>
+          </ComponentsProvider>
+        </I18nProvider>
+      </PlatformProvider>
     </EventsProvider>
   );
 };
 
-window.Asc.plugin.init = () => {
-  installLibrary();
+const sharedStorage = new IndexedDBStorage();
+
+window.Asc.plugin.init = async () => {
+  await sharedStorage.init();
+  installLibrary(sharedStorage);
 
   const container = document.getElementById("settings_window");
 

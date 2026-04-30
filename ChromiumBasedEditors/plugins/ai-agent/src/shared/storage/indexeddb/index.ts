@@ -1,4 +1,11 @@
 import type { StorageAdapter } from "@onlyoffice/ai-chat";
+import {
+  LocalStorageAssignmentsStorage,
+  LocalStorageMcpServersStorage,
+  LocalStoragePreferencesStorage,
+  LocalStorageToolPrefsStorage,
+  LocalStorageWebSearchStorage,
+} from "../localstorage/index.ts";
 import { IndexedDBMessagesStorage } from "./messages.ts";
 import { IndexedDBProfilesStorage } from "./profiles.ts";
 import {
@@ -17,6 +24,11 @@ export class IndexedDBStorage implements StorageAdapter {
   profiles: IndexedDBProfilesStorage;
   prompts: IndexedDBPromptsStorage;
   promptFolders: IndexedDBPromptFoldersStorage;
+  assignments: LocalStorageAssignmentsStorage;
+  preferences: LocalStoragePreferencesStorage;
+  mcpServers: LocalStorageMcpServersStorage;
+  toolPrefs: LocalStorageToolPrefsStorage;
+  webSearch: LocalStorageWebSearchStorage;
 
   constructor() {
     const getDB = () => {
@@ -29,6 +41,11 @@ export class IndexedDBStorage implements StorageAdapter {
     this.profiles = new IndexedDBProfilesStorage(getDB);
     this.prompts = new IndexedDBPromptsStorage(getDB);
     this.promptFolders = new IndexedDBPromptFoldersStorage(getDB, this.prompts);
+    this.assignments = new LocalStorageAssignmentsStorage();
+    this.preferences = new LocalStoragePreferencesStorage();
+    this.mcpServers = new LocalStorageMcpServersStorage();
+    this.toolPrefs = new LocalStorageToolPrefsStorage();
+    this.webSearch = new LocalStorageWebSearchStorage();
   }
 
   async init(): Promise<void> {

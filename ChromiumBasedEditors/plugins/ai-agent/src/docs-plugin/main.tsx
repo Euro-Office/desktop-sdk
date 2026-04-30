@@ -299,7 +299,7 @@ window.Asc.plugin.init = () => {
     }
   }
 
-  void initAiAgentEngine().then(() => installLibrary());
+  void initAiAgentEngine().then((storage) => installLibrary(storage));
 
   if (isDesktopEditor()) listenForDesktopPluginUpdates();
 

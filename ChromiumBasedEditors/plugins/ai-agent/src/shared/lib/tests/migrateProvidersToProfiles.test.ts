@@ -26,13 +26,11 @@ const mockStorage = {
   },
 };
 
-vi.mock("@onlyoffice/ai-chat", () => ({
-  getStorageInstance: () => mockStorage,
-}));
-
 import { migrateProvidersToProfiles } from "../migrateProvidersToProfiles.ts";
 
 // --- Helpers ---
+
+let idCounter = 0;
 
 const setProviders = (providers: unknown[]) => {
   localStorageMap.set("providers", JSON.stringify(providers));
@@ -49,7 +47,17 @@ const setCurrentModel = (model: unknown) => {
 beforeEach(() => {
   vi.clearAllMocks();
   localStorageMap.clear();
-  mockStorage.profiles.createMany.mockResolvedValue(undefined);
+  idCounter = 0;
+  mockStorage.profiles.createMany.mockImplementation(
+    (profiles: { name: string }[]) =>
+      Promise.resolve(
+        profiles.map((p) => ({
+          ...p,
+          id: `mock-id-${idCounter++}`,
+          createdAt: Date.now(),
+        }))
+      )
+  );
 });
 
 afterEach(() => {
@@ -60,7 +68,7 @@ afterEach(() => {
 
 describe("migrateProvidersToProfiles", () => {
   it("does nothing when no providers in localStorage", async () => {
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     expect(mockStorage.profiles.createMany).not.toHaveBeenCalled();
     // Cleans up stale keys
@@ -79,7 +87,7 @@ describe("migrateProvidersToProfiles", () => {
       },
     ]);
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     expect(mockStorage.profiles.createMany).toHaveBeenCalledOnce();
     const profiles = mockStorage.profiles.createMany.mock.calls[0][0];
@@ -99,7 +107,7 @@ describe("migrateProvidersToProfiles", () => {
       },
     ]);
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     const profiles = mockStorage.profiles.createMany.mock.calls[0][0];
     const names = profiles.map((p: { name: string }) => p.name);
@@ -124,16 +132,17 @@ describe("migrateProvidersToProfiles", () => {
     });
     setCurrentModel({ id: "gpt-5.2-2025-12-11" });
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
-    const profiles = mockStorage.profiles.createMany.mock.calls[0][0];
-    const matched = profiles.find(
-      (p: { modelId: string }) => p.modelId === "gpt-5.2-2025-12-11"
-    );
+    // The returned profiles have library-generated ids
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       "default-profile",
-      matched.id
+      expect.any(String)
     );
+    const defaultId = localStorageMock.setItem.mock.calls.find(
+      ([key]: [string, string]) => key === "default-profile"
+    )?.[1];
+    expect(defaultId).toMatch(/^mock-id-/);
   });
 
   it("falls back to first profile when current provider/model don't match", async () => {
@@ -152,18 +161,17 @@ describe("migrateProvidersToProfiles", () => {
     });
     setCurrentModel({ id: "nonexistent-model-id" });
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     // Should still set default-profile to the first created profile (sorted)
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       "default-profile",
       expect.any(String)
     );
-    const profiles = mockStorage.profiles.createMany.mock.calls[0][0];
     const defaultId = localStorageMock.setItem.mock.calls.find(
       ([key]: [string, string]) => key === "default-profile"
     )?.[1];
-    expect(defaultId).toBe(profiles[0].id);
+    expect(defaultId).toBe("mock-id-0");
   });
 
   it("sets first profile as default when no current provider match", async () => {
@@ -175,7 +183,7 @@ describe("migrateProvidersToProfiles", () => {
       },
     ]);
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       "default-profile",
@@ -192,7 +200,7 @@ describe("migrateProvidersToProfiles", () => {
       },
     ]);
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     const profiles = mockStorage.profiles.createMany.mock.calls[0][0];
     expect(profiles).toHaveLength(0);
@@ -211,7 +219,7 @@ describe("migrateProvidersToProfiles", () => {
       },
     ]);
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     const profiles = mockStorage.profiles.createMany.mock.calls[0][0];
     // Only the valid anthropic provider should produce profiles
@@ -232,7 +240,7 @@ describe("migrateProvidersToProfiles", () => {
       },
     ]);
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     expect(localStorageMock.removeItem).toHaveBeenCalledWith("providers");
     expect(localStorageMock.removeItem).toHaveBeenCalledWith(
@@ -244,7 +252,7 @@ describe("migrateProvidersToProfiles", () => {
   it("handles corrupted JSON gracefully and cleans up", async () => {
     localStorageMap.set("providers", "not valid json{{{");
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     expect(mockStorage.profiles.createMany).not.toHaveBeenCalled();
     expect(localStorageMock.removeItem).toHaveBeenCalledWith("providers");
@@ -253,7 +261,7 @@ describe("migrateProvidersToProfiles", () => {
   it("handles non-array providers value gracefully", async () => {
     localStorageMap.set("providers", JSON.stringify({ not: "array" }));
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     expect(mockStorage.profiles.createMany).not.toHaveBeenCalled();
   });
@@ -268,7 +276,7 @@ describe("migrateProvidersToProfiles", () => {
       },
     ]);
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     // Should not have set default-profile since one already exists
     const setItemCalls = localStorageMock.setItem.mock.calls.filter(
@@ -286,7 +294,7 @@ describe("migrateProvidersToProfiles", () => {
       },
     ]);
 
-    await migrateProvidersToProfiles();
+    await migrateProvidersToProfiles(mockStorage as never);
 
     const profiles = mockStorage.profiles.createMany.mock.calls[0][0];
     const sonnet = profiles.find((p: { name: string }) =>

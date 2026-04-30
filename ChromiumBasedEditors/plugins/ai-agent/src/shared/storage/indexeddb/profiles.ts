@@ -8,36 +8,49 @@ export class IndexedDBProfilesStorage implements ProfilesStorage {
     this.getDB = getDB;
   }
 
-  async create(profile: Profile): Promise<void> {
+  async create(profile: Omit<Profile, "id" | "createdAt">): Promise<Profile> {
     const db = this.getDB();
+    const full: Profile = {
+      ...profile,
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+    };
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(["profiles"], "readwrite");
       const store = transaction.objectStore("profiles");
-      const request = store.put(profile);
+      const request = store.put(full);
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => resolve(full);
     });
   }
 
-  async createMany(profiles: Profile[]): Promise<void> {
+  async createMany(
+    profiles: Omit<Profile, "id" | "createdAt">[]
+  ): Promise<Profile[]> {
     const db = this.getDB();
+    const now = Date.now();
+    const created: Profile[] = profiles.map((p) => ({
+      ...p,
+      id: crypto.randomUUID(),
+      createdAt: now,
+    }));
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(["profiles"], "readwrite");
       const store = transaction.objectStore("profiles");
 
-      for (const profile of profiles) {
+      for (const profile of created) {
         store.put(profile);
       }
 
       transaction.onerror = () => reject(transaction.error);
-      transaction.oncomplete = () => resolve();
+      transaction.oncomplete = () => resolve(created);
     });
   }
 
-  async getAll(): Promise<Profile[]> {
+  async readAll(): Promise<Profile[]> {
     const db = this.getDB();
 
     return new Promise((resolve, reject) => {
@@ -50,7 +63,7 @@ export class IndexedDBProfilesStorage implements ProfilesStorage {
     });
   }
 
-  async getById(id: string): Promise<Profile | undefined> {
+  async readById(id: string): Promise<Profile | undefined> {
     const db = this.getDB();
 
     return new Promise((resolve, reject) => {

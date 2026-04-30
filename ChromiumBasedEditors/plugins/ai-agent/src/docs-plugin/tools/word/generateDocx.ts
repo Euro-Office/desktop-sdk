@@ -1,4 +1,3 @@
-import { getActionProvider } from "@onlyoffice/ai-chat";
 import { defineTool } from "../lib/defineTool";
 import { MarkDownStreamer } from "../lib/MarkDownStreamer";
 import { requireString } from "../lib/validation";
@@ -37,9 +36,7 @@ export const generateDocx = defineTool({
     if (!window.AI) return { isApply: false, reason: "AI not available" };
     const requestEngine = window.AI.Request.create(window.AI.ActionType.Chat);
 
-    const provider = getActionProvider(window.AI.ActionType.Chat);
-    const isStreaming = provider ? provider.isSupportStreaming() : false;
-    const streamer = new MarkDownStreamer(isStreaming);
+    const streamer = new MarkDownStreamer(true);
 
     const result = await requestEngine.chatRequest(
       fullPrompt,

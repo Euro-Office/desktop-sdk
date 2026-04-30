@@ -11,7 +11,7 @@ const CURRENT_PROVIDER_KEY = "current-provider";
 const CURRENT_MODEL_KEY = "current-model";
 const DEFAULT_PROFILE_KEY = "default-profile";
 
-import { getStorageInstance } from "@onlyoffice/ai-chat";
+import type { StorageAdapter } from "@onlyoffice/ai-chat";
 
 type MigrationModel = {
   id: string;
@@ -157,7 +157,9 @@ function isValidCurrentModel(value: unknown): value is Model {
   return typeof m.id === "string";
 }
 
-export async function migrateProvidersToProfiles(): Promise<void> {
+export async function migrateProvidersToProfiles(
+  storage: StorageAdapter
+): Promise<void> {
   const providersRaw = localStorage.getItem(PROVIDERS_LOCAL_STORAGE_KEY);
 
   if (!providersRaw) {
@@ -188,7 +190,7 @@ export async function migrateProvidersToProfiles(): Promise<void> {
 
     if (!isValidProvidersList(oldProviders)) return;
 
-    const profilesToCreate: Profile[] = [];
+    const profilesToCreate: Omit<Profile, "id" | "createdAt">[] = [];
 
     for (const oldProvider of oldProviders) {
       if (!isValidProvider(oldProvider)) continue;
@@ -198,7 +200,6 @@ export async function migrateProvidersToProfiles(): Promise<void> {
 
       for (const model of info.models) {
         profilesToCreate.push({
-          id: crypto.randomUUID(),
           name: `${info.name} ${model.displayName}`,
           providerType: oldProvider.type,
           baseUrl: oldProvider.baseUrl,
@@ -211,10 +212,7 @@ export async function migrateProvidersToProfiles(): Promise<void> {
 
     profilesToCreate.sort((a, b) => a.name.localeCompare(b.name));
 
-    const storage = getStorageInstance();
-    await storage.profiles.createMany(profilesToCreate);
-
-    const createdProfiles = profilesToCreate;
+    const createdProfiles = await storage.profiles.createMany(profilesToCreate);
 
     if (
       createdProfiles.length > 0 &&
