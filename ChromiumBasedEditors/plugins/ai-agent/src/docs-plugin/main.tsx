@@ -3,6 +3,7 @@ import {
   type CrossPluginEvents,
   crossPluginBus,
 } from "@/shared/sync/crossPluginBus";
+import { loadActions } from "./ai-actions/storage";
 import { initAiAgentEngine, summarize, translate } from "./engine";
 import {
   DEFAULT_TRANSLATION_LANG,
@@ -423,7 +424,7 @@ window.Asc.plugin.init = () => {
         separator: true,
       });
 
-      for (const a of loadSavedAssistants()) {
+      for (const a of loadActions()) {
         items.push({
           id: `ai-assistant-run-${a.id}`,
           type: "big-button",
