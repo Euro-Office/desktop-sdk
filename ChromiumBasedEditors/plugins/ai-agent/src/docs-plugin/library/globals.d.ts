@@ -76,7 +76,7 @@ declare interface AIRequestInstance {
 }
 
 declare interface AIRequestFactoryStatic {
-  create(action: string): AIRequestInstance;
+  create(action: string, profileId?: string | null): AIRequestInstance;
 }
 
 declare interface AIGlobal {

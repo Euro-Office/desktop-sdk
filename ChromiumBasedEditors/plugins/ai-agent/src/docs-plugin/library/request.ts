@@ -35,7 +35,15 @@ function extractText(message: ThreadMessageLike): string {
   return result;
 }
 
-async function resolveProfile(action: ActionType, storage: StorageAdapter) {
+async function resolveProfile(
+  action: ActionType,
+  storage: StorageAdapter,
+  customProfileId?: string | null
+) {
+  if (customProfileId) {
+    const overridden = await storage.profiles.readById(customProfileId);
+    if (overridden) return overridden;
+  }
   const profileId = await storage.assignments.readByType(action);
   const id =
     profileId ??
@@ -47,10 +55,16 @@ async function resolveProfile(action: ActionType, storage: StorageAdapter) {
 class AiRequest {
   action: ActionType;
   private storage: StorageAdapter;
+  private customProfileId: string | null;
 
-  constructor(action: ActionType, storage: StorageAdapter) {
+  constructor(
+    action: ActionType,
+    storage: StorageAdapter,
+    customProfileId: string | null = null
+  ) {
     this.action = action;
     this.storage = storage;
+    this.customProfileId = customProfileId;
   }
 
   async chatRequest(
@@ -58,7 +72,11 @@ class AiRequest {
     _block?: boolean,
     streamFunc?: StreamFunc
   ): Promise<string> {
-    const profile = await resolveProfile(this.action, this.storage);
+    const profile = await resolveProfile(
+      this.action,
+      this.storage,
+      this.customProfileId
+    );
     if (!profile) throw new Error(`No provider assigned to ${this.action}`);
 
     const provider = createProvider(profile.providerType, {
@@ -111,7 +129,11 @@ class AiRequest {
     width?: number,
     height?: number
   ): Promise<string> {
-    const profile = await resolveProfile(this.action, this.storage);
+    const profile = await resolveProfile(
+      this.action,
+      this.storage,
+      this.customProfileId
+    );
     if (!profile) throw new Error(`No provider assigned to ${this.action}`);
 
     const provider = createProvider(profile.providerType, {
@@ -134,7 +156,11 @@ class AiRequest {
 }
 
 export const AiRequestFactory = {
-  create(action: string, storage: StorageAdapter): AiRequest {
-    return new AiRequest(action as ActionType, storage);
+  create(
+    action: string,
+    storage: StorageAdapter,
+    customProfileId: string | null = null
+  ): AiRequest {
+    return new AiRequest(action as ActionType, storage, customProfileId);
   },
 };

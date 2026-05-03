@@ -7,6 +7,7 @@ export interface CustomAssistantData {
   name: string;
   type: 0 | 1 | 2;
   query: string;
+  profileId?: string | null;
 }
 
 interface AnnotationRange {
@@ -27,6 +28,18 @@ export abstract class CustomAnnotator extends TextAnnotator {
     super(annotatorPopup);
     this.assistantData = assistantData;
     this.type = assistantData.type;
+  }
+
+  protected override async chatRequest(prompt: string): Promise<string | null> {
+    const ai = window.AI;
+    if (!ai) return null;
+    const requestEngine = ai.Request.create(
+      ai.ActionType.Chat,
+      this.assistantData.profileId ?? null
+    );
+    if (!requestEngine) return null;
+    const response = await requestEngine.chatRequest(prompt, false);
+    return this.normalizeResponse(response);
   }
 
   protected abstract _createPrompt(text: string): string;

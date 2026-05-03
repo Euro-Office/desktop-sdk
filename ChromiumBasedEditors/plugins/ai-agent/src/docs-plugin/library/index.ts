@@ -20,7 +20,8 @@ export function install(storage: StorageAdapter): void {
   window.AI = {
     ActionType: AiActionType,
     Request: {
-      create: (action: string) => AiRequestFactory.create(action, storage),
+      create: (action: string, profileId?: string | null) =>
+        AiRequestFactory.create(action, storage, profileId ?? null),
     },
   };
 }

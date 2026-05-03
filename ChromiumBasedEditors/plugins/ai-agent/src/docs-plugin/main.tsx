@@ -21,11 +21,16 @@ import { GrammarChecker } from "./text-annotations/grammar-checker";
 import { SpellChecker } from "./text-annotations/spelling-checker";
 
 function actionToAssistantData(action: CustomAiAction): CustomAssistantData {
+  const additional = action.additionalAction.trim();
+  const query = additional
+    ? `${action.query}\n\nAdditional instruction: ${additional}`
+    : action.query;
   return {
     id: action.id,
     name: action.name,
     type: action.type,
-    query: action.query,
+    query,
+    profileId: action.profileId,
   };
 }
 
