@@ -30,12 +30,16 @@ declare global {
   var Api: AscEditorApi;
   var Asc: AscGlobal;
   interface AscButtonToolbar {
+    id?: string | number;
+    name?: string;
     text: string;
     icons: string;
     separator: boolean;
     split: boolean;
     menu: Array<{ text: string; id: string; onclick: () => void }>;
     enableToggle: boolean;
+    removed?: boolean;
+    disabled?: boolean;
     attachOnClick: (handler: () => void) => void;
   }
 
@@ -108,11 +112,19 @@ declare global {
         onThemeChanged?: (theme: AscTheme) => void;
         onTranslate?: () => void;
       };
-      ButtonToolbar: new (parent?: AscButtonToolbar) => AscButtonToolbar;
+      ButtonToolbar: new (
+        parent?: AscButtonToolbar | null,
+        id?: string
+      ) => AscButtonToolbar;
       PluginWindow: new () => AscPluginWindow;
       Buttons: {
         registerToolbarMenu: () => void;
         registerContextMenu: () => void;
+        updateToolbarMenu: (
+          menuId: string,
+          menuName: string,
+          buttons: unknown[]
+        ) => void;
       };
       Editor?: AscEditorStatic;
       Library?: AscLibraryInstance;

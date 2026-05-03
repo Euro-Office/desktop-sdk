@@ -1,27 +1,27 @@
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { DEFAULT_ICON_ID } from "./ai-actions/icons";
+import { findAction, upsertAction } from "./ai-actions/storage";
+import type { CustomAiAction, CustomAiActionType } from "./ai-actions/types";
+import { IconPicker } from "./components/IconPicker";
 import { Select, type SelectOption } from "./components/Select";
 import { updateBodyThemeClasses, updateThemeVariables } from "./theme-utils";
 import "./custom-assistant-dialog.css";
 
-const LOCAL_STORAGE_KEY = "onlyoffice_ai_saved_assistants";
-
-type AssistantType = "0" | "1" | "2";
-
-interface SavedAssistant {
+interface ProfileOption {
   id: string;
   name: string;
-  type: number;
-  query: string;
 }
 
-const ACTION_OPTIONS: SelectOption<AssistantType>[] = [
+const DEFAULT_PROFILE_VALUE = "__default__";
+
+const ACTION_OPTIONS: SelectOption<string>[] = [
   { value: "0", label: "Hint" },
   { value: "2", label: "Replace" },
   { value: "1", label: "Replace + Hint" },
 ];
 
-function generateHashedDateString(): string {
+function generateActionId(): string {
   const date = new Date();
   const data = date.toISOString() + Math.random() + performance.now();
   let hash = 0;
@@ -31,16 +31,6 @@ function generateHashedDateString(): string {
     hash = hash & hash;
   }
   return `${Math.abs(hash).toString(36)}_${date.getTime().toString(36)}`;
-}
-
-function loadAssistants(): SavedAssistant[] {
-  try {
-    return JSON.parse(
-      localStorage.getItem(LOCAL_STORAGE_KEY) || "[]"
-    ) as SavedAssistant[];
-  } catch {
-    return [];
-  }
 }
 
 const WARNING_SVG = (
@@ -64,30 +54,71 @@ const WARNING_SVG = (
   </svg>
 );
 
-function CustomAssistantDialog() {
-  const [assistantId, setAssistantId] = useState<string>(() =>
-    generateHashedDateString()
-  );
+function CustomActionDialog() {
+  const [actionId, setActionId] = useState<string>(() => generateActionId());
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
-  const [type, setType] = useState<AssistantType>("0");
+  const [type, setType] = useState<string>("0");
+  const [additionalAction, setAdditionalAction] = useState("");
+  const [iconId, setIconId] = useState<string>(DEFAULT_ICON_ID);
+  const [profileValue, setProfileValue] = useState<string>(
+    DEFAULT_PROFILE_VALUE
+  );
+  const [profiles, setProfiles] = useState<ProfileOption[]>([]);
+  const [profilesLoaded, setProfilesLoaded] = useState(false);
+  const [themeType, setThemeType] = useState<"light" | "dark">("light");
   const [warning, setWarning] = useState<string | null>(null);
 
-  const nameRef = useRef<HTMLInputElement | null>(null);
-  const queryRef = useRef<HTMLTextAreaElement | null>(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const promptInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const pendingProfileIdRef = useRef<string | null>(null);
 
-  const stateRef = useRef({ assistantId, name, query, type });
+  const stateRef = useRef({
+    actionId,
+    name,
+    query,
+    type,
+    additionalAction,
+    iconId,
+    profileValue,
+  });
+
   useEffect(() => {
-    stateRef.current = { assistantId, name, query, type };
-  }, [assistantId, name, query, type]);
+    stateRef.current = {
+      actionId,
+      name,
+      query,
+      type,
+      additionalAction,
+      iconId,
+      profileValue,
+    };
+  }, [actionId, name, query, type, additionalAction, iconId, profileValue]);
 
-  const options = useMemo(() => ACTION_OPTIONS, []);
+  const profileOptions = useMemo<SelectOption<string>[]>(
+    () => [
+      { value: DEFAULT_PROFILE_VALUE, label: "Default scheme" },
+      ...profiles.map((p) => ({ value: p.id, label: p.name })),
+    ],
+    [profiles]
+  );
+
+  useEffect(() => {
+    if (!profilesLoaded) return;
+    const pending = pendingProfileIdRef.current;
+    if (pending === null) return;
+    const exists = profiles.some((p) => p.id === pending);
+    setProfileValue(exists ? pending : DEFAULT_PROFILE_VALUE);
+    pendingProfileIdRef.current = null;
+  }, [profilesLoaded, profiles]);
 
   useEffect(() => {
     const theme = window.Asc.plugin.info?.theme;
     if (theme) {
       updateBodyThemeClasses(theme.type, theme.name);
       updateThemeVariables(theme);
+      if (theme.type === "dark" || theme.type === "light")
+        setThemeType(theme.type);
     }
 
     window.Asc.plugin.attachEvent("onThemeChanged", (rawTheme: unknown) => {
@@ -95,22 +126,43 @@ function CustomAssistantDialog() {
       window.Asc.plugin.onThemeChangedBase?.(next);
       updateBodyThemeClasses(next.type, next.name);
       updateThemeVariables(next);
+      if (next.type === "dark" || next.type === "light")
+        setThemeType(next.type);
     });
 
-    window.Asc.plugin.attachEvent("onEditAssistant", (raw: unknown) => {
+    window.Asc.plugin.attachEvent("onEditAction", (raw: unknown) => {
       const id = typeof raw === "string" ? raw : "";
       if (!id) return;
-      const found = loadAssistants().find((a) => a.id === id);
+      const found = findAction(id);
       if (!found) return;
-      setAssistantId(found.id);
+      setActionId(found.id);
       setName(found.name);
       setQuery(found.query);
-      setType(String(found.type) as AssistantType);
-      setTimeout(() => queryRef.current?.focus(), 0);
+      setType(String(found.type));
+      setAdditionalAction(found.additionalAction);
+      setIconId(found.iconId);
+      pendingProfileIdRef.current = found.profileId;
+      // Apply immediately if profiles already loaded; otherwise the effect
+      // above re-applies when profiles arrive.
+      setProfileValue(found.profileId ?? DEFAULT_PROFILE_VALUE);
+      setTimeout(() => promptInputRef.current?.focus(), 0);
     });
 
-    window.Asc.plugin.attachEvent("onWarningAssistant", (raw: unknown) => {
+    window.Asc.plugin.attachEvent("onWarningAction", (raw: unknown) => {
       setWarning(typeof raw === "string" ? raw : "");
+    });
+
+    window.Asc.plugin.attachEvent("onProfilesList", (raw: unknown) => {
+      try {
+        const list =
+          typeof raw === "string"
+            ? (JSON.parse(raw) as ProfileOption[])
+            : (raw as ProfileOption[]);
+        if (Array.isArray(list)) setProfiles(list);
+      } catch {
+        setProfiles([]);
+      }
+      setProfilesLoaded(true);
     });
 
     window.Asc.plugin.attachEvent("onClickAdd", () => {
@@ -118,37 +170,38 @@ function CustomAssistantDialog() {
       const trimmedName = cur.name.trim();
       const trimmedQuery = cur.query.trim();
       if (!trimmedName) {
-        nameRef.current?.focus();
-        window.Asc.plugin.sendToPlugin("onAddEditAssistant", null as never);
+        nameInputRef.current?.focus();
+        window.Asc.plugin.sendToPlugin("onAddEditAction", null as never);
         return;
       }
       if (!trimmedQuery) {
-        queryRef.current?.focus();
-        window.Asc.plugin.sendToPlugin("onAddEditAssistant", null as never);
+        promptInputRef.current?.focus();
+        window.Asc.plugin.sendToPlugin("onAddEditAction", null as never);
         return;
       }
-      const data: SavedAssistant = {
-        id: cur.assistantId,
+      const data: CustomAiAction = {
+        id: cur.actionId,
         name: trimmedName,
-        type: Number(cur.type),
         query: trimmedQuery,
+        type: Number(cur.type) as CustomAiActionType,
+        additionalAction: cur.additionalAction.trim(),
+        iconId: cur.iconId,
+        profileId:
+          cur.profileValue === DEFAULT_PROFILE_VALUE ? null : cur.profileValue,
       };
-      const all = loadAssistants();
-      const idx = all.findIndex((a) => a.id === data.id);
-      if (idx !== -1) all[idx] = data;
-      else all.push(data);
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(all));
-      window.Asc.plugin.sendToPlugin("onAddEditAssistant", data);
+      upsertAction(data);
+      window.Asc.plugin.sendToPlugin("onAddEditAction", data);
     });
 
     window.Asc.plugin.sendToPlugin("onWindowReady", {});
 
-    setTimeout(() => nameRef.current?.focus(), 0);
+    setTimeout(() => nameInputRef.current?.focus(), 0);
 
     return () => {
       window.Asc.plugin.detachEvent("onThemeChanged");
-      window.Asc.plugin.detachEvent("onEditAssistant");
-      window.Asc.plugin.detachEvent("onWarningAssistant");
+      window.Asc.plugin.detachEvent("onEditAction");
+      window.Asc.plugin.detachEvent("onWarningAction");
+      window.Asc.plugin.detachEvent("onProfilesList");
       window.Asc.plugin.detachEvent("onClickAdd");
     };
   }, []);
@@ -166,31 +219,18 @@ function CustomAssistantDialog() {
 
   return (
     <div className="custom_assistant_window">
-      <div id="custom_assistant" className="noselect">
-        <span className="i18n">
-          Turn any repetitive text task into a custom button on your toolbar.
-          Automate specific editing, checking, or rewriting tasks using the
-          power of AI.
-        </span>
-      </div>
-
       <form
         id="input_prompt_wrapper"
         autoComplete="off"
         onSubmit={(e) => e.preventDefault()}
       >
-        <input
-          type="hidden"
-          id="input_prompt_id"
-          value={assistantId}
-          readOnly
-        />
+        <input type="hidden" id="input_prompt_id" value={actionId} readOnly />
         <label htmlFor="input_prompt_name" className="noselect">
           <span className="i18n">Name</span>
           <strong>*</strong>
         </label>
         <input
-          ref={nameRef}
+          ref={nameInputRef}
           type="text"
           id="input_prompt_name"
           className="form-control i18n"
@@ -201,12 +241,13 @@ function CustomAssistantDialog() {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+
         <label htmlFor="input_prompt" className="noselect">
           <span className="i18n">Prompt</span>
           <strong>*</strong>
         </label>
         <textarea
-          ref={queryRef}
+          ref={promptInputRef}
           id="input_prompt"
           minLength={1}
           rows={1}
@@ -217,14 +258,48 @@ function CustomAssistantDialog() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+
         <label htmlFor="assistantType" className="noselect">
           <span className="i18n">Action</span>
         </label>
-        <Select<AssistantType>
+        <Select<string>
           id="assistantType"
           value={type}
-          options={options}
+          options={ACTION_OPTIONS}
           onValueChange={setType}
+        />
+
+        <label htmlFor="input_additional_action" className="noselect">
+          <span className="i18n">Additional action</span>
+        </label>
+        <textarea
+          id="input_additional_action"
+          rows={2}
+          className="form-control i18n"
+          placeholder="Describe an additional action (optional)"
+          spellCheck={false}
+          value={additionalAction}
+          onChange={(e) => setAdditionalAction(e.target.value)}
+        />
+
+        <label htmlFor="action_icon" className="noselect">
+          <span className="i18n">Icon</span>
+        </label>
+        <IconPicker
+          id="action_icon"
+          value={iconId}
+          themeType={themeType}
+          onChange={setIconId}
+        />
+
+        <label htmlFor="action_profile" className="noselect">
+          <span className="i18n">AI Model</span>
+        </label>
+        <Select<string>
+          id="action_profile"
+          value={profileValue}
+          options={profileOptions}
+          onValueChange={setProfileValue}
         />
       </form>
     </div>
@@ -236,7 +311,7 @@ window.Asc.plugin.init = () => {
   if (container) {
     createRoot(container).render(
       <StrictMode>
-        <CustomAssistantDialog />
+        <CustomActionDialog />
       </StrictMode>
     );
   }
