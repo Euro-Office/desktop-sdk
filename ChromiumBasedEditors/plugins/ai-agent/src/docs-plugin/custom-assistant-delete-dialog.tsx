@@ -20,12 +20,12 @@ function CustomAssistantDeleteDialog() {
       updateThemeVariables(next);
     });
 
-    window.Asc.plugin.attachEvent("onSetAssistantId", (raw: unknown) => {
+    window.Asc.plugin.attachEvent("onSetActionId", (raw: unknown) => {
       idRef.current = typeof raw === "string" ? raw : "";
     });
 
     window.Asc.plugin.attachEvent("onConfirmDelete", () => {
-      window.Asc.plugin.sendToPlugin("onDeleteAssistant", {
+      window.Asc.plugin.sendToPlugin("onDeleteAction", {
         id: idRef.current,
       });
     });
@@ -34,7 +34,7 @@ function CustomAssistantDeleteDialog() {
 
     return () => {
       window.Asc.plugin.detachEvent("onThemeChanged");
-      window.Asc.plugin.detachEvent("onSetAssistantId");
+      window.Asc.plugin.detachEvent("onSetActionId");
       window.Asc.plugin.detachEvent("onConfirmDelete");
     };
   }, []);
@@ -42,7 +42,7 @@ function CustomAssistantDeleteDialog() {
   return (
     <div className="delete_assistant_window noselect">
       <p className="description i18n">
-        Are you sure you want to delete this assistant?
+        Are you sure you want to delete this action?
       </p>
       <p className="i18n">This action cannot be undone.</p>
     </div>

@@ -129,16 +129,16 @@ type WindowId =
   | "settings"
   | "translation"
   | "summarization"
-  | "custom-assistant"
-  | "custom-assistant-delete";
+  | "custom-action"
+  | "custom-action-delete";
 
 const windows = new Map<WindowId, AscPluginWindow | null>([
   ["chat", null],
   ["settings", null],
   ["translation", null],
   ["summarization", null],
-  ["custom-assistant", null],
-  ["custom-assistant-delete", null],
+  ["custom-action", null],
+  ["custom-action-delete", null],
 ]);
 
 function notifyPluginWindows(serialized: string, except?: WindowId): void {
@@ -397,7 +397,7 @@ window.Asc.plugin.init = () => {
       },
     ];
     btn.attachOnClick(() => {
-      void runAssistant(action.id);
+      void runAction(action.id);
     });
   }
 
@@ -424,7 +424,7 @@ window.Asc.plugin.init = () => {
   }
 
   function openCustomActionWindow(actionId?: string): void {
-    const existing = windows.get("custom-assistant");
+    const existing = windows.get("custom-action");
     if (existing) {
       existing.activate();
       return;
@@ -479,11 +479,11 @@ window.Asc.plugin.init = () => {
       actionButtons.set(action.id, btn);
       refreshActionButton(btn);
 
-      windows.set("custom-assistant", null);
+      windows.set("custom-action", null);
       window.Asc.plugin.executeMethod("CloseWindow", [win.id]);
     });
 
-    registerWindow("custom-assistant", win);
+    registerWindow("custom-action", win);
     win.show({
       url: "customAssistant.html",
       description: isEdit ? "Edit AI Action" : "Create AI Action",
@@ -499,8 +499,8 @@ window.Asc.plugin.init = () => {
     });
   }
 
-  function openDeleteConfirmWindow(assistantId: string): void {
-    const existing = windows.get("custom-assistant-delete");
+  function openDeleteConfirmWindow(actionId: string): void {
+    const existing = windows.get("custom-action-delete");
     if (existing) {
       existing.activate();
       return;
@@ -509,10 +509,10 @@ window.Asc.plugin.init = () => {
     const win = new window.Asc.PluginWindow();
 
     win.attachEvent("onWindowReady", () => {
-      win.command("onSetAssistantId", assistantId);
+      win.command("onSetActionId", actionId);
     });
 
-    win.attachEvent("onDeleteAssistant", (raw: unknown) => {
+    win.attachEvent("onDeleteAction", (raw: unknown) => {
       const payload =
         typeof raw === "string"
           ? (JSON.parse(raw) as { id: string })
@@ -529,14 +529,14 @@ window.Asc.plugin.init = () => {
         actionButtons.delete(id);
       }
 
-      windows.set("custom-assistant-delete", null);
+      windows.set("custom-action-delete", null);
       window.Asc.plugin.executeMethod("CloseWindow", [win.id]);
     });
 
-    registerWindow("custom-assistant-delete", win);
+    registerWindow("custom-action-delete", win);
     win.show({
       url: "customAssistantDelete.html",
-      description: "Delete assistant",
+      description: "Delete action",
       type: "window",
       EditorsSupport: ["word"],
       isVisual: true,
@@ -549,7 +549,7 @@ window.Asc.plugin.init = () => {
     });
   }
 
-  async function runAssistant(id: string): Promise<void> {
+  async function runAction(id: string): Promise<void> {
     const lib = window.Asc.Library;
     if (!lib) return;
 
@@ -721,15 +721,15 @@ window.Asc.plugin.init = () => {
       translationWin.command("onKeepLang", "");
     }
 
-    const assistantWin = windows.get("custom-assistant");
-    if (assistantWin && assistantWin.id === windowId) {
+    const actionWin = windows.get("custom-action");
+    if (actionWin && actionWin.id === windowId) {
       if (buttonId === 0) {
-        assistantWin.command("onClickAdd", "");
+        actionWin.command("onClickAdd", "");
         return;
       }
     }
 
-    const deleteWin = windows.get("custom-assistant-delete");
+    const deleteWin = windows.get("custom-action-delete");
     if (deleteWin && deleteWin.id === windowId) {
       if (buttonId === 0) {
         deleteWin.command("onConfirmDelete", "");
