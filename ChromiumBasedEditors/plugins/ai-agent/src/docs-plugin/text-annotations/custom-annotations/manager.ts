@@ -137,6 +137,11 @@ export class CustomAssistantManager {
     return CUSTOM_ASSISTANT_STATUSES.OK;
   }
 
+  disableTracking(id: string): void {
+    this._running.set(id, false);
+    this._trackChanges.set(id, false);
+  }
+
   async stop(id: string): Promise<void> {
     this._running.set(id, false);
     const assistant = this._assistants.get(id);

@@ -431,7 +431,7 @@ window.Asc.plugin.init = () => {
           icons:
             "resources/%theme-type%(light|dark)/big/written-plugin%scale%(default).png",
           split: true,
-          enableToggle: true,
+          enableToggle: false,
           items: [
             { id: `ai-assistant-edit-${a.id}`, text: "Edit" },
             { id: `ai-assistant-delete-${a.id}`, text: "Delete" },
@@ -575,10 +575,6 @@ window.Asc.plugin.init = () => {
   }
 
   async function runAssistant(id: string): Promise<void> {
-    if (customAssistantManager.isRunning(id)) {
-      void customAssistantManager.stop(id);
-      return;
-    }
     const lib = window.Asc.Library;
     if (!lib) return;
 
@@ -607,6 +603,7 @@ window.Asc.plugin.init = () => {
       await customAssistantManager.run(id, paraIds);
     } finally {
       window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
+      customAssistantManager.disableTracking(id);
     }
   }
 
