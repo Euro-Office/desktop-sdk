@@ -9,7 +9,7 @@ import type { CrossPluginEvents } from "@/shared/sync/crossPluginBus";
 import { editor } from "./library/editor";
 import { install as installLibrary } from "./library/index";
 import { OnlyOfficePlatform } from "./platform/index";
-import { createHostToolGroups } from "./tools";
+import { createToolsAdapter } from "./tools";
 
 type SyncPayload = {
   [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
@@ -21,10 +21,7 @@ const Chat = () => {
   const storage = useMemo(() => sharedStorage, []);
   const settings = useMemo(() => new LocalStorageSettings(), []);
   const platform = useMemo(() => new OnlyOfficePlatform(), []);
-  const hostToolGroups = useMemo(
-    () => createHostToolGroups(editor.getType()),
-    []
-  );
+  const toolsAdapter = useMemo(() => createToolsAdapter(editor.getType()), []);
   const widgetRef = useRef<AIChatWidgetRef>(null);
 
   useEffect(() => {
@@ -76,7 +73,7 @@ const Chat = () => {
       settings={settings}
       platform={platform}
       storeKeys={DEFAULT_STORE_KEYS}
-      hostToolGroups={hostToolGroups}
+      toolsAdapter={toolsAdapter}
       onMigrate={() => migrateProvidersToProfiles(storage)}
       onSettingsClick={() => {
         window.Asc.plugin.sendToPlugin("ai-open-settings", {});
