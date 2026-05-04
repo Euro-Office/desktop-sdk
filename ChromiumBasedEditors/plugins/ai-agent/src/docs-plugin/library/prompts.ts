@@ -1,3 +1,9 @@
+function withAdditional(prompt: string, additional?: string): string {
+  const trimmed = additional?.trim();
+  if (!trimmed) return prompt;
+  return `${prompt}\n\nAdditional instruction:\n\`\`\`\n${trimmed}\n\`\`\`\n`;
+}
+
 export const prompts = {
   getFixAndSpellPrompt(content: string): string {
     return `I want you to act as an editor and proofreader. I will provide you with some text that needs to be checked for spelling and grammar errors. Your task is to carefully review the text and correct any mistakes, ensuring that the corrected text is free of errors and maintains the original meaning. Only return the corrected text. Here is the text that needs revision: "${content}"`;
@@ -83,7 +89,11 @@ export const prompts = {
     return "Extract all text from this image as accurately as possible. Preserve original reading order and formatting if possible. Recognize tables and images if possible. Do not add or remove any content. Output recognized objects in md format if possible. If not, return plain text.";
   },
 
-  getActionHintPrompt(text: string, query: string): string {
+  getActionHintPrompt(
+    text: string,
+    query: string,
+    additional?: string
+  ): string {
     let prompt = `You are a multi-disciplinary text analysis assistant.
 		Your task is to find text fragments that match the user's criteria.
 
@@ -131,10 +141,14 @@ export const prompts = {
     prompt += `TEXT TO ANALYZE:\n\`\`\`\n${text}\n\`\`\`\n\n`;
     prompt +=
       "Please analyze this text and find all fragments that match the user's request. Be thorough but precise.";
-    return prompt;
+    return withAdditional(prompt, additional);
   },
 
-  getActionReplacePrompt(text: string, query: string): string {
+  getActionReplacePrompt(
+    text: string,
+    query: string,
+    additional?: string
+  ): string {
     let prompt = `You are a multi-disciplinary text analysis and transformation assistant.
 	  Your task is to analyze text based on user's specific criteria and provide intelligent corrections.
 
@@ -185,10 +199,24 @@ export const prompts = {
     prompt += `TEXT TO ANALYZE:\n\`\`\`\n${text}\n\`\`\`\n\n`;
     prompt +=
       "Please analyze this text and find all fragments that match the user's request. Be thorough but precise.";
-    return prompt;
+    return withAdditional(prompt, additional);
   },
 
-  getActionReplaceHintPrompt(text: string, query: string): string {
+  getActionInChatPrompt(
+    text: string,
+    query: string,
+    additional?: string
+  ): string {
+    const parts: string[] = [query];
+    if (text) parts.push(`"${text}"`);
+    return withAdditional(parts.join("\n\n"), additional);
+  },
+
+  getActionReplaceHintPrompt(
+    text: string,
+    query: string,
+    additional?: string
+  ): string {
     let prompt = `You are a multi-disciplinary text analysis and transformation assistant.
 	  Your task is to analyze text based on user's specific criteria and provide intelligent corrections.
 
@@ -248,6 +276,6 @@ export const prompts = {
     prompt += `TEXT TO ANALYZE:\n\`\`\`\n${text}\n\`\`\`\n\n`;
     prompt +=
       "Please analyze this text and find all fragments that match the user's request. Be thorough but precise.";
-    return prompt;
+    return withAdditional(prompt, additional);
   },
 };

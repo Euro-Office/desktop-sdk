@@ -5,6 +5,7 @@ import {
   type CustomActionAnnotator,
 } from "./action-annotator";
 import { ActionHint } from "./action-hint";
+import { ActionInChat } from "./action-in-chat";
 import { ActionReplace } from "./action-replace";
 import { ActionReplaceHint } from "./action-replace-hint";
 
@@ -37,6 +38,9 @@ export class CustomActionManager {
         break;
       case "replace":
         annotator = new ActionReplace(this._popup, action);
+        break;
+      case "in-chat":
+        annotator = new ActionInChat(this._popup, action);
         break;
       default:
         throw new Error(`Unknown custom action type: ${action.type}`);

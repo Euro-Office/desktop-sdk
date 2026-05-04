@@ -9,7 +9,7 @@ import {
   DELETE_DIALOG_EVENTS,
 } from "./ai-actions/dialog-events";
 import { getIconToolbarPath } from "./ai-actions/icons";
-import { deleteAction, loadActions } from "./ai-actions/storage";
+import { deleteAction, findAction, loadActions } from "./ai-actions/storage";
 import type { CustomAiAction } from "./ai-actions/types";
 import { initAiAgentEngine, summarize, translate } from "./engine";
 import {
@@ -18,6 +18,7 @@ import {
 } from "./engine/languages";
 import { install as installLibrary } from "./library";
 import { editor } from "./library/editor";
+import { prompts } from "./library/prompts";
 import { TextAnnotationPopup } from "./text-annotations/annotation-popup";
 import { CustomActionManager } from "./text-annotations/custom-actions/manager";
 import { GrammarChecker } from "./text-annotations/grammar-checker";
@@ -267,15 +268,34 @@ function openSummarizationWindow() {
   });
 }
 
+interface InChatPayload {
+  prompt: string;
+  profileId: string | null;
+}
+
+let pendingInChatPayload: InChatPayload | null = null;
+
+function flushPendingInChat(): void {
+  if (!pendingInChatPayload) return;
+  const chat = windows.get("chat");
+  if (!chat) return;
+  chat.command("sendToChat", JSON.stringify(pendingInChatPayload));
+  pendingInChatPayload = null;
+}
+
 function openChat() {
   const existing = windows.get("chat");
   if (existing) {
     existing.activate();
+    flushPendingInChat();
     return;
   }
 
   const chatWindow = new window.Asc.PluginWindow();
   chatWindow.attachEvent("ai-open-settings", openSettings);
+  chatWindow.attachEvent("chat-ready", () => {
+    flushPendingInChat();
+  });
   registerWindow("chat", chatWindow);
   chatWindow.show({
     url: "chat.html",
@@ -285,6 +305,40 @@ function openChat() {
     isVisual: true,
     icons: "resources/%theme-type%(light|dark)/general-ai%scale%(default).png",
   });
+}
+
+async function getFullDocumentText(): Promise<string> {
+  return (
+    (await editor.callCommand<string>(() => {
+      const doc = Api.GetDocument();
+      const count = doc.GetElementsCount();
+      const lines: string[] = [];
+      for (let i = 0; i < count; i++) {
+        const el = doc.GetElement(i) as { GetText?: () => string };
+        if (typeof el?.GetText === "function") {
+          lines.push(el.GetText());
+        }
+      }
+      return lines.join("\n");
+    })) ?? ""
+  );
+}
+
+async function dispatchInChatAction(action: CustomAiAction): Promise<void> {
+  const lib = window.Asc.Library;
+  let sourceText = (await lib?.GetSelectedText()) ?? "";
+  if (!sourceText.trim()) {
+    sourceText = await getFullDocumentText();
+  }
+  pendingInChatPayload = {
+    prompt: prompts.getActionInChatPrompt(
+      sourceText.trim(),
+      action.query,
+      action.additionalAction
+    ),
+    profileId: action.profileId,
+  };
+  openChat();
 }
 
 window.Asc.plugin.init = () => {
@@ -543,6 +597,12 @@ window.Asc.plugin.init = () => {
   async function runAction(id: string): Promise<void> {
     const lib = window.Asc.Library;
     if (!lib) return;
+
+    const action = findAction(id);
+    if (action?.type === "in-chat") {
+      await dispatchInChatAction(action);
+      return;
+    }
 
     const selectedText = await lib.GetSelectedText();
     Asc.scope.hasSelectedText = !!selectedText;

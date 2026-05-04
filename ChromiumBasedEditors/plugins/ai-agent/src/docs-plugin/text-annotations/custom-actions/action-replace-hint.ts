@@ -1,10 +1,7 @@
 import { editor } from "../../library/editor";
 import { prompts } from "../../library/prompts";
 import type { PopupInfo } from "../annotation-popup";
-import {
-  appendAdditionalInstruction,
-  CustomActionAnnotator,
-} from "./action-annotator";
+import { CustomActionAnnotator } from "./action-annotator";
 
 interface ReplaceHintMatch {
   origin: string;
@@ -31,8 +28,11 @@ interface AnnotationRange {
 
 export class ActionReplaceHint extends CustomActionAnnotator {
   protected _createPrompt(text: string): string {
-    const base = prompts.getActionReplaceHintPrompt(text, this.action.query);
-    return appendAdditionalInstruction(base, this.action.additionalAction);
+    return prompts.getActionReplaceHintPrompt(
+      text,
+      this.action.query,
+      this.action.additionalAction
+    );
   }
 
   protected _convertToRanges(

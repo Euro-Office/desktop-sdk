@@ -1,6 +1,10 @@
 import type { ActionIconId } from "./icons";
 
-export type CustomAiActionType = "hint" | "replace" | "replace-hint";
+export type CustomAiActionType =
+  | "hint"
+  | "replace"
+  | "replace-hint"
+  | "in-chat";
 
 export interface CustomAiAction {
   id: string;

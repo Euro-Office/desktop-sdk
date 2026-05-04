@@ -25,6 +25,51 @@ const Chat = () => {
   const widgetRef = useRef<AIChatWidgetRef>(null);
 
   useEffect(() => {
+    // Wait until the widget ref is wired up, with a bounded retry —
+    // the React commit that populates widgetRef may run after the
+    // attachEvent handler fires for the first command.
+    const waitForRef = (
+      maxAttempts = 60,
+      intervalMs = 50
+    ): Promise<AIChatWidgetRef | null> =>
+      new Promise((resolve) => {
+        let attempts = 0;
+        const tick = () => {
+          if (widgetRef.current) {
+            resolve(widgetRef.current);
+            return;
+          }
+          if (++attempts >= maxAttempts) {
+            resolve(null);
+            return;
+          }
+          setTimeout(tick, intervalMs);
+        };
+        tick();
+      });
+
+    window.Asc.plugin.attachEvent("sendToChat", async (raw) => {
+      console.log("[Docs chat] ← sendToChat", raw);
+      const payload =
+        typeof raw === "string"
+          ? (JSON.parse(raw) as { prompt: string; profileId: string | null })
+          : (raw as { prompt: string; profileId: string | null });
+      if (!payload?.prompt) return;
+      const widget = await waitForRef();
+      if (!widget) {
+        console.warn("[Docs chat] sendToChat: widget never became ready");
+        return;
+      }
+      widget.openChat();
+      if (payload.profileId) {
+        const current = widget.getCurrentProfile?.();
+        if (current?.id !== payload.profileId) {
+          widget.setChatProfile(payload.profileId);
+        }
+      }
+      widget.sendMessage(payload.prompt);
+    });
+
     window.Asc.plugin.attachEvent("onAiStateChanged", (raw) => {
       const payload =
         typeof raw === "string"
@@ -61,8 +106,11 @@ const Chat = () => {
       }
     });
 
+    window.Asc.plugin.sendToPlugin("chat-ready", {});
+
     return () => {
       window.Asc.plugin.detachEvent("onAiStateChanged");
+      window.Asc.plugin.detachEvent("sendToChat");
     };
   }, []);
 

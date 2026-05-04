@@ -16,6 +16,7 @@ const TYPE_TO_CODE: Record<CustomAiActionType, number> = {
   hint: 0,
   "replace-hint": 1,
   replace: 2,
+  "in-chat": 3,
 };
 
 export const ACTION_ANNOTATION_PREFIX = "customAction_";
@@ -216,13 +217,4 @@ export abstract class CustomActionAnnotator extends TextAnnotator {
   private _getAnnotationName(): string {
     return `${ACTION_ANNOTATION_PREFIX}${this.action.id}`;
   }
-}
-
-export function appendAdditionalInstruction(
-  prompt: string,
-  additional: string | undefined
-): string {
-  const trimmed = additional?.trim();
-  if (!trimmed) return prompt;
-  return `${prompt}\n\nAdditional instruction:\n\`\`\`\n${trimmed}\n\`\`\`\n`;
 }
