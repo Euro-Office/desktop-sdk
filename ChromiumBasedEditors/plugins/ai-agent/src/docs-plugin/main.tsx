@@ -341,6 +341,67 @@ async function dispatchInChatAction(action: CustomAiAction): Promise<void> {
   openChat();
 }
 
+async function dispatchReplaceInChatAction(
+  action: CustomAiAction
+): Promise<void> {
+  const lib = window.Asc.Library;
+  if (!lib) return;
+  if (!window.AI) {
+    console.error("[Docs bg] replace-in-chat: AI library not initialized");
+    return;
+  }
+
+  let sourceText = (await lib.GetSelectedText()) ?? "";
+  if (!sourceText.trim()) {
+    sourceText = await getFullDocumentText();
+  }
+  const original = sourceText.trim();
+  if (!original) {
+    console.error("[Docs bg] replace-in-chat: no source text to rewrite");
+    return;
+  }
+
+  const replacementPrompt = prompts.getActionReplaceInChatReplacementPrompt(
+    original,
+    action.query,
+    action.additionalAction
+  );
+
+  let replacement = "";
+  window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
+  try {
+    const request = window.AI.Request.create(
+      window.AI.ActionType.Chat,
+      action.profileId
+    );
+    replacement = (await request.chatRequest(replacementPrompt, false)) ?? "";
+  } catch (e) {
+    console.error("[Docs bg] replace-in-chat: AI request failed", e);
+    return;
+  } finally {
+    window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
+  }
+
+  replacement = replacement.trim();
+  if (!replacement) {
+    console.error("[Docs bg] replace-in-chat: empty replacement");
+    return;
+  }
+
+  await lib.PasteText(replacement);
+
+  pendingInChatPayload = {
+    prompt: prompts.getActionReplaceInChatExplanationPrompt(
+      original,
+      replacement,
+      action.query,
+      action.additionalAction
+    ),
+    profileId: action.profileId,
+  };
+  openChat();
+}
+
 window.Asc.plugin.init = () => {
   const textAnnotatorPopup = new TextAnnotationPopup();
   const spellchecker = new SpellChecker(textAnnotatorPopup);
@@ -601,6 +662,10 @@ window.Asc.plugin.init = () => {
     const action = findAction(id);
     if (action?.type === "in-chat") {
       await dispatchInChatAction(action);
+      return;
+    }
+    if (action?.type === "replace-in-chat") {
+      await dispatchReplaceInChatAction(action);
       return;
     }
 

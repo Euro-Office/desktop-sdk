@@ -4,6 +4,7 @@ export type CustomAiActionType =
   | "hint"
   | "replace"
   | "replace-hint"
+  | "replace-in-chat"
   | "in-chat";
 
 export interface CustomAiAction {

@@ -24,6 +24,7 @@ const ACTION_OPTIONS: SelectOption<CustomAiActionType>[] = [
   { value: "hint", label: "Hint" },
   { value: "replace", label: "Replace" },
   { value: "replace-hint", label: "Replace + Hint" },
+  { value: "replace-in-chat", label: "Replace + In chat" },
   { value: "in-chat", label: "In chat" },
 ];
 

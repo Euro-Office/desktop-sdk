@@ -212,6 +212,54 @@ export const prompts = {
     return withAdditional(parts.join("\n\n"), additional);
   },
 
+  getActionReplaceInChatReplacementPrompt(
+    text: string,
+    query: string,
+    additional?: string
+  ): string {
+    let prompt =
+      "You are a text-transformation assistant. Apply the user's instruction to the text below and return ONLY the rewritten text.\n\n";
+    prompt += "MANDATORY RULES:\n";
+    prompt +=
+      "- Output ONLY the rewritten text. No commentary, no preamble, no explanation.\n";
+    prompt += "- Do NOT wrap the output in markdown code fences or quotes.\n";
+    prompt +=
+      "- Preserve the original language of the text unless the instruction explicitly asks to translate.\n";
+    prompt +=
+      "- Keep the meaning intact unless the instruction explicitly asks otherwise.\n";
+    prompt +=
+      "- Preserve paragraph breaks; do not collapse multi-paragraph input into a single paragraph.\n\n";
+    prompt += `USER INSTRUCTION:\n\`\`\`\n${query}\n\`\`\`\n\n`;
+    prompt += `TEXT TO REWRITE:\n\`\`\`\n${text}\n\`\`\`\n\n`;
+    prompt += "Return the rewritten text now:";
+    return withAdditional(prompt, additional);
+  },
+
+  getActionReplaceInChatExplanationPrompt(
+    original: string,
+    replacement: string,
+    query: string,
+    additional?: string
+  ): string {
+    const trimmedAdditional = additional?.trim();
+    const additionalLine = trimmedAdditional
+      ? `\n_Additional instruction:_ ${trimmedAdditional}\n`
+      : "";
+    const q = query?.trim();
+    const intro = q
+      ? `Explain the changes — what was modified and why — given the instruction **"${q}"**. Be concise.`
+      : "Explain the changes — what was modified and why. Be concise.";
+    return `${intro}
+${additionalLine}
+**Original:**
+
+> ${original.replace(/\n/g, "\n> ")}
+
+**Replacement:**
+
+> ${replacement.replace(/\n/g, "\n> ")}`;
+  },
+
   getActionReplaceHintPrompt(
     text: string,
     query: string,
