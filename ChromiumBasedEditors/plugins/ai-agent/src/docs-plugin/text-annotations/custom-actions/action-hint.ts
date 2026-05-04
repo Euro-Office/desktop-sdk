@@ -1,19 +1,22 @@
 import { editor } from "../../library/editor";
 import { prompts } from "../../library/prompts";
 import type { PopupInfo } from "../annotation-popup";
-import { CustomAnnotator } from "./custom-annotator";
+import {
+  appendAdditionalInstruction,
+  CustomActionAnnotator,
+} from "./action-annotator";
 
-interface ReplaceMatch {
+interface HintMatch {
   origin: string;
-  suggestion: string;
+  reason: string;
   paragraph: number;
   occurrence: number;
   confidence: number;
 }
 
-interface ReplaceAnnotation {
+interface HintAnnotation {
   original: string;
-  suggestion: string;
+  reason: string;
 }
 
 interface AnnotationRange {
@@ -22,12 +25,10 @@ interface AnnotationRange {
   id: number;
 }
 
-export class AssistantReplace extends CustomAnnotator {
+export class ActionHint extends CustomActionAnnotator {
   protected _createPrompt(text: string): string {
-    return prompts.getCustomAssistantReplacePrompt(
-      text,
-      this.assistantData.query
-    );
+    const base = prompts.getActionHintPrompt(text, this.action.query);
+    return appendAdditionalInstruction(base, this.action.additionalAction);
   }
 
   protected _convertToRanges(
@@ -37,9 +38,9 @@ export class AssistantReplace extends CustomAnnotator {
   ): AnnotationRange[] {
     let rangeId = 1;
     const ranges: AnnotationRange[] = [];
-    for (const m of matches as ReplaceMatch[]) {
-      const { origin, suggestion, occurrence, confidence } = m;
-      if (origin === suggestion || confidence <= 0.7) continue;
+    for (const m of matches as HintMatch[]) {
+      const { origin, reason, occurrence, confidence } = m;
+      if (confidence <= 0.7) continue;
 
       let count = 0;
       let searchStart = 0;
@@ -55,8 +56,8 @@ export class AssistantReplace extends CustomAnnotator {
           });
           this.paragraphs[paraId][rangeId] = {
             original: origin,
-            suggestion,
-          } satisfies ReplaceAnnotation;
+            reason,
+          } satisfies HintAnnotation;
           rangeId++;
           break;
         }
@@ -68,34 +69,28 @@ export class AssistantReplace extends CustomAnnotator {
 
   protected getInfoForPopup(paraId: string, rangeId: number): PopupInfo {
     const annot = this.getAnnotation(paraId, rangeId) as unknown as
-      | ReplaceAnnotation
+      | HintAnnotation
       | undefined;
-    let suggested = annot?.suggestion ?? "";
-    if (suggested.indexOf("</strong>") === -1) {
-      suggested = `<strong>${suggested}</strong>`;
+    let reason = annot?.reason ?? "";
+    try {
+      reason = reason.replace(/<a\s+(.*?)>/gi, '<a $1 target="_blank">');
+    } catch (e) {
+      console.error(e);
     }
     return {
       original: annot?.original ?? "",
-      suggested,
+      suggested: "",
+      explanation: reason,
     };
   }
 
   override async onAccept(paraId: string, rangeId: number): Promise<void> {
-    await super.onAccept(paraId, rangeId);
-    const annot = this.getAnnotation(paraId, rangeId) as unknown as
-      | ReplaceAnnotation
-      | undefined;
-    const text = annot?.suggestion ?? "";
-    if (!text) return;
-
     await editor.callMethod("StartAction", ["GroupActions"]);
 
     const range = this.getAnnotationRangeObj(paraId, rangeId);
     await editor.callMethod("SelectAnnotationRange", [range]);
 
-    Asc.scope.text = text;
     await editor.callCommand(() => {
-      Api.ReplaceTextSmart([Asc.scope.text]);
       Api.GetDocument().RemoveSelection();
     });
 

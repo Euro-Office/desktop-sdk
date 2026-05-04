@@ -11,7 +11,7 @@ body {
   display: flex;
 }
 
-#custom_assistant_window_root {
+#ai_action_window_root {
   display: flex;
   flex: 1;
   width: 100%;
@@ -36,7 +36,7 @@ label strong {
   background-color: transparent;
 }
 
-.custom_assistant_window {
+.ai_action_window {
   display: flex;
   padding: 1px 15px 0 15px;
   flex: 1;
@@ -44,7 +44,7 @@ label strong {
   background-color: var(--background-normal, #fff);
 }
 
-.custom_assistant_window:not(.warning) {
+.ai_action_window:not(.warning) {
   flex-direction: column;
 }
 

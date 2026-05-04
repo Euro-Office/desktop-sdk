@@ -138,10 +138,13 @@ export abstract class TextAnnotator {
     return this.paragraphs[paraId][rangeId] as Record<string, unknown>;
   }
 
-  protected async chatRequest(prompt: string): Promise<string | null> {
+  protected async chatRequest(
+    prompt: string,
+    profileId: string | null = null
+  ): Promise<string | null> {
     const ai = window.AI;
     if (!ai) return null;
-    const requestEngine = ai.Request.create(ai.ActionType.Chat);
+    const requestEngine = ai.Request.create(ai.ActionType.Chat, profileId);
     if (!requestEngine) return null;
     const response = await requestEngine.chatRequest(prompt, false);
     return this.normalizeResponse(response);

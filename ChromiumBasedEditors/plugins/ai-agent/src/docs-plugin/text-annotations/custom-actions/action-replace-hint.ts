@@ -1,7 +1,10 @@
 import { editor } from "../../library/editor";
 import { prompts } from "../../library/prompts";
 import type { PopupInfo } from "../annotation-popup";
-import { CustomAnnotator } from "./custom-annotator";
+import {
+  appendAdditionalInstruction,
+  CustomActionAnnotator,
+} from "./action-annotator";
 
 interface ReplaceHintMatch {
   origin: string;
@@ -26,12 +29,10 @@ interface AnnotationRange {
   id: number;
 }
 
-export class AssistantReplaceHint extends CustomAnnotator {
+export class ActionReplaceHint extends CustomActionAnnotator {
   protected _createPrompt(text: string): string {
-    return prompts.getCustomAssistantReplaceHintPrompt(
-      text,
-      this.assistantData.query
-    );
+    const base = prompts.getActionReplaceHintPrompt(text, this.action.query);
+    return appendAdditionalInstruction(base, this.action.additionalAction);
   }
 
   protected _convertToRanges(
@@ -98,7 +99,6 @@ export class AssistantReplaceHint extends CustomAnnotator {
   }
 
   override async onAccept(paraId: string, rangeId: number): Promise<void> {
-    await super.onAccept(paraId, rangeId);
     const annot = this.getAnnotation(paraId, rangeId) as unknown as
       | ReplaceHintAnnotation
       | undefined;

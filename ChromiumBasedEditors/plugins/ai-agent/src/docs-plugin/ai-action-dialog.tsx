@@ -1,12 +1,17 @@
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { DEFAULT_ICON_ID } from "./ai-actions/icons";
+import { ACTION_DIALOG_EVENTS } from "./ai-actions/dialog-events";
+import {
+  type ActionIconId,
+  AI_ACTION_ICONS,
+  DEFAULT_ICON_ID,
+} from "./ai-actions/icons";
 import { findAction, upsertAction } from "./ai-actions/storage";
 import type { CustomAiAction, CustomAiActionType } from "./ai-actions/types";
 import { IconPicker } from "./components/IconPicker";
 import { Select, type SelectOption } from "./components/Select";
 import { updateBodyThemeClasses, updateThemeVariables } from "./theme-utils";
-import "./custom-assistant-dialog.css";
+import "./ai-action-dialog.css";
 
 interface ProfileOption {
   id: string;
@@ -15,11 +20,17 @@ interface ProfileOption {
 
 const DEFAULT_PROFILE_VALUE = "__default__";
 
-const ACTION_OPTIONS: SelectOption<string>[] = [
-  { value: "0", label: "Hint" },
-  { value: "2", label: "Replace" },
-  { value: "1", label: "Replace + Hint" },
+const ACTION_OPTIONS: SelectOption<CustomAiActionType>[] = [
+  { value: "hint", label: "Hint" },
+  { value: "replace", label: "Replace" },
+  { value: "replace-hint", label: "Replace + Hint" },
 ];
+
+const KNOWN_ICON_IDS = new Set<string>(AI_ACTION_ICONS.map((i) => i.id));
+
+function isKnownIconId(id: string): id is ActionIconId {
+  return KNOWN_ICON_IDS.has(id);
+}
 
 function generateActionId(): string {
   const date = new Date();
@@ -54,13 +65,25 @@ const WARNING_SVG = (
   </svg>
 );
 
+function noop(): void {
+  // placeholder until the dialog has rendered once
+}
+
+function resolveProfileValue(
+  savedId: string | null,
+  list: ProfileOption[]
+): string {
+  if (!savedId) return DEFAULT_PROFILE_VALUE;
+  return list.some((p) => p.id === savedId) ? savedId : DEFAULT_PROFILE_VALUE;
+}
+
 function CustomActionDialog() {
   const [actionId, setActionId] = useState<string>(() => generateActionId());
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
-  const [type, setType] = useState<string>("0");
+  const [type, setType] = useState<CustomAiActionType>("hint");
   const [additionalAction, setAdditionalAction] = useState("");
-  const [iconId, setIconId] = useState<string>(DEFAULT_ICON_ID);
+  const [iconId, setIconId] = useState<ActionIconId>(DEFAULT_ICON_ID);
   const [profileValue, setProfileValue] = useState<string>(
     DEFAULT_PROFILE_VALUE
   );
@@ -71,29 +94,9 @@ function CustomActionDialog() {
 
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const promptInputRef = useRef<HTMLTextAreaElement | null>(null);
-  const pendingProfileIdRef = useRef<string | null>(null);
-
-  const stateRef = useRef({
-    actionId,
-    name,
-    query,
-    type,
-    additionalAction,
-    iconId,
-    profileValue,
-  });
-
-  useEffect(() => {
-    stateRef.current = {
-      actionId,
-      name,
-      query,
-      type,
-      additionalAction,
-      iconId,
-      profileValue,
-    };
-  }, [actionId, name, query, type, additionalAction, iconId, profileValue]);
+  // Profile id from a saved action when editing — captured at onEditAction
+  // time and consumed once profiles arrive. `undefined` = create flow.
+  const savedProfileIdRef = useRef<string | null | undefined>(undefined);
 
   const profileOptions = useMemo<SelectOption<string>[]>(
     () => [
@@ -103,14 +106,40 @@ function CustomActionDialog() {
     [profiles]
   );
 
-  useEffect(() => {
-    if (!profilesLoaded) return;
-    const pending = pendingProfileIdRef.current;
-    if (pending === null) return;
-    const exists = profiles.some((p) => p.id === pending);
-    setProfileValue(exists ? pending : DEFAULT_PROFILE_VALUE);
-    pendingProfileIdRef.current = null;
-  }, [profilesLoaded, profiles]);
+  // Always points at the latest submit handler so the once-attached
+  // onClickAdd listener can read the current state without mirroring.
+  const submitRef = useRef<() => void>(noop);
+  submitRef.current = () => {
+    const trimmedName = name.trim();
+    const trimmedQuery = query.trim();
+    if (!trimmedName) {
+      nameInputRef.current?.focus();
+      window.Asc.plugin.sendToPlugin(
+        ACTION_DIALOG_EVENTS.addOrEdit,
+        null as never
+      );
+      return;
+    }
+    if (!trimmedQuery) {
+      promptInputRef.current?.focus();
+      window.Asc.plugin.sendToPlugin(
+        ACTION_DIALOG_EVENTS.addOrEdit,
+        null as never
+      );
+      return;
+    }
+    const data: CustomAiAction = {
+      id: actionId,
+      name: trimmedName,
+      query: trimmedQuery,
+      type,
+      additionalAction: additionalAction.trim(),
+      iconId,
+      profileId: profileValue === DEFAULT_PROFILE_VALUE ? null : profileValue,
+    };
+    upsertAction(data);
+    window.Asc.plugin.sendToPlugin(ACTION_DIALOG_EVENTS.addOrEdit, data);
+  };
 
   useEffect(() => {
     const theme = window.Asc.plugin.info?.theme;
@@ -130,7 +159,7 @@ function CustomActionDialog() {
         setThemeType(next.type);
     });
 
-    window.Asc.plugin.attachEvent("onEditAction", (raw: unknown) => {
+    window.Asc.plugin.attachEvent(ACTION_DIALOG_EVENTS.edit, (raw: unknown) => {
       const id = typeof raw === "string" ? raw : "";
       if (!id) return;
       const found = findAction(id);
@@ -138,77 +167,62 @@ function CustomActionDialog() {
       setActionId(found.id);
       setName(found.name);
       setQuery(found.query);
-      setType(String(found.type));
+      setType(found.type);
       setAdditionalAction(found.additionalAction);
       setIconId(found.iconId);
-      pendingProfileIdRef.current = found.profileId;
-      // Apply immediately if profiles already loaded; otherwise the effect
-      // above re-applies when profiles arrive.
-      setProfileValue(found.profileId ?? DEFAULT_PROFILE_VALUE);
+      savedProfileIdRef.current = found.profileId;
       setTimeout(() => promptInputRef.current?.focus(), 0);
     });
 
-    window.Asc.plugin.attachEvent("onWarningAction", (raw: unknown) => {
-      setWarning(typeof raw === "string" ? raw : "");
+    window.Asc.plugin.attachEvent(
+      ACTION_DIALOG_EVENTS.warning,
+      (raw: unknown) => {
+        setWarning(typeof raw === "string" ? raw : "");
+      }
+    );
+
+    window.Asc.plugin.attachEvent(
+      ACTION_DIALOG_EVENTS.profilesList,
+      (raw: unknown) => {
+        let list: ProfileOption[] = [];
+        try {
+          const parsed =
+            typeof raw === "string"
+              ? (JSON.parse(raw) as ProfileOption[])
+              : (raw as ProfileOption[]);
+          if (Array.isArray(parsed)) list = parsed;
+        } catch {
+          list = [];
+        }
+        setProfiles(list);
+        setProfilesLoaded(true);
+        const saved = savedProfileIdRef.current;
+        if (saved !== undefined) {
+          setProfileValue(resolveProfileValue(saved, list));
+        }
+      }
+    );
+
+    window.Asc.plugin.attachEvent(ACTION_DIALOG_EVENTS.clickAdd, () => {
+      submitRef.current();
     });
 
-    window.Asc.plugin.attachEvent("onProfilesList", (raw: unknown) => {
-      try {
-        const list =
-          typeof raw === "string"
-            ? (JSON.parse(raw) as ProfileOption[])
-            : (raw as ProfileOption[]);
-        if (Array.isArray(list)) setProfiles(list);
-      } catch {
-        setProfiles([]);
-      }
-      setProfilesLoaded(true);
-    });
-
-    window.Asc.plugin.attachEvent("onClickAdd", () => {
-      const cur = stateRef.current;
-      const trimmedName = cur.name.trim();
-      const trimmedQuery = cur.query.trim();
-      if (!trimmedName) {
-        nameInputRef.current?.focus();
-        window.Asc.plugin.sendToPlugin("onAddEditAction", null as never);
-        return;
-      }
-      if (!trimmedQuery) {
-        promptInputRef.current?.focus();
-        window.Asc.plugin.sendToPlugin("onAddEditAction", null as never);
-        return;
-      }
-      const data: CustomAiAction = {
-        id: cur.actionId,
-        name: trimmedName,
-        query: trimmedQuery,
-        type: Number(cur.type) as CustomAiActionType,
-        additionalAction: cur.additionalAction.trim(),
-        iconId: cur.iconId,
-        profileId:
-          cur.profileValue === DEFAULT_PROFILE_VALUE ? null : cur.profileValue,
-      };
-      upsertAction(data);
-      window.Asc.plugin.sendToPlugin("onAddEditAction", data);
-    });
-
-    window.Asc.plugin.sendToPlugin("onWindowReady", {});
+    window.Asc.plugin.sendToPlugin(ACTION_DIALOG_EVENTS.windowReady, {});
 
     setTimeout(() => nameInputRef.current?.focus(), 0);
 
     return () => {
       window.Asc.plugin.detachEvent("onThemeChanged");
-      window.Asc.plugin.detachEvent("onEditAction");
-      window.Asc.plugin.detachEvent("onWarningAction");
-      window.Asc.plugin.detachEvent("onProfilesList");
-      window.Asc.plugin.detachEvent("onClickAdd");
+      window.Asc.plugin.detachEvent(ACTION_DIALOG_EVENTS.edit);
+      window.Asc.plugin.detachEvent(ACTION_DIALOG_EVENTS.warning);
+      window.Asc.plugin.detachEvent(ACTION_DIALOG_EVENTS.profilesList);
+      window.Asc.plugin.detachEvent(ACTION_DIALOG_EVENTS.clickAdd);
     };
   }, []);
 
   if (warning !== null) {
     return (
-      <div className="custom_assistant_window warning">
+      <div className="ai_action_window warning">
         <div id="warning_text" className="noselect">
           {WARNING_SVG}
           <p className="i18n">{warning}</p>
@@ -217,8 +231,16 @@ function CustomActionDialog() {
     );
   }
 
+  if (!profilesLoaded) {
+    return (
+      <div className="ai_action_window">
+        <p className="i18n">Loading…</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="custom_assistant_window">
+    <div className="ai_action_window">
       <form
         id="input_prompt_wrapper"
         autoComplete="off"
@@ -262,7 +284,7 @@ function CustomActionDialog() {
         <label htmlFor="assistantType" className="noselect">
           <span className="i18n">Action</span>
         </label>
-        <Select<string>
+        <Select<CustomAiActionType>
           id="assistantType"
           value={type}
           options={ACTION_OPTIONS}
@@ -289,7 +311,9 @@ function CustomActionDialog() {
           id="action_icon"
           value={iconId}
           themeType={themeType}
-          onChange={setIconId}
+          onChange={(next) => {
+            if (isKnownIconId(next)) setIconId(next);
+          }}
         />
 
         <label htmlFor="action_profile" className="noselect">
@@ -307,7 +331,8 @@ function CustomActionDialog() {
 }
 
 window.Asc.plugin.init = () => {
-  const container = document.getElementById("custom_assistant_window_root");
+  const container = document.getElementById("ai_action_window_root");
+
   if (container) {
     createRoot(container).render(
       <StrictMode>

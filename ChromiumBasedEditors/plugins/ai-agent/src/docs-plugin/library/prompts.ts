@@ -83,7 +83,7 @@ export const prompts = {
     return "Extract all text from this image as accurately as possible. Preserve original reading order and formatting if possible. Recognize tables and images if possible. Do not add or remove any content. Output recognized objects in md format if possible. If not, return plain text.";
   },
 
-  getCustomAssistantHintPrompt(text: string, query: string): string {
+  getActionHintPrompt(text: string, query: string): string {
     let prompt = `You are a multi-disciplinary text analysis assistant.
 		Your task is to find text fragments that match the user's criteria.
 
@@ -134,7 +134,7 @@ export const prompts = {
     return prompt;
   },
 
-  getCustomAssistantReplacePrompt(text: string, query: string): string {
+  getActionReplacePrompt(text: string, query: string): string {
     let prompt = `You are a multi-disciplinary text analysis and transformation assistant.
 	  Your task is to analyze text based on user's specific criteria and provide intelligent corrections.
 
@@ -188,7 +188,7 @@ export const prompts = {
     return prompt;
   },
 
-  getCustomAssistantReplaceHintPrompt(text: string, query: string): string {
+  getActionReplaceHintPrompt(text: string, query: string): string {
     let prompt = `You are a multi-disciplinary text analysis and transformation assistant.
 	  Your task is to analyze text based on user's specific criteria and provide intelligent corrections.
 

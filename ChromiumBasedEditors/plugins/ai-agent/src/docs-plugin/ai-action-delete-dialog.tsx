@@ -1,7 +1,8 @@
 import { StrictMode, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
+import { DELETE_DIALOG_EVENTS } from "./ai-actions/dialog-events";
 import { updateBodyThemeClasses, updateThemeVariables } from "./theme-utils";
-import "./custom-assistant-delete-dialog.css";
+import "./ai-action-delete-dialog.css";
 
 function CustomAssistantDeleteDialog() {
   const idRef = useRef<string>("");
@@ -20,27 +21,30 @@ function CustomAssistantDeleteDialog() {
       updateThemeVariables(next);
     });
 
-    window.Asc.plugin.attachEvent("onSetActionId", (raw: unknown) => {
-      idRef.current = typeof raw === "string" ? raw : "";
-    });
+    window.Asc.plugin.attachEvent(
+      DELETE_DIALOG_EVENTS.setActionId,
+      (raw: unknown) => {
+        idRef.current = typeof raw === "string" ? raw : "";
+      }
+    );
 
-    window.Asc.plugin.attachEvent("onConfirmDelete", () => {
-      window.Asc.plugin.sendToPlugin("onDeleteAction", {
+    window.Asc.plugin.attachEvent(DELETE_DIALOG_EVENTS.confirm, () => {
+      window.Asc.plugin.sendToPlugin(DELETE_DIALOG_EVENTS.delete, {
         id: idRef.current,
       });
     });
 
-    window.Asc.plugin.sendToPlugin("onWindowReady", {});
+    window.Asc.plugin.sendToPlugin(DELETE_DIALOG_EVENTS.windowReady, {});
 
     return () => {
       window.Asc.plugin.detachEvent("onThemeChanged");
-      window.Asc.plugin.detachEvent("onSetActionId");
-      window.Asc.plugin.detachEvent("onConfirmDelete");
+      window.Asc.plugin.detachEvent(DELETE_DIALOG_EVENTS.setActionId);
+      window.Asc.plugin.detachEvent(DELETE_DIALOG_EVENTS.confirm);
     };
   }, []);
 
   return (
-    <div className="delete_assistant_window noselect">
+    <div className="ai_action_delete_window noselect">
       <p className="description i18n">
         Are you sure you want to delete this action?
       </p>
@@ -50,7 +54,7 @@ function CustomAssistantDeleteDialog() {
 }
 
 window.Asc.plugin.init = () => {
-  const container = document.getElementById("custom_assistant_delete_root");
+  const container = document.getElementById("ai_action_delete_root");
   if (container) {
     createRoot(container).render(
       <StrictMode>

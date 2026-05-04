@@ -5,7 +5,7 @@ body {
   margin: 0 !important;
 }
 
-.delete_assistant_window {
+.ai_action_delete_window {
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -17,10 +17,10 @@ body {
   line-height: 18px;
 }
 
-.delete_assistant_window p {
+.ai_action_delete_window p {
   margin: 0 0 10px 0;
 }
 
-.delete_assistant_window .description {
+.ai_action_delete_window .description {
   font-weight: 600;
 }

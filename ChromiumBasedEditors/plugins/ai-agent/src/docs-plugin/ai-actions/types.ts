@@ -1,4 +1,6 @@
-export type CustomAiActionType = 0 | 1 | 2;
+import type { ActionIconId } from "./icons";
+
+export type CustomAiActionType = "hint" | "replace" | "replace-hint";
 
 export interface CustomAiAction {
   id: string;
@@ -6,6 +8,6 @@ export interface CustomAiAction {
   query: string;
   type: CustomAiActionType;
   additionalAction: string;
-  iconId: string;
+  iconId: ActionIconId;
   profileId: string | null;
 }

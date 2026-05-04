@@ -4,6 +4,10 @@ import {
   type CrossPluginEvents,
   crossPluginBus,
 } from "@/shared/sync/crossPluginBus";
+import {
+  ACTION_DIALOG_EVENTS,
+  DELETE_DIALOG_EVENTS,
+} from "./ai-actions/dialog-events";
 import { getIconToolbarPath } from "./ai-actions/icons";
 import { deleteAction, loadActions } from "./ai-actions/storage";
 import type { CustomAiAction } from "./ai-actions/types";
@@ -15,24 +19,9 @@ import {
 import { install as installLibrary } from "./library";
 import { editor } from "./library/editor";
 import { TextAnnotationPopup } from "./text-annotations/annotation-popup";
-import type { CustomAssistantData } from "./text-annotations/custom-annotations/custom-annotator";
-import { CustomAssistantManager } from "./text-annotations/custom-annotations/manager";
+import { CustomActionManager } from "./text-annotations/custom-actions/manager";
 import { GrammarChecker } from "./text-annotations/grammar-checker";
 import { SpellChecker } from "./text-annotations/spelling-checker";
-
-function actionToAssistantData(action: CustomAiAction): CustomAssistantData {
-  const additional = action.additionalAction.trim();
-  const query = additional
-    ? `${action.query}\n\nAdditional instruction: ${additional}`
-    : action.query;
-  return {
-    id: action.id,
-    name: action.name,
-    type: action.type,
-    query,
-    profileId: action.profileId,
-  };
-}
 
 let engineStorage: StorageAdapter | null = null;
 
@@ -302,11 +291,11 @@ window.Asc.plugin.init = () => {
   const textAnnotatorPopup = new TextAnnotationPopup();
   const spellchecker = new SpellChecker(textAnnotatorPopup);
   const grammar = new GrammarChecker(textAnnotatorPopup);
-  const customAssistantManager = new CustomAssistantManager(textAnnotatorPopup);
+  const customActionManager = new CustomActionManager(textAnnotatorPopup);
 
   for (const action of loadActions()) {
     try {
-      customAssistantManager.createAssistant(actionToAssistantData(action));
+      customActionManager.createAction(action);
     } catch (e) {
       console.error(e);
     }
@@ -339,7 +328,7 @@ window.Asc.plugin.init = () => {
       p.text,
       p.annotations
     );
-    customAssistantManager.onParagraphText(
+    customActionManager.onParagraphText(
       p.paragraphId,
       p.recalcId,
       p.text,
@@ -352,7 +341,7 @@ window.Asc.plugin.init = () => {
     if (!p) return;
     if (p.name === "spelling") spellchecker.onBlur();
     else if (p.name === "grammar") grammar.onBlur();
-    else customAssistantManager.onBlurAnnotation(p.name);
+    else customActionManager.onBlurAnnotation(p.name);
   });
 
   window.Asc.plugin.attachEditorEvent("onClickAnnotation", (obj: unknown) => {
@@ -365,8 +354,7 @@ window.Asc.plugin.init = () => {
     if (p.name === "grammar") grammar.onClick(p.paragraphId, p.ranges);
     else if (p.name === "spelling")
       spellchecker.onClick(p.paragraphId, p.ranges);
-    else
-      customAssistantManager.onClickAnnotation(p.name, p.paragraphId, p.ranges);
+    else customActionManager.onClickAnnotation(p.name, p.paragraphId, p.ranges);
   });
 
   const editorType = window.Asc.plugin.info?.editorType;
@@ -383,16 +371,15 @@ window.Asc.plugin.init = () => {
     btn.text = action.name;
     btn.icons = getIconToolbarPath(action.iconId);
     btn.split = true;
-    btn.enableToggle = false;
     btn.menu = [
       {
         text: "Edit",
-        id: `ai-action-edit-${action.id}`,
+        id: crypto.randomUUID(),
         onclick: () => openCustomActionWindow(action.id),
       },
       {
         text: "Delete",
-        id: `ai-action-delete-${action.id}`,
+        id: crypto.randomUUID(),
         onclick: () => openDeleteConfirmWindow(action.id),
       },
     ];
@@ -402,9 +389,14 @@ window.Asc.plugin.init = () => {
   }
 
   function refreshActionButton(btn: AscButtonToolbar): void {
-    if (!mainToolbar) return;
+    // mainToolbar.id / .name are populated by the host *after*
+    // registerToolbarMenu() runs; refreshing earlier is a programming
+    // error (the host call would no-op on an empty id).
+    if (!mainToolbar?.id) {
+      throw new Error("refreshActionButton called before toolbar is ready");
+    }
     window.Asc.Buttons.updateToolbarMenu(
-      String(mainToolbar.id ?? ""),
+      String(mainToolbar.id),
       mainToolbar.name ?? "",
       [btn]
     );
@@ -415,7 +407,7 @@ window.Asc.plugin.init = () => {
     try {
       const profiles = await engineStorage.profiles.readAll();
       win.command(
-        "onProfilesList",
+        ACTION_DIALOG_EVENTS.profilesList,
         JSON.stringify(profiles.map(profileSummary))
       );
     } catch (e) {
@@ -433,33 +425,32 @@ window.Asc.plugin.init = () => {
     const isEdit = !!actionId;
     const win = new window.Asc.PluginWindow();
 
-    win.attachEvent("onWindowReady", () => {
+    win.attachEvent(ACTION_DIALOG_EVENTS.windowReady, () => {
       if (isEdit && actionId) {
-        win.command("onEditAction", actionId);
+        win.command(ACTION_DIALOG_EVENTS.edit, actionId);
       }
       void pushProfilesToWindow(win);
       if (!window.AI) {
         win.command(
-          "onWarningAction",
+          ACTION_DIALOG_EVENTS.warning,
           "AI provider is not configured. Please open AI Settings and assign a model."
         );
       }
     });
 
-    win.attachEvent("onAddEditAction", (raw: unknown) => {
+    win.attachEvent(ACTION_DIALOG_EVENTS.addOrEdit, (raw: unknown) => {
       if (raw === null || raw === undefined) return;
       const action =
         typeof raw === "string"
           ? (JSON.parse(raw) as CustomAiAction)
           : (raw as CustomAiAction);
       if (!action?.id) return;
-      const data = actionToAssistantData(action);
-      const isUpdate = customAssistantManager.hasAssistant(data.id);
+      const isUpdate = customActionManager.hasAction(action.id);
       try {
         if (isUpdate) {
-          customAssistantManager.updateAssistant(data);
+          customActionManager.updateAction(action);
         } else {
-          customAssistantManager.createAssistant(data);
+          customActionManager.createAction(action);
         }
       } catch (e) {
         console.error(e);
@@ -485,7 +476,7 @@ window.Asc.plugin.init = () => {
 
     registerWindow("custom-action", win);
     win.show({
-      url: "customAssistant.html",
+      url: "aiAction.html",
       description: isEdit ? "Edit AI Action" : "Create AI Action",
       type: "window",
       EditorsSupport: ["word"],
@@ -508,11 +499,11 @@ window.Asc.plugin.init = () => {
 
     const win = new window.Asc.PluginWindow();
 
-    win.attachEvent("onWindowReady", () => {
-      win.command("onSetActionId", actionId);
+    win.attachEvent(DELETE_DIALOG_EVENTS.windowReady, () => {
+      win.command(DELETE_DIALOG_EVENTS.setActionId, actionId);
     });
 
-    win.attachEvent("onDeleteAction", (raw: unknown) => {
+    win.attachEvent(DELETE_DIALOG_EVENTS.delete, (raw: unknown) => {
       const payload =
         typeof raw === "string"
           ? (JSON.parse(raw) as { id: string })
@@ -520,7 +511,7 @@ window.Asc.plugin.init = () => {
       const id = payload?.id;
       if (!id) return;
       deleteAction(id);
-      customAssistantManager.deleteAssistant(id);
+      customActionManager.deleteAction(id);
 
       const existingBtn = actionButtons.get(id);
       if (existingBtn) {
@@ -535,7 +526,7 @@ window.Asc.plugin.init = () => {
 
     registerWindow("custom-action-delete", win);
     win.show({
-      url: "customAssistantDelete.html",
+      url: "aiActionDelete.html",
       description: "Delete action",
       type: "window",
       EditorsSupport: ["word"],
@@ -575,10 +566,9 @@ window.Asc.plugin.init = () => {
 
     window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
     try {
-      await customAssistantManager.run(id, paraIds);
+      await customActionManager.runOnce(id, paraIds);
     } finally {
       window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
-      customAssistantManager.disableTracking(id);
     }
   }
 
@@ -641,6 +631,12 @@ window.Asc.plugin.init = () => {
     "resources/%theme-type%(light|dark)/big/settings%scale%(default).png";
   buttonSettings.attachOnClick(() => openSettings());
 
+  const buttonCreateAction = new window.Asc.ButtonToolbar(mainToolbar);
+  buttonCreateAction.text = "Create AI Action";
+  buttonCreateAction.icons =
+    "resources/%theme-type%(light|dark)/big/plugin-writer%scale%(default).png";
+  buttonCreateAction.attachOnClick(() => openCustomActionWindow());
+
   if (!isPdf) {
     const buttonSummarization = new window.Asc.ButtonToolbar(mainToolbar);
     buttonSummarization.text = "Summarization";
@@ -692,13 +688,6 @@ window.Asc.plugin.init = () => {
       void handleGrammarCheck(spellchecker, grammar, true);
     });
 
-    const buttonCreateAction = new window.Asc.ButtonToolbar(mainToolbar);
-    buttonCreateAction.text = "Create AI Action";
-    buttonCreateAction.icons =
-      "resources/%theme-type%(light|dark)/big/plugin-writer%scale%(default).png";
-    buttonCreateAction.separator = true;
-    buttonCreateAction.attachOnClick(() => openCustomActionWindow());
-
     for (const action of loadActions()) {
       const btn = new window.Asc.ButtonToolbar(mainToolbar);
       configureActionButton(btn, action);
@@ -724,7 +713,7 @@ window.Asc.plugin.init = () => {
     const actionWin = windows.get("custom-action");
     if (actionWin && actionWin.id === windowId) {
       if (buttonId === 0) {
-        actionWin.command("onClickAdd", "");
+        actionWin.command(ACTION_DIALOG_EVENTS.clickAdd, "");
         return;
       }
     }
@@ -732,7 +721,7 @@ window.Asc.plugin.init = () => {
     const deleteWin = windows.get("custom-action-delete");
     if (deleteWin && deleteWin.id === windowId) {
       if (buttonId === 0) {
-        deleteWin.command("onConfirmDelete", "");
+        deleteWin.command(DELETE_DIALOG_EVENTS.confirm, "");
         return;
       }
     }
