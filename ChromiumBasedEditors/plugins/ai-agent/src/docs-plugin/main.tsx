@@ -402,6 +402,66 @@ async function dispatchReplaceInChatAction(
   openChat();
 }
 
+async function dispatchReplaceAction(action: CustomAiAction): Promise<void> {
+  const lib = window.Asc.Library;
+  if (!lib) return;
+  if (!window.AI) {
+    console.error("[Docs bg] replace: AI library not initialized");
+    return;
+  }
+
+  let sourceText = (await lib.GetSelectedText()) ?? "";
+  let usedFullDocumentFallback = false;
+  if (!sourceText.trim()) {
+    sourceText = await getFullDocumentText();
+    usedFullDocumentFallback = true;
+  }
+  const original = sourceText.trim();
+  if (!original) {
+    console.error("[Docs bg] replace: no source text to rewrite");
+    return;
+  }
+
+  const replacementPrompt = prompts.getActionReplacePrompt(
+    original,
+    action.query,
+    action.additionalAction
+  );
+
+  let replacement = "";
+  window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
+  try {
+    const request = window.AI.Request.create(
+      window.AI.ActionType.Chat,
+      action.profileId
+    );
+    replacement = (await request.chatRequest(replacementPrompt, false)) ?? "";
+  } catch (e) {
+    console.error("[Docs bg] replace: AI request failed", e);
+    return;
+  } finally {
+    window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
+  }
+
+  replacement = replacement.trim();
+  if (!replacement) {
+    console.error("[Docs bg] replace: empty replacement");
+    return;
+  }
+
+  if (usedFullDocumentFallback) {
+    // Select the whole document so PasteText replaces it (otherwise it
+    // inserts at the current cursor position).
+    await editor.callCommand(() => {
+      const doc = Api.GetDocument();
+      const range = doc.GetRange() as { Select?: () => void } | null;
+      range?.Select?.();
+    });
+  }
+
+  await lib.PasteText(replacement);
+}
+
 async function dispatchAsReviewAction(action: CustomAiAction): Promise<void> {
   const lib = window.Asc.Library;
   if (!lib) return;
@@ -839,6 +899,10 @@ window.Asc.plugin.init = () => {
     }
     if (action?.type === "replace-in-chat") {
       await dispatchReplaceInChatAction(action);
+      return;
+    }
+    if (action?.type === "replace") {
+      await dispatchReplaceAction(action);
       return;
     }
     if (action?.type === "as-review") {
