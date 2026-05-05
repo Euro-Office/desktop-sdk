@@ -304,6 +304,29 @@ ${additionalLine}
     return withAdditional(prompt, additional);
   },
 
+  getActionToEndPrompt(
+    text: string,
+    query: string,
+    additional?: string
+  ): string {
+    let prompt =
+      "You are an assistant that produces standalone content to be appended at the end of a document, in response to the user's instruction about the source text below.\n\n";
+    prompt += "MANDATORY RULES:\n";
+    prompt +=
+      "- Output ONLY the new content. No preamble, no framing, no explanation about what you are doing.\n";
+    prompt +=
+      "- Do NOT wrap the output in markdown code fences, quotes, or headings.\n";
+    prompt += "- Do NOT repeat the source text verbatim.\n";
+    prompt +=
+      "- Preserve paragraph breaks; separate paragraphs with a blank line so they render as distinct paragraphs.\n";
+    prompt +=
+      "- Preserve the language of the source text unless the instruction explicitly asks otherwise.\n\n";
+    prompt += `USER INSTRUCTION:\n\`\`\`\n${query}\n\`\`\`\n\n`;
+    prompt += `SOURCE TEXT:\n\`\`\`\n${text}\n\`\`\`\n\n`;
+    prompt += "Return the content to append now:";
+    return withAdditional(prompt, additional);
+  },
+
   getActionReplaceHintPrompt(
     text: string,
     query: string,

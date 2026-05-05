@@ -28,6 +28,7 @@ const ACTION_OPTIONS: SelectOption<CustomAiActionType>[] = [
   { value: "in-chat", label: "In chat" },
   { value: "as-review", label: "As review" },
   { value: "in-comment", label: "In comment" },
+  { value: "to-end", label: "To the end of document" },
 ];
 
 const KNOWN_ICON_IDS = new Set<string>(AI_ACTION_ICONS.map((i) => i.id));

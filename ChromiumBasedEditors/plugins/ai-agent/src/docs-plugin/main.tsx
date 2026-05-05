@@ -527,6 +527,54 @@ async function dispatchInCommentAction(action: CustomAiAction): Promise<void> {
   void lib.InsertAsComment(comment);
 }
 
+async function dispatchToEndAction(action: CustomAiAction): Promise<void> {
+  const lib = window.Asc.Library;
+  if (!lib) return;
+  if (!window.AI) {
+    console.error("[Docs bg] to-end: AI library not initialized");
+    return;
+  }
+
+  let sourceText = (await lib.GetSelectedText()) ?? "";
+  if (!sourceText.trim()) {
+    sourceText = await getFullDocumentText();
+  }
+  const original = sourceText.trim();
+  if (!original) {
+    console.error("[Docs bg] to-end: no source text");
+    return;
+  }
+
+  const toEndPrompt = prompts.getActionToEndPrompt(
+    original,
+    action.query,
+    action.additionalAction
+  );
+
+  let result = "";
+  window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
+  try {
+    const request = window.AI.Request.create(
+      window.AI.ActionType.Chat,
+      action.profileId
+    );
+    result = (await request.chatRequest(toEndPrompt, false)) ?? "";
+  } catch (e) {
+    console.error("[Docs bg] to-end: AI request failed", e);
+    return;
+  } finally {
+    window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
+  }
+
+  result = result.trim();
+  if (!result) {
+    console.error("[Docs bg] to-end: empty response");
+    return;
+  }
+
+  void lib.InsertAsText(result);
+}
+
 window.Asc.plugin.init = () => {
   const textAnnotatorPopup = new TextAnnotationPopup();
   const spellchecker = new SpellChecker(textAnnotatorPopup);
@@ -799,6 +847,10 @@ window.Asc.plugin.init = () => {
     }
     if (action?.type === "in-comment") {
       await dispatchInCommentAction(action);
+      return;
+    }
+    if (action?.type === "to-end") {
+      await dispatchToEndAction(action);
       return;
     }
 

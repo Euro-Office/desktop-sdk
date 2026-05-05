@@ -7,7 +7,8 @@ export type CustomAiActionType =
   | "replace-in-chat"
   | "in-chat"
   | "as-review"
-  | "in-comment";
+  | "in-comment"
+  | "to-end";
 
 export interface CustomAiAction {
   id: string;
