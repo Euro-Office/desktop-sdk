@@ -352,8 +352,10 @@ async function dispatchReplaceInChatAction(
   }
 
   let sourceText = (await lib.GetSelectedText()) ?? "";
+  let usedFullDocumentFallback = false;
   if (!sourceText.trim()) {
     sourceText = await getFullDocumentText();
+    usedFullDocumentFallback = true;
   }
   const original = sourceText.trim();
   if (!original) {
@@ -386,6 +388,16 @@ async function dispatchReplaceInChatAction(
   if (!replacement) {
     console.error("[Docs bg] replace-in-chat: empty replacement");
     return;
+  }
+
+  if (usedFullDocumentFallback) {
+    // Select the whole document so PasteText replaces it (otherwise it
+    // inserts at the current cursor position).
+    await editor.callCommand(() => {
+      const doc = Api.GetDocument();
+      const range = doc.GetRange() as { Select?: () => void } | null;
+      range?.Select?.();
+    });
   }
 
   await lib.PasteText(replacement);
