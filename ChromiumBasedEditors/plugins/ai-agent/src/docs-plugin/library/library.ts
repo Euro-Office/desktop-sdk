@@ -146,18 +146,17 @@ export class AscLibrary {
 
   async InsertAsReview(content: string, isHtml?: boolean): Promise<void> {
     const wasTracking = await editor.callCommand<boolean>(() => {
-      const doc = Api.GetDocument();
-      const res = doc.IsTrackRevisions() as boolean;
-      doc.SetTrackRevisions(true);
+      const res = Api.asc_GetLocalTrackRevisions() as boolean;
+      Api.asc_SetLocalTrackRevisions(true);
       return res;
     });
+    Asc.scope.localTrackRevisions = wasTracking;
     await editor.callMethod(isHtml ? "PasteHtml" : "PasteText", [
       content.trim(),
     ]);
     if (wasTracking !== true) {
       await editor.callCommand(() => {
-        const doc = Api.GetDocument();
-        doc.SetTrackRevisions(false);
+        Api.asc_SetLocalTrackRevisions(Asc.scope.localTrackRevisions);
       });
     }
   }

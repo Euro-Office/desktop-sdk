@@ -18,6 +18,7 @@ const TYPE_TO_CODE: Record<CustomAiActionType, number> = {
   replace: 2,
   "in-chat": 3,
   "replace-in-chat": 4,
+  "as-review": 5,
 };
 
 export const ACTION_ANNOTATION_PREFIX = "customAction_";
