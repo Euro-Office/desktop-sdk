@@ -42,6 +42,7 @@ export class CustomActionManager {
       case "in-chat":
       case "replace-in-chat":
       case "as-review":
+      case "in-comment":
         // All bypass the annotation pipeline via runAction's early
         // return; ActionInChat is a no-op annotator that satisfies the
         // manager's bookkeeping.

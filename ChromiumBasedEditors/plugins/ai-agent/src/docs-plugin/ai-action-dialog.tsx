@@ -27,6 +27,7 @@ const ACTION_OPTIONS: SelectOption<CustomAiActionType>[] = [
   { value: "replace-in-chat", label: "Replace + In chat" },
   { value: "in-chat", label: "In chat" },
   { value: "as-review", label: "As review" },
+  { value: "in-comment", label: "In comment" },
 ];
 
 const KNOWN_ICON_IDS = new Set<string>(AI_ACTION_ICONS.map((i) => i.id));

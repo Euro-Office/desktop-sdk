@@ -283,6 +283,27 @@ ${additionalLine}
     return withAdditional(prompt, additional);
   },
 
+  getActionInCommentPrompt(
+    text: string,
+    query: string,
+    additional?: string
+  ): string {
+    let prompt =
+      "You are an assistant that writes a single document comment in response to the user's instruction about the text below.\n\n";
+    prompt += "MANDATORY RULES:\n";
+    prompt +=
+      "- Output ONLY the comment text. No preamble, no framing, no explanation about what you are doing.\n";
+    prompt +=
+      "- Do NOT wrap the output in markdown code fences, quotes, or headings.\n";
+    prompt += "- Keep it concise — this is a document comment, not an essay.\n";
+    prompt +=
+      "- Preserve the language of the source text unless the instruction explicitly asks otherwise.\n\n";
+    prompt += `USER INSTRUCTION:\n\`\`\`\n${query}\n\`\`\`\n\n`;
+    prompt += `SOURCE TEXT:\n\`\`\`\n${text}\n\`\`\`\n\n`;
+    prompt += "Return the comment text now:";
+    return withAdditional(prompt, additional);
+  },
+
   getActionReplaceHintPrompt(
     text: string,
     query: string,

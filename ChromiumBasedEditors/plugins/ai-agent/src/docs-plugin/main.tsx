@@ -466,6 +466,67 @@ async function dispatchAsReviewAction(action: CustomAiAction): Promise<void> {
   }
 }
 
+async function dispatchInCommentAction(action: CustomAiAction): Promise<void> {
+  const lib = window.Asc.Library;
+  if (!lib) return;
+  if (!window.AI) {
+    console.error("[Docs bg] in-comment: AI library not initialized");
+    return;
+  }
+
+  let sourceText = (await lib.GetSelectedText()) ?? "";
+  let usedFullDocumentFallback = false;
+  if (!sourceText.trim()) {
+    sourceText = await getFullDocumentText();
+    usedFullDocumentFallback = true;
+  }
+  const original = sourceText.trim();
+  if (!original) {
+    console.error("[Docs bg] in-comment: no source text");
+    return;
+  }
+
+  const commentPrompt = prompts.getActionInCommentPrompt(
+    original,
+    action.query,
+    action.additionalAction
+  );
+
+  let comment = "";
+  window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
+  try {
+    const request = window.AI.Request.create(
+      window.AI.ActionType.Chat,
+      action.profileId
+    );
+    comment = (await request.chatRequest(commentPrompt, false)) ?? "";
+  } catch (e) {
+    console.error("[Docs bg] in-comment: AI request failed", e);
+    return;
+  } finally {
+    window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
+  }
+
+  comment = comment.trim();
+  if (!comment) {
+    console.error("[Docs bg] in-comment: empty response");
+    return;
+  }
+
+  if (
+    usedFullDocumentFallback &&
+    window.Asc.plugin.info?.editorType === "word"
+  ) {
+    await editor.callCommand(() => {
+      const doc = Api.GetDocument();
+      const range = doc.GetRange() as { Select?: () => void } | null;
+      range?.Select?.();
+    });
+  }
+
+  void lib.InsertAsComment(comment);
+}
+
 window.Asc.plugin.init = () => {
   const textAnnotatorPopup = new TextAnnotationPopup();
   const spellchecker = new SpellChecker(textAnnotatorPopup);
@@ -734,6 +795,10 @@ window.Asc.plugin.init = () => {
     }
     if (action?.type === "as-review") {
       await dispatchAsReviewAction(action);
+      return;
+    }
+    if (action?.type === "in-comment") {
+      await dispatchInCommentAction(action);
       return;
     }
 
