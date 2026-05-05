@@ -25,18 +25,21 @@ const Chat = () => {
   const widgetRef = useRef<AIChatWidgetRef>(null);
 
   useEffect(() => {
-    // Wait until the widget ref is wired up, with a bounded retry —
-    // the React commit that populates widgetRef may run after the
-    // attachEvent handler fires for the first command.
-    const waitForRef = (
-      maxAttempts = 60,
+    // Poll until the predicate returns a value. The widget ref, current
+    // profile, and post-setChatProfile re-render all settle asynchronously
+    // after first open; sendMessage silently drops if currentProfile is
+    // null, so we have to wait for real readiness, not just the ref.
+    const waitFor = <T,>(
+      predicate: () => T | null | undefined,
+      maxAttempts = 100,
       intervalMs = 50
-    ): Promise<AIChatWidgetRef | null> =>
+    ): Promise<T | null> =>
       new Promise((resolve) => {
         let attempts = 0;
         const tick = () => {
-          if (widgetRef.current) {
-            resolve(widgetRef.current);
+          const value = predicate();
+          if (value) {
+            resolve(value);
             return;
           }
           if (++attempts >= maxAttempts) {
@@ -55,18 +58,40 @@ const Chat = () => {
           ? (JSON.parse(raw) as { prompt: string; profileId: string | null })
           : (raw as { prompt: string; profileId: string | null });
       if (!payload?.prompt) return;
-      const widget = await waitForRef();
+
+      const widget = await waitFor(() => widgetRef.current);
       if (!widget) {
         console.warn("[Docs chat] sendToChat: widget never became ready");
         return;
       }
       widget.openChat();
-      if (payload.profileId) {
+
+      const desiredProfileId = payload.profileId;
+      if (desiredProfileId) {
         const current = widget.getCurrentProfile?.();
-        if (current?.id !== payload.profileId) {
-          widget.setChatProfile(payload.profileId);
+        if (current?.id !== desiredProfileId) {
+          const profile = await waitFor(() =>
+            widget.getProfiles?.().find((p) => p.id === desiredProfileId)
+          );
+          if (profile) widget.setChatProfile(desiredProfileId);
         }
       }
+
+      // Wait until currentProfile is populated and matches the requested one
+      // (if any). Without this, sendMessage drops the message because
+      // useMessages.onNew bails on `!currentProfile`, and setChatProfile's
+      // effect on the captured closure only lands after the next render.
+      const ready = await waitFor(() => {
+        const current = widget.getCurrentProfile?.();
+        if (!current) return null;
+        if (desiredProfileId && current.id !== desiredProfileId) return null;
+        return current;
+      });
+      if (!ready) {
+        console.warn("[Docs chat] sendToChat: profile never became ready");
+        return;
+      }
+
       widget.sendMessage(payload.prompt);
     });
 
