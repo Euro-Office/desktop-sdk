@@ -21,13 +21,35 @@ interface ProfileOption {
 const DEFAULT_PROFILE_VALUE = "__default__";
 
 const ACTION_OPTIONS: SelectOption<CustomAiActionType>[] = [
-  { value: "hint", label: "Hint" },
-  { value: "replace", label: "Replace" },
-  { value: "replace-in-chat", label: "Replace + In chat" },
-  { value: "in-chat", label: "In chat" },
-  { value: "as-review", label: "As review" },
-  { value: "in-comment", label: "In comment" },
-  { value: "to-end", label: "To the end of document" },
+  {
+    value: "hint",
+    label: "Hint (Shows suggestions or analysis without changing the text)",
+  },
+  {
+    value: "in-chat",
+    label: "In chat (Shows suggestions or analysis without changing the text)",
+  },
+  {
+    value: "replace",
+    label: "Replace (Replaces the selected text with the AI result)",
+  },
+  {
+    value: "replace-in-chat",
+    label: "Replace + In chat (Replaces the text and explains the changes)",
+  },
+  {
+    value: "as-review",
+    label: "As review (Adds the result as a review suggestion)",
+  },
+  {
+    value: "in-comment",
+    label: "In comment (Adds the result as a comment)",
+  },
+  {
+    value: "to-end",
+    label:
+      "To the end of document (Adds the result to the end of the document)",
+  },
 ];
 
 const KNOWN_ICON_IDS = new Set<string>(AI_ACTION_ICONS.map((i) => i.id));
