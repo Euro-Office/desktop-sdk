@@ -6,7 +6,6 @@ import {
 } from "./action-annotator";
 import { ActionHint } from "./action-hint";
 import { ActionInChat } from "./action-in-chat";
-import { ActionReplaceHint } from "./action-replace-hint";
 
 export const CUSTOM_ACTION_STATUSES = {
   OK: 0,
@@ -31,9 +30,6 @@ export class CustomActionManager {
     switch (action.type) {
       case "hint":
         annotator = new ActionHint(this._popup, action);
-        break;
-      case "replace-hint":
-        annotator = new ActionReplaceHint(this._popup, action);
         break;
       case "replace":
       case "in-chat":

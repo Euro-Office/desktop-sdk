@@ -14,7 +14,6 @@ interface AnnotationRange {
 
 const TYPE_TO_CODE: Record<CustomAiActionType, number> = {
   hint: 0,
-  "replace-hint": 1,
   replace: 2,
   "in-chat": 3,
   "replace-in-chat": 4,

@@ -3,7 +3,6 @@ import type { ActionIconId } from "./icons";
 export type CustomAiActionType =
   | "hint"
   | "replace"
-  | "replace-hint"
   | "replace-in-chat"
   | "in-chat"
   | "as-review"
