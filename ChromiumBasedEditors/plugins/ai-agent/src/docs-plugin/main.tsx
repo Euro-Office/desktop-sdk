@@ -1020,7 +1020,7 @@ window.Asc.plugin.init = () => {
   const buttonCreateAction = new window.Asc.ButtonToolbar(mainToolbar);
   buttonCreateAction.text = "Create AI Action";
   buttonCreateAction.icons =
-    "resources/%theme-type%(light|dark)/big/plugin-writer%scale%(default).png";
+    "resources/%theme-type%(light|dark)/big/btn-next-field%scale%(default).png";
   buttonCreateAction.attachOnClick(() => openCustomActionWindow());
 
   if (!isPdf) {

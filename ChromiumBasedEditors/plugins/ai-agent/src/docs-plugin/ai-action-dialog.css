@@ -250,7 +250,7 @@ label strong {
   width: 4px !important;
   height: 4px !important;
   margin: -1px 1px !important;
-  border: solid 1px #444 !important;
+  border: solid 1px var(--icon-normal);
   border-bottom: none !important;
   border-right: none !important;
   background-image: none;
