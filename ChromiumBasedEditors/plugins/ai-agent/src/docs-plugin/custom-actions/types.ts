@@ -1,7 +1,6 @@
 import type { ActionIconId } from "./icons";
 
 export type CustomAiActionType =
-  | "hint"
   | "replace"
   | "replace-in-chat"
   | "in-chat"
@@ -14,7 +13,6 @@ export interface CustomAiAction {
   name: string;
   query: string;
   type: CustomAiActionType;
-  additionalAction: string;
   iconId: ActionIconId;
   profileId: string | null;
 }

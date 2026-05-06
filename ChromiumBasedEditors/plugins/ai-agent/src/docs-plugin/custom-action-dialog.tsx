@@ -1,17 +1,20 @@
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { ACTION_DIALOG_EVENTS } from "./ai-actions/dialog-events";
+import { IconPicker } from "./components/IconPicker";
+import { Select, type SelectOption } from "./components/Select";
+import { CUSTOM_ACTION_DIALOG_EVENTS } from "./custom-actions/dialog-events";
 import {
   type ActionIconId,
   AI_ACTION_ICONS,
   DEFAULT_ICON_ID,
-} from "./ai-actions/icons";
-import { findAction, upsertAction } from "./ai-actions/storage";
-import type { CustomAiAction, CustomAiActionType } from "./ai-actions/types";
-import { IconPicker } from "./components/IconPicker";
-import { Select, type SelectOption } from "./components/Select";
+} from "./custom-actions/icons";
+import { findAction, upsertAction } from "./custom-actions/storage";
+import type {
+  CustomAiAction,
+  CustomAiActionType,
+} from "./custom-actions/types";
 import { updateBodyThemeClasses, updateThemeVariables } from "./theme-utils";
-import "./ai-action-dialog.css";
+import "./custom-action-dialog.css";
 
 interface ProfileOption {
   id: string;
@@ -21,10 +24,6 @@ interface ProfileOption {
 const DEFAULT_PROFILE_VALUE = "__default__";
 
 const ACTION_OPTIONS: SelectOption<CustomAiActionType>[] = [
-  {
-    value: "hint",
-    label: "Hint (Shows suggestions or analysis without changing the text)",
-  },
   {
     value: "in-chat",
     label: "In chat (Shows suggestions or analysis without changing the text)",
@@ -107,8 +106,7 @@ function CustomActionDialog() {
   const [actionId, setActionId] = useState<string>(() => generateActionId());
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
-  const [type, setType] = useState<CustomAiActionType>("hint");
-  const [additionalAction, setAdditionalAction] = useState("");
+  const [type, setType] = useState<CustomAiActionType>("in-chat");
   const [iconId, setIconId] = useState<ActionIconId>(DEFAULT_ICON_ID);
   const [profileValue, setProfileValue] = useState<string>(
     DEFAULT_PROFILE_VALUE
@@ -141,7 +139,7 @@ function CustomActionDialog() {
     if (!trimmedName) {
       nameInputRef.current?.focus();
       window.Asc.plugin.sendToPlugin(
-        ACTION_DIALOG_EVENTS.addOrEdit,
+        CUSTOM_ACTION_DIALOG_EVENTS.addOrEdit,
         null as never
       );
       return;
@@ -149,7 +147,7 @@ function CustomActionDialog() {
     if (!trimmedQuery) {
       promptInputRef.current?.focus();
       window.Asc.plugin.sendToPlugin(
-        ACTION_DIALOG_EVENTS.addOrEdit,
+        CUSTOM_ACTION_DIALOG_EVENTS.addOrEdit,
         null as never
       );
       return;
@@ -159,12 +157,11 @@ function CustomActionDialog() {
       name: trimmedName,
       query: trimmedQuery,
       type,
-      additionalAction: additionalAction.trim(),
       iconId,
       profileId: profileValue === DEFAULT_PROFILE_VALUE ? null : profileValue,
     };
     upsertAction(data);
-    window.Asc.plugin.sendToPlugin(ACTION_DIALOG_EVENTS.addOrEdit, data);
+    window.Asc.plugin.sendToPlugin(CUSTOM_ACTION_DIALOG_EVENTS.addOrEdit, data);
   };
 
   useEffect(() => {
@@ -185,30 +182,32 @@ function CustomActionDialog() {
         setThemeType(next.type);
     });
 
-    window.Asc.plugin.attachEvent(ACTION_DIALOG_EVENTS.edit, (raw: unknown) => {
-      const id = typeof raw === "string" ? raw : "";
-      if (!id) return;
-      const found = findAction(id);
-      if (!found) return;
-      setActionId(found.id);
-      setName(found.name);
-      setQuery(found.query);
-      setType(found.type);
-      setAdditionalAction(found.additionalAction);
-      setIconId(found.iconId);
-      savedProfileIdRef.current = found.profileId;
-      setTimeout(() => promptInputRef.current?.focus(), 0);
-    });
+    window.Asc.plugin.attachEvent(
+      CUSTOM_ACTION_DIALOG_EVENTS.edit,
+      (raw: unknown) => {
+        const id = typeof raw === "string" ? raw : "";
+        if (!id) return;
+        const found = findAction(id);
+        if (!found) return;
+        setActionId(found.id);
+        setName(found.name);
+        setQuery(found.query);
+        setType(found.type);
+        setIconId(found.iconId);
+        savedProfileIdRef.current = found.profileId;
+        setTimeout(() => promptInputRef.current?.focus(), 0);
+      }
+    );
 
     window.Asc.plugin.attachEvent(
-      ACTION_DIALOG_EVENTS.warning,
+      CUSTOM_ACTION_DIALOG_EVENTS.warning,
       (raw: unknown) => {
         setWarning(typeof raw === "string" ? raw : "");
       }
     );
 
     window.Asc.plugin.attachEvent(
-      ACTION_DIALOG_EVENTS.profilesList,
+      CUSTOM_ACTION_DIALOG_EVENTS.profilesList,
       (raw: unknown) => {
         let list: ProfileOption[] = [];
         try {
@@ -229,20 +228,20 @@ function CustomActionDialog() {
       }
     );
 
-    window.Asc.plugin.attachEvent(ACTION_DIALOG_EVENTS.clickAdd, () => {
+    window.Asc.plugin.attachEvent(CUSTOM_ACTION_DIALOG_EVENTS.clickAdd, () => {
       submitRef.current();
     });
 
-    window.Asc.plugin.sendToPlugin(ACTION_DIALOG_EVENTS.windowReady, {});
+    window.Asc.plugin.sendToPlugin(CUSTOM_ACTION_DIALOG_EVENTS.windowReady, {});
 
     setTimeout(() => nameInputRef.current?.focus(), 0);
 
     return () => {
       window.Asc.plugin.detachEvent("onThemeChanged");
-      window.Asc.plugin.detachEvent(ACTION_DIALOG_EVENTS.edit);
-      window.Asc.plugin.detachEvent(ACTION_DIALOG_EVENTS.warning);
-      window.Asc.plugin.detachEvent(ACTION_DIALOG_EVENTS.profilesList);
-      window.Asc.plugin.detachEvent(ACTION_DIALOG_EVENTS.clickAdd);
+      window.Asc.plugin.detachEvent(CUSTOM_ACTION_DIALOG_EVENTS.edit);
+      window.Asc.plugin.detachEvent(CUSTOM_ACTION_DIALOG_EVENTS.warning);
+      window.Asc.plugin.detachEvent(CUSTOM_ACTION_DIALOG_EVENTS.profilesList);
+      window.Asc.plugin.detachEvent(CUSTOM_ACTION_DIALOG_EVENTS.clickAdd);
     };
   }, []);
 
@@ -315,19 +314,6 @@ function CustomActionDialog() {
           value={type}
           options={ACTION_OPTIONS}
           onValueChange={setType}
-        />
-
-        <label htmlFor="input_additional_action" className="noselect">
-          <span className="i18n">Additional action</span>
-        </label>
-        <textarea
-          id="input_additional_action"
-          rows={2}
-          className="form-control i18n"
-          placeholder="Describe an additional action (optional)"
-          spellCheck={false}
-          value={additionalAction}
-          onChange={(e) => setAdditionalAction(e.target.value)}
         />
 
         <label htmlFor="action_icon" className="noselect">

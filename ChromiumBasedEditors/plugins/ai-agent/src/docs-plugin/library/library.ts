@@ -16,7 +16,7 @@ function decodeHtmlText(text: string): string {
     .replace(/&nbsp;/g, " ");
 }
 
-export class AscLibrary {
+class AscLibrary {
   private version = 0;
 
   async GetEditorVersion(): Promise<number> {
@@ -43,6 +43,23 @@ export class AscLibrary {
     const result = await editor.callMethod<string>("GetSelectedText");
     if (result !== "") return result;
     return this.GetSelectedContent("text");
+  }
+
+  async GetFullText(): Promise<string> {
+    return (
+      (await editor.callCommand<string>(() => {
+        const doc = Api.GetDocument();
+        const count = doc.GetElementsCount();
+        const lines: string[] = [];
+        for (let i = 0; i < count; i++) {
+          const el = doc.GetElement(i) as { GetText?: () => string };
+          if (typeof el?.GetText === "function") {
+            lines.push(el.GetText());
+          }
+        }
+        return lines.join("\n");
+      })) ?? ""
+    );
   }
 
   async GetSelectedContent(type: string): Promise<string> {
@@ -639,3 +656,5 @@ export const pluginsMD = {
     mdi.renderer.rules.hr = () => "<hr><br>";
   },
 };
+
+export const library = new AscLibrary();

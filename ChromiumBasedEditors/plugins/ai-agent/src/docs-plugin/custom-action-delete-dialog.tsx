@@ -1,8 +1,8 @@
 import { StrictMode, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { DELETE_DIALOG_EVENTS } from "./ai-actions/dialog-events";
+import { CUSTOM_ACTION_DELETE_DIALOG_EVENTS } from "./custom-actions/dialog-events";
 import { updateBodyThemeClasses, updateThemeVariables } from "./theme-utils";
-import "./ai-action-delete-dialog.css";
+import "./custom-action-delete-dialog.css";
 
 function CustomAssistantDeleteDialog() {
   const idRef = useRef<string>("");
@@ -22,24 +22,35 @@ function CustomAssistantDeleteDialog() {
     });
 
     window.Asc.plugin.attachEvent(
-      DELETE_DIALOG_EVENTS.setActionId,
+      CUSTOM_ACTION_DELETE_DIALOG_EVENTS.setActionId,
       (raw: unknown) => {
         idRef.current = typeof raw === "string" ? raw : "";
       }
     );
 
-    window.Asc.plugin.attachEvent(DELETE_DIALOG_EVENTS.confirm, () => {
-      window.Asc.plugin.sendToPlugin(DELETE_DIALOG_EVENTS.delete, {
-        id: idRef.current,
-      });
-    });
+    window.Asc.plugin.attachEvent(
+      CUSTOM_ACTION_DELETE_DIALOG_EVENTS.confirm,
+      () => {
+        window.Asc.plugin.sendToPlugin(
+          CUSTOM_ACTION_DELETE_DIALOG_EVENTS.delete,
+          {
+            id: idRef.current,
+          }
+        );
+      }
+    );
 
-    window.Asc.plugin.sendToPlugin(DELETE_DIALOG_EVENTS.windowReady, {});
+    window.Asc.plugin.sendToPlugin(
+      CUSTOM_ACTION_DELETE_DIALOG_EVENTS.windowReady,
+      {}
+    );
 
     return () => {
       window.Asc.plugin.detachEvent("onThemeChanged");
-      window.Asc.plugin.detachEvent(DELETE_DIALOG_EVENTS.setActionId);
-      window.Asc.plugin.detachEvent(DELETE_DIALOG_EVENTS.confirm);
+      window.Asc.plugin.detachEvent(
+        CUSTOM_ACTION_DELETE_DIALOG_EVENTS.setActionId
+      );
+      window.Asc.plugin.detachEvent(CUSTOM_ACTION_DELETE_DIALOG_EVENTS.confirm);
     };
   }, []);
 

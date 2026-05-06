@@ -1,9 +1,3 @@
-function withAdditional(prompt: string, additional?: string): string {
-  const trimmed = additional?.trim();
-  if (!trimmed) return prompt;
-  return `${prompt}\n\nAdditional instruction:\n\`\`\`\n${trimmed}\n\`\`\`\n`;
-}
-
 export const prompts = {
   getFixAndSpellPrompt(content: string): string {
     return `I want you to act as an editor and proofreader. I will provide you with some text that needs to be checked for spelling and grammar errors. Your task is to carefully review the text and correct any mistakes, ensuring that the corrected text is free of errors and maintains the original meaning. Only return the corrected text. Here is the text that needs revision: "${content}"`;
@@ -89,11 +83,7 @@ export const prompts = {
     return "Extract all text from this image as accurately as possible. Preserve original reading order and formatting if possible. Recognize tables and images if possible. Do not add or remove any content. Output recognized objects in md format if possible. If not, return plain text.";
   },
 
-  getActionHintPrompt(
-    text: string,
-    query: string,
-    additional?: string
-  ): string {
+  getActionHintPrompt(text: string, query: string): string {
     let prompt = `You are a multi-disciplinary text analysis assistant.
 		Your task is to find text fragments that match the user's criteria.
 
@@ -141,14 +131,10 @@ export const prompts = {
     prompt += `TEXT TO ANALYZE:\n\`\`\`\n${text}\n\`\`\`\n\n`;
     prompt +=
       "Please analyze this text and find all fragments that match the user's request. Be thorough but precise.";
-    return withAdditional(prompt, additional);
+    return prompt;
   },
 
-  getActionReplacePrompt(
-    text: string,
-    query: string,
-    additional?: string
-  ): string {
+  getActionReplacePrompt(text: string, query: string): string {
     let prompt =
       "You are a text-transformation assistant. Apply the user's instruction to the text below and return ONLY the rewritten text.\n\n";
     prompt += "MANDATORY RULES:\n";
@@ -164,24 +150,16 @@ export const prompts = {
     prompt += `USER INSTRUCTION:\n\`\`\`\n${query}\n\`\`\`\n\n`;
     prompt += `TEXT TO REWRITE:\n\`\`\`\n${text}\n\`\`\`\n\n`;
     prompt += "Return the rewritten text now:";
-    return withAdditional(prompt, additional);
+    return prompt;
   },
 
-  getActionInChatPrompt(
-    text: string,
-    query: string,
-    additional?: string
-  ): string {
+  getActionInChatPrompt(text: string, query: string): string {
     const parts: string[] = [query];
     if (text) parts.push(`"${text}"`);
-    return withAdditional(parts.join("\n\n"), additional);
+    return parts.join("\n\n");
   },
 
-  getActionReplaceInChatReplacementPrompt(
-    text: string,
-    query: string,
-    additional?: string
-  ): string {
+  getActionReplaceInChatReplacementPrompt(text: string, query: string): string {
     let prompt =
       "You are a text-transformation assistant. Apply the user's instruction to the text below and return ONLY the rewritten text.\n\n";
     prompt += "MANDATORY RULES:\n";
@@ -197,25 +175,20 @@ export const prompts = {
     prompt += `USER INSTRUCTION:\n\`\`\`\n${query}\n\`\`\`\n\n`;
     prompt += `TEXT TO REWRITE:\n\`\`\`\n${text}\n\`\`\`\n\n`;
     prompt += "Return the rewritten text now:";
-    return withAdditional(prompt, additional);
+    return prompt;
   },
 
   getActionReplaceInChatExplanationPrompt(
     original: string,
     replacement: string,
-    query: string,
-    additional?: string
+    query: string
   ): string {
-    const trimmedAdditional = additional?.trim();
-    const additionalLine = trimmedAdditional
-      ? `\n_Additional instruction:_ ${trimmedAdditional}\n`
-      : "";
     const q = query?.trim();
     const intro = q
       ? `Explain the changes — what was modified and why — given the instruction **"${q}"**. Be concise.`
       : "Explain the changes — what was modified and why. Be concise.";
     return `${intro}
-${additionalLine}
+
 **Original:**
 
 > ${original.replace(/\n/g, "\n> ")}
@@ -225,11 +198,7 @@ ${additionalLine}
 > ${replacement.replace(/\n/g, "\n> ")}`;
   },
 
-  getActionAsReviewPrompt(
-    text: string,
-    query: string,
-    additional?: string
-  ): string {
+  getActionAsReviewPrompt(text: string, query: string): string {
     let prompt =
       "You are a text-transformation assistant. Apply the user's instruction to the text below and return ONLY the rewritten text.\n\n";
     prompt += "MANDATORY RULES:\n";
@@ -245,14 +214,10 @@ ${additionalLine}
     prompt += `USER INSTRUCTION:\n\`\`\`\n${query}\n\`\`\`\n\n`;
     prompt += `TEXT TO REWRITE:\n\`\`\`\n${text}\n\`\`\`\n\n`;
     prompt += "Return the rewritten text now:";
-    return withAdditional(prompt, additional);
+    return prompt;
   },
 
-  getActionInCommentPrompt(
-    text: string,
-    query: string,
-    additional?: string
-  ): string {
+  getActionInCommentPrompt(text: string, query: string): string {
     let prompt =
       "You are an assistant that writes a single document comment in response to the user's instruction about the text below.\n\n";
     prompt += "MANDATORY RULES:\n";
@@ -266,14 +231,10 @@ ${additionalLine}
     prompt += `USER INSTRUCTION:\n\`\`\`\n${query}\n\`\`\`\n\n`;
     prompt += `SOURCE TEXT:\n\`\`\`\n${text}\n\`\`\`\n\n`;
     prompt += "Return the comment text now:";
-    return withAdditional(prompt, additional);
+    return prompt;
   },
 
-  getActionToEndPrompt(
-    text: string,
-    query: string,
-    additional?: string
-  ): string {
+  getActionToEndPrompt(text: string, query: string): string {
     let prompt =
       "You are an assistant that produces standalone content to be appended at the end of a document, in response to the user's instruction about the source text below.\n\n";
     prompt += "MANDATORY RULES:\n";
@@ -289,6 +250,6 @@ ${additionalLine}
     prompt += `USER INSTRUCTION:\n\`\`\`\n${query}\n\`\`\`\n\n`;
     prompt += `SOURCE TEXT:\n\`\`\`\n${text}\n\`\`\`\n\n`;
     prompt += "Return the content to append now:";
-    return withAdditional(prompt, additional);
+    return prompt;
   },
 };

@@ -55,8 +55,8 @@ const Chat = () => {
       console.log("[Docs chat] ← sendToChat", raw);
       const payload =
         typeof raw === "string"
-          ? (JSON.parse(raw) as { prompt: string; profileId: string | null })
-          : (raw as { prompt: string; profileId: string | null });
+          ? (JSON.parse(raw) as { prompt: string; action: "send" | "attach" })
+          : (raw as { prompt: string; action: "send" | "attach" });
       if (!payload?.prompt) return;
 
       const widget = await waitFor(() => widgetRef.current);
@@ -66,33 +66,22 @@ const Chat = () => {
       }
       widget.openChat();
 
-      const desiredProfileId = payload.profileId;
-      if (desiredProfileId) {
-        const current = widget.getCurrentProfile?.();
-        if (current?.id !== desiredProfileId) {
-          const profile = await waitFor(() =>
-            widget.getProfiles?.().find((p) => p.id === desiredProfileId)
-          );
-          if (profile) widget.setChatProfile(desiredProfileId);
-        }
-      }
-
-      // Wait until currentProfile is populated and matches the requested one
-      // (if any). Without this, sendMessage drops the message because
-      // useMessages.onNew bails on `!currentProfile`, and setChatProfile's
-      // effect on the captured closure only lands after the next render.
+      // Wait until currentProfile is populated. Without this, sendMessage drops
+      // the message because useMessages.onNew bails on `!currentProfile`.
       const ready = await waitFor(() => {
         const current = widget.getCurrentProfile?.();
-        if (!current) return null;
-        if (desiredProfileId && current.id !== desiredProfileId) return null;
-        return current;
+        return current ?? null;
       });
       if (!ready) {
         console.warn("[Docs chat] sendToChat: profile never became ready");
         return;
       }
 
-      widget.sendMessage(payload.prompt);
+      if (payload.action === "send") {
+        widget.sendMessage(payload.prompt);
+      } else {
+        // TODO: implement "attach" logic (just adding to input without sending)
+      }
     });
 
     window.Asc.plugin.attachEvent("onAiStateChanged", (raw) => {

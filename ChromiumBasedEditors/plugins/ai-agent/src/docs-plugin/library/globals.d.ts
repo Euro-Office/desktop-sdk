@@ -9,6 +9,7 @@ declare interface AscLibraryInstance {
   GetEditorVersion(): Promise<number>;
   GetCurrentWord(): Promise<string>;
   GetSelectedText(): Promise<string>;
+  GetFullText(): Promise<string>;
   GetSelectedContent(type: string): Promise<string>;
   GetSelectedImage(): Promise<string>;
   GetLocalImagePath(url: string): Promise<{ url: string; error: boolean }>;

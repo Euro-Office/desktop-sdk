@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
-import { AI_ACTION_ICONS, getIconPreviewSrc } from "../ai-actions/icons";
+import { AI_ACTION_ICONS, getIconPreviewSrc } from "../custom-actions/icons";
 import { getZoomSuffix } from "../theme-utils";
 
 interface IconPickerProps {

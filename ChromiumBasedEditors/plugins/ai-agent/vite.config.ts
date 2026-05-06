@@ -47,13 +47,13 @@ export default defineConfig(({ mode }) => {
                 __dirname,
                 "src/docs-plugin/summarization-dialog.tsx"
               ),
-              "ai-action-dialog": path.resolve(
+              "custom-action-dialog": path.resolve(
                 __dirname,
-                "src/docs-plugin/ai-action-dialog.tsx"
+                "src/docs-plugin/custom-action-dialog.tsx"
               ),
-              "ai-action-delete-dialog": path.resolve(
+              "custom-action-delete-dialog": path.resolve(
                 __dirname,
-                "src/docs-plugin/ai-action-delete-dialog.tsx"
+                "src/docs-plugin/custom-action-delete-dialog.tsx"
               ),
               "docs-plugin-styles": path.resolve(
                 __dirname,

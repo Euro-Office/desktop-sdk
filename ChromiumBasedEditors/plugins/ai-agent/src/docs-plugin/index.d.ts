@@ -144,5 +144,9 @@ declare global {
       summarize: (text: string, targetLang?: string) => Promise<string>;
       translate: (text: string, targetLang: string) => Promise<string>;
     };
+    openChat?: (payload?: {
+      prompt: string;
+      action: "send" | "attach";
+    }) => void;
   }
 }
