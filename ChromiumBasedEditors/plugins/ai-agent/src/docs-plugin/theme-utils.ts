@@ -33,3 +33,10 @@ export function updateThemeVariables(theme: AscTheme): void {
   style.textContent = css;
   document.head.appendChild(style);
 }
+
+export function getZoomSuffix(): string {
+  let ratio = Math.round(window.devicePixelRatio / 0.25) * 0.25;
+  ratio = Math.max(ratio, 1);
+  ratio = Math.min(ratio, 2);
+  return ratio === 1 ? "" : `@${ratio}x`;
+}

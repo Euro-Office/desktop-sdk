@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { AI_ACTION_ICONS, getIconPreviewSrc } from "../ai-actions/icons";
+import { getZoomSuffix } from "../theme-utils";
 
 interface IconPickerProps {
   id?: string;
@@ -19,6 +20,7 @@ export function IconPicker({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const groupName = useId();
+  const [zoomSuffix, setZoomSuffix] = useState(() => getZoomSuffix());
 
   useEffect(() => {
     if (!open) return;
@@ -38,6 +40,12 @@ export function IconPicker({
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  useEffect(() => {
+    const onResize = () => setZoomSuffix(getZoomSuffix());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const toggle = () => setOpen((v) => !v);
 
@@ -70,7 +78,7 @@ export function IconPicker({
           onChange={() => onChange(icon.id)}
         />
         <img
-          src={getIconPreviewSrc(icon.id, themeType)}
+          src={getIconPreviewSrc(icon.id, themeType, zoomSuffix)}
           alt={icon.label}
           draggable={false}
         />

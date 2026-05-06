@@ -23,8 +23,9 @@ export function getIconToolbarPath(iconId: ActionIconId): string {
 
 export function getIconPreviewSrc(
   iconId: ActionIconId,
-  themeType: "light" | "dark"
+  themeType: "light" | "dark",
+  zoomSuffix = ""
 ): string {
   const icon = getActionIcon(iconId);
-  return `resources/${themeType}/big/${icon.baseName}.png`;
+  return `resources/${themeType}/big/${icon.baseName}${zoomSuffix}.png`;
 }

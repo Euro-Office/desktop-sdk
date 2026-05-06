@@ -2,7 +2,11 @@ import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Select, type SelectOption } from "./components/Select";
 import { SUMMARIZATION_LANGUAGES } from "./engine/languages";
-import { updateBodyThemeClasses, updateThemeVariables } from "./theme-utils";
+import {
+  getZoomSuffix,
+  updateBodyThemeClasses,
+  updateThemeVariables,
+} from "./theme-utils";
 import "./summarization-dialog.css";
 
 type InsertMode = "review" | "comment" | "replace" | "end";
@@ -21,13 +25,6 @@ const INSERT_OPTIONS_WORD: InsertOption[] = [
 
 function isDarkTheme(themeType?: string): boolean {
   return themeType === "dark";
-}
-
-function getZoomSuffix(): string {
-  let ratio = Math.round(window.devicePixelRatio / 0.25) * 0.25;
-  ratio = Math.max(ratio, 1);
-  ratio = Math.min(ratio, 2);
-  return ratio === 1 ? "" : `@${ratio}x`;
 }
 
 function SummarizationDialog() {
