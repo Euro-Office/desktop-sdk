@@ -10,7 +10,10 @@ export type PluginWindowId =
   | "translation"
   | "summarization"
   | "custom-action"
-  | "custom-action-delete";
+  | "custom-action-delete"
+  | "custom-assistant"
+  | "custom-assistant-delete"
+  | "custom-assistant-warning";
 
 export const pluginWindows = new Map<PluginWindowId, AscPluginWindow | null>([
   ["chat", null],
@@ -19,6 +22,9 @@ export const pluginWindows = new Map<PluginWindowId, AscPluginWindow | null>([
   ["summarization", null],
   ["custom-action", null],
   ["custom-action-delete", null],
+  ["custom-assistant", null],
+  ["custom-assistant-delete", null],
+  ["custom-assistant-warning", null],
 ]);
 
 const AI_STATE_EVENT = "onAiStateChanged";

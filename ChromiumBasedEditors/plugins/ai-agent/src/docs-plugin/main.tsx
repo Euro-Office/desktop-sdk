@@ -8,6 +8,16 @@ import {
 import { getIconToolbarPath } from "./custom-actions/icons";
 import { deleteAction, loadActions } from "./custom-actions/storage";
 import type { CustomAiAction } from "./custom-actions/types";
+import {
+  CUSTOM_ASSISTANT_DELETE_DIALOG_EVENTS,
+  CUSTOM_ASSISTANT_DIALOG_EVENTS,
+} from "./custom-assistants/dialog-events";
+import {
+  ASSISTANT_RUN_STATUS,
+  CustomAssistantManager,
+} from "./custom-assistants/manager";
+import { deleteAssistant, loadAssistants } from "./custom-assistants/storage";
+import type { CustomAssistant } from "./custom-assistants/types";
 import { initAiAgentEngine, summarize, translate } from "./engine";
 import {
   DEFAULT_TRANSLATION_LANG,
@@ -26,6 +36,13 @@ import {
 } from "./window-manager";
 
 let engineStorage: StorageAdapter | null = null;
+
+const ASSISTANT_BUTTON_ICON =
+  "resources/%theme-type%(light|dark)/big/written-plugin%scale%(default).png";
+const CREATE_ACTION_BUTTON_ICON =
+  "resources/%theme-type%(light|dark)/big/btn-next-field%scale%(default).png";
+const CREATE_ASSISTANT_BUTTON_ICON =
+  "resources/%theme-type%(light|dark)/big/plugin-writer%scale%(default).png";
 
 async function handleTranslation(): Promise<void> {
   const text = await library.GetSelectedText();
@@ -191,6 +208,7 @@ window.Asc.plugin.init = () => {
   const textAnnotatorPopup = new TextAnnotationPopup();
   const spellchecker = new SpellChecker(textAnnotatorPopup);
   const grammar = new GrammarChecker(textAnnotatorPopup);
+  const assistantManager = new CustomAssistantManager(textAnnotatorPopup);
 
   void initAiAgentEngine().then((storage) => {
     engineStorage = storage;
@@ -219,6 +237,12 @@ window.Asc.plugin.init = () => {
       p.text,
       p.annotations
     );
+    assistantManager.onChangeParagraph(
+      p.paragraphId,
+      p.recalcId,
+      p.text,
+      p.annotations
+    );
   });
 
   window.Asc.plugin.attachEditorEvent("onBlurAnnotation", (obj: unknown) => {
@@ -226,6 +250,7 @@ window.Asc.plugin.init = () => {
     if (!p) return;
     if (p.name === "spelling") spellchecker.onBlur();
     else if (p.name === "grammar") grammar.onBlur();
+    else assistantManager.onBlurAnnotation(p.name);
   });
 
   window.Asc.plugin.attachEditorEvent("onClickAnnotation", (obj: unknown) => {
@@ -238,6 +263,7 @@ window.Asc.plugin.init = () => {
     if (p.name === "grammar") grammar.onClick(p.paragraphId, p.ranges);
     else if (p.name === "spelling")
       spellchecker.onClick(p.paragraphId, p.ranges);
+    else assistantManager.onClickAnnotation(p.name, p.paragraphId, p.ranges);
   });
 
   const editorType = window.Asc.plugin.info?.editorType;
@@ -245,7 +271,22 @@ window.Asc.plugin.init = () => {
   const isWord = editorType === "word";
 
   const actionButtons = new Map<string, AscButtonToolbar>();
+  const assistantButtons = new Map<string, AscButtonToolbar>();
   let mainToolbar: AscButtonToolbar | null = null;
+
+  function refreshToolbarButton(btn: AscButtonToolbar): void {
+    // mainToolbar.id / .name are populated by the host *after*
+    // registerToolbarMenu() runs; refreshing earlier is a programming
+    // error (the host call would no-op on an empty id).
+    if (!mainToolbar?.id) {
+      throw new Error("refreshToolbarButton called before toolbar is ready");
+    }
+    window.Asc.Buttons.updateToolbarMenu(
+      String(mainToolbar.id),
+      mainToolbar.name ?? "",
+      [btn]
+    );
+  }
 
   function configureActionButton(
     btn: AscButtonToolbar,
@@ -271,18 +312,110 @@ window.Asc.plugin.init = () => {
     });
   }
 
-  function refreshActionButton(btn: AscButtonToolbar): void {
-    // mainToolbar.id / .name are populated by the host *after*
-    // registerToolbarMenu() runs; refreshing earlier is a programming
-    // error (the host call would no-op on an empty id).
-    if (!mainToolbar?.id) {
-      throw new Error("refreshActionButton called before toolbar is ready");
+  function configureAssistantButton(
+    btn: AscButtonToolbar,
+    assistant: CustomAssistant
+  ): void {
+    btn.text = assistant.name;
+    btn.icons = ASSISTANT_BUTTON_ICON;
+    btn.split = true;
+    btn.enableToggle = true;
+    btn.menu = [
+      {
+        text: "Edit",
+        id: crypto.randomUUID(),
+        onclick: () => openCustomAssistantWindow(assistant.id),
+      },
+      {
+        text: "Delete",
+        id: crypto.randomUUID(),
+        onclick: () => openAssistantDeleteWindow(assistant.id),
+      },
+    ];
+    btn.attachOnClick(() => {
+      void toggleAssistant(assistant.id);
+    });
+  }
+
+  async function toggleAssistant(id: string): Promise<void> {
+    if (assistantManager.isActive(id)) {
+      await assistantManager.stop(id);
+      return;
     }
-    window.Asc.Buttons.updateToolbarMenu(
-      String(mainToolbar.id),
-      mainToolbar.name ?? "",
-      [btn]
-    );
+
+    const selectedText = await library.GetSelectedText();
+    const hasSelection = !!selectedText && !!selectedText.trim();
+
+    Asc.scope.hasSelectedText = hasSelection;
+    const paraIds = await editor.callCommand<string[]>(() => {
+      const result: string[] = [];
+      const paragraphs = Asc.scope.hasSelectedText
+        ? (Api.GetDocument().GetRangeBySelect()?.GetAllParagraphs() ?? [])
+        : Api.GetDocument().GetAllParagraphs();
+      paragraphs.forEach((p: { GetInternalId: () => string }) => {
+        result.push(p.GetInternalId());
+      });
+      return result;
+    });
+
+    if (!paraIds.length) return;
+
+    window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
+    let status: number;
+    try {
+      status = await assistantManager.start(id, paraIds);
+    } finally {
+      window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
+    }
+
+    switch (status) {
+      case ASSISTANT_RUN_STATUS.ok:
+        return;
+      case ASSISTANT_RUN_STATUS.notFound:
+        console.error(`Custom assistant not found: ${id}`);
+        openAssistantWarningWindow(
+          "Custom assistant is not available. Please check your configuration."
+        );
+        return;
+      case ASSISTANT_RUN_STATUS.error:
+        openAssistantWarningWindow(
+          "Not able to perform this action. Please use prompts related to text analysis, editing, or formatting."
+        );
+        // TODO: Add the ability to remove a button press.
+        // buttonAssistant.PRESSED = false;
+        // Asc.Buttons.updateToolbarMenu(window.buttonMainToolbar.id, window.buttonMainToolbar.name, [buttonAssistant]);
+        // customAssistantManager.stop(assistantId);
+        return;
+      case ASSISTANT_RUN_STATUS.noAiModel:
+        // A window with settings will appear.
+        return;
+    }
+  }
+
+  function openAssistantWarningWindow(text: string): void {
+    const existing = pluginWindows.get("custom-assistant-warning");
+    if (existing) {
+      existing.activate();
+      existing.command(CUSTOM_ASSISTANT_DIALOG_EVENTS.warning, text);
+      return;
+    }
+
+    const win = new window.Asc.PluginWindow();
+    win.attachEvent(CUSTOM_ASSISTANT_DIALOG_EVENTS.windowReady, () => {
+      win.command(CUSTOM_ASSISTANT_DIALOG_EVENTS.warning, text);
+    });
+
+    registerWindow("custom-assistant-warning", win);
+    win.show({
+      url: "customAssistant.html",
+      description: "Warning",
+      type: "window",
+      EditorsSupport: ["word"],
+      isVisual: true,
+      isModal: true,
+      size: [350, 110],
+      buttons: [{ text: "OK", primary: true }],
+    });
   }
 
   async function pushProfilesToWindow(win: AscPluginWindow): Promise<void> {
@@ -336,13 +469,13 @@ window.Asc.plugin.init = () => {
         // existingBtn.icons does not refresh the visual. Remove the old
         // button and add a fresh one to force a re-render.
         existingBtn.removed = true;
-        refreshActionButton(existingBtn);
+        refreshToolbarButton(existingBtn);
         actionButtons.delete(action.id);
       }
       const btn = new window.Asc.ButtonToolbar(undefined);
       configureActionButton(btn, action);
       actionButtons.set(action.id, btn);
-      refreshActionButton(btn);
+      refreshToolbarButton(btn);
 
       pluginWindows.set("custom-action", null);
       window.Asc.plugin.executeMethod("CloseWindow", [win.id]);
@@ -391,7 +524,7 @@ window.Asc.plugin.init = () => {
         const existingBtn = actionButtons.get(id);
         if (existingBtn) {
           existingBtn.removed = true;
-          refreshActionButton(existingBtn);
+          refreshToolbarButton(existingBtn);
           actionButtons.delete(id);
         }
 
@@ -404,6 +537,128 @@ window.Asc.plugin.init = () => {
     win.show({
       url: "customActionDelete.html",
       description: "Delete action",
+      type: "window",
+      EditorsSupport: ["word"],
+      isVisual: true,
+      isModal: true,
+      size: [380, 140],
+      buttons: [
+        { text: "Yes", primary: true },
+        { text: "No", primary: false },
+      ],
+    });
+  }
+
+  function openCustomAssistantWindow(assistantId?: string): void {
+    const existing = pluginWindows.get("custom-assistant");
+    if (existing) {
+      existing.activate();
+      return;
+    }
+
+    const isEdit = !!assistantId;
+    const win = new window.Asc.PluginWindow();
+
+    win.attachEvent(CUSTOM_ASSISTANT_DIALOG_EVENTS.windowReady, () => {
+      if (isEdit && assistantId) {
+        win.command(CUSTOM_ASSISTANT_DIALOG_EVENTS.edit, assistantId);
+      }
+      if (!window.AI) {
+        win.command(
+          CUSTOM_ASSISTANT_DIALOG_EVENTS.warning,
+          "AI provider is not configured. Please open AI Settings and assign a model."
+        );
+      }
+    });
+
+    win.attachEvent(
+      CUSTOM_ASSISTANT_DIALOG_EVENTS.addOrEdit,
+      (raw: unknown) => {
+        if (raw === null || raw === undefined) return;
+        const assistant =
+          typeof raw === "string"
+            ? (JSON.parse(raw) as CustomAssistant)
+            : (raw as CustomAssistant);
+        if (!assistant?.id) return;
+
+        const existingBtn = assistantButtons.get(assistant.id);
+        if (existingBtn) {
+          assistantManager.update(assistant);
+          existingBtn.text = assistant.name;
+          refreshToolbarButton(existingBtn);
+        } else {
+          assistantManager.create(assistant);
+          const btn = new window.Asc.ButtonToolbar(undefined);
+          configureAssistantButton(btn, assistant);
+          assistantButtons.set(assistant.id, btn);
+          refreshToolbarButton(btn);
+        }
+
+        pluginWindows.set("custom-assistant", null);
+        window.Asc.plugin.executeMethod("CloseWindow", [win.id]);
+      }
+    );
+
+    registerWindow("custom-assistant", win);
+    win.show({
+      url: "customAssistant.html",
+      description: isEdit ? "Edit" : "Create a new assistant",
+      type: "window",
+      EditorsSupport: ["word"],
+      isVisual: true,
+      isModal: false,
+      size: [427, 303],
+      buttons: [
+        { text: isEdit ? "Save" : "Create", primary: true },
+        { text: "Cancel", primary: false },
+      ],
+    });
+  }
+
+  function openAssistantDeleteWindow(assistantId: string): void {
+    const existing = pluginWindows.get("custom-assistant-delete");
+    if (existing) {
+      existing.activate();
+      return;
+    }
+
+    const win = new window.Asc.PluginWindow();
+
+    win.attachEvent(CUSTOM_ASSISTANT_DELETE_DIALOG_EVENTS.windowReady, () => {
+      win.command(
+        CUSTOM_ASSISTANT_DELETE_DIALOG_EVENTS.setAssistantId,
+        assistantId
+      );
+    });
+
+    win.attachEvent(
+      CUSTOM_ASSISTANT_DELETE_DIALOG_EVENTS.delete,
+      (raw: unknown) => {
+        const payload =
+          typeof raw === "string"
+            ? (JSON.parse(raw) as { id: string })
+            : (raw as { id: string });
+        const id = payload?.id;
+        if (!id) return;
+        deleteAssistant(id);
+        void assistantManager.remove(id);
+
+        const existingBtn = assistantButtons.get(id);
+        if (existingBtn) {
+          existingBtn.removed = true;
+          refreshToolbarButton(existingBtn);
+          assistantButtons.delete(id);
+        }
+
+        pluginWindows.set("custom-assistant-delete", null);
+        window.Asc.plugin.executeMethod("CloseWindow", [win.id]);
+      }
+    );
+
+    registerWindow("custom-assistant-delete", win);
+    win.show({
+      url: "customAssistantDelete.html",
+      description: "Delete assistant",
       type: "window",
       EditorsSupport: ["word"],
       isVisual: true,
@@ -469,24 +724,19 @@ window.Asc.plugin.init = () => {
   mainToolbar = new window.Asc.ButtonToolbar();
   mainToolbar.text = "AI Actions";
 
+  // Group 1: AI Settings
   const buttonSettings = new window.Asc.ButtonToolbar(mainToolbar);
   buttonSettings.text = "AI Settings";
   buttonSettings.icons =
     "resources/%theme-type%(light|dark)/big/settings%scale%(default).png";
   buttonSettings.attachOnClick(() => openSettings());
 
-  const buttonCreateAction = new window.Asc.ButtonToolbar(mainToolbar);
-  buttonCreateAction.text = "Create AI Action";
-  buttonCreateAction.icons =
-    "resources/%theme-type%(light|dark)/big/btn-next-field%scale%(default).png";
-  buttonCreateAction.attachOnClick(() => openCustomActionWindow());
-
+  // Group 2: Summarization, Translation, Grammar & Spelling
   if (!isPdf) {
     const buttonSummarization = new window.Asc.ButtonToolbar(mainToolbar);
     buttonSummarization.text = "Summarization";
     buttonSummarization.icons =
       "resources/%theme-type%(light|dark)/big/summarization%scale%(default).png";
-    buttonSummarization.separator = true;
     buttonSummarization.attachOnClick(() => openSummarizationWindow());
   }
 
@@ -532,6 +782,27 @@ window.Asc.plugin.init = () => {
       void handleGrammarCheck(spellchecker, grammar, true);
     });
 
+    // Group 3: Create AI Assistant + dynamic assistants
+    const buttonCreateAssistant = new window.Asc.ButtonToolbar(mainToolbar);
+    buttonCreateAssistant.text = "Create AI Assistant";
+    buttonCreateAssistant.icons = CREATE_ASSISTANT_BUTTON_ICON;
+    buttonCreateAssistant.separator = true;
+    buttonCreateAssistant.attachOnClick(() => openCustomAssistantWindow());
+
+    for (const assistant of loadAssistants()) {
+      assistantManager.create(assistant);
+      const btn = new window.Asc.ButtonToolbar(mainToolbar);
+      configureAssistantButton(btn, assistant);
+      assistantButtons.set(assistant.id, btn);
+    }
+
+    // Group 4: Create AI Action + dynamic actions
+    const buttonCreateAction = new window.Asc.ButtonToolbar(mainToolbar);
+    buttonCreateAction.text = "Create AI Action";
+    buttonCreateAction.icons = CREATE_ACTION_BUTTON_ICON;
+    buttonCreateAction.separator = true;
+    buttonCreateAction.attachOnClick(() => openCustomActionWindow());
+
     for (const action of loadActions()) {
       const btn = new window.Asc.ButtonToolbar(mainToolbar);
       configureActionButton(btn, action);
@@ -566,6 +837,25 @@ window.Asc.plugin.init = () => {
     if (deleteWin && deleteWin.id === windowId) {
       if (buttonId === 0) {
         deleteWin.command(CUSTOM_ACTION_DELETE_DIALOG_EVENTS.confirm, "");
+        return;
+      }
+    }
+
+    const assistantWin = pluginWindows.get("custom-assistant");
+    if (assistantWin && assistantWin.id === windowId) {
+      if (buttonId === 0) {
+        assistantWin.command(CUSTOM_ASSISTANT_DIALOG_EVENTS.clickAdd, "");
+        return;
+      }
+    }
+
+    const assistantDeleteWin = pluginWindows.get("custom-assistant-delete");
+    if (assistantDeleteWin && assistantDeleteWin.id === windowId) {
+      if (buttonId === 0) {
+        assistantDeleteWin.command(
+          CUSTOM_ASSISTANT_DELETE_DIALOG_EVENTS.confirm,
+          ""
+        );
         return;
       }
     }
