@@ -8,6 +8,11 @@ interface Message {
   timestamp: number;
 }
 
+// Monotonic counter for tie-breaking when multiple messages are
+// created within the same millisecond (e.g. user message + immediate
+// tool result). Date.now() resolution is too coarse on its own.
+let createSeq = 0;
+
 export class IndexedDBMessagesStorage implements MessagesStorage {
   private getDB: () => IDBDatabase;
   private attachments: AttachmentsStorage;
@@ -34,7 +39,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
       id,
       threadId,
       message: fullMessage,
-      timestamp: Date.now(),
+      timestamp: Date.now() * 1000 + (createSeq++ % 1000),
     };
 
     return new Promise((resolve, reject) => {
@@ -63,7 +68,10 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         let messages = request.result
-          .sort((a: Message, b: Message) => a.timestamp - b.timestamp)
+          .sort(
+            (a: Message, b: Message) =>
+              a.timestamp - b.timestamp || a.id.localeCompare(b.id)
+          )
           .map((item: Message) => item.message);
 
         if (startIndex !== undefined) {
@@ -114,10 +122,12 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
           return;
         }
 
+        // Preserve original timestamp — it's the sort key for
+        // readByThread. Overwriting it on every streaming update would
+        // shuffle messages on rehydrate.
         const updatedData: Message = {
           ...existingMessage,
           message: updatedMessage,
-          timestamp: Date.now(),
         };
 
         const putRequest = store.put(updatedData);
