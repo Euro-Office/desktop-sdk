@@ -30,8 +30,17 @@ export class IndexedDBPromptsStorage implements PromptsStorage {
     });
   }
 
-  async createMany(prompts: Prompt[]): Promise<void> {
+  async createMany(
+    inputs: Omit<Prompt, "id" | "createdAt" | "updatedAt">[]
+  ): Promise<Prompt[]> {
     const db = this.getDB();
+    const now = Date.now();
+    const prompts: Prompt[] = inputs.map((input) => ({
+      ...input,
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+    }));
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(["prompts"], "readwrite");
@@ -42,7 +51,7 @@ export class IndexedDBPromptsStorage implements PromptsStorage {
       }
 
       transaction.onerror = () => reject(transaction.error);
-      transaction.oncomplete = () => resolve();
+      transaction.oncomplete = () => resolve(prompts);
     });
   }
 
@@ -212,8 +221,17 @@ export class IndexedDBPromptFoldersStorage implements PromptFoldersStorage {
     });
   }
 
-  async createMany(folders: PromptFolder[]): Promise<void> {
+  async createMany(
+    inputs: Omit<PromptFolder, "id" | "createdAt" | "updatedAt">[]
+  ): Promise<PromptFolder[]> {
     const db = this.getDB();
+    const now = Date.now();
+    const folders: PromptFolder[] = inputs.map((input) => ({
+      ...input,
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+    }));
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(["promptFolders"], "readwrite");
@@ -224,7 +242,7 @@ export class IndexedDBPromptFoldersStorage implements PromptFoldersStorage {
       }
 
       transaction.onerror = () => reject(transaction.error);
-      transaction.oncomplete = () => resolve();
+      transaction.oncomplete = () => resolve(folders);
     });
   }
 
