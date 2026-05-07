@@ -1,6 +1,6 @@
 import type { McpServerConfig, McpServersStorage } from "@onlyoffice/ai-chat";
 
-const KEY = "storage:mcpServers";
+const KEY = "onlyoffice_ai_mcp_servers";
 
 function read(): Record<string, McpServerConfig> {
   const raw = localStorage.getItem(KEY);

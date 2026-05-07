@@ -1,6 +1,6 @@
 import type { PreferencesStorage } from "@onlyoffice/ai-chat";
 
-const DEEP_MODE_KEY = "storage:preferences:deepMode";
+const DEEP_MODE_KEY = "onlyoffice_ai_preferences_deep_mode";
 
 export class LocalStoragePreferencesStorage implements PreferencesStorage {
   async createDeepMode(value: boolean): Promise<void> {

@@ -1,6 +1,6 @@
 import type { ActionType, AssignmentsStorage } from "@onlyoffice/ai-chat";
 
-const KEY = "storage:assignments";
+const KEY = "onlyoffice_ai_assignments";
 
 function read(): Partial<Record<ActionType, string>> {
   const raw = localStorage.getItem(KEY);

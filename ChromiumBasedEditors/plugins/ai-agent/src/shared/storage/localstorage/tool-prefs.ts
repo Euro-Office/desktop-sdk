@@ -1,7 +1,7 @@
 import type { ToolPrefsStorage } from "@onlyoffice/ai-chat";
 
-const DISABLED_KEY = "storage:toolPrefs:disabled";
-const ALLOW_ALWAYS_KEY = "storage:toolPrefs:allowAlways";
+const DISABLED_KEY = "onlyoffice_ai_tool_prefs_disabled";
+const ALLOW_ALWAYS_KEY = "onlyoffice_ai_tool_prefs_allow_always";
 
 export class LocalStorageToolPrefsStorage implements ToolPrefsStorage {
   async createDisabled(disabled: Record<string, string[]>): Promise<void> {

@@ -1,6 +1,6 @@
 import type { WebSearchConfig, WebSearchStorage } from "@onlyoffice/ai-chat";
 
-const KEY = "storage:webSearch";
+const KEY = "onlyoffice_ai_web_search";
 
 export class LocalStorageWebSearchStorage implements WebSearchStorage {
   async create(config: WebSearchConfig): Promise<void> {
