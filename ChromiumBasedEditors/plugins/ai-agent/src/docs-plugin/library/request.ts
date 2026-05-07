@@ -7,6 +7,7 @@ import {
 
 export const AiActionType = {
   Chat: "Chat",
+  Code: "Code",
   Translation: "Translation",
   Summarization: "Summarization",
   TextAnalyze: "TextAnalyze",

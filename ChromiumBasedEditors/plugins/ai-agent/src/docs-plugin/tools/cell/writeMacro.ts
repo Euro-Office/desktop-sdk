@@ -67,7 +67,7 @@ ROUTING:
 - Before operating on EXISTING data, call "readSheetContext" first to get column metadata and table bounds. Do NOT guess column letters.
 - If a specialized tool exists for sort/filter/pivot/chart/highlight/format, prefer that tool over writeMacro.
 - For workbook structure/analysis, prefer readSheetContext({allSheets:true}) and answer in chat.`,
-  codeParamDescription: `Valid JavaScript code using the OnlyOffice Spreadsheet API to execute directly via eval.
+  systemPrompt: `You generate JavaScript macros using the OnlyOffice Spreadsheet API. Output JavaScript that will be executed directly via eval.
 
 CRITICAL RULES (read these first):
 1. PREREQUISITE — EXISTING DATA: Call "readSheetContext" before any code that references existing columns. Use column letters, headerRow, and dataRowCount from tables[activeTableIndex] as literal constants in the macro (e.g. let headerRow = 3; let salaryCol = "L") — the JSON is not accessible inside. Do NOT re-derive these from the sheet at runtime via GetRows(), GetColumns(), or GetRange(row,col). Verify column content from sampleRows; header: null in cols means the cell is empty.

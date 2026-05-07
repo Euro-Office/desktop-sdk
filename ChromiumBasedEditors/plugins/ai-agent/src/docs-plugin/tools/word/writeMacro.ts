@@ -6,7 +6,7 @@ Use this tool to perform any document operation when no other specialized tool i
 This tool can also be used to READ/GET data from the document — make the last expression in the script be the value you want to retrieve, and it will be returned as the tool result.
 For example, to get the text of the first paragraph, write: Api.GetDocument().GetElement(0).GetText()
 The return value of the last expression will be the tool's output.`,
-  codeParamDescription: `Valid JavaScript code using the OnlyOffice Document API to execute directly via eval. Rules:
+  systemPrompt: `You generate JavaScript macros using the OnlyOffice Document API. Output JavaScript that will be executed directly via eval. Rules:
 - Use only the OnlyOffice Document API (Api, ApiDocument, ApiParagraph, ApiRun, ApiTable, etc.)
 - Do NOT wrap the code in a function or IIFE — output only the statements to execute directly
 - Do NOT include any explanation, comments, or markdown — output raw JavaScript only

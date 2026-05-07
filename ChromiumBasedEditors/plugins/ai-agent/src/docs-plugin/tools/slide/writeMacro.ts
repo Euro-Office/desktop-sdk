@@ -6,7 +6,7 @@ Use this tool to perform any presentation operation when no other specialized to
 This tool can also be used to READ/GET data from the presentation — make the last expression in the script be the value you want to retrieve, and it will be returned as the tool result.
 For example, to get the number of slides, write: Api.GetPresentation().GetSlidesCount()
 The return value of the last expression will be the tool's output.`,
-  codeParamDescription: `Valid JavaScript code using the OnlyOffice Presentation API to execute directly via eval. Rules:
+  systemPrompt: `You generate JavaScript macros using the OnlyOffice Presentation API. Output JavaScript that will be executed directly via eval. Rules:
 - Use only the OnlyOffice Presentation API (Api, Api.GetPresentation(), etc.)
 - Do NOT wrap the code in a function or IIFE — output only the statements to execute directly
 - Do NOT include any explanation, comments, or markdown — output raw JavaScript only

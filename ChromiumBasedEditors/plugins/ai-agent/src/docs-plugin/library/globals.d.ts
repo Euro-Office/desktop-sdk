@@ -83,6 +83,7 @@ declare interface AIRequestFactoryStatic {
 declare interface AIGlobal {
   ActionType: {
     readonly Chat: "Chat";
+    readonly Code: "Code";
     readonly Translation: "Translation";
     readonly Summarization: "Summarization";
     readonly TextAnalyze: "TextAnalyze";
