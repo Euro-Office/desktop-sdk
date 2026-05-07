@@ -17,6 +17,7 @@ import {
   ToolsEngine,
   WebSearchEngine,
 } from "@onlyoffice/ai-chat";
+import { AttachmentsEngine } from "@onlyoffice/ai-chat/services";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import { crossPluginBus } from "@/shared/sync/crossPluginBus";
@@ -103,6 +104,7 @@ export async function initAiAgentEngine(): Promise<IndexedDBStorage> {
   const prompts = new PromptsEngine({ storage });
   const webSearch = new WebSearchEngine({ storage });
   const preferences = new PreferencesEngine({ storage });
+  const attachments = new AttachmentsEngine({ storage });
   const ai = new AIEngine({ storage, assignments, threads });
 
   const servers = new Servers(platform, eventBus);
@@ -121,6 +123,7 @@ export async function initAiAgentEngine(): Promise<IndexedDBStorage> {
     {
       ai,
       assignments,
+      attachments,
       preferences,
       profiles,
       prompts,

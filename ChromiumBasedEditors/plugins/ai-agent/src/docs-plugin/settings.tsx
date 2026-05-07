@@ -30,6 +30,7 @@ import {
   WebSearchEngine,
   WidgetConfigProvider,
 } from "@onlyoffice/ai-chat";
+import { AttachmentsEngine } from "@onlyoffice/ai-chat/services";
 import { StrictMode, useEffect, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
@@ -107,6 +108,7 @@ const Settings = () => {
     const prompts = new PromptsEngine({ storage });
     const webSearch = new WebSearchEngine({ storage });
     const preferences = new PreferencesEngine({ storage });
+    const attachments = new AttachmentsEngine({ storage });
     const ai = new AIEngine({ storage, assignments, threads });
 
     const servers = new Servers(platform, eventBus);
@@ -123,6 +125,7 @@ const Settings = () => {
     const engines = {
       ai,
       assignments,
+      attachments,
       preferences,
       profiles,
       prompts,

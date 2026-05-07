@@ -6,6 +6,7 @@ import {
   LocalStorageToolPrefsStorage,
   LocalStorageWebSearchStorage,
 } from "../localstorage/index.ts";
+import { IndexedDBAttachmentsStorage } from "./attachments.ts";
 import { IndexedDBMessagesStorage } from "./messages.ts";
 import { IndexedDBProfilesStorage } from "./profiles.ts";
 import {
@@ -16,7 +17,7 @@ import { IndexedDBThreadsStorage } from "./threads.ts";
 
 export class IndexedDBStorage implements StorageAdapter {
   private dbName = "ChatHistory";
-  private version = 3;
+  private version = 4;
   private db: IDBDatabase | null = null;
 
   threads: IndexedDBThreadsStorage;
@@ -24,6 +25,7 @@ export class IndexedDBStorage implements StorageAdapter {
   profiles: IndexedDBProfilesStorage;
   prompts: IndexedDBPromptsStorage;
   promptFolders: IndexedDBPromptFoldersStorage;
+  attachments: IndexedDBAttachmentsStorage;
   assignments: LocalStorageAssignmentsStorage;
   preferences: LocalStoragePreferencesStorage;
   mcpServers: LocalStorageMcpServersStorage;
@@ -36,8 +38,9 @@ export class IndexedDBStorage implements StorageAdapter {
       return this.db;
     };
 
-    this.messages = new IndexedDBMessagesStorage(getDB);
-    this.threads = new IndexedDBThreadsStorage(getDB);
+    this.attachments = new IndexedDBAttachmentsStorage(getDB);
+    this.messages = new IndexedDBMessagesStorage(getDB, this.attachments);
+    this.threads = new IndexedDBThreadsStorage(getDB, this.messages);
     this.profiles = new IndexedDBProfilesStorage(getDB);
     this.prompts = new IndexedDBPromptsStorage(getDB);
     this.promptFolders = new IndexedDBPromptFoldersStorage(getDB, this.prompts);
@@ -103,6 +106,21 @@ export class IndexedDBStorage implements StorageAdapter {
 
         if (!db.objectStoreNames.contains("profiles")) {
           db.createObjectStore("profiles", { keyPath: "id" });
+        }
+
+        if (!db.objectStoreNames.contains("attachments")) {
+          const attachmentsStore = db.createObjectStore("attachments", {
+            keyPath: "id",
+          });
+          attachmentsStore.createIndex("messageId", "messageId", {
+            unique: false,
+          });
+          attachmentsStore.createIndex("threadId", "threadId", {
+            unique: false,
+          });
+          attachmentsStore.createIndex("createdAt", "createdAt", {
+            unique: false,
+          });
         }
       };
     });

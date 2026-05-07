@@ -1,5 +1,5 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
-import type { MessagesStorage } from "@onlyoffice/ai-chat";
+import type { AttachmentsStorage, MessagesStorage } from "@onlyoffice/ai-chat";
 
 interface Message {
   id: string;
@@ -10,9 +10,11 @@ interface Message {
 
 export class IndexedDBMessagesStorage implements MessagesStorage {
   private getDB: () => IDBDatabase;
+  private attachments: AttachmentsStorage;
 
-  constructor(getDB: () => IDBDatabase) {
+  constructor(getDB: () => IDBDatabase, attachments: AttachmentsStorage) {
     this.getDB = getDB;
+    this.attachments = attachments;
   }
 
   async create(
@@ -128,7 +130,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
   async delete(messageId: string): Promise<void> {
     const db = this.getDB();
 
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(["messages"], "readwrite");
       const store = transaction.objectStore("messages");
       const request = store.delete(messageId);
@@ -136,12 +138,14 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
+
+    await this.attachments.deleteByMessage(messageId);
   }
 
   async deleteByThread(threadId: string): Promise<void> {
     const db = this.getDB();
 
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(["messages"], "readwrite");
       const store = transaction.objectStore("messages");
       const index = store.index("threadId");
@@ -159,5 +163,7 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
 
       request.onerror = () => reject(request.error);
     });
+
+    await this.attachments.deleteByThread(threadId);
   }
 }

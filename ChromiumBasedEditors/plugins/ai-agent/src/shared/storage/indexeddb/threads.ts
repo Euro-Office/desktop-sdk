@@ -1,11 +1,13 @@
-import type { ThreadsStorage } from "@onlyoffice/ai-chat";
+import type { MessagesStorage, ThreadsStorage } from "@onlyoffice/ai-chat";
 import type { Thread } from "@/shared/lib/types.ts";
 
 export class IndexedDBThreadsStorage implements ThreadsStorage {
   private getDB: () => IDBDatabase;
+  private messages: MessagesStorage;
 
-  constructor(getDB: () => IDBDatabase) {
+  constructor(getDB: () => IDBDatabase, messages: MessagesStorage) {
     this.getDB = getDB;
+    this.messages = messages;
   }
 
   async create(title: string, profileId?: string): Promise<Thread> {
@@ -128,7 +130,7 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
   async delete(threadId: string): Promise<void> {
     const db = this.getDB();
 
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(["threads"], "readwrite");
       const store = transaction.objectStore("threads");
       const request = store.delete(threadId);
@@ -136,5 +138,7 @@ export class IndexedDBThreadsStorage implements ThreadsStorage {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
+
+    await this.messages.deleteByThread(threadId);
   }
 }
