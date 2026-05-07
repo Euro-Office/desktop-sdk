@@ -273,6 +273,7 @@ window.Asc.plugin.init = () => {
   const actionButtons = new Map<string, AscButtonToolbar>();
   const assistantButtons = new Map<string, AscButtonToolbar>();
   let mainToolbar: AscButtonToolbar | null = null;
+  let buttonCreateAction: AscButtonToolbar | null = null;
 
   function refreshToolbarButton(btn: AscButtonToolbar): void {
     // mainToolbar.id / .name are populated by the host *after*
@@ -285,6 +286,34 @@ window.Asc.plugin.init = () => {
       String(mainToolbar.id),
       mainToolbar.name ?? "",
       [btn]
+    );
+  }
+
+  function refreshActions(): void {
+    if (!mainToolbar?.id || !buttonCreateAction) return;
+
+    const btns = [buttonCreateAction, ...actionButtons.values()];
+
+    // To ensure the correct order (assistants before actions), we remove all
+    // action-related buttons and then add them back. This forces the host to
+    // append them at the end of the menu, effectively placing them after any
+    // newly added assistant buttons.
+    btns.forEach((b) => {
+      b.removed = true;
+    });
+    window.Asc.Buttons.updateToolbarMenu(
+      String(mainToolbar.id),
+      mainToolbar.name ?? "",
+      btns
+    );
+
+    btns.forEach((b) => {
+      b.removed = false;
+    });
+    window.Asc.Buttons.updateToolbarMenu(
+      String(mainToolbar.id),
+      mainToolbar.name ?? "",
+      btns
     );
   }
 
@@ -592,6 +621,7 @@ window.Asc.plugin.init = () => {
           configureAssistantButton(btn, assistant);
           assistantButtons.set(assistant.id, btn);
           refreshToolbarButton(btn);
+          refreshActions();
         }
 
         pluginWindows.set("custom-assistant", null);
@@ -797,7 +827,7 @@ window.Asc.plugin.init = () => {
     }
 
     // Group 4: Create AI Action + dynamic actions
-    const buttonCreateAction = new window.Asc.ButtonToolbar(mainToolbar);
+    buttonCreateAction = new window.Asc.ButtonToolbar(mainToolbar);
     buttonCreateAction.text = "Create AI Action";
     buttonCreateAction.icons = CREATE_ACTION_BUTTON_ICON;
     buttonCreateAction.separator = true;
