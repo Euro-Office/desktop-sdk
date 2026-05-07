@@ -116,18 +116,23 @@ export class IndexedDBMessagesStorage implements MessagesStorage {
 
       getRequest.onerror = () => reject(getRequest.error);
       getRequest.onsuccess = () => {
-        const existingMessage = getRequest.result;
+        const existingMessage = getRequest.result as Message | undefined;
         if (!existingMessage) {
           reject(new Error("Message not found"));
           return;
         }
 
-        // Preserve original timestamp — it's the sort key for
-        // readByThread. Overwriting it on every streaming update would
-        // shuffle messages on rehydrate.
+        // Preserve identity fields (id, createdAt) on the inner message
+        // — the engine sends a bare message on streaming updates without
+        // them. Losing id makes assistant-ui fall back to index-based
+        // tracking and mis-group messages on re-render.
         const updatedData: Message = {
           ...existingMessage,
-          message: updatedMessage,
+          message: {
+            ...updatedMessage,
+            id: existingMessage.id,
+            createdAt: existingMessage.message?.createdAt,
+          } as ThreadMessageLike,
         };
 
         const putRequest = store.put(updatedData);
