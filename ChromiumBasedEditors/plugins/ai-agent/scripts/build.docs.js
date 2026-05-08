@@ -19,7 +19,7 @@ if (!fs.existsSync(targetDir)) {
 }
 
 function cleanTargetDir(dirPath) {
-  const preserveFiles = ["index.html", "chat.html", "settings.html", "translation.html", "summarization.html", "annotation-popup.html", "customAction.html", "customActionDelete.html", "customAssistant.html", "customAssistantDelete.html", "config.json"];
+  const preserveFiles = ["index.html", "chat.html", "settings.html", "translation.html", "summarization.html", "annotation-popup.html", "customAction.html", "customActionDelete.html", "customAssistant.html", "customAssistantDelete.html", "customProviders.html", "config.json"];
 
   if (!fs.existsSync(dirPath)) return;
 

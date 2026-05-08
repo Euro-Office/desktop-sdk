@@ -20,6 +20,7 @@ export interface CrossPluginEvents {
   webSearchUpdated: WebSearchUpdatedEvent;
   threadsUpdated: ThreadsUpdatedEvent;
   extendedThinkingUpdated: ExtendedThinkingUpdatedEvent;
+  customProvidersUpdated: { providers: string[] };
 }
 
 type EventName = keyof CrossPluginEvents;

@@ -6,6 +6,10 @@ import { migrateProvidersToProfiles } from "@/shared/lib/migrateProvidersToProfi
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import type { CrossPluginEvents } from "@/shared/sync/crossPluginBus";
+import {
+  applyCustomProvidersDelta,
+  bootstrapCustomProviders,
+} from "./custom-providers/bootstrap";
 import { editor } from "./library/editor";
 import { install as installLibrary } from "./library/index";
 import { OnlyOfficePlatform } from "./platform/index";
@@ -117,6 +121,10 @@ const Chat = () => {
           widget.updateWebSearch();
           widget.updateMCPServer();
           return;
+        case "customProvidersUpdated":
+          applyCustomProvidersDelta(payload.data.providers);
+          widget.updateCurrentChat();
+          return;
       }
     });
 
@@ -171,6 +179,7 @@ const Chat = () => {
 window.Asc.plugin.init = async () => {
   await sharedStorage.init();
   installLibrary(sharedStorage);
+  bootstrapCustomProviders();
 
   const container = document.getElementById("chat_panel");
 

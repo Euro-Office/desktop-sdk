@@ -13,7 +13,8 @@ export type PluginWindowId =
   | "custom-action-delete"
   | "custom-assistant"
   | "custom-assistant-delete"
-  | "custom-assistant-warning";
+  | "custom-assistant-warning"
+  | "custom-providers";
 
 export const pluginWindows = new Map<PluginWindowId, AscPluginWindow | null>([
   ["chat", null],
@@ -25,6 +26,7 @@ export const pluginWindows = new Map<PluginWindowId, AscPluginWindow | null>([
   ["custom-assistant", null],
   ["custom-assistant-delete", null],
   ["custom-assistant-warning", null],
+  ["custom-providers", null],
 ]);
 
 const AI_STATE_EVENT = "onAiStateChanged";
@@ -43,6 +45,7 @@ const SYNC_EVENT_NAMES: readonly SyncEventName[] = [
   "webSearchUpdated",
   "threadsUpdated",
   "extendedThinkingUpdated",
+  "customProvidersUpdated",
 ];
 
 function parsePayload(raw: unknown): SyncPayload | null {
@@ -85,6 +88,9 @@ function notifyDesktopPlugin(payload: SyncPayload): void {
       return;
     case "extendedThinkingUpdated":
       crossPluginBus.publish("extendedThinkingUpdated", payload.data);
+      return;
+    case "customProvidersUpdated":
+      crossPluginBus.publish("customProvidersUpdated", payload.data);
       return;
   }
 }

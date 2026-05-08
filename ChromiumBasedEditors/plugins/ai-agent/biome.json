@@ -92,6 +92,9 @@
     "globals": ["PerfectScrollbar", "Api", "Asc"]
   },
   "files": {
-    "includes": ["src/**"]
+    "includes": [
+      "src/**",
+      "!src/docs-plugin/custom-providers/template.js"
+    ]
   }
 }

@@ -1,5 +1,6 @@
 import type { StorageAdapter } from "@onlyoffice/ai-chat";
 import { isDesktopEditor } from "@/shared/lib/utils";
+import { crossPluginBus } from "@/shared/sync/crossPluginBus";
 import { runAction } from "./custom-actions/action-runner";
 import {
   CUSTOM_ACTION_DELETE_DIALOG_EVENTS,
@@ -18,6 +19,13 @@ import {
 } from "./custom-assistants/manager";
 import { deleteAssistant, loadAssistants } from "./custom-assistants/storage";
 import type { CustomAssistant } from "./custom-assistants/types";
+import { CUSTOM_PROVIDERS_DIALOG_EVENTS } from "./custom-providers/dialog-events";
+import { instantiateProviderClass } from "./custom-providers/eval";
+import {
+  deleteProvider as deleteCustomProvider,
+  loadProviders as loadCustomProviders,
+  upsertProvider as upsertCustomProvider,
+} from "./custom-providers/storage";
 import { initAiAgentEngine, summarize, translate } from "./engine";
 import {
   DEFAULT_TRANSLATION_LANG,
@@ -67,6 +75,9 @@ function openSettings() {
   }
 
   const settingsWindow = new window.Asc.PluginWindow();
+  settingsWindow.attachEvent("ai-open-custom-providers", () => {
+    openCustomProvidersWindow();
+  });
   registerWindow("settings", settingsWindow);
   settingsWindow.show({
     url: "settings.html",
@@ -77,6 +88,110 @@ function openSettings() {
     icons:
       "resources/%theme-type%(light|dark)/big/settings%scale%(default).png",
     size: [470, 600],
+  });
+}
+
+function openCustomProvidersWindow() {
+  const existing = pluginWindows.get("custom-providers");
+  if (existing) {
+    existing.activate();
+    return;
+  }
+
+  const win = new window.Asc.PluginWindow();
+
+  const pushList = (): void => {
+    win.command(
+      CUSTOM_PROVIDERS_DIALOG_EVENTS.setProviders,
+      JSON.stringify(loadCustomProviders().map((p) => p.name))
+    );
+  };
+
+  const broadcastUpdate = (): void => {
+    const names = loadCustomProviders().map((p) => p.name);
+    crossPluginBus.publish("customProvidersUpdated", { providers: names });
+  };
+
+  win.attachEvent(CUSTOM_PROVIDERS_DIALOG_EVENTS.windowReady, () => {
+    pushList();
+  });
+
+  win.attachEvent(
+    CUSTOM_PROVIDERS_DIALOG_EVENTS.addProvider,
+    (raw: unknown) => {
+      const payload =
+        typeof raw === "string"
+          ? (JSON.parse(raw) as { name: string; content: string })
+          : (raw as { name: string; content: string });
+      const fileName = payload?.name ?? "";
+      const content = payload?.content ?? "";
+      if (!content.trim()) {
+        win.command(
+          CUSTOM_PROVIDERS_DIALOG_EVENTS.error,
+          "Empty provider file"
+        );
+        return;
+      }
+
+      let Ctor: ReturnType<typeof instantiateProviderClass>;
+      try {
+        Ctor = instantiateProviderClass(content);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Invalid provider file";
+        win.command(CUSTOM_PROVIDERS_DIALOG_EVENTS.error, message);
+        return;
+      }
+
+      let providerName: string;
+      try {
+        providerName = String(Ctor.getName?.() ?? "").trim();
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to read provider name";
+        win.command(CUSTOM_PROVIDERS_DIALOG_EVENTS.error, message);
+        return;
+      }
+
+      if (!providerName) {
+        const fallback = fileName.replace(/\.js$/i, "").trim();
+        providerName = fallback || "Custom provider";
+      }
+
+      upsertCustomProvider({
+        name: providerName,
+        source: content,
+        createdAt: Date.now(),
+      });
+      pushList();
+      broadcastUpdate();
+    }
+  );
+
+  win.attachEvent(
+    CUSTOM_PROVIDERS_DIALOG_EVENTS.deleteProvider,
+    (raw: unknown) => {
+      const payload =
+        typeof raw === "string"
+          ? (JSON.parse(raw) as { name: string })
+          : (raw as { name: string });
+      if (!payload?.name) return;
+      deleteCustomProvider(payload.name);
+      pushList();
+      broadcastUpdate();
+    }
+  );
+
+  registerWindow("custom-providers", win);
+  win.show({
+    url: "customProviders.html",
+    description: "Custom providers",
+    type: "window",
+    EditorsSupport: ["word", "slide", "cell", "pdf"],
+    isVisual: true,
+    isModal: true,
+    size: [350, 240],
+    buttons: [{ text: "Close", primary: false }],
   });
 }
 

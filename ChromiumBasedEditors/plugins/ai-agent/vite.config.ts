@@ -63,6 +63,10 @@ export default defineConfig(({ mode }) => {
                 __dirname,
                 "src/docs-plugin/custom-assistant-delete-dialog.tsx"
               ),
+              "custom-providers-dialog": path.resolve(
+                __dirname,
+                "src/docs-plugin/custom-providers-dialog.tsx"
+              ),
               "docs-plugin-styles": path.resolve(
                 __dirname,
                 "src/docs-plugin/style.css"

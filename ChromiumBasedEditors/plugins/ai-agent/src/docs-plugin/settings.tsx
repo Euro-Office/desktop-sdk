@@ -36,6 +36,10 @@ import { createRoot } from "react-dom/client";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import type { CrossPluginEvents } from "@/shared/sync/crossPluginBus";
+import {
+  applyCustomProvidersDelta,
+  bootstrapCustomProviders,
+} from "./custom-providers/bootstrap";
 import { editor } from "./library/editor";
 import { install as installLibrary } from "./library/index";
 import { OnlyOfficePlatform } from "./platform/index";
@@ -77,6 +81,10 @@ const SettingsInit = () => {
           return;
         case "webSearchUpdated":
           api.webSearch.clear();
+          return;
+        case "customProvidersUpdated":
+          applyCustomProvidersDelta(payload.data.providers);
+          useProfilesStore.getState().reloadProfiles();
           return;
       }
     });
@@ -195,7 +203,17 @@ const Settings = () => {
       <PlatformProvider platform={platform}>
         <I18nProvider locale={platform.env.locale ?? "en"}>
           <ComponentsProvider>
-            <WidgetConfigProvider config={{ isDialogFullscreen: true }}>
+            <WidgetConfigProvider
+              config={{
+                isDialogFullscreen: true,
+                onProfileImportClick: () => {
+                  window.Asc.plugin.sendToPlugin(
+                    "ai-open-custom-providers",
+                    {}
+                  );
+                },
+              }}
+            >
               <ApiProvider config={serverApiConfig} engines={engines}>
                 <StoresProvider stores={stores}>
                   <ThemeProvider>
@@ -232,6 +250,7 @@ const sharedStorage = new IndexedDBStorage();
 window.Asc.plugin.init = async () => {
   await sharedStorage.init();
   installLibrary(sharedStorage);
+  bootstrapCustomProviders();
 
   const container = document.getElementById("settings_window");
 
