@@ -18,8 +18,10 @@ function iconUrl(themeType: string, name: string): string {
   return `resources/${theme}/${name}${getZoomSuffix()}.png`;
 }
 
+type ProviderItem = { name: string; reason?: string | null };
+
 function CustomProvidersDialog() {
-  const [providers, setProviders] = useState<string[]>([]);
+  const [providers, setProviders] = useState<ProviderItem[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -139,10 +141,13 @@ function CustomProvidersDialog() {
       (raw: unknown) => {
         const list =
           typeof raw === "string"
-            ? (JSON.parse(raw) as string[])
-            : (raw as string[]);
-        setProviders(Array.isArray(list) ? list : []);
-        setSelected((prev) => (prev && list.includes(prev) ? prev : null));
+            ? (JSON.parse(raw) as ProviderItem[])
+            : (raw as ProviderItem[]);
+        const items = Array.isArray(list) ? list : [];
+        setProviders(items);
+        setSelected((prev) =>
+          prev && items.some((p) => p.name === prev) ? prev : null
+        );
       }
     );
 
@@ -233,18 +238,31 @@ function CustomProvidersDialog() {
               The list is empty, press + to add the file
             </div>
           ) : (
-            providers.map((name) => (
-              <div
-                key={name}
-                className={`item${selected === name ? " selected" : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelected((prev) => (prev === name ? null : name));
-                }}
-              >
-                {name}
-              </div>
-            ))
+            providers.map((item) => {
+              const isBroken = !!item.reason;
+              const className = [
+                "item",
+                selected === item.name ? "selected" : "",
+                isBroken ? "broken" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              return (
+                <div
+                  key={item.name}
+                  className={className}
+                  title={item.reason ?? undefined}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelected((prev) =>
+                      prev === item.name ? null : item.name
+                    );
+                  }}
+                >
+                  {item.name}
+                </div>
+              );
+            })
           )}
         </div>
 

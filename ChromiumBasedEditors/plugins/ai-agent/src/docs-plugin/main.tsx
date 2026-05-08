@@ -20,12 +20,15 @@ import {
 import { deleteAssistant, loadAssistants } from "./custom-assistants/storage";
 import type { CustomAssistant } from "./custom-assistants/types";
 import { CUSTOM_PROVIDERS_DIALOG_EVENTS } from "./custom-providers/dialog-events";
-import { instantiateProviderClass } from "./custom-providers/eval";
 import {
   deleteProvider as deleteCustomProvider,
   loadProviders as loadCustomProviders,
   upsertProvider as upsertCustomProvider,
 } from "./custom-providers/storage";
+import {
+  isDesktopOnlyProvider,
+  validateProvider,
+} from "./custom-providers/validate";
 import { initAiAgentEngine, summarize, translate } from "./engine";
 import {
   DEFAULT_TRANSLATION_LANG,
@@ -101,9 +104,22 @@ function openCustomProvidersWindow() {
   const win = new window.Asc.PluginWindow();
 
   const pushList = (): void => {
+    const items = loadCustomProviders().map((record) => {
+      const result = validateProvider(record.source);
+      if (!result.ok) {
+        return { name: record.name, reason: result.reason };
+      }
+      if (isDesktopOnlyProvider(result.Ctor) && !isDesktopEditor()) {
+        return {
+          name: record.name,
+          reason: "Desktop-only provider, unavailable in this editor.",
+        };
+      }
+      return { name: record.name };
+    });
     win.command(
       CUSTOM_PROVIDERS_DIALOG_EVENTS.setProviders,
-      JSON.stringify(loadCustomProviders().map((p) => p.name))
+      JSON.stringify(items)
     );
   };
 
@@ -133,19 +149,15 @@ function openCustomProvidersWindow() {
         return;
       }
 
-      let Ctor: ReturnType<typeof instantiateProviderClass>;
-      try {
-        Ctor = instantiateProviderClass(content);
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Invalid provider file";
-        win.command(CUSTOM_PROVIDERS_DIALOG_EVENTS.error, message);
+      const result = validateProvider(content);
+      if (!result.ok) {
+        win.command(CUSTOM_PROVIDERS_DIALOG_EVENTS.error, result.reason);
         return;
       }
 
       let providerName: string;
       try {
-        providerName = String(Ctor.getName?.() ?? "").trim();
+        providerName = String(result.Ctor.getName?.() ?? "").trim();
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to read provider name";

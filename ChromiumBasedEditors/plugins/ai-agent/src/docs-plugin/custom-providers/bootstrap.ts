@@ -1,7 +1,8 @@
 import { registerProvider, unregisterProvider } from "@onlyoffice/ai-chat";
-import { CustomProviderEvalError, instantiateProviderClass } from "./eval";
+import { isDesktopEditor } from "@/shared/lib/utils";
 import { loadProviders } from "./storage";
 import type { CustomProviderRecord } from "./types";
+import { isDesktopOnlyProvider, validateProvider } from "./validate";
 
 const CUSTOM_TYPE_PREFIX = "custom:";
 
@@ -17,22 +18,23 @@ export function customProviderType(name: string): string {
 }
 
 function tryRegister(record: CustomProviderRecord): boolean {
-  const type = customProviderType(record.name);
-  try {
-    const Ctor = instantiateProviderClass(record.source);
-    registerProvider(type, Ctor);
-    registered.add(type);
-    return true;
-  } catch (err) {
-    if (err instanceof CustomProviderEvalError) {
-      console.warn(
-        `[custom-providers] Skipping "${record.name}": ${err.message}`
-      );
-    } else {
-      console.warn(`[custom-providers] Skipping "${record.name}":`, err);
-    }
+  const result = validateProvider(record.source);
+  if (!result.ok) {
+    console.warn(
+      `[custom-providers] "${record.name}" not registered: ${result.reason}`
+    );
     return false;
   }
+  if (isDesktopOnlyProvider(result.Ctor) && !isDesktopEditor()) {
+    console.info(
+      `[custom-providers] "${record.name}" is desktop-only — skipping registration`
+    );
+    return false;
+  }
+  const type = customProviderType(record.name);
+  registerProvider(type, result.Ctor);
+  registered.add(type);
+  return true;
 }
 
 export function bootstrapCustomProviders(): void {
