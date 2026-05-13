@@ -57,9 +57,5 @@ export function createToolsAdapter(editorType: EditorType): ToolsAdapter {
         return JSON.stringify({ error: message });
       }
     },
-    async denyTool() {
-      // Adapter tools execute in-engine without a UI approval round-trip,
-      // so deny is never invoked by the engine.
-    },
   };
 }
