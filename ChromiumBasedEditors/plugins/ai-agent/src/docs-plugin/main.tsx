@@ -313,6 +313,34 @@ function openChat(payload?: OpenChatPayload) {
 
   const chatWindow = new window.Asc.PluginWindow();
   chatWindow.attachEvent("ai-open-settings", openSettings);
+  chatWindow.attachEvent("onChatReplace", async (raw: unknown) => {
+    const payload =
+      typeof raw === "string"
+        ? (JSON.parse(raw) as { type: string; data: string })
+        : (raw as { type: string; data: string });
+    const md = payload?.data ?? "";
+    const html = library.ConvertMdToHTML(md);
+    const plain = html
+      .replace(/<\/?[^>]+(>|$)/g, "")
+      .replace(/\n{3,}/g, "\n\n");
+    const editorType = window.Asc.plugin.info?.editorType;
+    switch (payload?.type) {
+      case "replace": {
+        void library.ReplaceTextSmart(plain);
+        break;
+      }
+      case "insert":
+        void library.InsertAsHTML(html);
+        break;
+      case "comment":
+        void library.InsertAsComment(plain);
+        break;
+      case "review":
+        if (editorType === "word") void library.InsertAsReview(html, true);
+        else void library.InsertAsComment(plain);
+        break;
+    }
+  });
   chatWindow.attachEvent("chat-ready", () => {
     if (payload) {
       chatWindow.command("sendToChat", JSON.stringify(payload));

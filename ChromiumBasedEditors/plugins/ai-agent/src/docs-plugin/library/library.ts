@@ -79,7 +79,7 @@ class AscLibrary {
   }
 
   async ReplaceTextSmart(text: string): Promise<void> {
-    await editor.callMethod("ReplaceTextSmart", [text]);
+    await editor.callMethod("ReplaceTextSmart", [[text]]);
   }
 
   async InsertAsText(text: string): Promise<void> {
