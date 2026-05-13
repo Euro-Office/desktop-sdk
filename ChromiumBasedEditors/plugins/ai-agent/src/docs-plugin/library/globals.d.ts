@@ -70,10 +70,14 @@ declare interface AIRequestInstance {
     streamFunc?: (delta: string, isFinal: boolean) => void | Promise<void>
   ): Promise<string>;
   imageGenerationRequest(
-    prompt: string,
-    width?: number,
-    height?: number
+    data: { prompt: string; width?: number; height?: number },
+    block?: boolean
   ): Promise<string>;
+  imageVisionRequest(
+    data: { prompt?: string; image: string },
+    block?: boolean
+  ): Promise<string>;
+  imageOCRRequest(image: string, block?: boolean): Promise<string>;
 }
 
 declare interface AIRequestFactoryStatic {

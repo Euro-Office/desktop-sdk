@@ -1,10 +1,5 @@
 import { editor } from "../../library/editor";
-import {
-  endGroupActions,
-  getAiBlockLabel,
-  startBlockAction,
-  startGroupActions,
-} from "../lib/aiActions";
+import { endGroupActions, startGroupActions } from "../lib/aiActions";
 import { defineTool } from "../lib/defineTool";
 import { ToolError } from "../lib/ToolError";
 import {
@@ -91,17 +86,13 @@ export const addImageByDescription = defineTool({
     );
 
     await startGroupActions();
-    const block = await startBlockAction(
-      getAiBlockLabel(window.AI.ActionType.ImageGeneration)
-    );
 
     try {
-      const rawResult = await requestEngine.imageGenerationRequest(
-        fullPrompt,
-        widthPx,
-        heightPx
-      );
-      await block.end();
+      const rawResult = await requestEngine.imageGenerationRequest({
+        prompt: fullPrompt,
+        width: widthPx,
+        height: heightPx,
+      });
 
       if (!rawResult) {
         throw new ToolError(
@@ -197,7 +188,6 @@ export const addImageByDescription = defineTool({
         throw new ToolError("No active slide found in the presentation.");
       }
     } finally {
-      await block.end();
       await endGroupActions();
     }
 

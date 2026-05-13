@@ -1,10 +1,5 @@
 import { editor } from "../../library/editor";
-import {
-  endGroupActions,
-  getAiBlockLabel,
-  startBlockAction,
-  startGroupActions,
-} from "../lib/aiActions";
+import { endGroupActions, startGroupActions } from "../lib/aiActions";
 import { defineTool } from "../lib/defineTool";
 import { ToolError } from "../lib/ToolError";
 import { optionalString } from "../lib/validation";
@@ -86,15 +81,11 @@ export const explainFormula = defineTool({
     const requestEngine = window.AI.Request.create(window.AI.ActionType.Chat);
 
     await startGroupActions();
-    const block = await startBlockAction(
-      getAiBlockLabel(window.AI.ActionType.Chat)
-    );
 
     let explanation = "";
     try {
       explanation = await requestEngine.chatRequest(prompt);
     } finally {
-      await block.end();
       await endGroupActions();
     }
 

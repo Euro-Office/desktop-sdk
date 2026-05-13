@@ -1,10 +1,5 @@
 import { editor } from "../../library/editor";
-import {
-  endGroupActions,
-  getAiBlockLabel,
-  startBlockAction,
-  startGroupActions,
-} from "./aiActions";
+import { endGroupActions, startGroupActions } from "./aiActions";
 import { ToolError } from "./ToolError";
 
 function rangeToCsv(data: unknown[][]): string {
@@ -85,15 +80,11 @@ ${csv}`;
   const requestEngine = window.AI.Request.create(window.AI.ActionType.Chat);
 
   await startGroupActions();
-  const block = await startBlockAction(
-    getAiBlockLabel(window.AI.ActionType.Chat)
-  );
 
   let result = "";
   try {
     result = await requestEngine.chatRequest(prompt);
   } finally {
-    await block.end();
     await endGroupActions();
   }
 

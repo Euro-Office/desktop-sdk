@@ -4,6 +4,12 @@ import {
   createProvider,
   type StorageAdapter,
 } from "@onlyoffice/ai-chat";
+import {
+  type BlockActionGuard,
+  getAiBlockLabel,
+  startBlockAction,
+} from "../tools/lib/aiActions";
+import { prompts } from "./prompts";
 
 export const AiActionType = {
   Chat: "Chat",
@@ -20,6 +26,17 @@ export type StreamFunc = (
   delta: string,
   isFinal: boolean
 ) => void | Promise<void>;
+
+export type ImageGenerationRequestData = {
+  prompt: string;
+  width?: number;
+  height?: number;
+};
+
+export type ImageVisionRequestData = {
+  prompt?: string;
+  image: string;
+};
 
 type ContentPart = { type: string; text?: string };
 
@@ -68,11 +85,21 @@ class AiRequest {
     this.customProfileId = customProfileId;
   }
 
-  async chatRequest(
-    content: string,
-    _block?: boolean,
-    streamFunc?: StreamFunc
-  ): Promise<string> {
+  private async withBlock<T>(
+    block: boolean | undefined,
+    fn: () => Promise<T>
+  ): Promise<T> {
+    if (block === false) return fn();
+    let guard: BlockActionGuard | null = null;
+    try {
+      guard = await startBlockAction(getAiBlockLabel(this.action));
+      return await fn();
+    } finally {
+      if (guard) await guard.end();
+    }
+  }
+
+  private async resolveProviderAndProfile() {
     const profile = await resolveProfile(
       this.action,
       this.storage,
@@ -85,73 +112,112 @@ class AiRequest {
       apiKey: profile.key,
     });
     if (!provider) throw new Error(`Unknown provider: ${profile.providerType}`);
+    return { profile, provider };
+  }
 
-    const messages: ThreadMessageLike[] = [{ role: "user", content }];
-    const syncArgs = { messages, model: profile.modelId, systemPrompt: "" };
+  async chatRequest(
+    content: string,
+    block?: boolean,
+    streamFunc?: StreamFunc
+  ): Promise<string> {
+    return this.withBlock(block, async () => {
+      const { profile, provider } = await this.resolveProviderAndProfile();
 
-    if (typeof streamFunc !== "function") {
-      const result = await provider.sendMessageSync(syncArgs);
-      return result;
-    }
+      const messages: ThreadMessageLike[] = [{ role: "user", content }];
+      const syncArgs = { messages, model: profile.modelId, systemPrompt: "" };
 
-    let accumulated = "";
-    try {
-      for await (const chunk of provider.sendMessage({
-        messages,
-        model: profile.modelId,
-        systemPrompt: "",
-      })) {
-        if ("isEnd" in chunk && chunk.isEnd) {
-          const finalText = extractText(chunk.responseMessage);
-          const tail = finalText.slice(accumulated.length);
-          accumulated = finalText;
-          await streamFunc(tail, true);
-          break;
-        }
-        const text = extractText(chunk as ThreadMessageLike);
-        if (text.length > accumulated.length) {
-          const delta = text.slice(accumulated.length);
-          accumulated = text;
-          await streamFunc(delta, false);
-        }
+      if (typeof streamFunc !== "function") {
+        return provider.sendMessageSync(syncArgs);
       }
-    } catch (e) {
-      if (accumulated && typeof streamFunc === "function") {
-        await streamFunc("", true);
-      }
-      throw e;
-    }
 
-    return accumulated;
+      let accumulated = "";
+      try {
+        for await (const chunk of provider.sendMessage({
+          messages,
+          model: profile.modelId,
+          systemPrompt: "",
+        })) {
+          if ("isEnd" in chunk && chunk.isEnd) {
+            const finalText = extractText(chunk.responseMessage);
+            const tail = finalText.slice(accumulated.length);
+            accumulated = finalText;
+            await streamFunc(tail, true);
+            break;
+          }
+          const text = extractText(chunk as ThreadMessageLike);
+          if (text.length > accumulated.length) {
+            const delta = text.slice(accumulated.length);
+            accumulated = text;
+            await streamFunc(delta, false);
+          }
+        }
+      } catch (e) {
+        if (accumulated && typeof streamFunc === "function") {
+          await streamFunc("", true);
+        }
+        throw e;
+      }
+
+      return accumulated;
+    });
   }
 
   async imageGenerationRequest(
-    prompt: string,
-    width?: number,
-    height?: number
+    data: ImageGenerationRequestData,
+    block?: boolean
   ): Promise<string> {
-    const profile = await resolveProfile(
-      this.action,
-      this.storage,
-      this.customProfileId
-    );
-    if (!profile) throw new Error(`No provider assigned to ${this.action}`);
-
-    const provider = createProvider(profile.providerType, {
-      baseUrl: profile.baseUrl,
-      apiKey: profile.key,
+    return this.withBlock(block, async () => {
+      const { profile, provider } = await this.resolveProviderAndProfile();
+      if (!provider.imageGeneration) {
+        throw new Error(
+          `Provider ${profile.providerType} does not support image generation`
+        );
+      }
+      return provider.imageGeneration({
+        model: profile.modelId,
+        prompt: data.prompt,
+        width: data.width,
+        height: data.height,
+      });
     });
-    if (!provider) throw new Error(`Unknown provider: ${profile.providerType}`);
-    if (!provider.imageGeneration) {
-      throw new Error(
-        `Provider ${profile.providerType} does not support image generation`
-      );
-    }
-    return provider.imageGeneration({
+  }
+
+  async imageVisionRequest(
+    data: ImageVisionRequestData,
+    block?: boolean
+  ): Promise<string> {
+    return this.withBlock(block, () =>
+      this.runImageMessage(
+        data.prompt ?? prompts.getImageDescription(),
+        data.image
+      )
+    );
+  }
+
+  async imageOCRRequest(image: string, block?: boolean): Promise<string> {
+    return this.withBlock(block, () =>
+      this.runImageMessage(prompts.getImagePromptOCR(), image)
+    );
+  }
+
+  private async runImageMessage(
+    prompt: string,
+    image: string
+  ): Promise<string> {
+    const { profile, provider } = await this.resolveProviderAndProfile();
+    const messages: ThreadMessageLike[] = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image", image },
+        ],
+      },
+    ];
+    return provider.sendMessageSync({
+      messages,
       model: profile.modelId,
-      prompt,
-      width,
-      height,
+      systemPrompt: "",
     });
   }
 }

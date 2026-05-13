@@ -1,10 +1,5 @@
 import { editor } from "../../library/editor";
-import {
-  endGroupActions,
-  getAiBlockLabel,
-  startBlockAction,
-  startGroupActions,
-} from "../lib/aiActions";
+import { endGroupActions, startGroupActions } from "../lib/aiActions";
 import { defineTool } from "../lib/defineTool";
 import { ToolError } from "../lib/ToolError";
 import {
@@ -83,63 +78,54 @@ export const addImage = defineTool({
       window.AI.ActionType.ImageGeneration
     );
 
-    const block = await startBlockAction(
-      getAiBlockLabel(window.AI.ActionType.ImageGeneration)
-    );
+    const rawResult = await requestEngine.imageGenerationRequest({
+      prompt: fullPrompt,
+      width: widthPx,
+      height: heightPx,
+    });
 
-    try {
-      const rawResult = await requestEngine.imageGenerationRequest(
-        fullPrompt,
-        widthPx,
-        heightPx
-      );
-      await block.end();
-
-      if (!rawResult) {
-        return { isApply: false, reason: "Empty image generation response" };
-      }
-
-      const dataUrl = ensureDataUrl(rawResult);
-
-      const img = new Image();
-      img.src = dataUrl;
-      await img.decode();
-      const widthEmu = Math.floor(img.naturalWidth * PX_TO_EMU + 0.5);
-      const heightEmu = Math.floor(img.naturalHeight * PX_TO_EMU + 0.5);
-
-      const library = window.Asc.Library;
-      if (!library) throw new ToolError("Library not installed");
-
-      const editorVersion = await library.GetEditorVersion();
-      let resolvedUrl: string;
-      if (editorVersion >= 9_000_000) {
-        const urlResult = await library.GetLocalImagePath(dataUrl);
-        if (urlResult.error) {
-          throw new ToolError("Failed to process generated image");
-        }
-        resolvedUrl = urlResult.url;
-      } else {
-        resolvedUrl = dataUrl;
-      }
-
-      Asc.scope.imageUrl = resolvedUrl;
-      Asc.scope.imgWidth = widthEmu;
-      Asc.scope.imgHeight = heightEmu;
-
-      await startGroupActions();
-      await editor.callCommand(() => {
-        const worksheet = Api.GetActiveSheet();
-        worksheet.ReplaceCurrentImage(
-          Asc.scope.imageUrl,
-          Asc.scope.imgWidth,
-          Asc.scope.imgHeight
-        );
-      });
-      await endGroupActions();
-
-      return { isApply: true };
-    } finally {
-      await block.end();
+    if (!rawResult) {
+      return { isApply: false, reason: "Empty image generation response" };
     }
+
+    const dataUrl = ensureDataUrl(rawResult);
+
+    const img = new Image();
+    img.src = dataUrl;
+    await img.decode();
+    const widthEmu = Math.floor(img.naturalWidth * PX_TO_EMU + 0.5);
+    const heightEmu = Math.floor(img.naturalHeight * PX_TO_EMU + 0.5);
+
+    const library = window.Asc.Library;
+    if (!library) throw new ToolError("Library not installed");
+
+    const editorVersion = await library.GetEditorVersion();
+    let resolvedUrl: string;
+    if (editorVersion >= 9_000_000) {
+      const urlResult = await library.GetLocalImagePath(dataUrl);
+      if (urlResult.error) {
+        throw new ToolError("Failed to process generated image");
+      }
+      resolvedUrl = urlResult.url;
+    } else {
+      resolvedUrl = dataUrl;
+    }
+
+    Asc.scope.imageUrl = resolvedUrl;
+    Asc.scope.imgWidth = widthEmu;
+    Asc.scope.imgHeight = heightEmu;
+
+    await startGroupActions();
+    await editor.callCommand(() => {
+      const worksheet = Api.GetActiveSheet();
+      worksheet.ReplaceCurrentImage(
+        Asc.scope.imageUrl,
+        Asc.scope.imgWidth,
+        Asc.scope.imgHeight
+      );
+    });
+    await endGroupActions();
+
+    return { isApply: true };
   },
 });

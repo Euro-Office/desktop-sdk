@@ -100,11 +100,11 @@ export const addImage = defineTool({
       window.AI.ActionType.ImageGeneration
     );
 
-    const rawResult = await requestEngine.imageGenerationRequest(
-      fullPrompt,
-      widthPx,
-      heightPx
-    );
+    const rawResult = await requestEngine.imageGenerationRequest({
+      prompt: fullPrompt,
+      width: widthPx,
+      height: heightPx,
+    });
     if (!rawResult) {
       return { isApply: false, reason: "Empty image generation response" };
     }

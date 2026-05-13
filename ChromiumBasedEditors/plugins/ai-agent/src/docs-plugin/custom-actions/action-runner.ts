@@ -68,18 +68,15 @@ async function dispatchReplaceInChatAction(
   );
 
   let replacement = "";
-  window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
   try {
     const request = window.AI.Request.create(
       window.AI.ActionType.Chat,
       action.profileId
     );
-    replacement = (await request.chatRequest(replacementPrompt, false)) ?? "";
+    replacement = (await request.chatRequest(replacementPrompt)) ?? "";
   } catch (e) {
     console.error("[Docs bg] replace-in-chat: AI request failed", e);
     return;
-  } finally {
-    window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
   }
 
   replacement = replacement.trim();
@@ -132,18 +129,15 @@ async function dispatchReplaceAction(action: CustomAiAction): Promise<void> {
   );
 
   let replacement = "";
-  window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
   try {
     const request = window.AI.Request.create(
       window.AI.ActionType.Chat,
       action.profileId
     );
-    replacement = (await request.chatRequest(replacementPrompt, false)) ?? "";
+    replacement = (await request.chatRequest(replacementPrompt)) ?? "";
   } catch (e) {
     console.error("[Docs bg] replace: AI request failed", e);
     return;
-  } finally {
-    window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
   }
 
   replacement = replacement.trim();
@@ -184,18 +178,15 @@ async function dispatchAsReviewAction(action: CustomAiAction): Promise<void> {
   const reviewPrompt = prompts.getActionAsReviewPrompt(original, action.query);
 
   let replacement = "";
-  window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
   try {
     const request = window.AI.Request.create(
       window.AI.ActionType.Chat,
       action.profileId
     );
-    replacement = (await request.chatRequest(reviewPrompt, false)) ?? "";
+    replacement = (await request.chatRequest(reviewPrompt)) ?? "";
   } catch (e) {
     console.error("[Docs bg] as-review: AI request failed", e);
     return;
-  } finally {
-    window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
   }
 
   replacement = replacement.trim();
@@ -243,18 +234,15 @@ async function dispatchInCommentAction(action: CustomAiAction): Promise<void> {
   );
 
   let comment = "";
-  window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
   try {
     const request = window.AI.Request.create(
       window.AI.ActionType.Chat,
       action.profileId
     );
-    comment = (await request.chatRequest(commentPrompt, false)) ?? "";
+    comment = (await request.chatRequest(commentPrompt)) ?? "";
   } catch (e) {
     console.error("[Docs bg] in-comment: AI request failed", e);
     return;
-  } finally {
-    window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
   }
 
   comment = comment.trim();
@@ -296,18 +284,15 @@ async function dispatchToEndAction(action: CustomAiAction): Promise<void> {
   const toEndPrompt = prompts.getActionToEndPrompt(original, action.query);
 
   let result = "";
-  window.Asc.plugin.executeMethod("StartAction", ["Block", "AI"]);
   try {
     const request = window.AI.Request.create(
       window.AI.ActionType.Chat,
       action.profileId
     );
-    result = (await request.chatRequest(toEndPrompt, false)) ?? "";
+    result = (await request.chatRequest(toEndPrompt)) ?? "";
   } catch (e) {
     console.error("[Docs bg] to-end: AI request failed", e);
     return;
-  } finally {
-    window.Asc.plugin.executeMethod("EndAction", ["Block", "AI"]);
   }
 
   result = result.trim();

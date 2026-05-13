@@ -667,17 +667,7 @@ export class Executor {
     }
     this.imageBusy = true;
     try {
-      const win = window as unknown as {
-        AI?: {
-          ActionType: { ImageGeneration: string };
-          Request: {
-            create: (a: string) => {
-              imageGenerationRequest: (p: string) => Promise<string>;
-            } | null;
-          };
-        };
-      };
-      const imageEngine = win.AI?.Request.create(this.imageAction);
+      const imageEngine = window.AI?.Request.create(this.imageAction);
       if (!imageEngine) {
         await this.endGroupActionsOnce();
         return;
@@ -688,7 +678,10 @@ export class Executor {
         const d = Api.GetByInternalId(Asc.scope._drawId);
         if (d) d.Select();
       });
-      const url = await imageEngine.imageGenerationRequest(job.prompt);
+      const url = await imageEngine.imageGenerationRequest(
+        { prompt: job.prompt },
+        false
+      );
       if (url) {
         const img = await this.loadImage(url);
         Asc.scope._url = url;

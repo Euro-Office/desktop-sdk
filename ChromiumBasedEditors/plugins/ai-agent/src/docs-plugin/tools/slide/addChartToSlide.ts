@@ -1,10 +1,5 @@
 import { editor } from "../../library/editor";
-import {
-  endGroupActions,
-  getAiBlockLabel,
-  startBlockAction,
-  startGroupActions,
-} from "../lib/aiActions";
+import { endGroupActions, startGroupActions } from "../lib/aiActions";
 import { CHART_TYPE_DESCRIPTION, VALID_CHART_TYPES } from "../lib/chartTypes";
 import { defineTool } from "../lib/defineTool";
 import { ToolError } from "../lib/ToolError";
@@ -111,9 +106,6 @@ export const addChartToSlide = defineTool({
       const requestEngine = window.AI.Request.create(window.AI.ActionType.Chat);
 
       await startGroupActions();
-      const block = await startBlockAction(
-        getAiBlockLabel(window.AI.ActionType.Chat)
-      );
 
       try {
         const chartPrompt = `Generate chart data for the following request: ${aiPrompt}
@@ -131,8 +123,7 @@ IMPORTANT RULES:
 3. The number of items in 'categories' MUST equal the length of each data array
 Example: if data=[[10,20,30],[40,50,60]], then series must have 2 names and categories must have 3 names`;
 
-        const generated = await requestEngine.chatRequest(chartPrompt, false);
-        await block.end();
+        const generated = await requestEngine.chatRequest(chartPrompt);
 
         try {
           const parsed = JSON.parse(generated);
@@ -148,7 +139,6 @@ Example: if data=[[10,20,30],[40,50,60]], then series must have 2 names and cate
           categories = ["Cat 1", "Cat 2", "Cat 3"];
         }
       } finally {
-        await block.end();
         await endGroupActions();
       }
     }
