@@ -28,6 +28,28 @@ export class IndexedDBAttachmentsStorage implements AttachmentsStorage {
     });
   }
 
+  async createMany(
+    inputs: Omit<Attachment, "id" | "createdAt">[]
+  ): Promise<Attachment[]> {
+    if (inputs.length === 0) return [];
+    const db = this.getDB();
+    const now = Date.now();
+    const records: AttachmentRecord[] = inputs.map((input) => ({
+      ...input,
+      id: crypto.randomUUID(),
+      createdAt: now,
+    }));
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(["attachments"], "readwrite");
+      const store = tx.objectStore("attachments");
+      tx.oncomplete = () => resolve(records);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+      for (const record of records) store.put(record);
+    });
+  }
+
   async readById(id: string): Promise<Attachment | null> {
     const db = this.getDB();
     return new Promise((resolve, reject) => {
@@ -84,6 +106,35 @@ export class IndexedDBAttachmentsStorage implements AttachmentsStorage {
         putReq.onerror = () => reject(putReq.error);
         putReq.onsuccess = () => resolve();
       };
+    });
+  }
+
+  async updateManyByIds(
+    ids: string[],
+    patch: Partial<Attachment>
+  ): Promise<void> {
+    if (ids.length === 0) return;
+    const db = this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(["attachments"], "readwrite");
+      const store = tx.objectStore("attachments");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+      for (const id of ids) {
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+          const existing = getReq.result as AttachmentRecord | undefined;
+          if (!existing) return;
+          const updated: AttachmentRecord = {
+            ...existing,
+            ...patch,
+            id: existing.id,
+            createdAt: existing.createdAt,
+          };
+          store.put(updated);
+        };
+      }
     });
   }
 
