@@ -308,6 +308,7 @@ public:
 	void AddFileToLocalResolver(const std::wstring& sFile);
 
 	void SetRecentPin(const int& nId, const bool& bIsPin);
+	void UpdateTemplates();
 
 	void SetRendererProcessVariable(const std::wstring& sVariable);
 	void UpdatePlugins(const std::wstring& sJson);

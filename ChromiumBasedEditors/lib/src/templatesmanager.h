@@ -127,6 +127,20 @@ public:
 		Start(0);
 	}
 
+	void Update()
+	{
+		CTemporaryCS oCS(&m_oCS);
+		if (!m_bInit)
+		{
+			m_bIsUpdate = true;
+			return;
+		}
+
+		if (IsRunned())
+			Stop();
+		Start(0);
+	}
+
 	void SetPin(const int& nId, const bool& isPin)
 	{
 		CTemporaryCS oCS(&m_oCS);

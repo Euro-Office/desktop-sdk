@@ -1302,6 +1302,11 @@ void CAscApplicationManager::SetRecentPin(const int& nId, const bool& bIsPin)
 	m_pInternal->Recents_Pin(nId, bIsPin);
 }
 
+void CAscApplicationManager::UpdateTemplates()
+{
+	m_pInternal->m_oTemplatesCache.Update();
+}
+
 std::wstring CAscApplicationManager::GetExternalSchemeName()
 {
 	if (m_pInternal->m_pAdditional)
