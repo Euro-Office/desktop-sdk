@@ -1,11 +1,14 @@
+import "../shared/index.css";
 import {
   AIChatWidget,
   type AIChatWidgetRef,
   type AssistantAction,
   type ImageOverrides,
+  type SystemPromptOverride,
 } from "@onlyoffice/ai-chat";
-import { StrictMode, useEffect, useMemo, useRef } from "react";
+import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { createLegacyToolsAdapter } from "@/legacy/legacyEditorToolsAdapter";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { migrateProvidersToProfiles } from "@/shared/lib/migrateProvidersToProfiles";
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
@@ -15,10 +18,34 @@ import {
   applyCustomProvidersDelta,
   bootstrapCustomProviders,
 } from "./custom-providers/bootstrap";
-import { editor } from "./library/editor";
 import { install as installLibrary } from "./library/index";
 import { OnlyOfficePlatform } from "./platform/index";
-import { createToolsAdapter } from "./tools";
+
+interface EditorHelperImplCtor {
+  new (): {
+    getToolsSystemPrompt(): string;
+  };
+}
+
+interface LegacyAI {
+  ready: Promise<void>;
+  loadHelperTranslations(): Promise<void>;
+}
+
+function getLegacyAI(): LegacyAI | null {
+  return (window as unknown as { AI?: LegacyAI }).AI ?? null;
+}
+
+function ensureEditorHelper(): { getToolsSystemPrompt(): string } | null {
+  const w = window as unknown as {
+    EditorHelper?: { getToolsSystemPrompt(): string };
+    EditorHelperImpl?: EditorHelperImplCtor;
+  };
+  if (!w.EditorHelper && w.EditorHelperImpl) {
+    w.EditorHelper = new w.EditorHelperImpl();
+  }
+  return w.EditorHelper ?? null;
+}
 
 type SyncPayload = {
   [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
@@ -38,7 +65,7 @@ const iconUrl =
   (baseName: string) =>
   (theme: "light" | "dark", scale: number): string => {
     const suffix = SCALE_SUFFIX[scale] ?? "";
-    return `resources/${theme}/${baseName}${suffix}.png`;
+    return `resources/icons/${theme}/${baseName}${suffix}.png`;
   };
 
 const QUICK_ACTION_ICONS: ImageOverrides = {
@@ -88,8 +115,29 @@ const Chat = () => {
   const storage = useMemo(() => sharedStorage, []);
   const settings = useMemo(() => new LocalStorageSettings(), []);
   const platform = useMemo(() => new OnlyOfficePlatform(), []);
-  const toolsAdapter = useMemo(() => createToolsAdapter(editor.getType()), []);
+  const toolsAdapter = useMemo(() => createLegacyToolsAdapter(), []);
   const widgetRef = useRef<AIChatWidgetRef>(null);
+  const [systemPrompt, setSystemPrompt] = useState<
+    SystemPromptOverride | undefined
+  >(undefined);
+
+  useEffect(() => {
+    const ai = getLegacyAI();
+    if (!ai) return;
+    let cancelled = false;
+    (async () => {
+      await ai.ready;
+      await ai.loadHelperTranslations();
+      if (cancelled) return;
+      const helper = ensureEditorHelper();
+      if (!helper) return;
+      const text = helper.getToolsSystemPrompt();
+      if (text) setSystemPrompt({ mode: "append", text });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     // Poll until the predicate returns a value. The widget ref, current
@@ -207,6 +255,7 @@ const Chat = () => {
       platform={platform}
       storeKeys={DEFAULT_STORE_KEYS}
       toolsAdapter={toolsAdapter}
+      systemPrompt={systemPrompt}
       images={QUICK_ACTION_ICONS}
       assistantActions={assistantActions}
       onMigrate={() => migrateProvidersToProfiles(storage)}

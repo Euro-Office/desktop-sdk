@@ -4,12 +4,28 @@ import {
   createProvider,
   type StorageAdapter,
 } from "@onlyoffice/ai-chat";
-import {
-  type BlockActionGuard,
-  getAiBlockLabel,
-  startBlockAction,
-} from "../tools/lib/aiActions";
+import { editor } from "./editor";
 import { prompts } from "./prompts";
+
+interface BlockActionGuard {
+  end: () => Promise<void>;
+}
+
+async function startBlockAction(label: string): Promise<BlockActionGuard> {
+  await editor.callMethod("StartAction", ["Block", label]);
+  let ended = false;
+  return {
+    end: async () => {
+      if (ended) return;
+      ended = true;
+      await editor.callMethod("EndAction", ["Block", label]);
+    },
+  };
+}
+
+function getAiBlockLabel(_action: ActionType): string {
+  return "AI";
+}
 
 export const AiActionType = {
   Chat: "Chat",

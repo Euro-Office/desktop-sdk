@@ -1,3 +1,4 @@
+import "../shared/index.css";
 import {
   AIEngine,
   ApiProvider,
@@ -40,10 +41,8 @@ import {
   applyCustomProvidersDelta,
   bootstrapCustomProviders,
 } from "./custom-providers/bootstrap";
-import { editor } from "./library/editor";
 import { install as installLibrary } from "./library/index";
 import { OnlyOfficePlatform } from "./platform/index";
-import { createHostToolGroups } from "./tools";
 
 type SyncPayload = {
   [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
@@ -103,11 +102,6 @@ const Settings = () => {
   const eventBus = useMemo(() => new ChatEventBus(), []);
   const callbacksManager = useMemo(() => new CallbacksManager(), []);
   const middlewareRunner = useMemo(() => new MiddlewareRunner([]), []);
-  const hostToolGroups = useMemo(
-    () => createHostToolGroups(editor.getType()),
-    []
-  );
-
   const { ctx, stores, engines, serverApiConfig } = useMemo(() => {
     const assignments = new AssignmentsEngine({ storage });
     const profiles = new ProfilesEngine({ storage, assignments });
@@ -219,7 +213,7 @@ const Settings = () => {
                   <ThemeProvider>
                     <ImagesProvider>
                       <ToolsProvider
-                        hostToolGroups={hostToolGroups}
+                        hostToolGroups={[]}
                         servers={ctx.servers}
                         eventBus={eventBus}
                       >

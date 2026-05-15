@@ -7,17 +7,22 @@
 // published synchronously so classic scripts loaded right after can
 // reference `AI.*` without race.
 
+import type { ThreadMessageLike } from "@assistant-ui/react";
 import {
+  type ActionType,
   AIEngine,
   type AppContext,
   AssignmentsEngine,
   CallbacksManager,
   ChatEventBus,
+  createProvider,
   MiddlewareRunner,
   ProfilesEngine,
   Servers,
+  type StorageAdapter,
   ThreadsEngine,
 } from "@onlyoffice/ai-chat";
+import { prompts as legacyPrompts } from "@/docs-plugin/library/prompts";
 import { OnlyOfficePlatform } from "@/docs-plugin/platform/index";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import { crossPluginBus } from "@/shared/sync/crossPluginBus";
@@ -44,138 +49,289 @@ class ToolError extends Error {
   }
 }
 
-type StreamFunc = (delta: string, isFinal: boolean) => void | Promise<void>;
+function fixImagePrefix(base64OrUrl: string): string {
+  if (/^(data:|https?:|file:)/.test(base64OrUrl)) {
+    return base64OrUrl;
+  }
 
-type ImageGenArgs = { prompt: string; width?: number; height?: number };
+  if (base64OrUrl.trim().startsWith("<svg")) {
+    return `data:image/svg+xml;base64,${btoa(base64OrUrl)}`;
+  }
+
+  let mimeType = "png"; // по умолчанию
+  const firstChar = base64OrUrl.charAt(0);
+
+  if (firstChar === "/") mimeType = "jpeg";
+  else if (firstChar === "R") mimeType = "gif";
+  else if (firstChar === "U") mimeType = "webp";
+
+  return `data:image/${mimeType};base64,${base64OrUrl}`;
+}
+
+// Stream callback contract preserved from the old engine.js:
+// - called with (delta, false) for each incremental chunk
+// - called with (fullText, true) once at the end
+// - if it returns a truthy value, the shim aborts the provider iterator
+//   and resolves with the text accumulated so far (cancellation)
+type StreamFunc = (
+  delta: string,
+  isFinal: boolean
+) => boolean | undefined | Promise<boolean | undefined>;
+
 type VisionArgs = { prompt?: string; image: string };
 
+type LegacyMessage = { role: string; content: string };
+
 type AIRequest = {
+  modelUI: { name: string };
   setErrorHandler(cb: (err: unknown) => void): void;
   chatRequest(
-    content: string,
-    blockOrStream?: boolean | StreamFunc,
+    content: string | LegacyMessage[],
     streamFunc?: StreamFunc
   ): Promise<string>;
-  imageGenerationRequest(data: ImageGenArgs, block?: boolean): Promise<string>;
-  imageVisionRequest(data: VisionArgs, block?: boolean): Promise<string>;
-  imageOCRRequest(image: string, block?: boolean): Promise<string>;
+  imageGenerationRequest(prompt: string): Promise<string>;
+  imageVisionRequest(data: VisionArgs): Promise<string>;
+  imageOCRRequest(image: string): Promise<string>;
 };
 
 type ActionTypeValue = (typeof ACTION_TYPE)[keyof typeof ACTION_TYPE];
 
 let aiEngine: AIEngine | null = null;
+let sharedStorage: StorageAdapter | null = null;
 let readyResolve: () => void;
 const ready: Promise<void> = new Promise((res) => {
   readyResolve = res;
 });
 
-async function ensureReady(): Promise<AIEngine> {
+async function ensureReady(): Promise<{
+  engine: AIEngine;
+  storage: StorageAdapter;
+}> {
   await ready;
-  if (!aiEngine) throw new Error("AIEngine init failed");
-  return aiEngine;
+  if (!aiEngine || !sharedStorage) throw new Error("AIEngine init failed");
+  return { engine: aiEngine, storage: sharedStorage };
 }
 
-function extractText(content: unknown): string {
+function extractText(message: ThreadMessageLike): string {
+  const content = message.content;
   if (typeof content === "string") return content;
-  if (Array.isArray(content)) {
-    for (const part of content) {
-      if (
-        part &&
-        typeof part === "object" &&
-        "type" in part &&
-        part.type === "text" &&
-        "text" in part &&
-        typeof part.text === "string"
-      ) {
-        return part.text;
-      }
+  if (!Array.isArray(content)) return "";
+  let result = "";
+  for (const part of content as { type: string; text?: string }[]) {
+    if (part && part.type === "text" && typeof part.text === "string") {
+      result += part.text;
     }
   }
-  return "";
+  return result;
+}
+
+async function resolveProvider(
+  storage: StorageAdapter,
+  actionType: ActionTypeValue,
+  customProfileId?: string | null
+) {
+  let profile = null;
+  if (customProfileId) {
+    profile = await storage.profiles.readById(customProfileId);
+  }
+  if (!profile) {
+    const idForAction = await storage.assignments.readByType(
+      actionType as ActionType
+    );
+    const id =
+      idForAction ??
+      (await storage.assignments.readByType("Default" as ActionType));
+    if (id) profile = await storage.profiles.readById(id);
+  }
+  if (!profile) {
+    throw new Error(`No model assigned to ${actionType}`);
+  }
+  const provider = createProvider(profile.providerType, {
+    baseUrl: profile.baseUrl,
+    apiKey: profile.key,
+  });
+  if (!provider) {
+    throw new Error(`Unknown provider type: ${profile.providerType}`);
+  }
+  return { profile, provider };
 }
 
 function createRequest(
   actionType: ActionTypeValue,
-  _profileId?: string | null
+  customProfileId?: string | null
 ): AIRequest {
   let errorHandler: ((err: unknown) => void) | null = null;
 
-  async function runSend(prompt: string): Promise<string> {
-    try {
-      const engine = await ensureReady();
-      const result = await engine.send({
-        actionType,
-        userMessage: {
-          role: "user",
-          content: [{ type: "text", text: prompt }],
-        },
-      });
-      return extractText(result.content);
-    } catch (e) {
-      if (errorHandler) errorHandler(e);
-      throw e;
-    }
+  function handleError(e: unknown): never {
+    if (errorHandler) errorHandler(e);
+    throw e;
   }
 
   return {
+    // Legacy callers (generate.js streamPromptResultToDocument) read
+    // requestEngine.modelUI.name to label the editor Block action. The
+    // shim resolves the model only at call time, so expose a generic
+    // label up-front — the editor action shows "AI (AI)" instead of the
+    // model name.
+    modelUI: { name: "AI" },
     setErrorHandler(cb) {
       errorHandler = cb;
     },
-    async chatRequest(content, blockOrStream, streamFunc) {
-      // `block` parameter is dropped (LLM layer doesn't manage editor UI).
-      // Old callers pass either (content, block, streamFunc) or
-      // (content, streamFunc); detect callback position.
-      const stream: StreamFunc | undefined =
-        typeof blockOrStream === "function" ? blockOrStream : streamFunc;
-      const text = await runSend(content);
-      if (stream) {
-        try {
-          await stream(text, true);
-        } catch {
-          // streamFunc throwing should not break the promise chain
+    async chatRequest(content, streamFunc) {
+      try {
+        const { storage } = await ensureReady();
+        const { profile, provider } = await resolveProvider(
+          storage,
+          actionType,
+          customProfileId
+        );
+
+        // generate.js passes an `agentHistory` array of {role, content}.
+        // Map it to ThreadMessageLike[]. String input → single user msg.
+        const messages: ThreadMessageLike[] =
+          typeof content === "string"
+            ? [{ role: "user", content }]
+            : content.map((m) => ({
+                role: m.role as ThreadMessageLike["role"],
+                content: m.content,
+              }));
+
+        // No streamFunc → one-shot sync call.
+        if (typeof streamFunc !== "function") {
+          return provider.sendMessageSync({
+            messages,
+            model: profile.modelId,
+            systemPrompt: "",
+          });
         }
+
+        // Streaming path: iterate the provider's async generator, emit
+        // deltas, support cancellation via truthy return from streamFunc.
+        let accumulated = "";
+        let cancelled = false;
+        const iter = provider.sendMessage({
+          messages,
+          model: profile.modelId,
+          systemPrompt: "",
+        });
+        try {
+          for await (const chunk of iter) {
+            if ("isEnd" in chunk && chunk.isEnd) {
+              const finalText = extractText(chunk.responseMessage);
+              const tail = finalText.slice(accumulated.length);
+              accumulated = finalText;
+              const stop = await streamFunc(tail, true);
+              if (stop === true) cancelled = true;
+              break;
+            }
+            const text = extractText(chunk as ThreadMessageLike);
+            if (text.length > accumulated.length) {
+              const delta = text.slice(accumulated.length);
+              accumulated = text;
+              const stop = await streamFunc(delta, false);
+              if (stop === true) {
+                cancelled = true;
+                break;
+              }
+            }
+          }
+        } finally {
+          if (cancelled && typeof iter.return === "function") {
+            // Best-effort: signal the generator to clean up. Providers
+            // that ignore it just keep streaming in background, but the
+            // promise resolves with the accumulated text.
+            try {
+              await iter.return(undefined);
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+        return accumulated;
+      } catch (e) {
+        return handleError(e);
       }
-      return text;
     },
-    async imageGenerationRequest(data) {
-      // Old engine returned a base64 data URL or remote URL. AIEngine.send
-      // packs the image into the response content; extract whatever text /
-      // url is there. Refinement to match Asc.Library.AddOleObject /
-      // AddGeneratedImage shape will land in Phase 3 when tools are tested.
-      const engine = await ensureReady();
-      const result = await engine.send({
-        actionType: ACTION_TYPE.ImageGeneration,
-        userMessage: {
-          role: "user",
-          content: [{ type: "text", text: data.prompt }],
-        },
-      });
-      return extractText(result.content);
+    async imageGenerationRequest(prompt) {
+      try {
+        const { storage } = await ensureReady();
+        const { profile, provider } = await resolveProvider(
+          storage,
+          ACTION_TYPE.ImageGeneration,
+          customProfileId
+        );
+        if (!provider.imageGeneration) {
+          throw new Error(
+            `Provider ${profile.providerType} does not support image generation`
+          );
+        }
+        // Returns a URL or base64 data URL — same shape as old engine.js
+        // which downstream tools feed straight into Asc.Library.AddOleObject
+        // / AddGeneratedImage.
+
+        const rawImage = await provider.imageGeneration({
+          model: profile.modelId,
+          prompt: prompt,
+        });
+        return fixImagePrefix(rawImage);
+      } catch (e) {
+        return handleError(e);
+      }
     },
     async imageVisionRequest(data) {
-      const engine = await ensureReady();
-      const result = await engine.send({
-        actionType: ACTION_TYPE.Vision,
-        userMessage: {
-          role: "user",
-          content: [
-            { type: "text", text: data.prompt ?? "" },
-            { type: "image", image: data.image },
-          ] as never,
-        },
-      });
-      return extractText(result.content);
+      try {
+        const { storage } = await ensureReady();
+        const { profile, provider } = await resolveProvider(
+          storage,
+          ACTION_TYPE.Vision,
+          customProfileId
+        );
+        const messages: ThreadMessageLike[] = [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: data.prompt ?? legacyPrompts.getImageDescription(),
+              },
+              { type: "image", image: data.image },
+            ],
+          },
+        ];
+        return await provider.sendMessageSync({
+          messages,
+          model: profile.modelId,
+          systemPrompt: "",
+        });
+      } catch (e) {
+        return handleError(e);
+      }
     },
     async imageOCRRequest(image) {
-      const engine = await ensureReady();
-      const result = await engine.send({
-        actionType: ACTION_TYPE.OCR,
-        userMessage: {
-          role: "user",
-          content: [{ type: "image", image }] as never,
-        },
-      });
-      return extractText(result.content);
+      try {
+        const { storage } = await ensureReady();
+        const { profile, provider } = await resolveProvider(
+          storage,
+          ACTION_TYPE.OCR,
+          customProfileId
+        );
+        const messages: ThreadMessageLike[] = [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: legacyPrompts.getImagePromptOCR() },
+              { type: "image", image },
+            ],
+          },
+        ];
+        return await provider.sendMessageSync({
+          messages,
+          model: profile.modelId,
+          systemPrompt: "",
+        });
+      } catch (e) {
+        return handleError(e);
+      }
     },
   };
 }
@@ -242,6 +398,7 @@ async function init(): Promise<void> {
 
   await storage.init();
   aiEngine = ai;
+  sharedStorage = storage;
 
   // Cross-plugin sync: profile/assignment changes from other windows
   // (e.g. new ai-agent) become visible without reload.
