@@ -25,58 +25,50 @@ export default defineConfig(({ mode }) => {
       },
     },
     base: "./",
-    publicDir: isDocs
-      ? path.resolve(__dirname, "src/docs-plugin/public")
-      : "public",
+    publicDir: isDocs ? false : "public",
     build: {
       outDir: isDocs ? "dist-docs" : "dist",
+      cssCodeSplit: true,
+      assetsInlineLimit: 8192,
       rollupOptions: {
         input: isDocs
           ? {
-              "docs-plugin": path.resolve(
+              "engine-shim": path.resolve(
                 __dirname,
-                "src/docs-plugin/main.tsx"
+                "src/legacy/engine-shim.ts"
               ),
               chat: path.resolve(__dirname, "src/docs-plugin/chat.tsx"),
               settings: path.resolve(__dirname, "src/docs-plugin/settings.tsx"),
-              "translation-settings": path.resolve(
-                __dirname,
-                "src/docs-plugin/translation-settings.tsx"
-              ),
-              "summarization-dialog": path.resolve(
-                __dirname,
-                "src/docs-plugin/summarization-dialog.tsx"
-              ),
-              "custom-action-dialog": path.resolve(
-                __dirname,
-                "src/docs-plugin/custom-action-dialog.tsx"
-              ),
-              "custom-action-delete-dialog": path.resolve(
-                __dirname,
-                "src/docs-plugin/custom-action-delete-dialog.tsx"
-              ),
-              "custom-assistant-dialog": path.resolve(
-                __dirname,
-                "src/docs-plugin/custom-assistant-dialog.tsx"
-              ),
-              "custom-assistant-delete-dialog": path.resolve(
-                __dirname,
-                "src/docs-plugin/custom-assistant-delete-dialog.tsx"
-              ),
-              "custom-providers-dialog": path.resolve(
-                __dirname,
-                "src/docs-plugin/custom-providers-dialog.tsx"
-              ),
-              "docs-plugin-styles": path.resolve(
-                __dirname,
-                "src/docs-plugin/style.css"
-              ),
             }
           : undefined,
         output: {
           entryFileNames: "[name].js",
-          chunkFileNames: "[name].js",
-          assetFileNames: "[name].[ext]",
+          chunkFileNames: (chunkInfo) => {
+            if (isDocs) {
+              // Only check facadeModuleId: vendor (from manualChunks) has
+              // no facade, and we don't want to pull it into shiki/ just
+              // because some shiki language imports a vendored dep.
+              const id = (chunkInfo.facadeModuleId || "").replace(/\\/g, "/");
+              if (id.includes("/@shikijs/") || id.includes("/shiki/")) {
+                return "shiki/[name].js";
+              }
+            }
+            return "[name].js";
+          },
+          assetFileNames: (assetInfo) => {
+            const name = assetInfo.name || "";
+            if (isDocs && name.endsWith(".wasm")) {
+              return "shiki/[name][extname]";
+            }
+            return "[name][extname]";
+          },
+          manualChunks: isDocs
+            ? (id) => {
+                if (!id.includes("node_modules")) return undefined;
+                if (/[\\/](?:@shikijs|shiki)[\\/]/.test(id)) return undefined;
+                return "vendor";
+              }
+            : undefined,
         },
       },
     },
