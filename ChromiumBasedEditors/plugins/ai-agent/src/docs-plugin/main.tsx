@@ -367,7 +367,7 @@ window.Asc.plugin.init = () => {
 
   void initAiAgentEngine().then((storage) => {
     engineStorage = storage;
-    installLibrary(storage);
+    installLibrary();
   });
 
   if (isDesktopEditor()) listenForDesktopPluginUpdates();

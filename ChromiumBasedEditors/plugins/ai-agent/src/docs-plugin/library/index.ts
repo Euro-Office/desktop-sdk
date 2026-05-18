@@ -1,11 +1,9 @@
-import type { StorageAdapter } from "@onlyoffice/ai-chat";
 import markdownit from "markdown-it";
 import { editor } from "./editor";
 import { library, pluginsMD } from "./library";
 import { prompts } from "./prompts";
-import { AiActionType, AiRequestFactory } from "./request";
 
-export function install(storage: StorageAdapter): void {
+export function install(): void {
   if (window.Asc.Editor) return;
 
   const win = window as Window & {
@@ -17,11 +15,4 @@ export function install(storage: StorageAdapter): void {
   window.Asc.Library = library;
   window.Asc.Prompts = prompts;
   window.Asc.PluginsMD = pluginsMD;
-  window.AI = {
-    ActionType: AiActionType,
-    Request: {
-      create: (action: string, profileId?: string | null) =>
-        AiRequestFactory.create(action, storage, profileId ?? null),
-    },
-  };
 }

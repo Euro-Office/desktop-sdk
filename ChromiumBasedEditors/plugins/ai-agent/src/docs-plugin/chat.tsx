@@ -292,7 +292,7 @@ const Chat = () => {
 
 window.Asc.plugin.init = async () => {
   await sharedStorage.init();
-  installLibrary(sharedStorage);
+  installLibrary();
   bootstrapCustomProviders();
 
   const container = document.getElementById("chat_panel");

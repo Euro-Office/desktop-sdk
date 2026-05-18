@@ -243,7 +243,7 @@ const sharedStorage = new IndexedDBStorage();
 
 window.Asc.plugin.init = async () => {
   await sharedStorage.init();
-  installLibrary(sharedStorage);
+  installLibrary();
   bootstrapCustomProviders();
 
   const container = document.getElementById("settings_window");

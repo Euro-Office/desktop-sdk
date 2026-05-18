@@ -346,8 +346,6 @@ const AI = {
     },
   },
   ToolError,
-  // Defensive stubs — real values set during async init.
-  serverSettings: {} as Record<string, unknown>,
   externalModelPrefix: "",
   DEFAULT_SERVER_SETTINGS: null as unknown,
   helperTranslations: {} as HelperTranslations,
