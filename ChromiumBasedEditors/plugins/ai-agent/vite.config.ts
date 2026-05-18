@@ -64,9 +64,17 @@ export default defineConfig(({ mode }) => {
           },
           manualChunks: isDocs
             ? (id) => {
-                if (!id.includes("node_modules")) return undefined;
-                if (/[\\/](?:@shikijs|shiki)[\\/]/.test(id)) return undefined;
-                return "vendor";
+                if (id.includes("node_modules")) {
+                  if (/[\\/](?:@shikijs|shiki)[\\/]/.test(id)) return undefined;
+                  return "vendor";
+                }
+                // Pin shared app code (e.g. shared CSS imported by both
+                // chat and settings entries) to a stable chunk name so
+                // HTML shells can reference its CSS without worrying about
+                // chunk renames as the entries' import graph shifts.
+                const norm = id.replace(/\\/g, "/");
+                if (norm.includes("/src/shared/")) return "shared";
+                return undefined;
               }
             : undefined,
         },

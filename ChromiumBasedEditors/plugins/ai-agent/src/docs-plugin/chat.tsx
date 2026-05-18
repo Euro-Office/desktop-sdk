@@ -8,7 +8,10 @@ import {
 } from "@onlyoffice/ai-chat";
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { createLegacyToolsAdapter } from "@/legacy/legacyEditorToolsAdapter";
+import {
+  createRpcToolsAdapter,
+  fetchToolsSystemPrompt,
+} from "@/legacy/rpcToolsAdapter";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { migrateProvidersToProfiles } from "@/shared/lib/migrateProvidersToProfiles";
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
@@ -18,34 +21,7 @@ import {
   applyCustomProvidersDelta,
   bootstrapCustomProviders,
 } from "./custom-providers/bootstrap";
-import { install as installLibrary } from "./library/index";
 import { OnlyOfficePlatform } from "./platform/index";
-
-interface EditorHelperImplCtor {
-  new (): {
-    getToolsSystemPrompt(): string;
-  };
-}
-
-interface LegacyAI {
-  ready: Promise<void>;
-  loadHelperTranslations(): Promise<void>;
-}
-
-function getLegacyAI(): LegacyAI | null {
-  return (window as unknown as { AI?: LegacyAI }).AI ?? null;
-}
-
-function ensureEditorHelper(): { getToolsSystemPrompt(): string } | null {
-  const w = window as unknown as {
-    EditorHelper?: { getToolsSystemPrompt(): string };
-    EditorHelperImpl?: EditorHelperImplCtor;
-  };
-  if (!w.EditorHelper && w.EditorHelperImpl) {
-    w.EditorHelper = new w.EditorHelperImpl();
-  }
-  return w.EditorHelper ?? null;
-}
 
 type SyncPayload = {
   [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
@@ -115,25 +91,17 @@ const Chat = () => {
   const storage = useMemo(() => sharedStorage, []);
   const settings = useMemo(() => new LocalStorageSettings(), []);
   const platform = useMemo(() => new OnlyOfficePlatform(), []);
-  const toolsAdapter = useMemo(() => createLegacyToolsAdapter(), []);
+  const toolsAdapter = useMemo(() => createRpcToolsAdapter(), []);
   const widgetRef = useRef<AIChatWidgetRef>(null);
   const [systemPrompt, setSystemPrompt] = useState<
     SystemPromptOverride | undefined
   >(undefined);
 
   useEffect(() => {
-    const ai = getLegacyAI();
-    if (!ai) return;
     let cancelled = false;
-    (async () => {
-      await ai.ready;
-      await ai.loadHelperTranslations();
-      if (cancelled) return;
-      const helper = ensureEditorHelper();
-      if (!helper) return;
-      const text = helper.getToolsSystemPrompt();
-      if (text) setSystemPrompt({ mode: "append", text });
-    })();
+    fetchToolsSystemPrompt().then((text) => {
+      if (!cancelled && text) setSystemPrompt({ mode: "append", text });
+    });
     return () => {
       cancelled = true;
     };
@@ -292,7 +260,6 @@ const Chat = () => {
 
 window.Asc.plugin.init = async () => {
   await sharedStorage.init();
-  installLibrary();
   bootstrapCustomProviders();
 
   const container = document.getElementById("chat_panel");
