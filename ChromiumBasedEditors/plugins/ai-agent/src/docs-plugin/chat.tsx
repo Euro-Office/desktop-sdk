@@ -22,6 +22,7 @@ import {
   bootstrapCustomProviders,
 } from "./custom-providers/bootstrap";
 import { OnlyOfficePlatform } from "./platform/index";
+import { useIsChatReady } from "./useIsChatReady";
 
 type SyncPayload = {
   [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
@@ -96,6 +97,7 @@ const Chat = () => {
   const [systemPrompt, setSystemPrompt] = useState<
     SystemPromptOverride | undefined
   >(undefined);
+  const isChatReady = useIsChatReady(storage, widgetRef);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,36 +136,45 @@ const Chat = () => {
         tick();
       });
 
-    window.Asc.plugin.attachEvent("sendToChat", async (raw) => {
-      console.log("[Docs chat] ← sendToChat", raw);
-      const payload =
-        typeof raw === "string"
-          ? (JSON.parse(raw) as { prompt: string; action: "send" | "attach" })
-          : (raw as { prompt: string; action: "send" | "attach" });
-      if (!payload?.prompt) return;
+    window.Asc.plugin.attachEvent("onAttachedText", async (raw) => {
+      console.log("[Docs chat] ← onAttachedText", raw);
+      let parsed: unknown = raw;
+      if (typeof raw === "string") {
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = raw;
+        }
+      }
+      const forceSend =
+        typeof parsed === "object" && parsed !== null && "forceSend" in parsed
+          ? Boolean((parsed as { forceSend?: boolean }).forceSend)
+          : false;
+      const text =
+        typeof parsed === "string"
+          ? parsed
+          : ((parsed as { text?: string } | null)?.text ?? "");
+      if (!text || !text.trim()) return;
 
       const widget = await waitFor(() => widgetRef.current);
       if (!widget) {
-        console.warn("[Docs chat] sendToChat: widget never became ready");
+        console.warn("[Docs chat] onAttachedText: widget never became ready");
         return;
       }
-      widget.openChat();
 
-      // Wait until currentProfile is populated. Without this, sendMessage drops
-      // the message because useMessages.onNew bails on `!currentProfile`.
       const ready = await waitFor(() => {
         const current = widget.getCurrentProfile?.();
         return current ?? null;
       });
       if (!ready) {
-        console.warn("[Docs chat] sendToChat: profile never became ready");
+        console.warn("[Docs chat] onAttachedText: profile never became ready");
         return;
       }
 
-      if (payload.action === "send") {
-        widget.sendMessage(payload.prompt);
+      if (forceSend) {
+        widget.sendMessage(text.trim());
       } else {
-        // TODO: implement "attach" logic (just adding to input without sending)
+        widget.setComposerText(text);
       }
     });
 
@@ -211,50 +222,57 @@ const Chat = () => {
 
     return () => {
       window.Asc.plugin.detachEvent("onAiStateChanged");
-      window.Asc.plugin.detachEvent("sendToChat");
+      window.Asc.plugin.detachEvent("onAttachedText");
     };
   }, []);
 
   return (
-    <AIChatWidget
-      ref={widgetRef}
-      storage={storage}
-      settings={settings}
-      platform={platform}
-      storeKeys={DEFAULT_STORE_KEYS}
-      toolsAdapter={toolsAdapter}
-      systemPrompt={systemPrompt}
-      images={QUICK_ACTION_ICONS}
-      assistantActions={assistantActions}
-      onMigrate={() => migrateProvidersToProfiles(storage)}
-      onSettingsClick={() => {
-        window.Asc.plugin.sendToPlugin("ai-open-settings", {});
+    <div
+      style={{
+        height: "100%",
+        visibility: isChatReady ? "visible" : "hidden",
       }}
-      callbacks={{
-        onThreadsUpdated: (data) => {
-          if (data.kind === "switched") return;
-          console.log("[Docs chat] → threadsUpdated", data);
-          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-            event: "threadsUpdated",
-            data,
-          });
-        },
-        onExtendedThinkingUpdated: (data) => {
-          console.log("[Docs chat] → extendedThinkingUpdated", data);
-          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-            event: "extendedThinkingUpdated",
-            data,
-          });
-        },
-        onServersUpdated: (data) => {
-          console.log("[Docs chat] → serversUpdated", data);
-          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-            event: "serversUpdated",
-            data,
-          });
-        },
-      }}
-    />
+    >
+      <AIChatWidget
+        ref={widgetRef}
+        storage={storage}
+        settings={settings}
+        platform={platform}
+        storeKeys={DEFAULT_STORE_KEYS}
+        toolsAdapter={toolsAdapter}
+        systemPrompt={systemPrompt}
+        images={QUICK_ACTION_ICONS}
+        assistantActions={assistantActions}
+        onMigrate={() => migrateProvidersToProfiles(storage)}
+        onSettingsClick={() => {
+          window.Asc.plugin.sendToPlugin("ai-open-settings", {});
+        }}
+        callbacks={{
+          onThreadsUpdated: (data) => {
+            if (data.kind === "switched") return;
+            console.log("[Docs chat] → threadsUpdated", data);
+            window.Asc.plugin.sendToPlugin("onAiStateChanged", {
+              event: "threadsUpdated",
+              data,
+            });
+          },
+          onExtendedThinkingUpdated: (data) => {
+            console.log("[Docs chat] → extendedThinkingUpdated", data);
+            window.Asc.plugin.sendToPlugin("onAiStateChanged", {
+              event: "extendedThinkingUpdated",
+              data,
+            });
+          },
+          onServersUpdated: (data) => {
+            console.log("[Docs chat] → serversUpdated", data);
+            window.Asc.plugin.sendToPlugin("onAiStateChanged", {
+              event: "serversUpdated",
+              data,
+            });
+          },
+        }}
+      />
+    </div>
   );
 };
 

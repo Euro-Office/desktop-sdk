@@ -15,7 +15,7 @@ import {
 } from "@onlyoffice/ai-chat";
 import { OnlyOfficePlatform } from "@/docs-plugin/platform/index";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
-import { crossPluginBus } from "@/shared/sync/crossPluginBus";
+// import { crossPluginBus } from "@/shared/sync/crossPluginBus";
 import {
   type HelperTranslations,
   loadHelperTranslations,
@@ -197,8 +197,8 @@ async function init(): Promise<void> {
   aiEngine = ai;
   sharedStorage = storage;
 
-  crossPluginBus.subscribe("profilesUpdated", () => {});
-  crossPluginBus.subscribe("modelAssignmentUpdated", () => {});
+  // crossPluginBus.subscribe("profilesUpdated", () => {});
+  // crossPluginBus.subscribe("modelAssignmentUpdated", () => {});
 
   await AI.loadHelperTranslations();
 
