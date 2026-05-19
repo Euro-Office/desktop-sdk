@@ -16,17 +16,9 @@ import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { migrateProvidersToProfiles } from "@/shared/lib/migrateProvidersToProfiles";
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
-import type { CrossPluginEvents } from "@/shared/sync/crossPluginBus";
-import {
-  applyCustomProvidersDelta,
-  bootstrapCustomProviders,
-} from "./custom-providers/bootstrap";
+import { bootstrapCustomProviders } from "./custom-providers/bootstrap";
 import { OnlyOfficePlatform } from "./platform/index";
 import { useIsChatReady } from "./useIsChatReady";
-
-type SyncPayload = {
-  [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
-}[keyof CrossPluginEvents];
 
 const sharedStorage = new IndexedDBStorage();
 
@@ -178,50 +170,22 @@ const Chat = () => {
       }
     });
 
-    window.Asc.plugin.attachEvent("onAiStateChanged", (raw) => {
-      const payload =
-        typeof raw === "string"
-          ? (JSON.parse(raw) as SyncPayload)
-          : (raw as SyncPayload);
-
+    window.Asc.plugin.attachEvent("onAiSettingsChanged", (raw) => {
+      console.log("[Docs chat] ← onAiSettingsChanged", raw);
       const widget = widgetRef.current;
       if (!widget) return;
-
-      console.log(`[Docs chat] ← ${payload.event}`, payload.data);
-
-      switch (payload.event) {
-        case "threadsUpdated":
-          widget.updateThreads();
-          return;
-        case "modelAssignmentUpdated":
-          widget.updateCurrentChat();
-          widget.updateModelAssignment();
-          return;
-        case "profilesUpdated":
-        case "currentChatProfileUpdated":
-          widget.updateCurrentChat();
-          return;
-        case "extendedThinkingUpdated":
-          widget.updateExtendedThinking();
-          return;
-        case "serversUpdated":
-          widget.updateMCPServer();
-          return;
-        case "webSearchUpdated":
-          widget.updateWebSearch();
-          widget.updateMCPServer();
-          return;
-        case "customProvidersUpdated":
-          applyCustomProvidersDelta(payload.data.providers);
-          widget.updateCurrentChat();
-          return;
-      }
+      widget.updateProfiles();
+      widget.updateCurrentChat();
+      widget.updateModelAssignment();
+      widget.updateMCPServer();
+      widget.updateWebSearch();
+      widget.updateExtendedThinking();
     });
 
     window.Asc.plugin.sendToPlugin("chat-ready", {});
 
     return () => {
-      window.Asc.plugin.detachEvent("onAiStateChanged");
+      window.Asc.plugin.detachEvent("onAiSettingsChanged");
       window.Asc.plugin.detachEvent("onAttachedText");
     };
   }, []);
@@ -246,30 +210,6 @@ const Chat = () => {
         onMigrate={() => migrateProvidersToProfiles(storage)}
         onSettingsClick={() => {
           window.Asc.plugin.sendToPlugin("ai-open-settings", {});
-        }}
-        callbacks={{
-          onThreadsUpdated: (data) => {
-            if (data.kind === "switched") return;
-            console.log("[Docs chat] → threadsUpdated", data);
-            window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-              event: "threadsUpdated",
-              data,
-            });
-          },
-          onExtendedThinkingUpdated: (data) => {
-            console.log("[Docs chat] → extendedThinkingUpdated", data);
-            window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-              event: "extendedThinkingUpdated",
-              data,
-            });
-          },
-          onServersUpdated: (data) => {
-            console.log("[Docs chat] → serversUpdated", data);
-            window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-              event: "serversUpdated",
-              data,
-            });
-          },
         }}
       />
     </div>

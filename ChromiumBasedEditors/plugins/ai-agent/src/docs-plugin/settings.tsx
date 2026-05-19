@@ -24,77 +24,29 @@ import {
   ThreadsEngine,
   ToolsEngine,
   ToolsProvider,
-  useApi,
-  useProfiles,
-  useServers,
-  useStores,
   WebSearchEngine,
   WidgetConfigProvider,
 } from "@onlyoffice/ai-chat";
 import { AttachmentsEngine } from "@onlyoffice/ai-chat/services";
-import { StrictMode, useEffect, useMemo } from "react";
+import { StrictMode, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
-import type { CrossPluginEvents } from "@/shared/sync/crossPluginBus";
-import {
-  applyCustomProvidersDelta,
-  bootstrapCustomProviders,
-} from "./custom-providers/bootstrap";
+import { bootstrapCustomProviders } from "./custom-providers/bootstrap";
 import { install as installLibrary } from "./library/index";
 import { OnlyOfficePlatform } from "./platform/index";
 
-type SyncPayload = {
-  [K in keyof CrossPluginEvents]: { event: K; data: CrossPluginEvents[K] };
-}[keyof CrossPluginEvents];
+type SettingsChangeKind =
+  | "profiles"
+  | "currentChatProfile"
+  | "modelAssignment"
+  | "servers"
+  | "webSearch";
 
-const SettingsInit = () => {
-  const { useProfilesStore, useServersStore } = useStores();
-  const api = useApi();
-
-  useProfiles({ isReady: true });
-  useServers({ isReady: true });
-
-  useEffect(() => {
-    window.Asc.plugin.attachEvent("onAiStateChanged", (raw) => {
-      const payload =
-        typeof raw === "string"
-          ? (JSON.parse(raw) as SyncPayload)
-          : (raw as SyncPayload);
-
-      console.log(`[Docs settings] ← ${payload.event}`, payload.data);
-
-      switch (payload.event) {
-        case "modelAssignmentUpdated":
-          useProfilesStore.getState().reloadCurrentChat();
-          useProfilesStore.getState().reloadModelAssignment();
-          return;
-        case "currentChatProfileUpdated":
-          useProfilesStore.getState().reloadCurrentChat();
-          return;
-        case "profilesUpdated":
-          useProfilesStore.getState().reloadProfiles();
-          return;
-        case "serversUpdated":
-          useServersStore.getState().reload();
-          return;
-        case "webSearchUpdated":
-          api.webSearch.clear();
-          return;
-        case "customProvidersUpdated":
-          applyCustomProvidersDelta(payload.data.providers);
-          useProfilesStore.getState().reloadProfiles();
-          return;
-      }
-    });
-
-    return () => {
-      window.Asc.plugin.detachEvent("onAiStateChanged");
-    };
-  }, [useProfilesStore, useServersStore, api]);
-
-  return <SettingsPage hideHeader noPadding isWebSearchHorizontal={false} />;
-};
+function notifySettingsChanged(kind: SettingsChangeKind, data: unknown): void {
+  console.log(`[Docs settings] → onAiSettingsChanged/${kind}`, data);
+  window.Asc.plugin.sendToPlugin("onAiSettingsChanged", { kind, data });
+}
 
 const Settings = () => {
   const storage = useMemo(() => sharedStorage, []);
@@ -156,42 +108,15 @@ const Settings = () => {
     <EventsProvider
       callbacksManager={callbacksManager}
       callbacks={{
-        onModelAssignmentUpdated: (data) => {
-          console.log("[Docs settings] → modelAssignmentUpdated", data);
-          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-            event: "modelAssignmentUpdated",
-            data,
-          });
-        },
+        onProfilesUpdated: (data) => notifySettingsChanged("profiles", data),
         onCurrentChatProfileUpdated: (data) => {
           if (data.scope !== "persisted") return;
-          console.log("[Docs settings] → currentChatProfileUpdated", data);
-          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-            event: "currentChatProfileUpdated",
-            data,
-          });
+          notifySettingsChanged("currentChatProfile", data);
         },
-        onProfilesUpdated: (data) => {
-          console.log("[Docs settings] → profilesUpdated", data);
-          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-            event: "profilesUpdated",
-            data,
-          });
-        },
-        onServersUpdated: (data) => {
-          console.log("[Docs settings] → serversUpdated", data);
-          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-            event: "serversUpdated",
-            data,
-          });
-        },
-        onWebSearchUpdated: (data) => {
-          console.log("[Docs settings] → webSearchUpdated", data);
-          window.Asc.plugin.sendToPlugin("onAiStateChanged", {
-            event: "webSearchUpdated",
-            data,
-          });
-        },
+        onModelAssignmentUpdated: (data) =>
+          notifySettingsChanged("modelAssignment", data),
+        onServersUpdated: (data) => notifySettingsChanged("servers", data),
+        onWebSearchUpdated: (data) => notifySettingsChanged("webSearch", data),
       }}
     >
       <PlatformProvider platform={platform}>
@@ -224,7 +149,11 @@ const Settings = () => {
                             width: "100vw",
                           }}
                         >
-                          <SettingsInit />
+                          <SettingsPage
+                            hideHeader
+                            noPadding
+                            isWebSearchHorizontal={false}
+                          />
                         </div>
                       </ToolsProvider>
                     </ImagesProvider>
