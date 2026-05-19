@@ -67,6 +67,7 @@ build_xp {
 # ------------------------------------------------------
 
 # for cloud debug
+# DO NOT FORGET REMOVE ~/.../data/cache/Service Worker DIRECTORY
 #DEFINES += DEBUG_LOCAL_SERVER
 
 ####################  BOOST  ###########################
