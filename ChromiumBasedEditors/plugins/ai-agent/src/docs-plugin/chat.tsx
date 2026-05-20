@@ -2,8 +2,6 @@ import "../shared/index.css";
 import {
   AIChatWidget,
   type AIChatWidgetRef,
-  type AssistantAction,
-  type ImageOverrides,
   type SystemPromptOverride,
 } from "@onlyoffice/ai-chat";
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
@@ -20,64 +18,6 @@ import { bootstrapCustomProviders } from "./custom-providers/bootstrap";
 import { OnlyOfficePlatform } from "./platform/index";
 
 const sharedStorage = new IndexedDBStorage();
-
-const SCALE_SUFFIX: Record<number, string> = {
-  1: "",
-  1.25: "@1.25x",
-  1.5: "@1.5x",
-  1.75: "@1.75x",
-  2: "@2x",
-};
-
-const iconUrl =
-  (baseName: string) =>
-  (theme: "light" | "dark", scale: number): string => {
-    const suffix = SCALE_SUFFIX[scale] ?? "";
-    return `resources/icons/${theme}/${baseName}${suffix}.png`;
-  };
-
-const QUICK_ACTION_ICONS: ImageOverrides = {
-  "qa-replace": iconUrl("btn-replace"),
-  "qa-insert": iconUrl("btn-select-tool"),
-  "qa-comment": iconUrl("btn-menu-comments"),
-  "qa-review": iconUrl("btn-ic-review"),
-};
-
-type ChatReplaceType = "replace" | "insert" | "comment" | "review";
-
-const sendChatReplace = (type: ChatReplaceType, markdown: string): void => {
-  window.Asc.plugin.sendToPlugin("onChatReplace", {
-    type,
-    data: markdown ?? "",
-  });
-};
-
-const assistantActions: AssistantAction[] = [
-  {
-    id: "qa-replace",
-    tooltip: "Replace original text",
-    icon: "qa-replace",
-    onClick: ({ markdown }) => sendChatReplace("replace", markdown),
-  },
-  {
-    id: "qa-insert",
-    tooltip: "Insert result",
-    icon: "qa-insert",
-    onClick: ({ markdown }) => sendChatReplace("insert", markdown),
-  },
-  {
-    id: "qa-comment",
-    tooltip: "In comment",
-    icon: "qa-comment",
-    onClick: ({ markdown }) => sendChatReplace("comment", markdown),
-  },
-  {
-    id: "qa-review",
-    tooltip: "As review",
-    icon: "qa-review",
-    onClick: ({ markdown }) => sendChatReplace("review", markdown),
-  },
-];
 
 const Chat = () => {
   const storage = useMemo(() => sharedStorage, []);
@@ -196,8 +136,6 @@ const Chat = () => {
       storeKeys={DEFAULT_STORE_KEYS}
       toolsAdapter={toolsAdapter}
       systemPrompt={systemPrompt}
-      images={QUICK_ACTION_ICONS}
-      assistantActions={assistantActions}
       onMigrate={() => migrateProvidersToProfiles(storage)}
       onSettingsClick={() => {
         window.Asc.plugin.sendToPlugin("ai-open-settings", {});
