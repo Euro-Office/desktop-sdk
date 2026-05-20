@@ -1,7 +1,43 @@
+/*
+ * Copyright (C) Ascensio System SIA, 2009-2026
+ *
+ * This program is a free software product. You can redistribute it and/or
+ * modify it under the terms of the GNU Affero General Public License (AGPL)
+ * version 3 as published by the Free Software Foundation, together with the
+ * additional terms provided in the LICENSE file.
+ *
+ * This program is distributed WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. For
+ * details, see the GNU AGPL at: https://www.gnu.org/licenses/agpl-3.0.html
+ *
+ * You can contact Ascensio System SIA by email at info@onlyoffice.com
+ * or by postal mail at 20A-6 Ernesta Birznieka-Upisha Street, Riga,
+ * LV-1050, Latvia, European Union.
+ *
+ * The interactive user interfaces in modified versions of the Program
+ * are required to display Appropriate Legal Notices in accordance with
+ * Section 5 of the GNU AGPL version 3.
+ *
+ * No trademark rights are granted under this License.
+ *
+ * All non-code elements of the Product, including illustrations,
+ * icon sets, and technical writing content, are licensed under the
+ * Creative Commons Attribution-ShareAlike 4.0 International License:
+ * https://creativecommons.org/licenses/by-sa/4.0/legalcode
+ *
+ * This license applies only to such non-code elements and does not
+ * modify or replace the licensing terms applicable to the Program's
+ * source code, which remains licensed under the GNU Affero General
+ * Public License v3.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
 #include "monitor_info.h"
 #include "../../include/applicationmanager.h"
 
 #ifdef WIN32
+#include <vector>
 #include "ShellScalingAPI.h"
 
 typedef HMONITOR (__stdcall *function_MonitorFromWindow)(HWND hwnd, DWORD dwFlags);
@@ -380,25 +416,26 @@ int Core_GetMonitorRawDpi(WindowHandleId handle, unsigned int* uiX, unsigned int
     if (g_monitor_info.m_func_GetDpiForMonitor)
     {
         HMONITOR hMonitor = MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST);
-        g_monitor_info.m_func_GetDpiForMonitor(hMonitor, MDT_RAW_DPI, uiX, uiY);
+        g_monitor_info.m_func_GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, uiX, uiY);
         return 0;
     }
     return -1;
 }
 
-struct sEnumInfo
+// Collects monitors in Qt-compatible order:
+// primary monitor is inserted at the front (index 0),
+// all other monitors are appended in enumeration order.
+BOOL CALLBACK CollectMonitorsOrdered(HMONITOR hMonitor, HDC, LPRECT, LPARAM dwData)
 {
-    int iIndex;
-    HMONITOR hMonitor;
-};
-
-BOOL CALLBACK GetMonitorByIndex(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
-{
-    sEnumInfo *info = (sEnumInfo*) dwData;
-    if (--info->iIndex < 0)
+    auto monitors = reinterpret_cast<std::vector<HMONITOR>*>(dwData);
+    MONITORINFO info{};
+    info.cbSize = sizeof(info);
+    if (GetMonitorInfo(hMonitor, &info))
     {
-        info->hMonitor = hMonitor;
-        return FALSE;
+        if (info.dwFlags & MONITORINFOF_PRIMARY)
+            monitors->insert(monitors->begin(), hMonitor);
+        else
+            monitors->push_back(hMonitor);
     }
     return TRUE;
 }
@@ -408,18 +445,17 @@ int Core_GetMonitorRawDpiByIndex(int index, unsigned int* uiX, unsigned int* uiY
     *uiX = 0;
     *uiY = 0;
 
-    sEnumInfo info;
-    info.iIndex = index;
-    info.hMonitor = NULL;
+    std::vector<HMONITOR> monitors;
+    EnumDisplayMonitors(NULL, NULL, CollectMonitorsOrdered, (LPARAM)&monitors);
 
-    EnumDisplayMonitors(NULL, NULL, GetMonitorByIndex, (LPARAM)&info);
-    if (info.hMonitor != NULL)
+    HMONITOR hMonitor = (index >= 0 && index < (int)monitors.size()) ? monitors[index] : NULL;
+    if (hMonitor != NULL)
     {
         if (!CAscApplicationManager::IsUseSystemScaling())
         {
             UINT iuW = 0;
             UINT iuH = 0;
-            if (CDetecterOldSystems::GetDpi(info.hMonitor, iuW, iuH))
+            if (CDetecterOldSystems::GetDpi(hMonitor, iuW, iuH))
             {
                 *uiX = iuW;
                 *uiY = iuH;
@@ -428,7 +464,7 @@ int Core_GetMonitorRawDpiByIndex(int index, unsigned int* uiX, unsigned int* uiY
         }
 
         if (g_monitor_info.m_func_GetDpiForMonitor)
-            g_monitor_info.m_func_GetDpiForMonitor(info.hMonitor, MDT_RAW_DPI, uiX, uiY);
+            g_monitor_info.m_func_GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, uiX, uiY);
 
         return 0;
     }
