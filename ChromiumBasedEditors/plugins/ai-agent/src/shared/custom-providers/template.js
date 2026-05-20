@@ -1,30 +1,51 @@
 /*
  * ONLYOFFICE AI Agent — Custom Provider template (OpenAI-compatible)
  *
- * Use this file as a starting point for adding your own AI provider.
- * The plugin evaluates the file inside a sandbox where the following
- * symbols are already in scope (no `import` statements required):
+ * Tip: if your endpoint already speaks the OpenAI HTTP protocol, you do not
+ * need a custom provider — use the built-in "OpenAI Compatible" provider in
+ * Settings and just paste your baseUrl + apiKey. This template is for cases
+ * where you want a curated provider (custom display name, preset baseUrl,
+ * hard-coded model list) or a non-OpenAI protocol.
+ *
+ * The plugin evaluates this file inside a sandbox. The following symbols are
+ * already in scope (no `import` statements required):
  *
  *   AbstractBaseProvider — the base class to extend.
  *   ProviderErrors       — { invalidKey, emptyKey, invalidUrl, connectionFailed } factories.
  *   mapFetchError        — turns thrown fetch errors into the SDK error shape.
  *
- * The file MUST end with `return Provider;` so the plugin can pick up
- * your class. Inside the class:
+ * Declare a class with the literal name `Provider` — the plugin picks it up
+ * by name. No `return` statement is required.
  *
- *   - sendMessage(args)        — async generator, yields ThreadMessageLike snapshots.
- *   - sendMessageSync(args)    — non-streaming Promise<string>.
- *   - imageGeneration(args)    — optional, Promise<string> (URL or base64).
- *   - static getName()         — display name shown in the profile picker.
- *   - static getBaseUrl()      — default base URL used when the user creates a profile.
- *   - static checkProvider(creds)      — validate { baseUrl, apiKey }; return `true` or a ProviderErrors.* object.
- *   - static getProviderModels(creds)  — list available models.
+ * Required instance methods:
+ *   - sendMessage(args)         async generator, yields ThreadMessageLike snapshots.
+ *   - sendMessageSync(args)     Promise<string>, non-streaming.
+ *   - imageGeneration(args)     optional, Promise<string> (data URL or remote URL).
+ *
+ * Required static methods:
+ *   - static getName()                  display name shown in the profile picker.
+ *   - static getBaseUrl()               default base URL used when the user creates a profile.
+ *   - static checkProvider({ baseUrl, apiKey })      validate creds; return `true` or a ProviderErrors.* object.
+ *   - static getProviderModels({ baseUrl, apiKey })  list available models.
+ *
+ * Optional static method:
+ *   - static isDesktopOnly()    return `true` if the provider can only run inside
+ *                               DesktopEditors (e.g. talks to a localhost server
+ *                               like Ollama). In the web editor the registration
+ *                               is silently skipped.
  *
  * args shapes (see node_modules/@onlyoffice/ai-chat/dist/shared/*.d.ts):
  *
  *   SendMessageArgs     = { messages, model, systemPrompt, tools?, withReasoning?, signal? }
  *   SendMessageSyncArgs = { messages, model, systemPrompt, signal? }
  *   ImageGenerationArgs = { model, prompt, width?, height?, signal? }
+ *   ProviderCredentials = { baseUrl, apiKey? }
+ *
+ * IMPORTANT — abort propagation:
+ *   Always thread `args.signal` through *every* async call inside sendMessage
+ *   (the `fetch`, but also `reader.read()` if you read a stream manually) —
+ *   otherwise the Stop button in the chat UI will not be able to cancel the
+ *   in-flight request, and the stream will keep running in the background.
  *
  * Capabilities bitmask (returned per Model in getProviderModels):
  *   1  = Chat
@@ -44,12 +65,17 @@ const CAP_VISION = 4;
 const CAP_TOOLS = 8;
 
 class Provider extends AbstractBaseProvider {
-  // creds is { baseUrl, apiKey } — store for later, AbstractBaseProvider does this for us via this.creds.
+  // creds is { baseUrl, apiKey } — stored on this.creds by AbstractBaseProvider.
   constructor(creds) {
     super(creds);
   }
 
-  // ── streaming chat ──────────────────────────────────────────────────────
+  /**
+   * Streaming chat.
+   *
+   * @param {{ messages: any[], model: string, systemPrompt: string, tools?: any[], signal?: AbortSignal }} args
+   * @yields {{ role: string, content: any[] } | { isEnd: true, responseMessage: any }}
+   */
   async *sendMessage({ messages, model, systemPrompt, tools, signal }) {
     const body = {
       model,
@@ -91,6 +117,9 @@ class Provider extends AbstractBaseProvider {
     const toolCallsByIndex = new Map();
 
     while (true) {
+      // NOTE: reader.read() does not accept a signal directly — if you need
+      // hard cancellation, also check signal.aborted in this loop and break.
+      if (signal?.aborted) break;
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
@@ -140,7 +169,12 @@ class Provider extends AbstractBaseProvider {
     };
   }
 
-  // ── non-streaming sync ──────────────────────────────────────────────────
+  /**
+   * Non-streaming chat.
+   *
+   * @param {{ messages: any[], model: string, systemPrompt: string, signal?: AbortSignal }} args
+   * @returns {Promise<string>}
+   */
   async sendMessageSync({ messages, model, systemPrompt, signal }) {
     let res;
     try {
@@ -169,7 +203,12 @@ class Provider extends AbstractBaseProvider {
     return json.choices?.[0]?.message?.content ?? "";
   }
 
-  // ── optional: image generation ──────────────────────────────────────────
+  /**
+   * Optional: image generation.
+   *
+   * @param {{ model: string, prompt: string, width?: number, height?: number, signal?: AbortSignal }} args
+   * @returns {Promise<string>} data URL or remote URL.
+   */
   async imageGeneration({ model, prompt, width, height, signal }) {
     const size = width && height ? `${width}x${height}` : "1024x1024";
     let res;
@@ -208,6 +247,7 @@ class Provider extends AbstractBaseProvider {
   }
 
   // ── statics required by the SDK ─────────────────────────────────────────
+
   static getName() {
     return PROVIDER_NAME;
   }
@@ -215,6 +255,10 @@ class Provider extends AbstractBaseProvider {
     return PROVIDER_BASE_URL;
   }
 
+  /**
+   * @param {{ baseUrl: string, apiKey?: string }} creds
+   * @returns {Promise<true | { code: string, message?: string }>}
+   */
   static async checkProvider({ baseUrl, apiKey }) {
     if (!baseUrl) return ProviderErrors.invalidUrl();
     try {
@@ -230,13 +274,17 @@ class Provider extends AbstractBaseProvider {
     }
   }
 
+  /**
+   * @param {{ baseUrl: string, apiKey?: string }} creds
+   * @returns {Promise<Array<{ id: string, name: string, provider: string, capabilities: number }>>}
+   */
   static async getProviderModels({ baseUrl, apiKey }) {
     const res = await fetch(`${baseUrl}/models`, {
       headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
     });
     if (!res.ok) return [];
     const json = await res.json();
-    const list = Array.isArray(json) ? json : json.data ?? [];
+    const list = Array.isArray(json) ? json : (json.data ?? []);
     return list
       .filter((m) => typeof m?.id === "string")
       .map((m) => ({
@@ -246,6 +294,11 @@ class Provider extends AbstractBaseProvider {
         capabilities: capabilitiesFor(m.id),
       }));
   }
+
+  // Optional: uncomment to mark as desktop-only (e.g. for localhost endpoints).
+  // static isDesktopOnly() {
+  //   return true;
+  // }
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────
@@ -273,7 +326,8 @@ function toOpenAIMessage(msg) {
   if (text) content.unshift({ type: "text", text });
   return {
     role,
-    content: content.length === 1 && content[0].type === "text" ? text : content,
+    content:
+      content.length === 1 && content[0].type === "text" ? text : content,
   };
 }
 
@@ -316,5 +370,3 @@ function capabilitiesFor(id) {
   if (lower.startsWith("gpt-3.5")) caps |= CAP_TOOLS;
   return caps;
 }
-
-return Provider;

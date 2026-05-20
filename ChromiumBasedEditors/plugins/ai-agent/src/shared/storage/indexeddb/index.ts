@@ -7,6 +7,7 @@ import {
   LocalStorageWebSearchStorage,
 } from "../localstorage/index.ts";
 import { IndexedDBAttachmentsStorage } from "./attachments.ts";
+import { IndexedDBCustomProvidersStorage } from "./customProviders.ts";
 import { IndexedDBMessagesStorage } from "./messages.ts";
 import { IndexedDBProfilesStorage } from "./profiles.ts";
 import {
@@ -17,7 +18,7 @@ import { IndexedDBThreadsStorage } from "./threads.ts";
 
 export class IndexedDBStorage implements StorageAdapter {
   private dbName = "ChatHistory";
-  private version = 4;
+  private version = 5;
   private db: IDBDatabase | null = null;
 
   threads: IndexedDBThreadsStorage;
@@ -26,6 +27,7 @@ export class IndexedDBStorage implements StorageAdapter {
   prompts: IndexedDBPromptsStorage;
   promptFolders: IndexedDBPromptFoldersStorage;
   attachments: IndexedDBAttachmentsStorage;
+  customProviders: IndexedDBCustomProvidersStorage;
   assignments: LocalStorageAssignmentsStorage;
   preferences: LocalStoragePreferencesStorage;
   mcpServers: LocalStorageMcpServersStorage;
@@ -44,6 +46,7 @@ export class IndexedDBStorage implements StorageAdapter {
     this.profiles = new IndexedDBProfilesStorage(getDB);
     this.prompts = new IndexedDBPromptsStorage(getDB);
     this.promptFolders = new IndexedDBPromptFoldersStorage(getDB, this.prompts);
+    this.customProviders = new IndexedDBCustomProvidersStorage(getDB);
     this.assignments = new LocalStorageAssignmentsStorage();
     this.preferences = new LocalStoragePreferencesStorage();
     this.mcpServers = new LocalStorageMcpServersStorage();
@@ -56,8 +59,20 @@ export class IndexedDBStorage implements StorageAdapter {
       const request = indexedDB.open(this.dbName, this.version);
 
       request.onerror = () => reject(request.error);
+      request.onblocked = () => {
+        console.warn(
+          `[IndexedDBStorage] open(${this.dbName}, ${this.version}) blocked — another connection holds an older version. Close other tabs/windows of the plugin.`
+        );
+      };
       request.onsuccess = () => {
         this.db = request.result;
+        // Allow other tabs/windows to upgrade by releasing this connection.
+        // Without this, a future open(v+1) from another context hangs in
+        // `onblocked` indefinitely.
+        this.db.onversionchange = () => {
+          this.db?.close();
+          this.db = null;
+        };
         resolve();
       };
 
@@ -121,6 +136,10 @@ export class IndexedDBStorage implements StorageAdapter {
           attachmentsStore.createIndex("createdAt", "createdAt", {
             unique: false,
           });
+        }
+
+        if (!db.objectStoreNames.contains("customProviders")) {
+          db.createObjectStore("customProviders", { keyPath: "name" });
         }
       };
     });

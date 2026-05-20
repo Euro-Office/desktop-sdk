@@ -20,7 +20,7 @@ export function instantiateProviderClass(source: string): ProviderConstructor {
   try {
     const factory = new Function(
       "sdk",
-      `"use strict";\nconst { AbstractBaseProvider, ProviderErrors, mapFetchError } = sdk;\n${source}`
+      `"use strict";\nconst { AbstractBaseProvider, ProviderErrors, mapFetchError } = sdk;\n${source}\n;return typeof Provider !== "undefined" ? Provider : undefined;`
     ) as (sdk: typeof SDK_EXPORTS) => unknown;
     Ctor = factory(SDK_EXPORTS);
   } catch (err) {
@@ -32,7 +32,7 @@ export function instantiateProviderClass(source: string): ProviderConstructor {
 
   if (typeof Ctor !== "function") {
     throw new CustomProviderEvalError(
-      "Provider file must end with `return Provider;` returning the class constructor."
+      "Provider class not found. Expected `class Provider extends AbstractBaseProvider { ... }`."
     );
   }
 

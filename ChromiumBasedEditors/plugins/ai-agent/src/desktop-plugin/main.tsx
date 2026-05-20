@@ -1,10 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { bootstrapCustomProviders } from "@/shared/custom-providers/bootstrap";
 import App, { sharedStorage } from "./App.tsx";
 import "../shared/index.css";
 
 const initializeApp = async () => {
   await sharedStorage.init();
+  await bootstrapCustomProviders(sharedStorage);
   // Try to find root element in current document
   let rootElement = document.getElementById("root");
 

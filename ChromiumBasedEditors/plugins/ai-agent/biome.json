@@ -94,7 +94,7 @@
   "files": {
     "includes": [
       "src/**",
-      "!src/docs-plugin/custom-providers/template.js"
+      "!src/shared/custom-providers/template.js"
     ]
   }
 }

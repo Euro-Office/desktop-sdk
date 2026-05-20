@@ -28,12 +28,14 @@ import {
   WidgetConfigProvider,
 } from "@onlyoffice/ai-chat";
 import { AttachmentsEngine } from "@onlyoffice/ai-chat/services";
-import { StrictMode, useMemo } from "react";
+import { StrictMode, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
+import {
+  bootstrapCustomProviders,
+  registerCustomProvider,
+} from "@/shared/custom-providers/bootstrap";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
-import { bootstrapCustomProviders } from "./custom-providers/bootstrap";
-import { install as installLibrary } from "./library/index";
 import { OnlyOfficePlatform } from "./platform/index";
 
 type SettingsChangeKind =
@@ -48,12 +50,19 @@ function notifySettingsChanged(kind: SettingsChangeKind, data: unknown): void {
   window.Asc.plugin.sendToPlugin("onAiSettingsChanged", { kind, data });
 }
 
+function reportError(text: string): void {
+  console.warn(`[Docs settings] ${text}`);
+  window.Asc.plugin.sendToPlugin("ai-show-error", { text });
+}
+
 const Settings = () => {
   const storage = useMemo(() => sharedStorage, []);
   const platform = useMemo(() => new OnlyOfficePlatform(), []);
   const eventBus = useMemo(() => new ChatEventBus(), []);
   const callbacksManager = useMemo(() => new CallbacksManager(), []);
   const middlewareRunner = useMemo(() => new MiddlewareRunner([]), []);
+  const [providerListVersion, setProviderListVersion] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { ctx, stores, engines, serverApiConfig } = useMemo(() => {
     const assignments = new AssignmentsEngine({ storage });
     const profiles = new ProfilesEngine({ storage, assignments });
@@ -104,6 +113,38 @@ const Settings = () => {
     return { ctx, stores, engines, serverApiConfig };
   }, [storage, platform, eventBus, callbacksManager, middlewareRunner]);
 
+  const importProvider = async (file: File): Promise<void> => {
+    if (!file.name.toLowerCase().endsWith(".js")) {
+      reportError(`"${file.name}": expected a .js file`);
+      return;
+    }
+    let source: string;
+    try {
+      source = await file.text();
+    } catch {
+      reportError(`Could not read "${file.name}"`);
+      return;
+    }
+    const result = await registerCustomProvider(storage, source);
+    if (!result.ok) {
+      reportError(`Failed to import "${file.name}": ${result.reason}`);
+      return;
+    }
+    setProviderListVersion((v) => v + 1);
+  };
+
+  const handleFileInputChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    const files = event.target.files;
+    if (files) {
+      for (const file of Array.from(files)) {
+        await importProvider(file);
+      }
+    }
+    event.target.value = "";
+  };
+
   return (
     <EventsProvider
       callbacksManager={callbacksManager}
@@ -126,10 +167,7 @@ const Settings = () => {
               config={{
                 isDialogFullscreen: true,
                 onProfileImportClick: () => {
-                  window.Asc.plugin.sendToPlugin(
-                    "ai-open-custom-providers",
-                    {}
-                  );
+                  fileInputRef.current?.click();
                 },
               }}
             >
@@ -150,11 +188,20 @@ const Settings = () => {
                           }}
                         >
                           <SettingsPage
+                            key={providerListVersion}
                             hideHeader
                             noPadding
                             isWebSearchHorizontal={false}
                           />
                         </div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".js"
+                          multiple
+                          onChange={handleFileInputChange}
+                          style={{ display: "none" }}
+                        />
                       </ToolsProvider>
                     </ImagesProvider>
                   </ThemeProvider>
@@ -172,8 +219,7 @@ const sharedStorage = new IndexedDBStorage();
 
 window.Asc.plugin.init = async () => {
   await sharedStorage.init();
-  installLibrary();
-  bootstrapCustomProviders();
+  await bootstrapCustomProviders(sharedStorage);
 
   const container = document.getElementById("settings_window");
 

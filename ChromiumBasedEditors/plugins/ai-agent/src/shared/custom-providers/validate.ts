@@ -1,5 +1,5 @@
 import type { ProviderConstructor } from "@onlyoffice/ai-chat";
-import { instantiateProviderClass } from "./eval";
+import { instantiateProviderClass } from "./eval.ts";
 
 export type ValidationOk = { ok: true; Ctor: ProviderConstructor };
 export type ValidationFail = { ok: false; reason: string };

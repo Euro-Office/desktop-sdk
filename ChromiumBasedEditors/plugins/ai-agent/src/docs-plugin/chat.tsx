@@ -11,10 +11,10 @@ import {
   fetchToolsSystemPrompt,
 } from "@/legacy/rpcToolsAdapter";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
+import { bootstrapCustomProviders } from "@/shared/custom-providers/bootstrap";
 import { migrateProvidersToProfiles } from "@/shared/lib/migrateProvidersToProfiles";
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
-import { bootstrapCustomProviders } from "./custom-providers/bootstrap";
 import { OnlyOfficePlatform } from "./platform/index";
 
 const sharedStorage = new IndexedDBStorage();
@@ -135,7 +135,7 @@ const Chat = () => {
 
 window.Asc.plugin.init = async () => {
   await sharedStorage.init();
-  bootstrapCustomProviders();
+  await bootstrapCustomProviders(sharedStorage);
 
   const container = document.getElementById("chat_panel");
 
