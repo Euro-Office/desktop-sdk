@@ -18,7 +18,6 @@ import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import { bootstrapCustomProviders } from "./custom-providers/bootstrap";
 import { OnlyOfficePlatform } from "./platform/index";
-import { useIsChatReady } from "./useIsChatReady";
 
 const sharedStorage = new IndexedDBStorage();
 
@@ -89,8 +88,6 @@ const Chat = () => {
   const [systemPrompt, setSystemPrompt] = useState<
     SystemPromptOverride | undefined
   >(undefined);
-  const isChatReady = useIsChatReady(storage, widgetRef);
-
   useEffect(() => {
     let cancelled = false;
     fetchToolsSystemPrompt().then((text) => {
@@ -191,28 +188,21 @@ const Chat = () => {
   }, []);
 
   return (
-    <div
-      style={{
-        height: "100%",
-        visibility: isChatReady ? "visible" : "hidden",
+    <AIChatWidget
+      ref={widgetRef}
+      storage={storage}
+      settings={settings}
+      platform={platform}
+      storeKeys={DEFAULT_STORE_KEYS}
+      toolsAdapter={toolsAdapter}
+      systemPrompt={systemPrompt}
+      images={QUICK_ACTION_ICONS}
+      assistantActions={assistantActions}
+      onMigrate={() => migrateProvidersToProfiles(storage)}
+      onSettingsClick={() => {
+        window.Asc.plugin.sendToPlugin("ai-open-settings", {});
       }}
-    >
-      <AIChatWidget
-        ref={widgetRef}
-        storage={storage}
-        settings={settings}
-        platform={platform}
-        storeKeys={DEFAULT_STORE_KEYS}
-        toolsAdapter={toolsAdapter}
-        systemPrompt={systemPrompt}
-        images={QUICK_ACTION_ICONS}
-        assistantActions={assistantActions}
-        onMigrate={() => migrateProvidersToProfiles(storage)}
-        onSettingsClick={() => {
-          window.Asc.plugin.sendToPlugin("ai-open-settings", {});
-        }}
-      />
-    </div>
+    />
   );
 };
 
