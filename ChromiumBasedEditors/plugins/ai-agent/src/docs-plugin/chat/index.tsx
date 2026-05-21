@@ -9,6 +9,13 @@ import { createRoot } from "react-dom/client";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { bootstrapCustomProviders } from "@/shared/custom-providers/bootstrap";
 import { migrateProvidersToProfiles } from "@/shared/lib/migrateProvidersToProfiles";
+import {
+  applyServerInit,
+  applyServerProviders,
+  RuntimeOverlayStorage,
+  type ServerInitPayload,
+  type ServerProvidersPayload,
+} from "@/shared/server-state";
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import {
@@ -17,7 +24,9 @@ import {
 } from "../engine-adapter/rpc-tools-adapter";
 import { OnlyOfficePlatform } from "../platform/index";
 
-const sharedStorage = new IndexedDBStorage();
+const innerStorage = new IndexedDBStorage();
+const sharedStorage = new RuntimeOverlayStorage(innerStorage);
+const externalRegistered = new Set<string>();
 
 const Chat = () => {
   const storage = useMemo(() => sharedStorage, []);
@@ -107,12 +116,31 @@ const Chat = () => {
       widget.updateWebSearch();
       widget.updateExtendedThinking();
     });
+    window.Asc.plugin.attachEvent("onAiServerSettings", (raw) => {
+      console.log("[Docs chat] ← onAiServerSettings", raw);
+      const envelope = raw as
+        | { kind: "serverInit"; data: ServerInitPayload }
+        | { kind: "serverProviders"; data: ServerProvidersPayload }
+        | null;
+      if (!envelope) return;
+      if (envelope.kind === "serverInit") {
+        applyServerInit(sharedStorage, envelope.data, externalRegistered);
+      } else if (envelope.kind === "serverProviders") {
+        applyServerProviders(envelope.data, externalRegistered);
+      }
+      const widget = widgetRef.current;
+      if (!widget) return;
+      widget.updateProfiles();
+      widget.updateCurrentChat();
+      widget.updateModelAssignment();
+    });
 
     window.Asc.plugin.sendToPlugin("onWindowReady", {});
 
     return () => {
       window.Asc.plugin.detachEvent("onAttachedText");
       window.Asc.plugin.detachEvent("onAiSettingsChanged");
+      window.Asc.plugin.detachEvent("onAiServerSettings");
     };
   }, []);
 
@@ -135,7 +163,7 @@ const Chat = () => {
 
 window.Asc.plugin.init = async () => {
   await sharedStorage.init();
-  await bootstrapCustomProviders(sharedStorage);
+  await bootstrapCustomProviders(innerStorage);
 
   const container = document.getElementById("chat_panel");
 

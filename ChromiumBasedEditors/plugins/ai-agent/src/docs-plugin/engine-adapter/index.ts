@@ -17,6 +17,13 @@ import {
   applyCustomProvidersDelta,
   bootstrapCustomProviders,
 } from "@/shared/custom-providers/bootstrap";
+import {
+  applyServerInit,
+  applyServerProviders,
+  RuntimeOverlayStorage,
+  type ServerInitPayload,
+  type ServerProvidersPayload,
+} from "@/shared/server-state";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 // import { crossPluginBus } from "@/shared/sync/crossPluginBus";
 import { OnlyOfficePlatform } from "../platform/index";
@@ -42,7 +49,8 @@ class ToolError extends Error {
 }
 
 let aiEngine: AIEngine | null = null;
-let sharedStorage: StorageAdapter | null = null;
+let sharedStorage: RuntimeOverlayStorage | null = null;
+const externalRegistered = new Set<string>();
 let readyResolve: () => void;
 const ready: Promise<void> = new Promise((res) => {
   readyResolve = res;
@@ -161,6 +169,7 @@ const AIEngineFacade = {
 
 const AIEngineFacadeWithLifecycle = Object.assign(AIEngineFacade, {
   onAiSettingsChanged,
+  onAiServerSettings,
 });
 
 {
@@ -170,8 +179,11 @@ const AIEngineFacadeWithLifecycle = Object.assign(AIEngineFacade, {
   w.AIEngine = AIEngineFacadeWithLifecycle;
 }
 
+let innerStorage: IndexedDBStorage | null = null;
+
 async function init(): Promise<void> {
-  const storage = new IndexedDBStorage();
+  innerStorage = new IndexedDBStorage();
+  const storage = new RuntimeOverlayStorage(innerStorage);
   const platform = new OnlyOfficePlatform();
   const eventBus = new ChatEventBus();
   const callbacksManager = new CallbacksManager();
@@ -196,18 +208,18 @@ async function init(): Promise<void> {
   void profiles;
 
   await storage.init();
-  await bootstrapCustomProviders(storage);
+  await bootstrapCustomProviders(innerStorage);
   aiEngine = ai;
   sharedStorage = storage;
 
   readyResolve();
 }
 
-async function refreshCustomProviders(storage: StorageAdapter): Promise<void> {
-  const db = storage as IndexedDBStorage;
-  const records = await db.customProviders.getAll();
+async function refreshCustomProviders(): Promise<void> {
+  if (!innerStorage) return;
+  const records = await innerStorage.customProviders.getAll();
   await applyCustomProvidersDelta(
-    db,
+    innerStorage,
     records.map((r) => r.name)
   );
 }
@@ -224,13 +236,32 @@ async function onAiSettingsChanged(payload: {
   kind: SettingsKind;
   data?: unknown;
 }): Promise<void> {
-  const { storage } = await ensureReady();
+  await ensureReady();
   switch (payload.kind) {
     case "customProviders":
-      await refreshCustomProviders(storage);
+      await refreshCustomProviders();
       return;
     // Other kinds re-read storage on demand in resolveProvider, no
     // in-memory caches to refresh yet.
+    default:
+      return;
+  }
+}
+
+async function onAiServerSettings(
+  payload:
+    | { kind: "serverInit"; data: ServerInitPayload }
+    | { kind: "serverProviders"; data: ServerProvidersPayload }
+): Promise<void> {
+  await ensureReady();
+  if (!sharedStorage) return;
+  switch (payload.kind) {
+    case "serverInit":
+      applyServerInit(sharedStorage, payload.data, externalRegistered);
+      return;
+    case "serverProviders":
+      applyServerProviders(payload.data, externalRegistered);
+      return;
     default:
       return;
   }

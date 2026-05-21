@@ -3,24 +3,16 @@ import {
   registerProvider,
   unregisterProvider,
 } from "@onlyoffice/ai-chat";
+import { customInternalProviderType } from "@/shared/lib/providerType.ts";
 import { isDesktopEditor } from "@/shared/lib/utils.ts";
 import type { IndexedDBStorage } from "@/shared/storage/indexeddb/index.ts";
 // import { crossPluginBus } from "@/shared/sync/crossPluginBus.ts";
 import type { CustomProviderRecord } from "./types.ts";
 import { isDesktopOnlyProvider, validateProvider } from "./validate.ts";
 
-const CUSTOM_INTERNAL_TYPE_PREFIX = "custom-internal:";
-
 const registered = new Set<string>();
 
-export function customInternalProviderType(name: string): string {
-  const sanitized = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return CUSTOM_INTERNAL_TYPE_PREFIX + (sanitized || "unnamed");
-}
+export { customInternalProviderType };
 
 function tryRegister(record: CustomProviderRecord): boolean {
   const result = validateProvider(record.source);

@@ -28,13 +28,20 @@ import {
   WidgetConfigProvider,
 } from "@onlyoffice/ai-chat";
 import { AttachmentsEngine } from "@onlyoffice/ai-chat/services";
-import { StrictMode, useMemo, useRef, useState } from "react";
+import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import {
   bootstrapCustomProviders,
   registerCustomProvider,
 } from "@/shared/custom-providers/bootstrap";
+import {
+  applyServerInit,
+  applyServerProviders,
+  RuntimeOverlayStorage,
+  type ServerInitPayload,
+  type ServerProvidersPayload,
+} from "@/shared/server-state";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 import { OnlyOfficePlatform } from "../platform/index";
 
@@ -117,6 +124,27 @@ const Settings = () => {
     return { ctx, stores, engines, serverApiConfig };
   }, [storage, platform, eventBus, callbacksManager, middlewareRunner]);
 
+  useEffect(() => {
+    const handler = (raw: unknown) => {
+      console.log("[Docs settings] ← onAiServerSettings", raw);
+      const envelope = raw as
+        | { kind: "serverInit"; data: ServerInitPayload }
+        | { kind: "serverProviders"; data: ServerProvidersPayload }
+        | null;
+      if (!envelope) return;
+      if (envelope.kind === "serverInit") {
+        applyServerInit(sharedStorage, envelope.data, externalRegistered);
+      } else if (envelope.kind === "serverProviders") {
+        applyServerProviders(envelope.data, externalRegistered);
+      }
+      setProviderListVersion((v) => v + 1);
+    };
+    window.Asc.plugin.attachEvent("onAiServerSettings", handler);
+    return () => {
+      window.Asc.plugin.detachEvent("onAiServerSettings");
+    };
+  }, []);
+
   const importProvider = async (file: File): Promise<void> => {
     if (!file.name.toLowerCase().endsWith(".js")) {
       reportError(`"${file.name}": expected a .js file`);
@@ -129,12 +157,12 @@ const Settings = () => {
       reportError(`Could not read "${file.name}"`);
       return;
     }
-    const result = await registerCustomProvider(storage, source);
+    const result = await registerCustomProvider(innerStorage, source);
     if (!result.ok) {
       reportError(`Failed to import "${file.name}": ${result.reason}`);
       return;
     }
-    const records = await storage.customProviders.getAll();
+    const records = await innerStorage.customProviders.getAll();
     notifySettingsChanged("customProviders", {
       providers: records.map((r) => r.name),
     });
@@ -223,11 +251,13 @@ const Settings = () => {
   );
 };
 
-const sharedStorage = new IndexedDBStorage();
+const innerStorage = new IndexedDBStorage();
+const sharedStorage = new RuntimeOverlayStorage(innerStorage);
+const externalRegistered = new Set<string>();
 
 window.Asc.plugin.init = async () => {
   await sharedStorage.init();
-  await bootstrapCustomProviders(sharedStorage);
+  await bootstrapCustomProviders(innerStorage);
 
   const container = document.getElementById("settings_window");
 
