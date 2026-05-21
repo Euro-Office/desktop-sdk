@@ -37,7 +37,7 @@
     "@google/genai": "^1.30.0",
     "@lmstudio/sdk": "^1.5.0",
     "@mistralai/mistralai": "^1.11.0",
-    "@onlyoffice/ai-chat": "file:onlyoffice-ai-chat-0.4.29.tgz",
+    "@onlyoffice/ai-chat": "file:onlyoffice-ai-chat-0.4.30.tgz",
     "@openrouter/ai-sdk-provider": "^1.2.3",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
