@@ -5,7 +5,7 @@ import {
 } from "@onlyoffice/ai-chat";
 import { isDesktopEditor } from "@/shared/lib/utils.ts";
 import type { IndexedDBStorage } from "@/shared/storage/indexeddb/index.ts";
-import { crossPluginBus } from "@/shared/sync/crossPluginBus.ts";
+// import { crossPluginBus } from "@/shared/sync/crossPluginBus.ts";
 import type { CustomProviderRecord } from "./types.ts";
 import { isDesktopOnlyProvider, validateProvider } from "./validate.ts";
 
@@ -96,10 +96,10 @@ export async function registerCustomProvider(
   registerProvider(type, Ctor);
   registered.add(type);
 
-  const records = await storage.customProviders.getAll();
-  crossPluginBus.publish("customProvidersUpdated", {
-    providers: records.map((r) => r.name),
-  });
+  // const records = await storage.customProviders.getAll();
+  // crossPluginBus.publish("customProvidersUpdated", {
+  //   providers: records.map((r) => r.name),
+  // });
 
   return { ok: true, type, name };
 }

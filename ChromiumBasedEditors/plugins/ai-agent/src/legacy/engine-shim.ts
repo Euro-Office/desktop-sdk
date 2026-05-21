@@ -14,6 +14,10 @@ import {
   ThreadsEngine,
 } from "@onlyoffice/ai-chat";
 import { OnlyOfficePlatform } from "@/docs-plugin/platform/index";
+import {
+  applyCustomProvidersDelta,
+  bootstrapCustomProviders,
+} from "@/shared/custom-providers/bootstrap";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 // import { crossPluginBus } from "@/shared/sync/crossPluginBus";
 import {
@@ -163,9 +167,15 @@ const AIEngineFacade = {
   },
 };
 
+const AIEngineFacadeWithLifecycle = Object.assign(AIEngineFacade, {
+  onAiSettingsChanged,
+});
+
 {
-  const w = window as unknown as { AIEngine?: typeof AIEngineFacade };
-  w.AIEngine = AIEngineFacade;
+  const w = window as unknown as {
+    AIEngine?: typeof AIEngineFacadeWithLifecycle;
+  };
+  w.AIEngine = AIEngineFacadeWithLifecycle;
 }
 
 async function init(): Promise<void> {
@@ -194,15 +204,46 @@ async function init(): Promise<void> {
   void profiles;
 
   await storage.init();
+  await bootstrapCustomProviders(storage);
   aiEngine = ai;
   sharedStorage = storage;
-
-  // crossPluginBus.subscribe("profilesUpdated", () => {});
-  // crossPluginBus.subscribe("modelAssignmentUpdated", () => {});
 
   await AI.loadHelperTranslations();
 
   readyResolve();
+}
+
+async function refreshCustomProviders(storage: StorageAdapter): Promise<void> {
+  const db = storage as IndexedDBStorage;
+  const records = await db.customProviders.getAll();
+  await applyCustomProvidersDelta(
+    db,
+    records.map((r) => r.name)
+  );
+}
+
+type SettingsKind =
+  | "profiles"
+  | "currentChatProfile"
+  | "modelAssignment"
+  | "servers"
+  | "webSearch"
+  | "customProviders";
+
+async function onAiSettingsChanged(payload: {
+  kind: SettingsKind;
+  data?: unknown;
+}): Promise<void> {
+  const { storage } = await ensureReady();
+  switch (payload.kind) {
+    case "customProviders":
+      await refreshCustomProviders(storage);
+      return;
+    // Other kinds re-read storage on demand in resolveProvider, no
+    // in-memory caches to refresh yet.
+    default:
+      return;
+  }
 }
 
 init().catch((e) => {

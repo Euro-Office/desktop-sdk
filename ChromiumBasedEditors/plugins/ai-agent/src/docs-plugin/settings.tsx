@@ -43,7 +43,8 @@ type SettingsChangeKind =
   | "currentChatProfile"
   | "modelAssignment"
   | "servers"
-  | "webSearch";
+  | "webSearch"
+  | "customProviders";
 
 function notifySettingsChanged(kind: SettingsChangeKind, data: unknown): void {
   console.log(`[Docs settings] → onAiSettingsChanged/${kind}`, data);
@@ -52,7 +53,10 @@ function notifySettingsChanged(kind: SettingsChangeKind, data: unknown): void {
 
 function reportError(text: string): void {
   console.warn(`[Docs settings] ${text}`);
-  window.Asc.plugin.sendToPlugin("ai-show-error", { text });
+  // ShowError builds a jQuery attribute selector with the text — any
+  // double quote breaks the parser. Normalize to single quotes.
+  const safeText = text.replace(/"/g, "'");
+  window.Asc.plugin.sendToPlugin("ai-show-error", { text: safeText });
 }
 
 const Settings = () => {
@@ -130,6 +134,10 @@ const Settings = () => {
       reportError(`Failed to import "${file.name}": ${result.reason}`);
       return;
     }
+    const records = await storage.customProviders.getAll();
+    notifySettingsChanged("customProviders", {
+      providers: records.map((r) => r.name),
+    });
     setProviderListVersion((v) => v + 1);
   };
 
