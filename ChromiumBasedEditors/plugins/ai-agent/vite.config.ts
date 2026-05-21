@@ -33,12 +33,15 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: isDocs
           ? {
-              "engine-shim": path.resolve(
+              "engine-adapter": path.resolve(
                 __dirname,
-                "src/legacy/engine-shim.ts"
+                "src/docs-plugin/engine-adapter/index.ts"
               ),
-              chat: path.resolve(__dirname, "src/docs-plugin/chat.tsx"),
-              settings: path.resolve(__dirname, "src/docs-plugin/settings.tsx"),
+              chat: path.resolve(__dirname, "src/docs-plugin/chat/index.tsx"),
+              settings: path.resolve(
+                __dirname,
+                "src/docs-plugin/settings/index.tsx"
+              ),
             }
           : undefined,
         output: {

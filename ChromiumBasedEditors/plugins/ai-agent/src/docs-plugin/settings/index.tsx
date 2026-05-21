@@ -1,4 +1,4 @@
-import "../shared/index.css";
+import "../../shared/index.css";
 import {
   AIEngine,
   ApiProvider,
@@ -36,7 +36,7 @@ import {
   registerCustomProvider,
 } from "@/shared/custom-providers/bootstrap";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
-import { OnlyOfficePlatform } from "./platform/index";
+import { OnlyOfficePlatform } from "../platform/index";
 
 type SettingsChangeKind =
   | "profiles"

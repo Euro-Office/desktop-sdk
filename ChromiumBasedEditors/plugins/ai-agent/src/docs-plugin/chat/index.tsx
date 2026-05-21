@@ -1,4 +1,4 @@
-import "../shared/index.css";
+import "../../shared/index.css";
 import {
   AIChatWidget,
   type AIChatWidgetRef,
@@ -6,16 +6,16 @@ import {
 } from "@onlyoffice/ai-chat";
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import {
-  createRpcToolsAdapter,
-  fetchToolsSystemPrompt,
-} from "@/legacy/rpcToolsAdapter";
 import { DEFAULT_STORE_KEYS } from "@/shared/config/store-keys";
 import { bootstrapCustomProviders } from "@/shared/custom-providers/bootstrap";
 import { migrateProvidersToProfiles } from "@/shared/lib/migrateProvidersToProfiles";
 import { LocalStorageSettings } from "@/shared/settings/localStorage";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
-import { OnlyOfficePlatform } from "./platform/index";
+import {
+  createRpcToolsAdapter,
+  fetchToolsSystemPrompt,
+} from "../engine-adapter/rpc-tools-adapter";
+import { OnlyOfficePlatform } from "../platform/index";
 
 const sharedStorage = new IndexedDBStorage();
 

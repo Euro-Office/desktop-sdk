@@ -13,17 +13,13 @@ import {
   type StorageAdapter,
   ThreadsEngine,
 } from "@onlyoffice/ai-chat";
-import { OnlyOfficePlatform } from "@/docs-plugin/platform/index";
 import {
   applyCustomProvidersDelta,
   bootstrapCustomProviders,
 } from "@/shared/custom-providers/bootstrap";
 import { IndexedDBStorage } from "@/shared/storage/indexeddb";
 // import { crossPluginBus } from "@/shared/sync/crossPluginBus";
-import {
-  type HelperTranslations,
-  loadHelperTranslations,
-} from "./legacyApi/helperTranslations";
+import { OnlyOfficePlatform } from "../platform/index";
 
 const ACTION_TYPE = {
   Chat: "Chat",
@@ -97,10 +93,6 @@ const AI = {
   ToolError,
   externalModelPrefix: "",
   DEFAULT_SERVER_SETTINGS: null as unknown,
-  helperTranslations: {} as HelperTranslations,
-  loadHelperTranslations: async (): Promise<void> => {
-    AI.helperTranslations = await loadHelperTranslations();
-  },
   ready,
 };
 
@@ -208,8 +200,6 @@ async function init(): Promise<void> {
   aiEngine = ai;
   sharedStorage = storage;
 
-  await AI.loadHelperTranslations();
-
   readyResolve();
 }
 
@@ -247,6 +237,6 @@ async function onAiSettingsChanged(payload: {
 }
 
 init().catch((e) => {
-  console.error("[engine-shim] init failed:", e);
+  console.error("[engine-adapter] init failed:", e);
   readyResolve();
 });
