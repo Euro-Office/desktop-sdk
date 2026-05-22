@@ -140,6 +140,7 @@ const Settings = () => {
       setProviderListVersion((v) => v + 1);
     };
     window.Asc.plugin.attachEvent("onAiServerSettings", handler);
+    window.Asc.plugin.sendToPlugin("onWindowReady", {});
     return () => {
       window.Asc.plugin.detachEvent("onAiServerSettings");
     };

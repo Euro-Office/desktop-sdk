@@ -1,5 +1,8 @@
 export { applyServerInit, applyServerProviders } from "./applyServerInit.ts";
-export { RuntimeOverlayStorage } from "./RuntimeOverlayStorage.ts";
+export {
+  clearUserOverriddenActions,
+  RuntimeOverlayStorage,
+} from "./RuntimeOverlayStorage.ts";
 export type {
   ServerInitPayload,
   ServerManagedProfile,

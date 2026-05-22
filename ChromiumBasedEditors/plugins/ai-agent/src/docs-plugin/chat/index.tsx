@@ -116,7 +116,7 @@ const Chat = () => {
       widget.updateWebSearch();
       widget.updateExtendedThinking();
     });
-    window.Asc.plugin.attachEvent("onAiServerSettings", (raw) => {
+    window.Asc.plugin.attachEvent("onAiServerSettings", async (raw) => {
       console.log("[Docs chat] ← onAiServerSettings", raw);
       const envelope = raw as
         | { kind: "serverInit"; data: ServerInitPayload }
@@ -130,7 +130,7 @@ const Chat = () => {
       }
       const widget = widgetRef.current;
       if (!widget) return;
-      widget.updateProfiles();
+      await widget.updateProfiles();
       widget.updateCurrentChat();
       widget.updateModelAssignment();
     });

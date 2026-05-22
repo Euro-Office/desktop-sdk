@@ -5,8 +5,32 @@ import type {
   ProfilesStorage,
   StorageAdapter,
 } from "@onlyoffice/ai-chat";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { RuntimeOverlayStorage } from "../RuntimeOverlayStorage.ts";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// --- localStorage mock (hoisted) ---
+const { localStorageMap } = vi.hoisted(() => {
+  const map = new Map<string, string>();
+  globalThis.localStorage = {
+    getItem: (key: string) => map.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      map.set(key, value);
+    },
+    removeItem: (key: string) => {
+      map.delete(key);
+    },
+    clear: () => map.clear(),
+    get length() {
+      return map.size;
+    },
+    key: () => null,
+  } as Storage;
+  return { localStorageMap: map };
+});
+
+import {
+  clearUserOverriddenActions,
+  RuntimeOverlayStorage,
+} from "../RuntimeOverlayStorage.ts";
 
 function makeProfilesStub(initial: Profile[] = []): ProfilesStorage {
   const map = new Map(initial.map((p) => [p.id, p] as const));
@@ -102,6 +126,10 @@ const localProfile: Profile = {
   modelId: "m",
   createdAt: 1,
 };
+
+afterEach(() => {
+  localStorageMap.clear();
+});
 
 describe("RuntimeOverlayStorage.profiles", () => {
   let warn: ReturnType<typeof vi.spyOn>;
@@ -230,7 +258,7 @@ describe("RuntimeOverlayStorage.assignments", () => {
     );
   });
 
-  it("update on server-overridden assignment is a no-op", async () => {
+  it("update lifts the server overlay for that action (soft-override)", async () => {
     const innerAssignments = makeAssignmentsStub();
     const inner = makeInnerStorage({ assignments: innerAssignments });
     const storage = new RuntimeOverlayStorage(inner);
@@ -239,9 +267,104 @@ describe("RuntimeOverlayStorage.assignments", () => {
       assignments: { Chat: "srv-1" },
       override: true,
     });
-    await storage.assignments.update("Chat" as ActionType, "x");
-    expect(innerAssignments.update).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalled();
+
+    await storage.assignments.update("Chat" as ActionType, "local-1");
+
+    expect(innerAssignments.update).toHaveBeenCalledWith(
+      "Chat",
+      "local-1",
+      undefined
+    );
+    expect(await storage.assignments.readByType("Chat" as ActionType)).toBe(
+      "local-1"
+    );
+    // warn is asserted by the unused linter only if referenced — touch it
+    // so the `let warn` does not become noise.
+    void warn;
+  });
+
+  it("delete lifts the server overlay for that action", async () => {
+    const innerAssignments = makeAssignmentsStub({
+      Chat: "local-1",
+    } as Partial<Record<ActionType, string>>);
+    const inner = makeInnerStorage({ assignments: innerAssignments });
+    const storage = new RuntimeOverlayStorage(inner);
+    storage.applyServerSnapshot({
+      profiles: [],
+      assignments: { Chat: "srv-1" },
+      override: true,
+    });
+
+    await storage.assignments.delete("Chat" as ActionType);
+
+    expect(innerAssignments.delete).toHaveBeenCalledWith("Chat", undefined);
+    expect(await storage.assignments.readByType("Chat" as ActionType)).toBe(
+      null
+    );
+  });
+
+  it("user-overridden action survives a subsequent applyServerSnapshot replay", async () => {
+    const innerAssignments = makeAssignmentsStub();
+    const inner = makeInnerStorage({ assignments: innerAssignments });
+    const storage1 = new RuntimeOverlayStorage(inner);
+
+    // First init from host.
+    storage1.applyServerSnapshot({
+      profiles: [],
+      assignments: { Chat: "srv-1" },
+      override: true,
+    });
+    expect(await storage1.assignments.readByType("Chat" as ActionType)).toBe(
+      "srv-1"
+    );
+
+    // User picks a local profile via UI.
+    await storage1.assignments.update("Chat" as ActionType, "local-1");
+    expect(await storage1.assignments.readByType("Chat" as ActionType)).toBe(
+      "local-1"
+    );
+
+    // Settings window reopens — fresh storage instance, replay arrives.
+    const storage2 = new RuntimeOverlayStorage(inner);
+    storage2.applyServerSnapshot({
+      profiles: [],
+      assignments: { Chat: "srv-1" },
+      override: true,
+    });
+
+    // User's choice must still win (overlay is skipped for user-overridden
+    // actions in LS).
+    expect(await storage2.assignments.readByType("Chat" as ActionType)).toBe(
+      "local-1"
+    );
+  });
+
+  it("clearUserOverriddenActions restores server-overlay precedence", async () => {
+    const innerAssignments = makeAssignmentsStub();
+    const inner = makeInnerStorage({ assignments: innerAssignments });
+    const storage = new RuntimeOverlayStorage(inner);
+
+    storage.applyServerSnapshot({
+      profiles: [],
+      assignments: { Chat: "srv-1" },
+      override: true,
+    });
+    await storage.assignments.update("Chat" as ActionType, "local-1");
+    expect(await storage.assignments.readByType("Chat" as ActionType)).toBe(
+      "local-1"
+    );
+
+    // Host fires a real ai_onCustomInit → clears user overrides.
+    clearUserOverriddenActions();
+    storage.applyServerSnapshot({
+      profiles: [],
+      assignments: { Chat: "srv-1" },
+      override: true,
+    });
+
+    expect(await storage.assignments.readByType("Chat" as ActionType)).toBe(
+      "srv-1"
+    );
   });
 });
 

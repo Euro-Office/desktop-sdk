@@ -96,6 +96,50 @@ type AssignmentsState = {
   override: boolean;
 };
 
+// LS key marking actions that the user has explicitly written through the UI.
+// While an action is in this set, the server-overlay does NOT apply to it on
+// read or on subsequent applyServerSnapshot calls (replay). The set is reset
+// by the host plugin only when a real ai_onCustomInit arrives from the editor
+// (= new managed policy from above).
+const USER_OVERRIDDEN_ACTIONS_KEY = "onlyoffice_ai_user_overridden_actions";
+
+function readUserOverriddenActions(): Set<ActionType> {
+  try {
+    const raw = localStorage.getItem(USER_OVERRIDDEN_ACTIONS_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as string[];
+    return new Set(arr as ActionType[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeUserOverriddenActions(set: Set<ActionType>): void {
+  try {
+    if (set.size === 0) {
+      localStorage.removeItem(USER_OVERRIDDEN_ACTIONS_KEY);
+    } else {
+      localStorage.setItem(
+        USER_OVERRIDDEN_ACTIONS_KEY,
+        JSON.stringify([...set])
+      );
+    }
+  } catch {
+    // localStorage may be unavailable in private/locked-down contexts; soft-fail.
+  }
+}
+
+function markUserOverriddenAction(actionType: ActionType): void {
+  const s = readUserOverriddenActions();
+  if (s.has(actionType)) return;
+  s.add(actionType);
+  writeUserOverriddenActions(s);
+}
+
+export function clearUserOverriddenActions(): void {
+  writeUserOverriddenActions(new Set());
+}
+
 class ServerAssignmentsProxy implements AssignmentsStorage {
   private inner: AssignmentsStorage;
   private state: AssignmentsState;
@@ -105,8 +149,13 @@ class ServerAssignmentsProxy implements AssignmentsStorage {
     this.state = state;
   }
 
-  private hasServerOverride(actionType: ActionType): boolean {
-    return this.state.override && this.state.map.has(actionType);
+  // Any explicit write by the user/UI lifts the server-overlay for that
+  // action AND persists a "user-touched" mark in LS so subsequent replays
+  // also leave it alone (soft-override semantics — matches the legacy
+  // ai_onCustomInit behavior).
+  private releaseOverlay(actionType: ActionType): void {
+    this.state.map.delete(actionType);
+    markUserOverriddenAction(actionType);
   }
 
   async create(
@@ -114,12 +163,7 @@ class ServerAssignmentsProxy implements AssignmentsStorage {
     profileId: string,
     entityId?: string
   ): Promise<void> {
-    if (this.hasServerOverride(actionType)) {
-      console.warn(
-        `[RuntimeOverlayStorage] assignment "${actionType}" is server-managed — create ignored`
-      );
-      return;
-    }
+    this.releaseOverlay(actionType);
     return this.inner.create(actionType, profileId, entityId);
   }
 
@@ -127,18 +171,25 @@ class ServerAssignmentsProxy implements AssignmentsStorage {
     actionType: ActionType,
     entityId?: string
   ): Promise<string | null> {
-    if (this.hasServerOverride(actionType)) {
+    const userOverridden = readUserOverriddenActions();
+    const hasOverlay = this.state.map.has(actionType);
+    const overlayActive = hasOverlay && !userOverridden.has(actionType);
+
+    if (this.state.override && overlayActive) {
       return this.state.map.get(actionType) ?? null;
     }
     const local = await this.inner.readByType(actionType, entityId);
     if (local) return local;
-    return this.state.map.get(actionType) ?? null;
+    if (overlayActive) return this.state.map.get(actionType) ?? null;
+    return null;
   }
 
   async readAll(): Promise<Partial<Record<ActionType, string>>> {
     const local = await this.inner.readAll();
+    const userOverridden = readUserOverriddenActions();
     const merged: Partial<Record<ActionType, string>> = { ...local };
     for (const [type, profileId] of this.state.map.entries()) {
+      if (userOverridden.has(type)) continue;
       if (this.state.override || merged[type] === undefined) {
         merged[type] = profileId;
       }
@@ -151,12 +202,7 @@ class ServerAssignmentsProxy implements AssignmentsStorage {
     profileId: string,
     entityId?: string
   ): Promise<void> {
-    if (this.hasServerOverride(actionType)) {
-      console.warn(
-        `[RuntimeOverlayStorage] assignment "${actionType}" is server-managed — update ignored`
-      );
-      return;
-    }
+    this.releaseOverlay(actionType);
     return this.inner.update(actionType, profileId, entityId);
   }
 
@@ -168,24 +214,14 @@ class ServerAssignmentsProxy implements AssignmentsStorage {
     for (const [type, value] of Object.entries(assignments)) {
       const actionType = type as ActionType;
       if (value === undefined) continue;
-      if (this.hasServerOverride(actionType)) {
-        console.warn(
-          `[RuntimeOverlayStorage] assignment "${actionType}" is server-managed — upsert entry ignored`
-        );
-        continue;
-      }
+      this.releaseOverlay(actionType);
       filtered[actionType] = value;
     }
     return this.inner.upsertMany(filtered, entityId);
   }
 
   async delete(actionType: ActionType, entityId?: string): Promise<void> {
-    if (this.hasServerOverride(actionType)) {
-      console.warn(
-        `[RuntimeOverlayStorage] assignment "${actionType}" is server-managed — delete ignored`
-      );
-      return;
-    }
+    this.releaseOverlay(actionType);
     return this.inner.delete(actionType, entityId);
   }
 
@@ -193,9 +229,8 @@ class ServerAssignmentsProxy implements AssignmentsStorage {
     actionTypes: ActionType[],
     entityId?: string
   ): Promise<void> {
-    const filtered = actionTypes.filter((t) => !this.hasServerOverride(t));
-    if (filtered.length === 0) return;
-    return this.inner.deleteMany(filtered, entityId);
+    for (const t of actionTypes) this.releaseOverlay(t);
+    return this.inner.deleteMany(actionTypes, entityId);
   }
 }
 

@@ -3,7 +3,6 @@ import type { ActionType, Profile, ProviderType } from "@onlyoffice/ai-chat";
 export type ServerProviderSpecBasedOn = {
   name: string;
   basedOn: ProviderType;
-  addon?: string;
 };
 
 export type ServerProviderSpecSource = {

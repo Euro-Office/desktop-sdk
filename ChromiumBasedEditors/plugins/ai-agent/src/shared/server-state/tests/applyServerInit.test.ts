@@ -64,18 +64,47 @@ describe("applyServerInit / applyServerProviders", () => {
     expect(registered.has("custom-external:foo-bar")).toBe(true);
   });
 
-  it("does not register basedOn providers", () => {
-    (getProvider as ReturnType<typeof vi.fn>).mockReturnValue(class {});
+  it("registers basedOn provider as a named alias of the base class", () => {
+    // biome-ignore lint/complexity/noStaticOnlyClass: stand-in for a ProviderConstructor — the alias subclasses it, so a real class is needed.
+    class BaseCtor {
+      static getName() {
+        return "BaseCtor";
+      }
+    }
+    (getProvider as ReturnType<typeof vi.fn>).mockReturnValue(BaseCtor);
 
     const registered = new Set<string>();
     applyServerInit(
       makeStorage(),
-      { providers: [{ name: "Acme", basedOn: "openai" }] },
+      { providers: [{ name: "Acme Hosted", basedOn: "openai" }] },
+      registered
+    );
+
+    expect(registerProvider).toHaveBeenCalledWith(
+      "custom-external:acme-hosted",
+      expect.any(Function)
+    );
+    const [, registeredCtor] = (registerProvider as ReturnType<typeof vi.fn>)
+      .mock.calls[0] as [string, { getName(): string }];
+    expect(registeredCtor.getName()).toBe("Acme Hosted");
+    expect(Object.getPrototypeOf(registeredCtor)).toBe(BaseCtor);
+    expect(registered.has("custom-external:acme-hosted")).toBe(true);
+  });
+
+  it("skips basedOn provider when base class is missing", () => {
+    (getProvider as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const registered = new Set<string>();
+    applyServerInit(
+      makeStorage(),
+      { providers: [{ name: "Mystery", basedOn: "no-such" as never }] },
       registered
     );
 
     expect(registerProvider).not.toHaveBeenCalled();
     expect(registered.size).toBe(0);
+    expect(warn).toHaveBeenCalled();
   });
 
   it("re-init unregisters previously registered external providers", () => {
@@ -102,19 +131,6 @@ describe("applyServerInit / applyServerProviders", () => {
     expect(unregisterProvider).toHaveBeenCalledWith("custom-external:old");
     expect(registered.has("custom-external:old")).toBe(false);
     expect(registered.has("custom-external:new")).toBe(true);
-  });
-
-  it("warns on basedOn pointing at unknown provider", () => {
-    (getProvider as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-    applyServerInit(
-      makeStorage(),
-      { providers: [{ name: "Mystery", basedOn: "no-such" as never }] },
-      new Set()
-    );
-
-    expect(warn).toHaveBeenCalled();
   });
 
   it("applyServerProviders does not touch profiles/assignments", () => {
