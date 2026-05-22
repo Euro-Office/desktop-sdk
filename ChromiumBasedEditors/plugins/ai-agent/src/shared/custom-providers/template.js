@@ -47,22 +47,31 @@
  *   otherwise the Stop button in the chat UI will not be able to cancel the
  *   in-flight request, and the stream will keep running in the background.
  *
- * Capabilities bitmask (returned per Model in getProviderModels):
- *   1  = Chat
- *   2  = Image generation
- *   4  = Vision (image input)
- *   8  = Tools (function calling)
- *   16 = Embeddings
+ * Capabilities bitmask (returned per Model in getProviderModels).
+ * Source of truth: @onlyoffice/ai-chat → CapabilitiesUI.
  *
- * Combine with `|` (e.g. `1 | 4 | 8` for chat + vision + tools).
+ *   0x01  (1)   = Chat
+ *   0x02  (2)   = Image generation
+ *   0x04  (4)   = Embeddings
+ *   0x08  (8)   = Audio (speech / transcription)
+ *   0x80  (128) = Vision (image input)
+ *   0x100 (256) = Tools (function calling)
+ *
+ * Combine with `|`
+ *   chat + vision + tools  →  0x01 | 0x80 | 0x100  (= 385)
+ *   embedding-only model   →  0x04
+ *   image generation only  →  0x02
  */
 
 const PROVIDER_NAME = "My OpenAI";
 const PROVIDER_BASE_URL = "https://api.openai.com/v1";
 
-const CAP_CHAT = 1;
-const CAP_VISION = 4;
-const CAP_TOOLS = 8;
+const CAP_CHAT = 0x01;
+const CAP_IMAGE = 0x02;
+const CAP_EMBEDDINGS = 0x04;
+const CAP_AUDIO = 0x08;
+const CAP_VISION = 0x80;
+const CAP_TOOLS = 0x100;
 
 class Provider extends AbstractBaseProvider {
   // creds is { baseUrl, apiKey } — stored on this.creds by AbstractBaseProvider.
@@ -362,8 +371,9 @@ function cloneSnapshot(acc, toolCallsByIndex) {
 // Heuristic: assign capability bits based on the model id.
 function capabilitiesFor(id) {
   const lower = id.toLowerCase();
-  if (lower.includes("embedding")) return 16;
-  if (lower.includes("dall-e") || lower.includes("image")) return 2;
+  if (lower.includes("embedding")) return CAP_EMBEDDINGS;
+  if (lower.includes("whisper") || lower.includes("tts")) return CAP_AUDIO;
+  if (lower.includes("dall-e") || lower.includes("image")) return CAP_IMAGE;
   let caps = CAP_CHAT;
   if (lower.startsWith("gpt-4") || lower.includes("o1") || lower.includes("o3"))
     caps |= CAP_VISION | CAP_TOOLS;
