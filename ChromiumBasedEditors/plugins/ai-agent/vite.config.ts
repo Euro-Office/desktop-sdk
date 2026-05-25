@@ -1,8 +1,14 @@
+import fs from "node:fs";
 import path from "path";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import svgr from "vite-plugin-svgr";
+
+const polyfillCode = fs.readFileSync(
+  path.resolve(__dirname, "src/shared/lib/polyfills.js"),
+  "utf8"
+);
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -65,6 +71,7 @@ export default defineConfig(({ mode }) => {
             }
             return "[name][extname]";
           },
+          banner: (chunk) => (chunk.isEntry ? polyfillCode : ""),
           manualChunks: isDocs
             ? (id) => {
                 if (id.includes("node_modules")) {
