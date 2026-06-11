@@ -13,10 +13,6 @@ set(CORE_BUILDS_PLATFORM_PREFIX "linux_64")
 
 include(${CORE_ROOT_DIR}/common.cmake)
 
-set(CEF_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/cef")
-list(APPEND CMAKE_MODULE_PATH "${CEF_ROOT}/cmake")
-find_package(CEF REQUIRED)
-
 
 # Options mapped from QMake CONFIG and DEFINES
 option(DISABLE_PROTECTION "Disable protection feature" OFF)
@@ -100,9 +96,6 @@ if(HUNSPELL_INCLUDE_DIR AND HUNSPELL_LIBRARY)
         IMPORTED_LOCATION "${HUNSPELL_LIBRARY}"
     )
 endif()
-
-set(BOOST_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/boost/linux_64")
-find_package(Boost REQUIRED COMPONENTS system filesystem regex date_time)
 
 add_library(ascdocumentscore SHARED)
 
@@ -1165,20 +1158,11 @@ endif()
 # Target: editors_helper (Executable)
 # ==============================================================================
 
-message( "Fetch and build OpenSSL" )
-set(OPENSSL_3RDPARTY_DIR "${CORE_ROOT_DIR}/Common/3dParty/openssl")
-set(OPENSSL_INSTALL_DIR "${EO_CORE_3RD_PARTY_INSTALL_DIR}/openssl_build_linux_64")
-get_filename_component(OPENSSL_3RDPARTY_DIR_ABS "${OPENSSL_3RDPARTY_DIR}" ABSOLUTE)
-get_filename_component(OPENSSL_INSTALL_DIR_ABS "${OPENSSL_INSTALL_DIR}" ABSOLUTE)
-execute_process(
-    COMMAND_ECHO STDOUT
-    COMMAND ./nc-build.sh "${EO_CORE_3RD_PARTY_WORK_DIR}/openssl" "${OPENSSL_INSTALL_DIR}"
-    WORKING_DIRECTORY ${OPENSSL_3RDPARTY_DIR_ABS}
-)
-
+include(${CORE_ROOT_DIR}/OfficeUtils/CMakeLists.txt)
 
 add_executable(editors_helper "${CMAKE_CURRENT_SOURCE_DIR}/helper_main.cpp" ${CORE_ROOT_DIR}/Common/3dParty/openssl/common/common_openssl.cpp)
 
+add_officeutils(editors_helper ${CORE_ROOT_DIR}/OfficeUtils)
 
 target_link_directories(editors_helper PRIVATE
     $<$<CONFIG:Debug>:${CEF_ROOT}/Debug>
@@ -1214,6 +1198,6 @@ elseif(UNIX AND NOT APPLE)
     )
     # Extra Linux dependencies defined in ascdocumentscore_helper.pro
     target_link_libraries(editors_helper PRIVATE 
-        graphics kernel kernel_network UnicodeConverter OfficeUtils
+        graphics kernel kernel_network UnicodeConverter
     )
 endif()
