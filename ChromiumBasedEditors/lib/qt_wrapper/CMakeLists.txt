@@ -36,7 +36,7 @@ endif()
 # --- Main Target ---
 add_library(qtascdocumentscore SHARED)
 
-target_compile_definitions(qtascdocumentscore PRIVATE DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING)
+target_compile_definitions(qtascdocumentscore PRIVATE DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING NOMINMAX QT_VERSION_LESS_5_15)
 
 target_include_directories(qtascdocumentscore PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/include"
@@ -80,7 +80,7 @@ if(WIN32)
 endif()
 
 if(UNIX AND NOT APPLE)
-    target_compile_definitions(qtascdocumentscore PRIVATE _LINUX LINUX OS_LINUX _X11 QT_VERSION_LESS_5_15)
+    target_compile_definitions(qtascdocumentscore PRIVATE _LINUX LINUX OS_LINUX _X11)
     
     # Qt5/6 Linux handling
     if(QT_VERSION_MAJOR LESS_EQUAL 5)
