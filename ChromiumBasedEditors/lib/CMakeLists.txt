@@ -110,6 +110,7 @@ target_compile_definitions(ascdocumentscore PRIVATE
     DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING
     CRYPTOPP_DISABLE_ASM
     UNICODE _UNICODE
+    COMMON_OPENSSL_BUILDING_INTERNAL
 )
 
 if(NOT DISABLE_PROTECTION)
@@ -1196,6 +1197,8 @@ target_include_directories(editors_helper PRIVATE
 
 # Output directory routing based on BUILD_XP flag
 set_target_properties(editors_helper PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CORE_BUILDS_BINARY_PATH}")
+
+target_compile_definitions(editors_helper PRIVATE COMMON_OPENSSL_BUILDING_INTERNAL)
 
 if(WIN32)
     target_sources(editors_helper PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/helper.exe.manifest")
