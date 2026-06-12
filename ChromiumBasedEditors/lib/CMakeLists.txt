@@ -109,6 +109,7 @@ target_compile_definitions(ascdocumentscore PRIVATE
     XPS_USE_DYNAMIC_LIBRARY
     DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING
     CRYPTOPP_DISABLE_ASM
+    UNICODE _UNICODE
 )
 
 if(NOT DISABLE_PROTECTION)
@@ -161,6 +162,9 @@ target_include_directories(ascdocumentscore PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/tools"
     "${CMAKE_CURRENT_SOURCE_DIR}/tools/functions/internal"
     "${CEF_SRC_PATH}"
+    "${ICU_DESKTOP_INSTALL_DIR_ABS}/include"
+    "${CORE_ROOT_DIR}/Common/3dParty/openssl/common"
+    "${OPENSSL_INSTALL_DIR}/include"
 )
 
 # ------------------------------------------------------------------------------
@@ -217,6 +221,7 @@ set(ASCDOCUMENTSCORE_SOURCES
     "${CORE_ROOT_DIR}/MsBinaryFile/DocFile/MemoryStream.cpp"
     "${CORE_ROOT_DIR}/MsBinaryFile/XlsFile/Format/Logging/Log.cpp"
     "${CORE_ROOT_DIR}/MsBinaryFile/XlsFile/Format/Logging/Logger.cpp"
+    "${CORE_ROOT_DIR}/Common/3dParty/openssl/common/common_openssl.cpp"
 )
 
 # Non-Mac Sources
@@ -1113,6 +1118,13 @@ target_link_libraries(ascdocumentscore PUBLIC
                     Boost::date_time
                     CryptoPPLib
                     CompoundFileLib
+                    graphics kernel UnicodeConverter kernel_network
+                    PdfFile XpsFile DjVuFile hunspell_wrapper ooxmlsignature doctrenderer
+                    ${LIBICUUC_DESKTOP}
+                    ${LIBICUDATA_DESKTOP}
+                    ${LIBICUI_DESKTOP}
+                    ${OPENSSL_LIBSSL}
+                    ${OPENSSL_LIBCRYPTO}
 )
 
 
@@ -1149,8 +1161,6 @@ else() # Linux
     target_include_directories(ascdocumentscore PRIVATE ${GTK_INCLUDE_DIRS})
     target_link_libraries(ascdocumentscore PRIVATE
         cef ${GTK_LIBRARIES} X11 X11-xcb xkbcommon-x11 xkbcommon
-        graphics kernel UnicodeConverter kernel_network
-        PdfFile XpsFile DjVuFile hunspell_wrapper ooxmlsignature doctrenderer
     )
 endif()
 
@@ -1175,13 +1185,13 @@ target_link_libraries(editors_helper PUBLIC
     Boost::filesystem
     Boost::regex
     Boost::date_time
-    cef
-    ${OPENSSL_INSTALL_DIR_ABS}/lib/libssl.a
-    ${OPENSSL_INSTALL_DIR_ABS}/lib/libcrypto.a
+    ${OPENSSL_LIBSSL}
+    ${OPENSSL_LIBCRYPTO}
 )
 
 target_include_directories(editors_helper PRIVATE
     ${OPENSSL_INSTALL_DIR}/include
+    ${CORE_ROOT_DIR}/Common/3dParty/openssl/common
 )
 
 # Output directory routing based on BUILD_XP flag
@@ -1189,6 +1199,8 @@ set_target_properties(editors_helper PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CORE
 
 if(WIN32)
     target_sources(editors_helper PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/helper.exe.manifest")
+    
+    target_link_libraries(editors_helper PUBLIC ws2_32 crypt32 user32 advapi32 libcef)
 elseif(UNIX AND NOT APPLE)
     target_compile_definitions(editors_helper PRIVATE _LINUX LINUX OS_LINUX _X11)
     target_link_options(editors_helper PRIVATE 
@@ -1198,6 +1210,6 @@ elseif(UNIX AND NOT APPLE)
     )
     # Extra Linux dependencies defined in ascdocumentscore_helper.pro
     target_link_libraries(editors_helper PRIVATE 
-        graphics kernel kernel_network UnicodeConverter
+        graphics kernel kernel_network UnicodeConverter cef
     )
 endif()

@@ -1,5 +1,6 @@
 #include "keyboardlayout.h"
 #include "unicode/locid.h"
+#include "unicode/unistr.h"
 #ifdef _WIN32
 # include <Windows.h>
 #else
