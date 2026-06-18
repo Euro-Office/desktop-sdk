@@ -10,14 +10,18 @@ set(CMAKE_AUTORCC ON)
 add_compile_options(-march=native)
 
 # Find Qt
-set(QT_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/qt/Qt-5.9.9/gcc_64/")
-set(QT_DIR "${QT_ROOT}/lib/cmake/Qt5")
-#set(QT_DIR "/build-cache-desktop/vcpkg_installed/x64-linux-dynamic/qt/Qt-5.9.9/gcc_64/lib/cmake/Qt5/")
-set(Qt5_DIR "${QT_ROOT}/lib/cmake/Qt5")
-#set(Qt5_DIR "/build-cache-desktop/vcpkg_installed/x64-linux-dynamic/qt/Qt-5.9.9/gcc_64/lib/cmake/Qt5/")
+if(NOT QT_ROOT)
+    if(DEFINED ENV{QT6_ROOT})
+        set(QT_ROOT "$ENV{QT6_ROOT}/6.11.1/gcc_64")
+    else()
+        set(QT_ROOT "/qt6/6.11.1/gcc_64")
+    endif()
+endif()
+set(QT_DIR "${QT_ROOT}/lib/cmake/Qt6")
+set(Qt6_DIR "${QT_ROOT}/lib/cmake/Qt6")
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui PrintSupport Widgets Multimedia MultimediaWidgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui PrintSupport Widgets Multimedia MultimediaWidgets)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core Gui GuiPrivate PrintSupport Widgets Multimedia MultimediaWidgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui GuiPrivate PrintSupport Widgets Multimedia MultimediaWidgets)
 
 # Paths
 set(CORE_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../../core")
@@ -46,7 +50,7 @@ endif()
 # --- Main Target ---
 add_library(qtascdocumentscore SHARED)
 
-target_compile_definitions(qtascdocumentscore PRIVATE DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING)
+target_compile_definitions(qtascdocumentscore PRIVATE DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING QT_VERSION_6)
 
 target_include_directories(qtascdocumentscore PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/include"
@@ -90,15 +94,10 @@ if(WIN32)
 endif()
 
 if(UNIX AND NOT APPLE)
-    target_compile_definitions(qtascdocumentscore PRIVATE _LINUX LINUX OS_LINUX _X11 QT_VERSION_LESS_5_15)
+    target_compile_definitions(qtascdocumentscore PRIVATE _LINUX LINUX OS_LINUX _X11)
     
-    # Qt5/6 Linux handling
-    if(QT_VERSION_MAJOR LESS_EQUAL 5)
-        find_package(Qt5 REQUIRED COMPONENTS X11Extras)
-        target_link_libraries(qtascdocumentscore PRIVATE Qt5::X11Extras)
-    else()
-        target_link_libraries(qtascdocumentscore PRIVATE Qt6::GuiPrivate)
-    endif()
+    # Qt6 Linux handling
+    target_link_libraries(qtascdocumentscore PRIVATE Qt${QT_VERSION_MAJOR}::GuiPrivate)
 
     #target_link_options(qtascdocumentscore PRIVATE "-Wl,-unresolved-symbols=ignore-in-shared-libs")
 

@@ -29,17 +29,15 @@
 #include <QApplication>
 #include "./../include/qcefview.h"
 
-#ifdef QT_VERSION_LESS_5_15
-#include <QDesktopWidget>
+#ifdef _LINUX
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QtGui/private/qtx11extras_p.h>
+#else
+#include <QX11Info>
+#endif
 #endif
 
-#ifdef _LINUX
-#ifndef QT_VERSION_6
-#include <QX11Info>
-#else
-#include <QtGui/private/qtx11extras_p.h>
-#endif
-#endif
+
 
 QDpiChecker::QDpiChecker(CAscApplicationManager* pManager) : CAscDpiChecker(pManager)
 {
@@ -75,15 +73,16 @@ int QDpiChecker::GetMonitorDpi(int nScreenNumber, unsigned int* dx, unsigned int
 	int nDpiY = _screen->physicalDotsPerInchY();
 
 #ifdef _LINUX
-	if ( QX11Info::isPlatformX11() )
+	if (QX11Info::isPlatformX11())
 	{
 		int _x11_dpix = QX11Info::appDpiX(nScreenNumber),
 				_x11_dpiy = QX11Info::appDpiY(nScreenNumber);
 
-		if ( nDpiX < _x11_dpix ) nDpiX = _x11_dpix;
-		if ( nDpiY < _x11_dpiy ) nDpiY = _x11_dpiy;
+		if (nDpiX < _x11_dpix) nDpiX = _x11_dpix;
+		if (nDpiY < _x11_dpiy) nDpiY = _x11_dpiy;
 	}
 #endif
+
 
 	QSize size = _screen->size();
 	if (size.width() <= 1600 && size.height() <= 900)
@@ -122,10 +121,6 @@ int QDpiChecker::GetWidgetDpi(QWidget* w, unsigned int* dx, unsigned int* dy)
 		*dy = 96;
 		return 0;
 	}
-#ifndef QT_VERSION_LESS_5_15
 	int nScreenNumber = QApplication::screens().indexOf(w->screen());
-#else
-	int nScreenNumber = QApplication::desktop()->screenNumber(w);
-#endif
 	return GetMonitorDpi(nScreenNumber, dx, dy);
 }

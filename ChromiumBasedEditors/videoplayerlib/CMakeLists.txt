@@ -64,7 +64,7 @@ endif()
 target_sources(videoplayerlib PRIVATE ${SOURCES} ${HEADERS} IconsVideoPlayerLib.qrc)
 
 # --- Definitions ---
-target_compile_definitions(videoplayerlib PRIVATE QT_DEPRECATED_WARNINGS BUILD_VIDEO_LIBRARY)
+target_compile_definitions(videoplayerlib PRIVATE QT_DEPRECATED_WARNINGS BUILD_VIDEO_LIBRARY QT_VERSION_6)
 
 if(USE_LIBVLC)
     target_compile_definitions(videoplayerlib PRIVATE USE_VLC_LIBRARY)

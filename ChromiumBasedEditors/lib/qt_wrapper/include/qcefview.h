@@ -108,12 +108,12 @@ protected:
 
 	void Init();
 
-signals:
+Q_SIGNALS:
 	void closeWidget(QCloseEvent *);
 	void _loaded();
 	void _closed();
 
-protected slots:
+protected Q_SLOTS:
 	void _loadedSlot();
 	void _closedSlot();
 };
