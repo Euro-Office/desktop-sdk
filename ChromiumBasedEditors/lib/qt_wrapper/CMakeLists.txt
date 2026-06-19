@@ -11,7 +11,7 @@ set(CMAKE_AUTORCC ON)
 
 include(${CORE_ROOT_DIR}/common.cmake)
 
-set_default_options(videoplayerlib)
+
 
 # Paths
 set(CORE_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../../core")
@@ -39,6 +39,8 @@ endif()
 
 # --- Main Target ---
 add_library(qtascdocumentscore SHARED)
+
+set_default_options(qtascdocumentscore)
 
 target_compile_definitions(qtascdocumentscore PRIVATE DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING NOMINMAX QT_VERSION_LESS_5_15)
 
