@@ -1132,7 +1132,7 @@ target_link_libraries(ascdocumentscore PUBLIC
 
 
 if(WIN32)
-    target_compile_definitions(ascdocumentscore PRIVATE NOMINMAX _WINDOWS)
+    target_compile_definitions(ascdocumentscore PRIVATE NOMINMAX _WINDOWS WIN32)
     target_link_directories(ascdocumentscore PRIVATE "${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
     target_link_libraries(ascdocumentscore PRIVATE
         libcef wininet dnsapi version msimg32 ws2_32 usp10 psapi
