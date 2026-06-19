@@ -12,7 +12,7 @@ add_compile_options(-march=native)
 # Find Qt
 if(NOT QT_ROOT)
     if(DEFINED ENV{QT6_ROOT})
-        set(QT_ROOT "$ENV{QT6_ROOT}/6.11.1/gcc_64")
+        set(QT_ROOT "$ENV{QT6_ROOT}")
     else()
         set(QT_ROOT "/qt6/6.11.1/gcc_64")
     endif()
@@ -50,7 +50,7 @@ endif()
 # --- Main Target ---
 add_library(qtascdocumentscore SHARED)
 
-target_compile_definitions(qtascdocumentscore PRIVATE DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING QT_VERSION_6)
+target_compile_definitions(qtascdocumentscore PRIVATE DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING)
 
 target_include_directories(qtascdocumentscore PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/include"

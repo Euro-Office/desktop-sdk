@@ -119,7 +119,7 @@ void QAscPrinterContext::GetPhysicalRect(int& nX, int& nY, int& nW, int& nH)
 		return;
 	}
 
-#ifndef QT_VERSION_6
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QRect rect1 = m_oPrinter.pageRect();
 	QRect rect2 = m_oPrinter.paperRect();
 #else
@@ -142,7 +142,7 @@ void QAscPrinterContext::GetPrintAreaSize(int& nW, int& nH)
 		return;
 	}
 
-#ifndef QT_VERSION_6
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QRect rect = m_oPrinter.pageRect();
 #else
 	QRect rect = m_oPrinter.pageLayout().fullRectPixels(m_oPrinter.resolution());

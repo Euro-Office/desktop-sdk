@@ -109,7 +109,7 @@ QVideoPlaylist::QVideoPlaylist(QWidget *parent) : QWidget(parent)
 	QObject::connect(m_pCheckPlayer, SIGNAL(durationChanged(qint64)), this, SLOT(_onSlotDurationChanged(qint64)));
 	QObject::connect(m_pCheckPlayer, SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)), this, SLOT(_onSlotMediaStatusChanged(QMediaPlayer::MediaStatus)));
 
-#ifndef QT_VERSION_6
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QObject::connect(m_pCheckPlayer, SIGNAL(mediaChanged(QMediaContent)), this, SLOT(_onSlotMediaChanged(QMediaContent)));
 	QObject::connect(m_pCheckPlayer, SIGNAL(error(QMediaPlayer::Error)), this, SLOT(_onSlotError(QMediaPlayer::Error)));
 #else

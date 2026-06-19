@@ -1214,6 +1214,6 @@ elseif(UNIX AND NOT APPLE)
     )
     # Extra Linux dependencies defined in ascdocumentscore_helper.pro
     target_link_libraries(editors_helper PRIVATE 
-        graphics kernel kernel_network UnicodeConverter OfficeUtils
+        graphics kernel kernel_network UnicodeConverter
     )
 endif()

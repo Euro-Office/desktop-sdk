@@ -87,14 +87,14 @@ QAscVideoWidget::QAscVideoWidget(QWidget *parent)
 #endif
 
 #ifndef USE_VLC_LIBRARY
-#ifndef QT_VERSION_6
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	m_pEngine->setNotifyInterval(500);
 #endif
 #else
 	m_pEngine->setNotifyInterval(500);
 #endif
 
-#ifdef QT_VERSION_6
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 	QObject::connect(m_pEngine, &QMediaPlayer::playbackStateChanged, this, &QAscVideoWidget::slotChangeState);
 #else
 	QObject::connect(m_pEngine, &QMediaPlayer::stateChanged, this, &QAscVideoWidget::slotChangeState);
