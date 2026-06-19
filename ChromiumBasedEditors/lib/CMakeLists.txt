@@ -99,6 +99,8 @@ endif()
 
 add_library(ascdocumentscore SHARED)
 
+set_default_options(ascdocumentscore)
+
 # Enforce C++17 Standard
 target_compile_features(ascdocumentscore PRIVATE cxx_std_17)
 

@@ -23,6 +23,8 @@ set(CORE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../core")
 include(${CORE_ROOT_DIR}/common.cmake)
 
 
+set_default_options(videoplayerlib)
+
 if(NOT USE_LIBVLC)
     find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Multimedia MultimediaWidgets)
 endif()
