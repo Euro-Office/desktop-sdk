@@ -7,7 +7,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-add_compile_options(-march=native)
+#add_compile_options(-march=native)
+
+include(${CORE_ROOT_DIR}/common.cmake)
+
+set_default_options(videoplayerlib)
 
 # Paths
 set(CORE_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../../core")
@@ -77,6 +81,7 @@ target_link_libraries(qtascdocumentscore PRIVATE
 # --- OS Specifics ---
 if(WIN32)
     target_link_libraries(qtascdocumentscore PRIVATE user32)
+    target_compile_definitions(qtascdocumentscore PRIVATE WIN32 _WINDOWS)
 endif()
 
 if(UNIX AND NOT APPLE)
