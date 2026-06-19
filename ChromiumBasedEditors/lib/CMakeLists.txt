@@ -1175,6 +1175,8 @@ include(${CORE_ROOT_DIR}/OfficeUtils/CMakeLists.txt)
 
 add_executable(editors_helper "${CMAKE_CURRENT_SOURCE_DIR}/helper_main.cpp" ${CORE_ROOT_DIR}/Common/3dParty/openssl/common/common_openssl.cpp)
 
+set_default_options(editors_helper)
+
 add_officeutils(editors_helper ${CORE_ROOT_DIR}/OfficeUtils)
 
 target_link_directories(editors_helper PRIVATE
@@ -1206,6 +1208,9 @@ if(WIN32)
     target_sources(editors_helper PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/helper.exe.manifest")
     
     target_link_libraries(editors_helper PUBLIC ws2_32 crypt32 user32 advapi32 libcef)
+
+    target_compile_definitions(editors_helper PRIVATE WIN32 _WINDOWS)
+
 elseif(UNIX AND NOT APPLE)
     target_compile_definitions(editors_helper PRIVATE _LINUX LINUX OS_LINUX _X11)
     target_link_options(editors_helper PRIVATE 
