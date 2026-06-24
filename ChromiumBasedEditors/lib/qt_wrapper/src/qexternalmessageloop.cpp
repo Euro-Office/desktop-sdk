@@ -29,8 +29,15 @@ QExternalMessageLoop::QExternalMessageLoop(CAscApplicationManager* manager)
 {
 	m_manager = manager;
 	m_timer.setSingleShot(true);
-	QObject::connect(&m_timer, SIGNAL(timeout()), this, SLOT(slot_onTimeout()), Qt::QueuedConnection);
-	QObject::connect(this, SIGNAL(onExecuteCommand(void*)), this, SLOT(slot_onExecuteCommand(void*)), Qt::QueuedConnection);
+	// IMPORTANT: Use DirectConnection, not QueuedConnection.
+	// On Wayland, QueuedConnection defers the slot until the next event loop
+	// iteration, which blocks on wl_display_dispatch() waiting for compositor
+	// events (mouse/key input). This stalls CEF's entire message pump,
+	// preventing rendering and input processing until user interaction.
+	// DirectConnection is safe here since sender and receiver are on the
+	// same thread (Qt main thread).
+	QObject::connect(&m_timer, SIGNAL(timeout()), this, SLOT(slot_onTimeout()), Qt::DirectConnection);
+	QObject::connect(this, SIGNAL(onExecuteCommand(void*)), this, SLOT(slot_onExecuteCommand(void*)), Qt::DirectConnection);
 }
 QExternalMessageLoop::~QExternalMessageLoop()
 {
