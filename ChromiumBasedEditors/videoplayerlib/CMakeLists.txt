@@ -20,8 +20,10 @@ set_target_properties(videoplayerlib PROPERTIES
 # --- Dependencies ---
 set(CORE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../core")
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets PrintSupport)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets PrintSupport)
+include(${CORE_ROOT_DIR}/common.cmake)
+
+
+set_default_options(videoplayerlib)
 
 if(NOT USE_LIBVLC)
     find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Multimedia MultimediaWidgets)

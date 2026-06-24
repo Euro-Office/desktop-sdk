@@ -7,21 +7,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-add_compile_options(-march=native)
+#add_compile_options(-march=native)
 
-# Find Qt
-if(NOT QT_ROOT)
-    if(DEFINED ENV{QT6_ROOT})
-        set(QT_ROOT "$ENV{QT6_ROOT}")
-    else()
-        set(QT_ROOT "/qt6/6.11.1/gcc_64")
-    endif()
-endif()
-set(QT_DIR "${QT_ROOT}/lib/cmake/Qt6")
-set(Qt6_DIR "${QT_ROOT}/lib/cmake/Qt6")
+include(${CORE_ROOT_DIR}/common.cmake)
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core Gui GuiPrivate PrintSupport Widgets Multimedia MultimediaWidgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui GuiPrivate PrintSupport Widgets Multimedia MultimediaWidgets)
 
 # Paths
 set(CORE_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../../core")
@@ -50,7 +39,9 @@ endif()
 # --- Main Target ---
 add_library(qtascdocumentscore SHARED)
 
-target_compile_definitions(qtascdocumentscore PRIVATE DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING)
+set_default_options(qtascdocumentscore)
+
+target_compile_definitions(qtascdocumentscore PRIVATE DESKTOP_USE_DYNAMIC_LIBRARY_BUILDING NOMINMAX QT_VERSION_LESS_5_15)
 
 target_include_directories(qtascdocumentscore PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/include"
@@ -91,6 +82,7 @@ target_link_libraries(qtascdocumentscore PRIVATE
 # --- OS Specifics ---
 if(WIN32)
     target_link_libraries(qtascdocumentscore PRIVATE user32)
+    target_compile_definitions(qtascdocumentscore PRIVATE WIN32 _WINDOWS)
 endif()
 
 if(UNIX AND NOT APPLE)
