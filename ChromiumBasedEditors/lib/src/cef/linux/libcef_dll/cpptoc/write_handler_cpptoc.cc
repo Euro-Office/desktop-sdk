@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=9c53b2b7086bf095aa4a4b39fbf5beb6b89b8ea7$
+// $hash=cacfa45dda332eb2841b671a67983e26d46d0a5b$
 //
 
 #include "libcef_dll/cpptoc/write_handler_cpptoc.h"
@@ -28,12 +28,14 @@ size_t CEF_CALLBACK write_handler_write(struct _cef_write_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return 0;
+  }
   // Verify param: ptr; type: simple_byaddr
   DCHECK(ptr);
-  if (!ptr)
+  if (!ptr) {
     return 0;
+  }
 
   // Execute
   size_t _retval = CefWriteHandlerCppToC::Get(self)->Write(ptr, size, n);
@@ -43,15 +45,16 @@ size_t CEF_CALLBACK write_handler_write(struct _cef_write_handler_t* self,
 }
 
 int CEF_CALLBACK write_handler_seek(struct _cef_write_handler_t* self,
-                                    int64 offset,
+                                    int64_t offset,
                                     int whence) {
   shutdown_checker::AssertNotShutdown();
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return 0;
+  }
 
   // Execute
   int _retval = CefWriteHandlerCppToC::Get(self)->Seek(offset, whence);
@@ -60,17 +63,18 @@ int CEF_CALLBACK write_handler_seek(struct _cef_write_handler_t* self,
   return _retval;
 }
 
-int64 CEF_CALLBACK write_handler_tell(struct _cef_write_handler_t* self) {
+int64_t CEF_CALLBACK write_handler_tell(struct _cef_write_handler_t* self) {
   shutdown_checker::AssertNotShutdown();
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return 0;
+  }
 
   // Execute
-  int64 _retval = CefWriteHandlerCppToC::Get(self)->Tell();
+  int64_t _retval = CefWriteHandlerCppToC::Get(self)->Tell();
 
   // Return type: simple
   return _retval;
@@ -82,8 +86,9 @@ int CEF_CALLBACK write_handler_flush(struct _cef_write_handler_t* self) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return 0;
+  }
 
   // Execute
   int _retval = CefWriteHandlerCppToC::Get(self)->Flush();
@@ -98,8 +103,9 @@ int CEF_CALLBACK write_handler_may_block(struct _cef_write_handler_t* self) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return 0;
+  }
 
   // Execute
   bool _retval = CefWriteHandlerCppToC::Get(self)->MayBlock();
@@ -132,7 +138,7 @@ CefRefPtr<CefWriteHandler> CefCppToCRefCounted<
     CefWriteHandler,
     cef_write_handler_t>::UnwrapDerived(CefWrapperType type,
                                         cef_write_handler_t* s) {
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

@@ -153,7 +153,7 @@ typedef struct _cef_server_t {
                                          int connection_id,
                                          int response_code,
                                          const cef_string_t* content_type,
-                                         int64 content_length,
+                                         int64_t content_length,
                                          cef_string_multimap_t extra_headers);
 
   ///

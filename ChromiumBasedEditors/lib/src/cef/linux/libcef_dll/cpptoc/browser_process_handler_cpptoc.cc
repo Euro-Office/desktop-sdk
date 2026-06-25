@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=42b9802104067e7474eab0fa842a7849b666bce2$
+// $hash=11604cc40431cd047990f92e86495c9ccd7ded29$
 //
 
 #include "libcef_dll/cpptoc/browser_process_handler_cpptoc.h"
@@ -28,12 +28,14 @@ void CEF_CALLBACK browser_process_handler_on_register_custom_preferences(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return;
+  }
   // Verify param: registrar; type: rawptr_diff
   DCHECK(registrar);
-  if (!registrar)
+  if (!registrar) {
     return;
+  }
 
   // Translate param: registrar; type: rawptr_diff
   CefOwnPtr<CefPreferenceRegistrar> registrarPtr(
@@ -49,8 +51,9 @@ void CEF_CALLBACK browser_process_handler_on_context_initialized(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return;
+  }
 
   // Execute
   CefBrowserProcessHandlerCppToC::Get(self)->OnContextInitialized();
@@ -62,26 +65,56 @@ void CEF_CALLBACK browser_process_handler_on_before_child_process_launch(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return;
+  }
   // Verify param: command_line; type: refptr_diff
   DCHECK(command_line);
-  if (!command_line)
+  if (!command_line) {
     return;
+  }
 
   // Execute
   CefBrowserProcessHandlerCppToC::Get(self)->OnBeforeChildProcessLaunch(
       CefCommandLineCToCpp::Wrap(command_line));
 }
 
-void CEF_CALLBACK browser_process_handler_on_schedule_message_pump_work(
+int CEF_CALLBACK browser_process_handler_on_already_running_app_relaunch(
     struct _cef_browser_process_handler_t* self,
-    int64 delay_ms) {
+    struct _cef_command_line_t* command_line,
+    const cef_string_t* current_directory) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
+    return 0;
+  }
+  // Verify param: command_line; type: refptr_diff
+  DCHECK(command_line);
+  if (!command_line) {
+    return 0;
+  }
+  // Unverified params: current_directory
+
+  // Execute
+  bool _retval =
+      CefBrowserProcessHandlerCppToC::Get(self)->OnAlreadyRunningAppRelaunch(
+          CefCommandLineCToCpp::Wrap(command_line),
+          CefString(current_directory));
+
+  // Return type: bool
+  return _retval;
+}
+
+void CEF_CALLBACK browser_process_handler_on_schedule_message_pump_work(
+    struct _cef_browser_process_handler_t* self,
+    int64_t delay_ms) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self) {
     return;
+  }
 
   // Execute
   CefBrowserProcessHandlerCppToC::Get(self)->OnScheduleMessagePumpWork(
@@ -93,8 +126,9 @@ struct _cef_client_t* CEF_CALLBACK browser_process_handler_get_default_client(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return NULL;
+  }
 
   // Execute
   CefRefPtr<CefClient> _retval =
@@ -115,6 +149,8 @@ CefBrowserProcessHandlerCppToC::CefBrowserProcessHandlerCppToC() {
       browser_process_handler_on_context_initialized;
   GetStruct()->on_before_child_process_launch =
       browser_process_handler_on_before_child_process_launch;
+  GetStruct()->on_already_running_app_relaunch =
+      browser_process_handler_on_already_running_app_relaunch;
   GetStruct()->on_schedule_message_pump_work =
       browser_process_handler_on_schedule_message_pump_work;
   GetStruct()->get_default_client = browser_process_handler_get_default_client;
@@ -131,7 +167,7 @@ CefRefPtr<CefBrowserProcessHandler> CefCppToCRefCounted<
     cef_browser_process_handler_t>::UnwrapDerived(CefWrapperType type,
                                                   cef_browser_process_handler_t*
                                                       s) {
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

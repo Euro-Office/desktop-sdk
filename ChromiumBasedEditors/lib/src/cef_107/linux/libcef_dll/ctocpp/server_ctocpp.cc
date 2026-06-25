@@ -208,7 +208,7 @@ NO_SANITIZE("cfi-icall")
 void CefServerCToCpp::SendHttpResponse(int connection_id,
                                        int response_code,
                                        const CefString& content_type,
-                                       int64 content_length,
+                                       int64_t content_length,
                                        const HeaderMap& extra_headers) {
   shutdown_checker::AssertNotShutdown();
 

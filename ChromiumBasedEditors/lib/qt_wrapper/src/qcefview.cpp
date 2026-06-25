@@ -29,6 +29,7 @@
 #include <QAbstractEventDispatcher>
 #include <QTimer>
 #include <QDebug>
+#include <set>
 
 class QCefViewProps
 {
@@ -182,6 +183,31 @@ void QCefView::mousePressEvent(QMouseEvent *event) {
 		int button = 1;
 		if (event->button() == Qt::RightButton) button = 2;
 		else if (event->button() == Qt::MiddleButton) button = 3;
+
+		// Diagnostic: inject JS to verify DPR and mouse coords (per-browser)
+		static std::set<CCefView*> jsInjectedViews;
+		if (jsInjectedViews.find(m_pCefView) == jsInjectedViews.end()) {
+			jsInjectedViews.insert(m_pCefView);
+			std::string js =
+				"console.log('[WAYLAND-OSR-JS] devicePixelRatio=' + window.devicePixelRatio"
+				" + ' innerWidth=' + window.innerWidth"
+				" + ' innerHeight=' + window.innerHeight);"
+				"document.addEventListener('mousedown', function(e) {"
+				"  console.log('[WAYLAND-OSR-JS] click: clientX=' + e.clientX"
+				"    + ' clientY=' + e.clientY"
+				"    + ' pageX=' + e.pageX"
+				"    + ' screenX=' + e.screenX);"
+				"}, true);";
+			m_pCefView->ExecuteInAllFrames(js, true);
+		}
+
+		static int clickLog2 = 0;
+		if (clickLog2 < 15) {
+			fprintf(stderr, "[WAYLAND-OSR] mousePress: sentX=%d sentY=%d widget=%dx%d dpr=%.3f\n",
+			        event->x(), event->y(), width(), height(), devicePixelRatio());
+			clickLog2++;
+		}
+
 		// CEF coordinate space is DIPs (same as GetViewRect). Qt delivers DIPs.
 		m_pCefView->SendMouseClickEvent(event->x(), event->y(), button, false, GetCefModifiers(event->modifiers(), event->buttons()), 1);
 	}
@@ -435,6 +461,19 @@ bool QCefView::IsWayland()
 	return m_isWayland;
 }
 
+void QCefView::GetWidgetScreenPosition(int& screenX, int& screenY)
+{
+	// Map widget's top-left to global screen coordinates.
+	// On Wayland, mapToGlobal may return (0,0) since global coords
+	// aren't available, but CEF primarily needs the widget offset
+	// for internal coordinate calculations.
+	QPoint globalPos = mapToGlobal(QPoint(0, 0));
+	double dpr = devicePixelRatio();
+	// CEF expects screen device (pixel) coordinates on Linux
+	screenX = (int)(globalPos.x() * dpr);
+	screenY = (int)(globalPos.y() * dpr);
+}
+
 void QCefView::OnPaint(const void* buffer, int width, int height)
 {
 	if (!m_isWayland) return;
@@ -451,8 +490,6 @@ void QCefView::OnPaint(const void* buffer, int width, int height)
 		         << "screenSize=" << (scr ? scr->size().width() : -1) << "x" << (scr ? scr->size().height() : -1);
 		logCount++;
 	}
-	m_imageBuffer = img.copy();
-
 	m_imageBuffer = img.copy();
 
 	// On Wayland, the surface commit + wl_display_flush() only happen when

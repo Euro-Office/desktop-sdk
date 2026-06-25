@@ -11,6 +11,7 @@
 #include "include/wrapper/cef_helpers.h"
 #include "tests/ceftests/test_request.h"
 #include "tests/ceftests/test_server_observer.h"
+#include "tests/ceftests/test_util.h"
 #include "tests/ceftests/track_callback.h"
 #include "tests/gtest/include/gtest/gtest.h"
 
@@ -76,8 +77,9 @@ class TestServerObserver : public test_server::ObserverHelper {
                            const ResponseCallback& response_callback) override {
     CEF_REQUIRE_UI_THREAD();
     const std::string& url = request->GetURL();
-    if (url != url_)
+    if (url != url_) {
       return false;
+    }
 
     EXPECT_TRUE(state_->got_initialized_);
     EXPECT_FALSE(state_->got_request_);
@@ -164,11 +166,11 @@ void SignalIfDone(CefRefPtr<CefWaitableEvent> event,
 }
 
 void Wait(CefRefPtr<CefWaitableEvent> event) {
-  if (CefCommandLine::GetGlobalCommandLine()->HasSwitch(
-          "disable-test-timeout")) {
+  const auto timeout = GetConfiguredTestTimeout(/*timeout_ms=*/2000);
+  if (!timeout) {
     event->Wait();
   } else {
-    event->TimedWait(2000);
+    event->TimedWait(*timeout);
   }
 }
 

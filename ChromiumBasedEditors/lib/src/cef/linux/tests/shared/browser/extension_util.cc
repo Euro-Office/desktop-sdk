@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <memory>
-#include <optional>
 
 #include "include/base/cef_callback.h"
 #include "include/cef_parser.h"
@@ -95,8 +94,9 @@ void GetInternalManifest(const std::string& extension_path,
   CefRefPtr<CefValue> value =
       CefParseJSONAndReturnError(manifest_contents, JSON_PARSER_RFC, error_msg);
   if (!value || value->GetType() != VTYPE_DICTIONARY) {
-    if (error_msg.empty())
+    if (error_msg.empty()) {
       error_msg = "Incorrectly formatted dictionary contents.";
+    }
     LOG(ERROR) << "Failed to parse manifest from " << manifest_path << "; "
                << error_msg.ToString();
     RunManifestCallback(std::move(callback), nullptr);
@@ -144,10 +144,12 @@ std::string GetInternalExtensionResourcePath(
 std::string GetExtensionResourcePath(const std::string& extension_path,
                                      bool* internal) {
   const bool is_internal = IsInternalExtension(extension_path);
-  if (internal)
+  if (internal) {
     *internal = is_internal;
-  if (is_internal)
+  }
+  if (is_internal) {
     return GetInternalExtensionResourcePath(extension_path);
+  }
   return extension_path;
 }
 
@@ -228,8 +230,9 @@ std::string GetExtensionURL(CefRefPtr<CefExtension> extension) {
   if (browser_action) {
     const std::string& default_popup =
         browser_action->GetString("default_popup");
-    if (!default_popup.empty())
+    if (!default_popup.empty()) {
       return GetExtensionOrigin(extension->GetIdentifier()) + default_popup;
+    }
   }
 
   return std::string();

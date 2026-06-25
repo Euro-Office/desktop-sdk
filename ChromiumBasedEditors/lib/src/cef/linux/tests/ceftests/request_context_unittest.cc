@@ -206,11 +206,12 @@ class PopupTestHandler : public TestHandler {
   };
 
   PopupTestHandler(bool same_origin, Mode mode) : mode_(mode) {
-    url_ = "http://tests-simple-rch1.com/nav1.html";
-    if (same_origin)
-      popup_url_ = "http://tests-simple-rch1.com/pop1.html";
-    else
-      popup_url_ = "http://tests-simple-rch2.com/pop1.html";
+    url_ = "https://tests-simple-rch1.com/nav1.html";
+    if (same_origin) {
+      popup_url_ = "https://tests-simple-rch1.com/pop1.html";
+    } else {
+      popup_url_ = "https://tests-simple-rch2.com/pop1.html";
+    }
   }
 
   void RunTest() override {
@@ -247,6 +248,8 @@ class PopupTestHandler : public TestHandler {
 
     context_ = CefRequestContext::CreateContext(settings, nullptr);
     cookie_manager_ = context_->GetCookieManager(nullptr);
+
+    GrantPopupPermission(context_, url_);
 
     // Create browser that loads the 1st URL.
     CreateBrowser(url_, context_);
@@ -295,12 +298,13 @@ class PopupTestHandler : public TestHandler {
     const std::string& url = target_url;
     EXPECT_STREQ(url.c_str(), popup_url_.c_str());
 
-    EXPECT_EQ(WOD_NEW_FOREGROUND_TAB, target_disposition);
+    EXPECT_EQ(CEF_WOD_NEW_FOREGROUND_TAB, target_disposition);
 
-    if (mode_ == MODE_WINDOW_OPEN)
+    if (mode_ == MODE_WINDOW_OPEN) {
       EXPECT_FALSE(user_gesture);
-    else
+    } else {
       EXPECT_TRUE(user_gesture);
+    }
 
     return false;
   }
@@ -308,8 +312,9 @@ class PopupTestHandler : public TestHandler {
   void OnBeforeClose(CefRefPtr<CefBrowser> browser) override {
     TestHandler::OnBeforeClose(browser);
 
-    if (browser->IsPopup())
+    if (browser->IsPopup()) {
       FinishTest();
+    }
   }
 
  protected:
@@ -321,18 +326,7 @@ class PopupTestHandler : public TestHandler {
       mouse_event.x = 20;
       mouse_event.y = 20;
       mouse_event.modifiers = 0;
-
-      // Add some delay to avoid having events dropped or rate limited.
-      CefPostDelayedTask(
-          TID_UI,
-          base::BindOnce(&CefBrowserHost::SendMouseClickEvent,
-                         browser->GetHost(), mouse_event, MBT_LEFT, false, 1),
-          50);
-      CefPostDelayedTask(
-          TID_UI,
-          base::BindOnce(&CefBrowserHost::SendMouseClickEvent,
-                         browser->GetHost(), mouse_event, MBT_LEFT, true, 1),
-          100);
+      SendMouseClickEvent(browser, mouse_event);
     } else {
       ADD_FAILURE();  // Not reached.
     }
@@ -454,9 +448,9 @@ TEST(RequestContextTest, PopupBasicNoReferrerLinkDifferentOrigin) {
 
 namespace {
 
-const char kPopupNavPageUrl[] = "http://tests-popup.com/page.html";
-const char kPopupNavPopupUrl[] = "http://tests-popup.com/popup.html";
-const char kPopupNavPopupUrl2[] = "http://tests-popup2.com/popup.html";
+const char kPopupNavPageUrl[] = "https://tests-popup.com/page.html";
+const char kPopupNavPopupUrl[] = "https://tests-popup.com/popup.html";
+const char kPopupNavPopupUrl2[] = "https://tests-popup2.com/popup.html";
 const char kPopupNavPopupName[] = "my_popup";
 
 // Browser side.
@@ -488,17 +482,30 @@ class PopupNavTestHandler : public TestHandler {
                        "'); }</script>Page</html>";
     AddResource(kPopupNavPageUrl, page, "text/html");
     AddResource(kPopupNavPopupUrl, "<html>Popup</html>", "text/html");
-    if (mode_ == NAVIGATE_AFTER_CREATION)
+    if (mode_ == NAVIGATE_AFTER_CREATION) {
       AddResource(kPopupNavPopupUrl2, "<html>Popup2</html>", "text/html");
+    }
 
-    CefRefPtr<CefRequestContext> request_context =
-        CreateTestRequestContext(rc_mode_, rc_cache_path_);
-
-    // Create the browser.
-    CreateBrowser(kPopupNavPageUrl, request_context);
+    CreateTestRequestContext(
+        rc_mode_, rc_cache_path_,
+        base::BindOnce(&PopupNavTestHandler::RunTestContinue, this));
 
     // Time out the test after a reasonable period of time.
     SetTestTimeout();
+  }
+
+  void RunTestContinue(CefRefPtr<CefRequestContext> request_context) {
+    EXPECT_UI_THREAD();
+
+    if (request_context) {
+      GrantPopupPermission(request_context, kPopupNavPageUrl);
+    } else {
+      GrantPopupPermission(CefRequestContext::GetGlobalContext(),
+                           kPopupNavPageUrl);
+    }
+
+    // Create the browser.
+    CreateBrowser(kPopupNavPageUrl, request_context);
   }
 
   bool OnBeforePopup(CefRefPtr<CefBrowser> browser,
@@ -521,7 +528,7 @@ class PopupNavTestHandler : public TestHandler {
     EXPECT_STREQ(kPopupNavPageUrl, frame->GetURL().ToString().c_str());
     EXPECT_STREQ(kPopupNavPopupUrl, target_url.ToString().c_str());
     EXPECT_STREQ(kPopupNavPopupName, target_frame_name.ToString().c_str());
-    EXPECT_EQ(WOD_NEW_FOREGROUND_TAB, target_disposition);
+    EXPECT_EQ(CEF_WOD_NEW_FOREGROUND_TAB, target_disposition);
     EXPECT_FALSE(user_gesture);
     EXPECT_FALSE(*no_javascript_access);
 
@@ -640,8 +647,9 @@ class PopupNavTestHandler : public TestHandler {
     bool destroy_test = false;
     if (mode_ == ALLOW_CLOSE_POPUP_FIRST || mode_ == NAVIGATE_AFTER_CREATION) {
       // Destroy the test after the popup browser closes.
-      if (browser->IsPopup())
+      if (browser->IsPopup()) {
         destroy_test = true;
+      }
     } else if (mode_ == ALLOW_CLOSE_POPUP_LAST ||
                mode_ == DESTROY_PARENT_BEFORE_CREATION ||
                mode_ == DESTROY_PARENT_BEFORE_CREATION_FORCE ||
@@ -650,8 +658,9 @@ class PopupNavTestHandler : public TestHandler {
                mode_ == DESTROY_PARENT_AFTER_CREATION ||
                mode_ == DESTROY_PARENT_AFTER_CREATION_FORCE) {
       // Destroy the test after the main browser closes.
-      if (!browser->IsPopup())
+      if (!browser->IsPopup()) {
         destroy_test = true;
+      }
     }
 
     if (destroy_test) {
@@ -762,7 +771,7 @@ POPUP_TEST_GROUP(DestroyParentAfterCreationForce,
 
 namespace {
 
-const char kResolveOrigin[] = "http://www.google.com";
+const char kResolveOrigin[] = "https://www.google.com";
 
 class MethodTestHandler : public TestHandler {
  public:
@@ -813,7 +822,7 @@ class MethodTestHandler : public TestHandler {
       : global_context_(global_context), method_(method) {}
 
   void RunTest() override {
-    const char kUrl[] = "http://tests/method.html";
+    const char kUrl[] = "https://tests/method.html";
 
     AddResource(kUrl, "<html><body>Method</body></html>", "text/html");
 
@@ -836,12 +845,13 @@ class MethodTestHandler : public TestHandler {
         browser->GetHost()->GetRequestContext();
     CefRefPtr<CompletionCallback> callback =
         new CompletionCallback(this, browser);
-    if (method_ == METHOD_CLEAR_CERTIFICATE_EXCEPTIONS)
+    if (method_ == METHOD_CLEAR_CERTIFICATE_EXCEPTIONS) {
       context->ClearCertificateExceptions(callback);
-    else if (method_ == METHOD_CLOSE_ALL_CONNECTIONS)
+    } else if (method_ == METHOD_CLOSE_ALL_CONNECTIONS) {
       context->CloseAllConnections(callback);
-    else if (method_ == METHOD_RESOLVE_HOST)
+    } else if (method_ == METHOD_RESOLVE_HOST) {
       context->ResolveHost(kResolveOrigin, callback);
+    }
   }
 
   void OnCompleteCallback(CefRefPtr<CefBrowser> browser) {

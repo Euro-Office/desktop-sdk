@@ -553,7 +553,7 @@ NO_SANITIZE("cfi-icall") CefWindowHandle CefWindowCToCpp::GetWindowHandle() {
 }
 
 NO_SANITIZE("cfi-icall")
-void CefWindowCToCpp::SendKeyPress(int key_code, uint32 event_flags) {
+void CefWindowCToCpp::SendKeyPress(int key_code, uint32_t event_flags) {
   shutdown_checker::AssertNotShutdown();
 
   cef_window_t* _struct = GetStruct();

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=4f01fc764e74bb4a40a53b43ddc4e4857e51e4e2$
+// $hash=64af4aa1671958478e8545ad551e0018472cc1fb$
 //
 
 #include "libcef_dll/ctocpp/resource_read_callback_ctocpp.h"
@@ -22,8 +22,9 @@ void CefResourceReadCallbackCToCpp::Continue(int bytes_read) {
   shutdown_checker::AssertNotShutdown();
 
   cef_resource_read_callback_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, cont))
+  if (CEF_MEMBER_MISSING(_struct, cont)) {
     return;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -47,7 +48,7 @@ cef_resource_read_callback_t* CefCToCppRefCounted<
     CefResourceReadCallback,
     cef_resource_read_callback_t>::UnwrapDerived(CefWrapperType type,
                                                  CefResourceReadCallback* c) {
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

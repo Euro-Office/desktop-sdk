@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=9d367936047c38f9b70488ef5caf6d8ca081bb50$
+// $hash=35e4ad06d4b2158d4a240ecac06b3bf03b02f69e$
 //
 
 #include "libcef_dll/ctocpp/task_runner_ctocpp.h"
@@ -51,15 +51,17 @@ bool CefTaskRunnerCToCpp::IsSame(CefRefPtr<CefTaskRunner> that) {
   shutdown_checker::AssertNotShutdown();
 
   cef_task_runner_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_same))
+  if (CEF_MEMBER_MISSING(_struct, is_same)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: that; type: refptr_same
   DCHECK(that.get());
-  if (!that.get())
+  if (!that.get()) {
     return false;
+  }
 
   // Execute
   int _retval = _struct->is_same(_struct, CefTaskRunnerCToCpp::Unwrap(that));
@@ -72,8 +74,9 @@ NO_SANITIZE("cfi-icall") bool CefTaskRunnerCToCpp::BelongsToCurrentThread() {
   shutdown_checker::AssertNotShutdown();
 
   cef_task_runner_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, belongs_to_current_thread))
+  if (CEF_MEMBER_MISSING(_struct, belongs_to_current_thread)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -89,8 +92,9 @@ bool CefTaskRunnerCToCpp::BelongsToThread(CefThreadId threadId) {
   shutdown_checker::AssertNotShutdown();
 
   cef_task_runner_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, belongs_to_thread))
+  if (CEF_MEMBER_MISSING(_struct, belongs_to_thread)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -106,15 +110,17 @@ bool CefTaskRunnerCToCpp::PostTask(CefRefPtr<CefTask> task) {
   shutdown_checker::AssertNotShutdown();
 
   cef_task_runner_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, post_task))
+  if (CEF_MEMBER_MISSING(_struct, post_task)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: task; type: refptr_diff
   DCHECK(task.get());
-  if (!task.get())
+  if (!task.get()) {
     return false;
+  }
 
   // Execute
   int _retval = _struct->post_task(_struct, CefTaskCppToC::Wrap(task));
@@ -125,19 +131,21 @@ bool CefTaskRunnerCToCpp::PostTask(CefRefPtr<CefTask> task) {
 
 NO_SANITIZE("cfi-icall")
 bool CefTaskRunnerCToCpp::PostDelayedTask(CefRefPtr<CefTask> task,
-                                          int64 delay_ms) {
+                                          int64_t delay_ms) {
   shutdown_checker::AssertNotShutdown();
 
   cef_task_runner_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, post_delayed_task))
+  if (CEF_MEMBER_MISSING(_struct, post_delayed_task)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: task; type: refptr_diff
   DCHECK(task.get());
-  if (!task.get())
+  if (!task.get()) {
     return false;
+  }
 
   // Execute
   int _retval =
@@ -161,7 +169,7 @@ template <>
 cef_task_runner_t*
 CefCToCppRefCounted<CefTaskRunnerCToCpp, CefTaskRunner, cef_task_runner_t>::
     UnwrapDerived(CefWrapperType type, CefTaskRunner* c) {
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

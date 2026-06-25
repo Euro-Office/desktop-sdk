@@ -64,8 +64,9 @@ class DialogCallback : public CefRunFileDialogCallback {
     // Send a message back to the render process with the list of file paths.
     std::string response;
     for (int i = 0; i < static_cast<int>(file_paths.size()); ++i) {
-      if (!response.empty())
+      if (!response.empty()) {
         response += "|";  // Use a delimiter disallowed in file paths.
+      }
       response += file_paths[i];
     }
 
@@ -92,7 +93,7 @@ class Handler : public CefMessageRouterBrowserSide::Handler {
   // Called due to cefQuery execution in dialogs.html.
   virtual bool OnQuery(CefRefPtr<CefBrowser> browser,
                        CefRefPtr<CefFrame> frame,
-                       int64 query_id,
+                       int64_t query_id,
                        const CefString& request,
                        bool persistent,
                        CefRefPtr<Callback> callback) override {
@@ -100,11 +101,13 @@ class Handler : public CefMessageRouterBrowserSide::Handler {
 
     // Only handle messages from the test URL.
     const std::string& url = frame->GetURL();
-    if (!test_runner::IsTestURL(url, kTestUrlPath))
+    if (!test_runner::IsTestURL(url, kTestUrlPath)) {
       return false;
+    }
 
-    if (!dialog_state_.get())
+    if (!dialog_state_.get()) {
       dialog_state_ = new DialogState;
+    }
 
     // Make sure we're only running one dialog at a time.
     DCHECK(!dialog_state_->pending_);

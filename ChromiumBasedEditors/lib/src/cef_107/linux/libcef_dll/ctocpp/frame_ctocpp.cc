@@ -293,7 +293,7 @@ NO_SANITIZE("cfi-icall") CefString CefFrameCToCpp::GetName() {
   return _retvalStr;
 }
 
-NO_SANITIZE("cfi-icall") int64 CefFrameCToCpp::GetIdentifier() {
+NO_SANITIZE("cfi-icall") int64_t CefFrameCToCpp::GetIdentifier() {
   shutdown_checker::AssertNotShutdown();
 
   cef_frame_t* _struct = GetStruct();
@@ -303,7 +303,7 @@ NO_SANITIZE("cfi-icall") int64 CefFrameCToCpp::GetIdentifier() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64 _retval = _struct->get_identifier(_struct);
+  int64_t _retval = _struct->get_identifier(_struct);
 
   // Return type: simple
   return _retval;

@@ -192,7 +192,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
    public:
     CallbackImpl(CefRefPtr<CefMessageRouterBrowserSideImpl> router,
                  int browser_id,
-                 int64 query_id,
+                 int64_t query_id,
                  bool persistent)
         : router_(router),
           browser_id_(browser_id),
@@ -258,7 +258,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
    private:
     CefRefPtr<CefMessageRouterBrowserSideImpl> router_;
     const int browser_id_;
-    const int64 query_id_;
+    const int64_t query_id_;
     const bool persistent_;
 
     IMPLEMENT_REFCOUNTING(CallbackImpl);
@@ -389,7 +389,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
       }
 
       const int browser_id = browser->GetIdentifier();
-      const int64 query_id = query_id_generator_.GetNextId();
+      const int64_t query_id = query_id_generator_.GetNextId();
 
       CefRefPtr<CallbackImpl> callback(
           new CallbackImpl(this, browser_id, query_id, persistent));
@@ -479,7 +479,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
   // if the query is non-persistent. If |removed| is true the caller is
   // responsible for deleting the returned QueryInfo object.
   QueryInfo* GetQueryInfo(int browser_id,
-                          int64 query_id,
+                          int64_t query_id,
                           bool always_remove,
                           bool* removed) {
     class Visitor : public BrowserQueryInfoMap::Visitor {
@@ -512,7 +512,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
 
   // Called by CallbackImpl on success.
   void OnCallbackSuccess(int browser_id,
-                         int64 query_id,
+                         int64_t query_id,
                          const CefString& response) {
     CEF_REQUIRE_UI_THREAD();
 
@@ -527,7 +527,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
 
   // Called by CallbackImpl on failure.
   void OnCallbackFailure(int browser_id,
-                         int64 query_id,
+                         int64_t query_id,
                          int error_code,
                          const CefString& error_message) {
     CEF_REQUIRE_UI_THREAD();
@@ -592,7 +592,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
   }
 
   // Cancel a query that has already been sent to a handler.
-  void CancelQuery(int64 query_id, QueryInfo* info, bool notify_renderer) {
+  void CancelQuery(int64_t query_id, QueryInfo* info, bool notify_renderer) {
     if (notify_renderer)
       SendQueryFailure(info, kCanceledErrorCode, kCanceledErrorMessage);
 
@@ -698,7 +698,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
   const std::string query_message_name_;
   const std::string cancel_message_name_;
 
-  IdGenerator<int64> query_id_generator_;
+  IdGenerator<int64_t> query_id_generator_;
 
   // Set of currently registered handlers. An entry is added when a handler is
   // registered and removed when a handler is unregistered.
@@ -709,7 +709,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
   // indicates that it will handle the query and removed when either the query
   // is completed via the Callback, the query is explicitly canceled from the
   // renderer process, or the associated context is (or will be) released.
-  using BrowserQueryInfoMap = CefBrowserInfoMap<int64, QueryInfo*>;
+  using BrowserQueryInfoMap = CefBrowserInfoMap<int64_t, QueryInfo*>;
   BrowserQueryInfoMap browser_query_info_map_;
 };
 

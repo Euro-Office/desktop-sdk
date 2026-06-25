@@ -18,7 +18,7 @@
 
 #if defined(OS_LINUX)
 #include "tests/cefclient/browser/dialog_handler_gtk.h"
-#include "tests/cefclient/browser/print_handler_gtk.h"
+//#include "tests/cefclient/browser/print_handler_gtk.h"
 #endif
 
 namespace client {
@@ -131,7 +131,7 @@ class ClientHandler : public CefClient,
     return js_dialog_handler_;
   }
   CefRefPtr<CefPrintHandler> GetPrintHandler() override {
-    return print_handler_;
+    return nullptr;
   }
 #endif
 
@@ -139,6 +139,12 @@ class ClientHandler : public CefClient,
   bool OnChromeCommand(CefRefPtr<CefBrowser> browser,
                        int command_id,
                        cef_window_open_disposition_t disposition) override;
+  bool IsChromeAppMenuItemVisible(CefRefPtr<CefBrowser> browser,
+                                  int command_id) override;
+  bool IsChromePageActionIconVisible(
+      cef_chrome_page_action_icon_type_t icon_type) override;
+  bool IsChromeToolbarButtonVisible(
+      cef_chrome_toolbar_button_type_t button_type) override;
 
   // CefContextMenuHandler methods
   void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
@@ -218,6 +224,12 @@ class ClientHandler : public CefClient,
       CefBrowserSettings& settings,
       CefRefPtr<CefDictionaryValue>& extra_info,
       bool* no_javascript_access) override;
+  void OnBeforeDevToolsPopup(CefRefPtr<CefBrowser> browser,
+                             CefWindowInfo& windowInfo,
+                             CefRefPtr<CefClient>& client,
+                             CefBrowserSettings& settings,
+                             CefRefPtr<CefDictionaryValue>& extra_info,
+                             bool* use_default_window) override;
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
   bool DoClose(CefRefPtr<CefBrowser> browser) override;
   void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
@@ -238,7 +250,7 @@ class ClientHandler : public CefClient,
       CefRefPtr<CefBrowser> browser,
       CefRefPtr<CefFrame> frame,
       const CefString& requesting_origin,
-      uint32 requested_permissions,
+      uint32_t requested_permissions,
       CefRefPtr<CefMediaAccessCallback> callback) override;
 
   // CefRequestHandler methods
@@ -342,9 +354,8 @@ class ClientHandler : public CefClient,
   friend class ClientDownloadImageCallback;
 
   // Create a new popup window using the specified information. |is_devtools|
-  // will be true if the window will be used for DevTools. Return true to
-  // proceed with popup browser creation or false to cancel the popup browser.
-  // May be called on any thead.
+  // will be true if the window will be used for DevTools. Returns true if a
+  // RootWindow was created for the popup.
   bool CreatePopupWindow(CefRefPtr<CefBrowser> browser,
                          bool is_devtools,
                          const CefPopupFeatures& popupFeatures,
@@ -371,10 +382,6 @@ class ClientHandler : public CefClient,
 
   void SetOfflineState(CefRefPtr<CefBrowser> browser, bool offline);
 
-  // Filter menu and keyboard shortcut commands.
-  void FilterMenuModel(CefRefPtr<CefMenuModel> model);
-  bool IsAllowedCommandId(int command_id);
-
   // THREAD SAFE MEMBERS
   // The following members may be accessed from any thread.
 
@@ -396,6 +403,9 @@ class ClientHandler : public CefClient,
   // True if the browser is currently offline.
   bool offline_;
 
+  // True if the Chrome toolbar and menu contents/commands should be filtered.
+  bool filter_chrome_commands_;
+
   // True if Favicon images should be downloaded.
   bool download_favicon_images_ = false;
 
@@ -403,7 +413,7 @@ class ClientHandler : public CefClient,
   // Custom dialog handlers for GTK.
   CefRefPtr<ClientDialogHandlerGtk> file_dialog_handler_;
   CefRefPtr<ClientDialogHandlerGtk> js_dialog_handler_;
-  CefRefPtr<ClientPrintHandlerGtk> print_handler_;
+  //CefRefPtr<ClientPrintHandlerGtk> print_handler_;
 #endif
 
   // Handles the browser side of query routing. The renderer side is handled

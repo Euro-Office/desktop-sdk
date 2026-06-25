@@ -109,7 +109,7 @@ CEF_EXPORT int cef_end_tracing(const cef_string_t* tracing_file,
 /// high-res time. Can be used by clients to synchronize with the time
 /// information in trace events.
 ///
-CEF_EXPORT int64 cef_now_from_system_trace_time(void);
+CEF_EXPORT int64_t cef_now_from_system_trace_time(void);
 
 #ifdef __cplusplus
 }

@@ -31,6 +31,8 @@
 #define CEF_INCLUDE_INTERNAL_CEF_TYPES_WRAPPERS_H_
 #pragma once
 
+#include <limits>
+
 #include "include/internal/cef_string.h"
 #include "include/internal/cef_string_list.h"
 #include "include/internal/cef_types.h"
@@ -49,8 +51,9 @@ class CefStructBase : public traits::struct_type {
   virtual ~CefStructBase() {
     // Only clear this object's data if it isn't currently attached to a
     // structure.
-    if (!attached_to_)
+    if (!attached_to_) {
       Clear(this);
+    }
   }
 
   CefStructBase(const CefStructBase& r) {
@@ -69,8 +72,9 @@ class CefStructBase : public traits::struct_type {
   void AttachTo(struct_type& source) {
     // Only clear this object's data if it isn't currently attached to a
     // structure.
-    if (!attached_to_)
+    if (!attached_to_) {
       Clear(this);
+    }
 
     // This object is now attached to the new structure.
     attached_to_ = &source;
@@ -213,7 +217,12 @@ class CefRange : public cef_range_t {
  public:
   CefRange() : cef_range_t{} {}
   CefRange(const cef_range_t& r) : cef_range_t(r) {}
-  CefRange(int from, int to) : cef_range_t{from, to} {}
+  CefRange(uint32_t from, uint32_t to) : cef_range_t{from, to} {}
+
+  static CefRange InvalidRange() {
+    return CefRange((std::numeric_limits<uint32_t>::max)(),
+                    (std::numeric_limits<uint32_t>::max)());
+  }
 
   void Set(int from_val, int to_val) { from = from_val, to = to_val; }
 };
@@ -355,7 +364,6 @@ struct CefSettingsTraits {
     cef_string_clear(&s->main_bundle_path);
     cef_string_clear(&s->cache_path);
     cef_string_clear(&s->root_cache_path);
-    cef_string_clear(&s->user_data_path);
     cef_string_clear(&s->user_agent);
     cef_string_clear(&s->user_agent_product);
     cef_string_clear(&s->locale);
@@ -365,6 +373,7 @@ struct CefSettingsTraits {
     cef_string_clear(&s->locales_dir_path);
     cef_string_clear(&s->accept_language_list);
     cef_string_clear(&s->cookieable_schemes_list);
+    cef_string_clear(&s->chrome_policy_id);
   }
 
   static inline void set(const struct_type* src,
@@ -388,8 +397,6 @@ struct CefSettingsTraits {
                    &target->cache_path, copy);
     cef_string_set(src->root_cache_path.str, src->root_cache_path.length,
                    &target->root_cache_path, copy);
-    cef_string_set(src->user_data_path.str, src->user_data_path.length,
-                   &target->user_data_path, copy);
     target->persist_session_cookies = src->persist_session_cookies;
     target->persist_user_preferences = src->persist_user_preferences;
 
@@ -402,6 +409,7 @@ struct CefSettingsTraits {
     cef_string_set(src->log_file.str, src->log_file.length, &target->log_file,
                    copy);
     target->log_severity = src->log_severity;
+    target->log_items = src->log_items;
     cef_string_set(src->javascript_flags.str, src->javascript_flags.length,
                    &target->javascript_flags, copy);
 
@@ -423,6 +431,10 @@ struct CefSettingsTraits {
                    &target->cookieable_schemes_list, copy);
     target->cookieable_schemes_exclude_defaults =
         src->cookieable_schemes_exclude_defaults;
+
+    cef_string_set(src->chrome_policy_id.str, src->chrome_policy_id.length,
+                   &target->chrome_policy_id, copy);
+    target->chrome_app_icon_id = src->chrome_app_icon_id;
   }
 };
 
@@ -480,7 +492,6 @@ struct CefBrowserSettingsTraits {
     cef_string_clear(&s->cursive_font_family);
     cef_string_clear(&s->fantasy_font_family);
     cef_string_clear(&s->default_encoding);
-    cef_string_clear(&s->accept_language_list);
   }
 
   static inline void set(const struct_type* src,
@@ -529,11 +540,8 @@ struct CefBrowserSettingsTraits {
 
     target->background_color = src->background_color;
 
-    cef_string_set(src->accept_language_list.str,
-                   src->accept_language_list.length,
-                   &target->accept_language_list, copy);
-
     target->chrome_status_bubble = src->chrome_status_bubble;
+    target->chrome_zoom_bubble = src->chrome_zoom_bubble;
   }
 };
 
@@ -673,6 +681,8 @@ struct CefPdfPrintSettingsTraits {
                    &target->header_template, copy);
     cef_string_set(src->footer_template.str, src->footer_template.length,
                    &target->footer_template, copy);
+
+    target->generate_tagged_pdf = src->generate_tagged_pdf;
   }
 };
 

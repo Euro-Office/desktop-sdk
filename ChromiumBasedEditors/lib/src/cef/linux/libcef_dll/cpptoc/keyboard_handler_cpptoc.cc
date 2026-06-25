@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=56ee3469e52f521b142de927ab9d8067d25078f2$
+// $hash=4d7915109b97e7cda6b232032d2905c8a68313d2$
 //
 
 #include "libcef_dll/cpptoc/keyboard_handler_cpptoc.h"
@@ -31,20 +31,24 @@ keyboard_handler_on_pre_key_event(struct _cef_keyboard_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return 0;
+  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser)
+  if (!browser) {
     return 0;
+  }
   // Verify param: event; type: simple_byref_const
   DCHECK(event);
-  if (!event)
+  if (!event) {
     return 0;
+  }
   // Verify param: is_keyboard_shortcut; type: bool_byaddr
   DCHECK(is_keyboard_shortcut);
-  if (!is_keyboard_shortcut)
+  if (!is_keyboard_shortcut) {
     return 0;
+  }
 
   // Translate param: event; type: simple_byref_const
   CefKeyEvent eventVal = event ? *event : CefKeyEvent();
@@ -58,8 +62,9 @@ keyboard_handler_on_pre_key_event(struct _cef_keyboard_handler_t* self,
       &is_keyboard_shortcutBool);
 
   // Restore param: is_keyboard_shortcut; type: bool_byaddr
-  if (is_keyboard_shortcut)
+  if (is_keyboard_shortcut) {
     *is_keyboard_shortcut = is_keyboard_shortcutBool ? true : false;
+  }
 
   // Return type: bool
   return _retval;
@@ -75,16 +80,19 @@ keyboard_handler_on_key_event(struct _cef_keyboard_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return 0;
+  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser)
+  if (!browser) {
     return 0;
+  }
   // Verify param: event; type: simple_byref_const
   DCHECK(event);
-  if (!event)
+  if (!event) {
     return 0;
+  }
 
   // Translate param: event; type: simple_byref_const
   CefKeyEvent eventVal = event ? *event : CefKeyEvent();
@@ -118,7 +126,7 @@ CefRefPtr<CefKeyboardHandler> CefCppToCRefCounted<
     CefKeyboardHandler,
     cef_keyboard_handler_t>::UnwrapDerived(CefWrapperType type,
                                            cef_keyboard_handler_t* s) {
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

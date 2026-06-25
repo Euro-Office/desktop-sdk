@@ -8,6 +8,8 @@
 
 # cefclient browser sources.
 set(CEFCLIENT_BROWSER_BROWSER_SRCS
+  browser/binary_transfer_test.cc
+  browser/binary_transfer_test.h
   browser/binding_test.cc
   browser/binding_test.h
   browser/browser_window.cc
@@ -26,6 +28,8 @@ set(CEFCLIENT_BROWSER_BROWSER_SRCS
   browser/client_prefs.cc
   browser/client_prefs.h
   browser/client_types.h
+  browser/default_client_handler.cc
+  browser/default_client_handler.h
   browser/dialog_test.cc
   browser/dialog_test.h
   browser/image_cache.cc
@@ -219,6 +223,7 @@ set(CEFCLIENT_MACOSX_BROWSER_SRCS
   browser/temp_window_mac.mm
   browser/text_input_client_osr_mac.h
   browser/text_input_client_osr_mac.mm
+  browser/views_window_mac.mm
   browser/window_test_runner_mac.h
   browser/window_test_runner_mac.mm
   )
@@ -312,6 +317,7 @@ set(CEFCLIENT_WINDOWS_SRCS
 
 # cefclient resources.
 set(CEFCLIENT_RESOURCES_RESOURCES_SRCS
+  resources/binary_transfer.html
   resources/binding.html
   resources/dialogs.html
   resources/draggable.html

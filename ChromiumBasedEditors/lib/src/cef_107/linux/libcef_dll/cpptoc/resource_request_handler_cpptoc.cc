@@ -217,7 +217,7 @@ void CEF_CALLBACK resource_request_handler_on_resource_load_complete(
     cef_request_t* request,
     struct _cef_response_t* response,
     cef_urlrequest_status_t status,
-    int64 received_content_length) {
+    int64_t received_content_length) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);

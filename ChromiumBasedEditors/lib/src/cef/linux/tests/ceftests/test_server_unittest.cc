@@ -114,8 +114,9 @@ class TestServerHandler : public CefTestServerHandler {
     bool handled = false;
     for (const auto& handler : http_request_handler_list_) {
       handled = handler->HandleRequest(server, request, connection);
-      if (handled)
+      if (handled) {
         break;
+      }
     }
     EXPECT_TRUE(handled) << "missing HttpRequestHandler for "
                          << request->GetURL().ToString();
@@ -225,8 +226,9 @@ class HttpTestRunner : public base::RefCountedThreadSafe<HttpTestRunner> {
       : https_server_(https_server), parallel_requests_(parallel_requests) {}
 
   virtual ~HttpTestRunner() {
-    if (destroy_event_)
+    if (destroy_event_) {
       destroy_event_->Signal();
+    }
   }
 
   void AddRequestRunner(std::unique_ptr<RequestRunner> request_runner) {
@@ -353,8 +355,9 @@ class HttpTestRunner : public base::RefCountedThreadSafe<HttpTestRunner> {
     EXPECT_TRUE(request_runner_map_.empty());
 
     // Cancel the timeout, if any.
-    if (ui_thread_helper_)
+    if (ui_thread_helper_) {
       ui_thread_helper_.reset();
+    }
 
     // Signal test completion.
     run_event_->Signal();
@@ -362,15 +365,16 @@ class HttpTestRunner : public base::RefCountedThreadSafe<HttpTestRunner> {
 
   TestHandler::UIThreadHelper* GetUIThreadHelper() {
     EXPECT_UI_THREAD();
-    if (!ui_thread_helper_)
+    if (!ui_thread_helper_) {
       ui_thread_helper_.reset(new TestHandler::UIThreadHelper());
+    }
     return ui_thread_helper_.get();
   }
 
   void SetTestTimeout(int timeout_ms) {
     EXPECT_UI_THREAD();
-    if (CefCommandLine::GetGlobalCommandLine()->HasSwitch(
-            "disable-test-timeout")) {
+    const auto timeout = GetConfiguredTestTimeout(timeout_ms);
+    if (!timeout) {
       return;
     }
 
@@ -378,8 +382,8 @@ class HttpTestRunner : public base::RefCountedThreadSafe<HttpTestRunner> {
     // test runner can be destroyed before the timeout expires.
     GetUIThreadHelper()->PostDelayedTask(
         base::BindOnce(&HttpTestRunner::OnTestTimeout, base::Unretained(this),
-                       timeout_ms),
-        timeout_ms);
+                       *timeout),
+        *timeout);
   }
 
   void OnTestTimeout(int timeout_ms) {
@@ -461,8 +465,9 @@ void SendHttpServerResponse(CefRefPtr<CefTestServerConnection> connection,
 std::string GetHeaderValue(const CefRequest::HeaderMap& header_map,
                            const std::string& header_name) {
   CefRequest::HeaderMap::const_iterator it = header_map.find(header_name);
-  if (it != header_map.end())
+  if (it != header_map.end()) {
     return it->second;
+  }
   return std::string();
 }
 
@@ -521,8 +526,9 @@ CefRefPtr<CefRequest> CreateTestServerRequest(
     header_map.insert(std::make_pair("content-type", content_type));
   }
 
-  if (!extra_headers.empty())
+  if (!extra_headers.empty()) {
     header_map.insert(extra_headers.begin(), extra_headers.end());
+  }
   request->SetHeaderMap(header_map);
 
   return request;
@@ -601,12 +607,12 @@ class StaticHttpURLRequestClient : public CefURLRequestClient {
   }
 
   void OnUploadProgress(CefRefPtr<CefURLRequest> request,
-                        int64 current,
-                        int64 total) override {}
+                        int64_t current,
+                        int64_t total) override {}
 
   void OnDownloadProgress(CefRefPtr<CefURLRequest> request,
-                          int64 current,
-                          int64 total) override {}
+                          int64_t current,
+                          int64_t total) override {}
 
   void OnDownloadData(CefRefPtr<CefURLRequest> request,
                       const void* data,
@@ -645,8 +651,9 @@ class StaticHttpRequestRunner : public HttpTestRunner::RequestRunner {
     CefRefPtr<CefRequest> request = CreateTestServerRequest(path, "GET");
     HttpServerResponse response(HttpServerResponse::TYPE_200);
     response.content_type = "text/html";
-    if (with_content)
+    if (with_content) {
       response.content = "<html>200 response content</html>";
+    }
     return std::make_unique<StaticHttpRequestRunner>(request, response);
   }
 
@@ -680,8 +687,9 @@ class StaticHttpRequestRunner : public HttpTestRunner::RequestRunner {
 
     HttpServerResponse response(HttpServerResponse::TYPE_CUSTOM);
     response.response_code = 202;
-    if (with_content)
+    if (with_content) {
       response.content = "BlahBlahBlah";
+    }
     response.content_type = "application/x-blah-blah";
     response.extra_headers.insert(
         std::make_pair("x-response-custom1", "My Value 1"));
@@ -742,8 +750,9 @@ class StaticHttpRequestRunner : public HttpTestRunner::RequestRunner {
 
     EXPECT_EQ(error, ERR_NONE)
         << "OnResponseComplete for " << request_->GetURL().ToString();
-    if (error == ERR_NONE)
+    if (error == ERR_NONE) {
       VerifyHttpServerResponse(response_, response, data);
+    }
 
     std::move(complete_callback_).Run();
   }

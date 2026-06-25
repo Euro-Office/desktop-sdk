@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=4b7b77ed27848ada4ef09c9a372d42972e179930$
+// $hash=0a20ae0158b5cda22c1db0b9f3ee9459d7b4cfb4$
 //
 
 #include "libcef_dll/ctocpp/v8stack_frame_ctocpp.h"
@@ -18,8 +18,9 @@
 
 NO_SANITIZE("cfi-icall") bool CefV8StackFrameCToCpp::IsValid() {
   cef_v8stack_frame_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_valid))
+  if (CEF_MEMBER_MISSING(_struct, is_valid)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -32,8 +33,9 @@ NO_SANITIZE("cfi-icall") bool CefV8StackFrameCToCpp::IsValid() {
 
 NO_SANITIZE("cfi-icall") CefString CefV8StackFrameCToCpp::GetScriptName() {
   cef_v8stack_frame_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_script_name))
+  if (CEF_MEMBER_MISSING(_struct, get_script_name)) {
     return CefString();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -49,8 +51,9 @@ NO_SANITIZE("cfi-icall") CefString CefV8StackFrameCToCpp::GetScriptName() {
 NO_SANITIZE("cfi-icall")
 CefString CefV8StackFrameCToCpp::GetScriptNameOrSourceURL() {
   cef_v8stack_frame_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_script_name_or_source_url))
+  if (CEF_MEMBER_MISSING(_struct, get_script_name_or_source_url)) {
     return CefString();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -66,8 +69,9 @@ CefString CefV8StackFrameCToCpp::GetScriptNameOrSourceURL() {
 
 NO_SANITIZE("cfi-icall") CefString CefV8StackFrameCToCpp::GetFunctionName() {
   cef_v8stack_frame_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_function_name))
+  if (CEF_MEMBER_MISSING(_struct, get_function_name)) {
     return CefString();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -82,8 +86,9 @@ NO_SANITIZE("cfi-icall") CefString CefV8StackFrameCToCpp::GetFunctionName() {
 
 NO_SANITIZE("cfi-icall") int CefV8StackFrameCToCpp::GetLineNumber() {
   cef_v8stack_frame_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_line_number))
+  if (CEF_MEMBER_MISSING(_struct, get_line_number)) {
     return 0;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -96,8 +101,9 @@ NO_SANITIZE("cfi-icall") int CefV8StackFrameCToCpp::GetLineNumber() {
 
 NO_SANITIZE("cfi-icall") int CefV8StackFrameCToCpp::GetColumn() {
   cef_v8stack_frame_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_column))
+  if (CEF_MEMBER_MISSING(_struct, get_column)) {
     return 0;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -110,8 +116,9 @@ NO_SANITIZE("cfi-icall") int CefV8StackFrameCToCpp::GetColumn() {
 
 NO_SANITIZE("cfi-icall") bool CefV8StackFrameCToCpp::IsEval() {
   cef_v8stack_frame_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_eval))
+  if (CEF_MEMBER_MISSING(_struct, is_eval)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -124,8 +131,9 @@ NO_SANITIZE("cfi-icall") bool CefV8StackFrameCToCpp::IsEval() {
 
 NO_SANITIZE("cfi-icall") bool CefV8StackFrameCToCpp::IsConstructor() {
   cef_v8stack_frame_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_constructor))
+  if (CEF_MEMBER_MISSING(_struct, is_constructor)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -150,7 +158,7 @@ CefCToCppRefCounted<CefV8StackFrameCToCpp,
                     CefV8StackFrame,
                     cef_v8stack_frame_t>::UnwrapDerived(CefWrapperType type,
                                                         CefV8StackFrame* c) {
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

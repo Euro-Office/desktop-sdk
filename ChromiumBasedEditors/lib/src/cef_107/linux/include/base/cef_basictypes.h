@@ -43,25 +43,25 @@
 // On Mac OS X, |long long| is used for 64-bit types for compatibility with
 // <inttypes.h> format macros even in the LP64 model.
 #if defined(__LP64__) && !defined(OS_MAC) && !defined(OS_OPENBSD)
-typedef long int64;
-typedef unsigned long uint64;
+typedef long int64_t;
+typedef unsigned long uint64_t;
 #else
-typedef long long int64;
-typedef unsigned long long uint64;
+typedef long long int64_t;
+typedef unsigned long long uint64_t;
 #endif
 
 // TODO: Remove these type guards.  These are to avoid conflicts with
 // obsolete/protypes.h in the Gecko SDK.
 #ifndef _INT32
 #define _INT32
-typedef int int32;
+typedef int int32_t;
 #endif
 
 // TODO: Remove these type guards.  These are to avoid conflicts with
 // obsolete/protypes.h in the Gecko SDK.
 #ifndef _UINT32
 #define _UINT32
-typedef unsigned int uint32;
+typedef unsigned int uint32_t;
 #endif
 
 #ifndef _INT16

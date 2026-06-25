@@ -315,7 +315,7 @@ NO_SANITIZE("cfi-icall")
 void CefBrowserHostCToCpp::DownloadImage(
     const CefString& image_url,
     bool is_favicon,
-    uint32 max_image_size,
+    uint32_t max_image_size,
     bool bypass_cache,
     CefRefPtr<CefDownloadImageCallback> callback) {
   shutdown_checker::AssertNotShutdown();

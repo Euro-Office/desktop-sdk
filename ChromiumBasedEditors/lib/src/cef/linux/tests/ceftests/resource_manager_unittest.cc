@@ -84,7 +84,7 @@ class ResourceManagerTestHandler : public RoutingTestHandler {
     // Create the browser.
     CreateBrowser(GetNextURL());
 
-    SetTestTimeout(IsChromeRuntimeEnabled() ? 10000 : 5000);
+    SetTestTimeout(5000);
   }
 
   cef_return_value_t OnBeforeResourceLoad(
@@ -109,8 +109,9 @@ class ResourceManagerTestHandler : public RoutingTestHandler {
     if (state_->manager_) {
       CefRefPtr<CefResourceHandler> handler =
           state_->manager_->GetResourceHandler(browser, frame, request);
-      if (handler.get())
+      if (handler.get()) {
         return handler;
+      }
     }
 
     return CreateContentsResourceHandler(CreateMessage(kDoneMsg, kNotHandled));
@@ -118,7 +119,7 @@ class ResourceManagerTestHandler : public RoutingTestHandler {
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64 query_id,
+               int64_t query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -143,18 +144,20 @@ class ResourceManagerTestHandler : public RoutingTestHandler {
     if (state_->expected_message_ct_ == 0) {
       // Load each URL sequentially.
       const std::string& next_url = GetNextURL();
-      if (next_url.empty())
+      if (next_url.empty()) {
         DestroyTest();
-      else
+      } else {
         browser->GetMainFrame()->LoadURL(next_url);
+      }
     } else if (state_->messages_.size() == state_->expected_message_ct_) {
       DestroyTest();
     }
   }
 
   std::string GetNextURL() {
-    if (current_url_ >= state_->urls_.size())
+    if (current_url_ >= state_->urls_.size()) {
       return std::string();
+    }
     return state_->urls_[current_url_++];
   }
 
@@ -168,7 +171,7 @@ class ResourceManagerTestHandler : public RoutingTestHandler {
 
 // Test with no providers.
 TEST(ResourceManagerTest, NoProviders) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -205,8 +208,9 @@ class TestProvider : public CefResourceManager::Provider {
   ~TestProvider() {
     CEF_REQUIRE_IO_THREAD();
     state_->got_destruct_.yes();
-    if (!state_->destruct_callback_.is_null())
+    if (!state_->destruct_callback_.is_null()) {
       std::move(state_->destruct_callback_).Run();
+    }
   }
 
   bool OnRequest(scoped_refptr<CefResourceManager::Request> request) override {
@@ -260,8 +264,9 @@ class ProviderDestructHelper {
     {
       base::AutoLock lock_scope(lock_);
       CHECK_LT(current_count_, expected_count_);
-      if (++current_count_ == expected_count_)
+      if (++current_count_ == expected_count_) {
         signal = true;
+      }
     }
 
     if (signal) {
@@ -281,7 +286,7 @@ class ProviderDestructHelper {
 // Test that that the URL retrieved via Request::url() is parsed as expected.
 // Fragment or query components in any order should be removed.
 void TestUrlParsing(const char* kUrl) {
-  const char kRequestUrl[] = "http://test.com/ResourceManagerTest";
+  const char kRequestUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -321,23 +326,23 @@ void TestUrlParsing(const char* kUrl) {
 }  // namespace
 
 TEST(ResourceManagerTest, UrlParsingNoQueryOrFragment) {
-  TestUrlParsing("http://test.com/ResourceManagerTest");
+  TestUrlParsing("https://test.com/ResourceManagerTest");
 }
 
 TEST(ResourceManagerTest, UrlParsingWithQuery) {
-  TestUrlParsing("http://test.com/ResourceManagerTest?foo=bar&choo=too");
+  TestUrlParsing("https://test.com/ResourceManagerTest?foo=bar&choo=too");
 }
 
 TEST(ResourceManagerTest, UrlParsingWithFragment) {
-  TestUrlParsing("http://test.com/ResourceManagerTest#some/fragment");
+  TestUrlParsing("https://test.com/ResourceManagerTest#some/fragment");
 }
 
 TEST(ResourceManagerTest, UrlParsingWithQueryAndFragment) {
-  TestUrlParsing("http://test.com/ResourceManagerTest?foo=bar#some/fragment");
+  TestUrlParsing("https://test.com/ResourceManagerTest?foo=bar#some/fragment");
 }
 
 TEST(ResourceManagerTest, UrlParsingWithFragmentAndQuery) {
-  TestUrlParsing("http://test.com/ResourceManagerTest#some/fragment?foo=bar");
+  TestUrlParsing("https://test.com/ResourceManagerTest#some/fragment?foo=bar");
 }
 
 namespace {
@@ -371,17 +376,17 @@ class SimpleTestProvider : public TestProvider {
   bool OnRequest(scoped_refptr<CefResourceManager::Request> request) override {
     TestProvider::OnRequest(request);
 
-    if (mode_ == NOT_HANDLED)
+    if (mode_ == NOT_HANDLED) {
       return false;
-    else if (mode_ == CONTINUE)
+    } else if (mode_ == CONTINUE) {
       request->Continue(nullptr);
-    else if (mode_ == STOP)
+    } else if (mode_ == STOP) {
       request->Stop();
-    else if (mode_ == REMOVE)
+    } else if (mode_ == REMOVE) {
       manager_->RemoveProviders(kProviderId);
-    else if (mode_ == REMOVE_ALL)
+    } else if (mode_ == REMOVE_ALL) {
       manager_->RemoveAllProviders();
-    else if (mode_ == DO_NOTHING) {
+    } else if (mode_ == DO_NOTHING) {
       EXPECT_FALSE(do_nothing_callback_.is_null());
       std::move(do_nothing_callback_).Run();
     }
@@ -401,7 +406,7 @@ class SimpleTestProvider : public TestProvider {
 
 // Test with multiple providers that do not handle the request.
 TEST(ResourceManagerTest, ProviderNotHandled) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -448,7 +453,7 @@ TEST(ResourceManagerTest, ProviderNotHandled) {
 
 // Test with multiple providers that all continue.
 TEST(ResourceManagerTest, ProviderContinue) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -495,7 +500,7 @@ TEST(ResourceManagerTest, ProviderContinue) {
 
 // Test with multiple providers where the first one stops.
 TEST(ResourceManagerTest, ProviderStop) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -544,7 +549,7 @@ TEST(ResourceManagerTest, ProviderStop) {
 // Test with multiple providers where the first one removes multiple providers
 // including itself.
 TEST(ResourceManagerTest, ProviderRemove) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -604,7 +609,7 @@ TEST(ResourceManagerTest, ProviderRemove) {
 
 // Test with multiple providers where the first provider removes all.
 TEST(ResourceManagerTest, ProviderRemoveAll) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -663,7 +668,7 @@ TEST(ResourceManagerTest, ProviderRemoveAll) {
 // Test with multiple providers that do not continue and will be destroyed when
 // the manager is destroyed.
 TEST(ResourceManagerTest, ProviderDoNothing) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -718,9 +723,9 @@ TEST(ResourceManagerTest, ProviderDoNothing) {
 
 // Test AddContentProvider.
 TEST(ResourceManagerTest, ContentProvider) {
-  const char kUrl1[] = "http://test.com/ResourceManagerTest1";
-  const char kUrl2[] = "http://test.com/ResourceManagerTest2";
-  const char kUrl3[] = "http://test.com/ResourceManagerTest3";
+  const char kUrl1[] = "https://test.com/ResourceManagerTest1";
+  const char kUrl2[] = "https://test.com/ResourceManagerTest2";
+  const char kUrl3[] = "https://test.com/ResourceManagerTest3";
 
   const std::string& success1_message = CreateMessage(kDoneMsg, "Success1");
   const std::string& success2_message = CreateMessage(kDoneMsg, "Success2");
@@ -757,7 +762,7 @@ TEST(ResourceManagerTest, ContentProvider) {
 
 // Test AddDirectoryProvider.
 TEST(ResourceManagerTest, DirectoryProvider) {
-  const char kUrlBase[] = "http://test.com/ResourceManager";
+  const char kUrlBase[] = "https://test.com/ResourceManager";
   const char kFile1[] = "File1.html";
   const char kFile2[] = "File2.html";
   const char kFile3[] = "File3.html";
@@ -815,7 +820,7 @@ TEST(ResourceManagerTest, DirectoryProvider) {
 
 // Test AddArchiveProvider.
 TEST(ResourceManagerTest, ArchiveProvider) {
-  const char kUrlBase[] = "http://test.com/ResourceManager";
+  const char kUrlBase[] = "https://test.com/ResourceManager";
   const char kFile1[] = "File1.html";
   const char kFile2[] = "File2.html";
   const char kFile3[] = "File3.html";
@@ -931,11 +936,11 @@ class OneShotProvider : public CefResourceManager::Provider {
 // Test that providers are called in the expected order and return expected
 // results.
 TEST(ResourceManagerTest, ProviderOrder) {
-  const char kUrl1[] = "http://test.com/ResourceManagerTest1";
-  const char kUrl2[] = "http://test.com/ResourceManagerTest2";
-  const char kUrl3[] = "http://test.com/ResourceManagerTest3";
-  const char kUrl4[] = "http://test.com/ResourceManagerTest4";
-  const char kUrl5[] = "http://test.com/ResourceManagerTest5";
+  const char kUrl1[] = "https://test.com/ResourceManagerTest1";
+  const char kUrl2[] = "https://test.com/ResourceManagerTest2";
+  const char kUrl3[] = "https://test.com/ResourceManagerTest3";
+  const char kUrl4[] = "https://test.com/ResourceManagerTest4";
+  const char kUrl5[] = "https://test.com/ResourceManagerTest5";
 
   const std::string& success1_message = CreateMessage(kDoneMsg, "Success1");
   const std::string& success2_message = CreateMessage(kDoneMsg, "Success2");
@@ -1038,8 +1043,8 @@ class EchoProvider : public CefResourceManager::Provider {
 // Test that many requests pending at the same time complete in the expected
 // order and return correct results.
 TEST(ResourceManagerTest, ManyRequests) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
-  const char kBaseUrl[] = "http://test.com/ResourceManagerSubTest/";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
+  const char kBaseUrl[] = "https://test.com/ResourceManagerSubTest/";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -1108,20 +1113,22 @@ class OneShotRemovalProvider : public TestProvider {
     if (remove_before_continue_) {
       // Removing the provider before continuing should trigger a call to
       // OnRequestCanceled.
-      if (identifier_.empty())
+      if (identifier_.empty()) {
         manager_->RemoveAllProviders();
-      else
+      } else {
         manager_->RemoveProviders(identifier_);
+      }
     }
 
     request->Continue(new CefStreamResourceHandler("text/html", stream));
 
     if (!remove_before_continue_) {
       // The request has already completed so OnRequestCanceled is not called.
-      if (identifier_.empty())
+      if (identifier_.empty()) {
         manager_->RemoveAllProviders();
-      else
+      } else {
         manager_->RemoveProviders(identifier_);
+      }
     }
 
     return true;
@@ -1141,10 +1148,10 @@ class OneShotRemovalProvider : public TestProvider {
 // Test that removal of the current provider after continue has the expected
 // results.
 TEST(ResourceManagerTest, RemoveProviderAfterContinue) {
-  const char kUrl1[] = "http://test.com/ResourceManagerTest1";
-  const char kUrl2[] = "http://test.com/ResourceManagerTest2";
-  const char kUrl3[] = "http://test.com/ResourceManagerTest3";
-  const char kUrl4[] = "http://test.com/ResourceManagerTest4";
+  const char kUrl1[] = "https://test.com/ResourceManagerTest1";
+  const char kUrl2[] = "https://test.com/ResourceManagerTest2";
+  const char kUrl3[] = "https://test.com/ResourceManagerTest3";
+  const char kUrl4[] = "https://test.com/ResourceManagerTest4";
 
   const std::string& success1_message = CreateMessage(kDoneMsg, "Success1");
   const std::string& success2_message = CreateMessage(kDoneMsg, "Success2");
@@ -1236,10 +1243,10 @@ TEST(ResourceManagerTest, RemoveProviderAfterContinue) {
 // Test that removal of the current provider before continue has the expected
 // results.
 TEST(ResourceManagerTest, RemoveProviderBeforeContinue) {
-  const char kUrl1[] = "http://test.com/ResourceManagerTest1";
-  const char kUrl2[] = "http://test.com/ResourceManagerTest2";
-  const char kUrl3[] = "http://test.com/ResourceManagerTest3";
-  const char kUrl4[] = "http://test.com/ResourceManagerTest4";
+  const char kUrl1[] = "https://test.com/ResourceManagerTest1";
+  const char kUrl2[] = "https://test.com/ResourceManagerTest2";
+  const char kUrl3[] = "https://test.com/ResourceManagerTest3";
+  const char kUrl4[] = "https://test.com/ResourceManagerTest4";
 
   const std::string& success1_message = CreateMessage(kDoneMsg, "Success1");
   const std::string& success2_message = CreateMessage(kDoneMsg, "Success2");
@@ -1329,10 +1336,10 @@ TEST(ResourceManagerTest, RemoveProviderBeforeContinue) {
 
 // Test that removal of all providers after continue has the expected results.
 TEST(ResourceManagerTest, RemoveAllProvidersAfterContinue) {
-  const char kUrl1[] = "http://test.com/ResourceManagerTest1";
-  const char kUrl2[] = "http://test.com/ResourceManagerTest2";
-  const char kUrl3[] = "http://test.com/ResourceManagerTest3";
-  const char kUrl4[] = "http://test.com/ResourceManagerTest4";
+  const char kUrl1[] = "https://test.com/ResourceManagerTest1";
+  const char kUrl2[] = "https://test.com/ResourceManagerTest2";
+  const char kUrl3[] = "https://test.com/ResourceManagerTest3";
+  const char kUrl4[] = "https://test.com/ResourceManagerTest4";
 
   const std::string& success1_message = CreateMessage(kDoneMsg, "Success1");
   const std::string& success2_message = CreateMessage(kDoneMsg, "Success2");
@@ -1417,10 +1424,10 @@ TEST(ResourceManagerTest, RemoveAllProvidersAfterContinue) {
 
 // Test that removal of all providers before continue has the expected results.
 TEST(ResourceManagerTest, RemoveAllProvidersBeforeContinue) {
-  const char kUrl1[] = "http://test.com/ResourceManagerTest1";
-  const char kUrl2[] = "http://test.com/ResourceManagerTest2";
-  const char kUrl3[] = "http://test.com/ResourceManagerTest3";
-  const char kUrl4[] = "http://test.com/ResourceManagerTest4";
+  const char kUrl1[] = "https://test.com/ResourceManagerTest1";
+  const char kUrl2[] = "https://test.com/ResourceManagerTest2";
+  const char kUrl3[] = "https://test.com/ResourceManagerTest3";
+  const char kUrl4[] = "https://test.com/ResourceManagerTest4";
 
   const std::string& success1_message = CreateMessage(kDoneMsg, "Success1");
   const std::string& success2_message = CreateMessage(kDoneMsg, "Success2");
@@ -1544,16 +1551,18 @@ std::string TestUrlFilter(const std::string& url) {
 // Add to the URL but keep the query component.
 std::string TestUrlFilterWithQuery(const std::string& url) {
   size_t pos = url.find('?');
-  if (pos == std::string::npos)
+  if (pos == std::string::npos) {
     return url;
+  }
   return url.substr(0, pos) + "Rewrite" + url.substr(pos);
 }
 
 // Add to the URL but keep the fragment component.
 std::string TestUrlFilterWithFragment(const std::string& url) {
   size_t pos = url.find('#');
-  if (pos == std::string::npos)
+  if (pos == std::string::npos) {
     return url;
+  }
   return url.substr(0, pos) + "Rewrite" + url.substr(pos);
 }
 
@@ -1561,8 +1570,8 @@ std::string TestUrlFilterWithFragment(const std::string& url) {
 
 // Test the URL filter capability.
 TEST(ResourceManagerTest, UrlFilter) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
-  const char kExpectedUrl[] = "http://test.com/ResourceManagerTestRewrite";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
+  const char kExpectedUrl[] = "https://test.com/ResourceManagerTestRewrite";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -1610,10 +1619,10 @@ TEST(ResourceManagerTest, UrlFilter) {
 
 // Test the URL filter capability with a query component.
 TEST(ResourceManagerTest, UrlFilterWithQuery) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest?foo=bar";
-  const char kExpectedUrl[] = "http://test.com/ResourceManagerTestRewrite";
+  const char kUrl[] = "https://test.com/ResourceManagerTest?foo=bar";
+  const char kExpectedUrl[] = "https://test.com/ResourceManagerTestRewrite";
   const char kExpectedUrlAfterFilter[] =
-      "http://test.com/ResourceManagerTestRewrite?foo=bar";
+      "https://test.com/ResourceManagerTestRewrite?foo=bar";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -1664,10 +1673,10 @@ TEST(ResourceManagerTest, UrlFilterWithQuery) {
 // Test the URL filter capability with a fragment component.
 TEST(ResourceManagerTest, UrlFilterWithFragment) {
   // Fragment components will not be passed with the request.
-  const char kUrl[] = "http://test.com/ResourceManagerTest#fragment";
-  const char kExpectedUrl[] = "http://test.com/ResourceManagerTestRewrite";
+  const char kUrl[] = "https://test.com/ResourceManagerTest#fragment";
+  const char kExpectedUrl[] = "https://test.com/ResourceManagerTestRewrite";
   const char kExpectedUrlAfterFilter[] =
-      "http://test.com/ResourceManagerTestRewrite#fragment";
+      "https://test.com/ResourceManagerTestRewrite#fragment";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -1749,7 +1758,7 @@ std::string TestMimeTypeResolver(const std::string& url) {
 
 // Test the mime type resolver capability.
 TEST(ResourceManagerTest, MimeTypeResolver) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -1835,7 +1844,7 @@ class AddingTestProvider : public TestProvider {
 
 // Test adding a new provider after the current provider.
 TEST(ResourceManagerTest, AddProviderAfter) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);
@@ -1878,7 +1887,7 @@ TEST(ResourceManagerTest, AddProviderAfter) {
 
 // Test adding a new provider before the current provider.
 TEST(ResourceManagerTest, AddProviderBefore) {
-  const char kUrl[] = "http://test.com/ResourceManagerTest";
+  const char kUrl[] = "https://test.com/ResourceManagerTest";
 
   ResourceManagerTestHandler::State state;
   state.urls_.push_back(kUrl);

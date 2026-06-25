@@ -170,7 +170,7 @@ class CefServer : public CefBaseRefCounted {
   virtual void SendHttpResponse(int connection_id,
                                 int response_code,
                                 const CefString& content_type,
-                                int64 content_length,
+                                int64_t content_length,
                                 const HeaderMap& extra_headers) = 0;
 
   ///

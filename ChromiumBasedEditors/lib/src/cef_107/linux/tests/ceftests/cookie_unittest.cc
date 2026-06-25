@@ -753,7 +753,7 @@ class CookieTestSchemeHandler : public TestHandler {
     }
 
     void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                            int64& response_length,
+                            int64_t& response_length,
                             CefString& redirectUrl) override {
       response_length = content_.size();
 
@@ -1143,7 +1143,7 @@ class CookieAccessSchemeHandler : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64& response_length,
+                          int64_t& response_length,
                           CefString& redirectUrl) override {
     EXPECT_IO_THREAD();
 
@@ -1623,7 +1623,7 @@ class CookieAccessTestHandler : public RoutingTestHandler,
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64 query_id,
+               int64_t query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -2099,7 +2099,7 @@ class CookieRestartTestHandler : public RoutingTestHandler,
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64 query_id,
+               int64_t query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {

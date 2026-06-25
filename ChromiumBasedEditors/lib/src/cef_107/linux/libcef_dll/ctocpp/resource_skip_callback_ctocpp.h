@@ -35,7 +35,7 @@ class CefResourceSkipCallbackCToCpp
   virtual ~CefResourceSkipCallbackCToCpp();
 
   // CefResourceSkipCallback methods.
-  void Continue(int64 bytes_skipped) override;
+  void Continue(int64_t bytes_skipped) override;
 };
 
 #endif  // CEF_LIBCEF_DLL_CTOCPP_RESOURCE_SKIP_CALLBACK_CTOCPP_H_

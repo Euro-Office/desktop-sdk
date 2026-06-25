@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=9d7c60f524e97dfb4ef831ee5c00037372d42673$
+// $hash=b0f1a367e71250dfa37c85415170cd9cf083c1f2$
 //
 
 #include "libcef_dll/cpptoc/test/translator_test_scoped_client_cpptoc.h"
@@ -24,8 +24,9 @@ int CEF_CALLBACK translator_test_scoped_client_get_value(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return 0;
+  }
 
   // Execute
   int _retval = CefTranslatorTestScopedClientCppToC::Get(self)->GetValue();
@@ -57,7 +58,7 @@ CefCppToCScoped<CefTranslatorTestScopedClientCppToC,
     return CefTranslatorTestScopedClientChildCppToC::UnwrapOwn(
         reinterpret_cast<cef_translator_test_scoped_client_child_t*>(s));
   }
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return CefOwnPtr<CefTranslatorTestScopedClient>();
 }
 
@@ -72,7 +73,7 @@ CefCppToCScoped<CefTranslatorTestScopedClientCppToC,
     return CefTranslatorTestScopedClientChildCppToC::UnwrapRaw(
         reinterpret_cast<cef_translator_test_scoped_client_child_t*>(s));
   }
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

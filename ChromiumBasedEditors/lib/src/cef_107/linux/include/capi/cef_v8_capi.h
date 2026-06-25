@@ -469,12 +469,12 @@ typedef struct _cef_v8value_t {
   ///
   /// Return an int value.
   ///
-  int32(CEF_CALLBACK* get_int_value)(struct _cef_v8value_t* self);
+  int32_t(CEF_CALLBACK* get_int_value)(struct _cef_v8value_t* self);
 
   ///
   /// Return an unsigned int value.
   ///
-  uint32(CEF_CALLBACK* get_uint_value)(struct _cef_v8value_t* self);
+  uint32_t(CEF_CALLBACK* get_uint_value)(struct _cef_v8value_t* self);
 
   ///
   /// Return a double value.
@@ -738,12 +738,12 @@ CEF_EXPORT cef_v8value_t* cef_v8value_create_bool(int value);
 ///
 /// Create a new cef_v8value_t object of type int.
 ///
-CEF_EXPORT cef_v8value_t* cef_v8value_create_int(int32 value);
+CEF_EXPORT cef_v8value_t* cef_v8value_create_int(int32_t value);
 
 ///
 /// Create a new cef_v8value_t object of type unsigned int.
 ///
-CEF_EXPORT cef_v8value_t* cef_v8value_create_uint(uint32 value);
+CEF_EXPORT cef_v8value_t* cef_v8value_create_uint(uint32_t value);
 
 ///
 /// Create a new cef_v8value_t object of type double.

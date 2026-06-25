@@ -9,6 +9,7 @@
 #include "include/cef_parser.h"
 #include "include/cef_permission_handler.h"
 #include "include/cef_request_context_handler.h"
+#include "include/test/cef_test_helpers.h"
 #include "include/wrapper/cef_closure_task.h"
 #include "include/wrapper/cef_stream_resource_handler.h"
 #include "tests/ceftests/test_handler.h"
@@ -49,6 +50,9 @@ class TestSetup {
 
   // CONFIGURATION
 
+  // True if a user gesture is required for the getDisplayMedia call.
+  bool needs_user_gesture = false;
+
   // Deny the prompt by returning false in OnRequestMediaAccessPermission.
   bool deny_implicitly = false;
 
@@ -80,7 +84,7 @@ class TestSetup {
 
 class MediaAccessTestHandler : public TestHandler, public CefPermissionHandler {
  public:
-  MediaAccessTestHandler(TestSetup* tr, uint32 request, uint32 response)
+  MediaAccessTestHandler(TestSetup* tr, uint32_t request, uint32_t response)
       : test_setup_(tr), request_(request), response_(response) {}
 
   cef_return_value_t OnBeforeResourceLoad(
@@ -127,9 +131,10 @@ class MediaAccessTestHandler : public TestHandler, public CefPermissionHandler {
         "   data = {};"
         " }"
         " document.location = "
-        "`http://tests/"
+        "`https://tests/"
         "exit?result=${val}&data=${encodeURIComponent(JSON.stringify(data))}`;"
-        "}";
+        "}"
+        "function runTest() {";
 
     if (want_audio_device() || want_video_device()) {
       page += std::string("navigator.mediaDevices.getUserMedia({audio: ") +
@@ -150,7 +155,8 @@ class MediaAccessTestHandler : public TestHandler, public CefPermissionHandler {
         ".catch(function(err) {"
         "  console.log(err.toString());"
         "  onResult(`ERROR`, {error_str: err.toString()});"
-        "});";
+        "});"
+        "}";
 
     if (test_setup_->deny_implicitly && IsChromeRuntimeEnabled()) {
       // Default behavior with the Chrome runtime is to show a UI prompt, so add
@@ -164,7 +170,13 @@ class MediaAccessTestHandler : public TestHandler, public CefPermissionHandler {
 
     page +=
         "</script>"
-        "</head><body>MEDIA ACCESS TEST</body></html>";
+        "</head><body>";
+
+    if (!test_setup_->needs_user_gesture) {
+      page += "<script>runTest();</script>";
+    }
+
+    page += "MEDIA ACCESS TEST</body></html>";
 
     // Create the request context that will use an in-memory cache.
     CefRequestContextSettings settings;
@@ -196,6 +208,8 @@ class MediaAccessTestHandler : public TestHandler, public CefPermissionHandler {
       if (frame->GetURL().ToString() == kMediaNavUrl) {
         DestroyTest();
       }
+    } else if (test_setup_->needs_user_gesture) {
+      CefExecuteJavaScriptWithUserGestureForTests(frame, "runTest()");
     }
   }
 
@@ -203,7 +217,7 @@ class MediaAccessTestHandler : public TestHandler, public CefPermissionHandler {
       CefRefPtr<CefBrowser> browser,
       CefRefPtr<CefFrame> frame,
       const CefString& requesting_origin,
-      uint32 requested_permissions,
+      uint32_t requested_permissions,
       CefRefPtr<CefMediaAccessCallback> callback) override {
     EXPECT_UI_THREAD();
     EXPECT_TRUE(frame->IsMain());
@@ -301,8 +315,8 @@ class MediaAccessTestHandler : public TestHandler, public CefPermissionHandler {
   }
 
   TestSetup* const test_setup_;
-  const uint32 request_;
-  const uint32 response_;
+  const uint32_t request_;
+  const uint32_t response_;
 
   CefRefPtr<CefMediaAccessCallback> callback_;
 
@@ -631,6 +645,7 @@ TEST(MediaAccessTest, DeviceSuccessAudioVideoAsync) {
 // Screen capture tests
 TEST(MediaAccessTest, DesktopFailureWhenReturningNoPermission) {
   TestSetup test_setup;
+  test_setup.needs_user_gesture = true;
 
   CefRefPtr<MediaAccessTestHandler> handler =
       new MediaAccessTestHandler(&test_setup,
@@ -649,6 +664,7 @@ TEST(MediaAccessTest, DesktopFailureWhenReturningNoPermission) {
 
 TEST(MediaAccessTest, DesktopFailureWhenRequestingVideoButReturningAudio) {
   TestSetup test_setup;
+  test_setup.needs_user_gesture = true;
 
   CefRefPtr<MediaAccessTestHandler> handler = new MediaAccessTestHandler(
       &test_setup, CEF_MEDIA_PERMISSION_DESKTOP_VIDEO_CAPTURE,
@@ -665,6 +681,7 @@ TEST(MediaAccessTest, DesktopFailureWhenRequestingVideoButReturningAudio) {
 
 TEST(MediaAccessTest, DesktopPartialSuccessReturningVideo) {
   TestSetup test_setup;
+  test_setup.needs_user_gesture = true;
 
   CefRefPtr<MediaAccessTestHandler> handler =
       new MediaAccessTestHandler(&test_setup,
@@ -683,6 +700,8 @@ TEST(MediaAccessTest, DesktopPartialSuccessReturningVideo) {
 
 TEST(MediaAccessTest, DesktopPartialFailureReturningAudio) {
   TestSetup test_setup;
+  test_setup.needs_user_gesture = true;
+
   CefRefPtr<MediaAccessTestHandler> handler =
       new MediaAccessTestHandler(&test_setup,
                                  CEF_MEDIA_PERMISSION_DESKTOP_AUDIO_CAPTURE |

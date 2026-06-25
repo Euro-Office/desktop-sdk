@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=d1cdc1747a3caa4b8aa4cc385c1164bc066bbefb$
+// $hash=d5e813af8db16d06c8b544bf7dfeb9b00cc4dd93$
 //
 
 #include "libcef_dll/cpptoc/end_tracing_callback_cpptoc.h"
@@ -27,12 +27,14 @@ void CEF_CALLBACK end_tracing_callback_on_end_tracing_complete(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return;
+  }
   // Verify param: tracing_file; type: string_byref_const
   DCHECK(tracing_file);
-  if (!tracing_file)
+  if (!tracing_file) {
     return;
+  }
 
   // Execute
   CefEndTracingCallbackCppToC::Get(self)->OnEndTracingComplete(
@@ -60,7 +62,7 @@ CefRefPtr<CefEndTracingCallback> CefCppToCRefCounted<
     CefEndTracingCallback,
     cef_end_tracing_callback_t>::UnwrapDerived(CefWrapperType type,
                                                cef_end_tracing_callback_t* s) {
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

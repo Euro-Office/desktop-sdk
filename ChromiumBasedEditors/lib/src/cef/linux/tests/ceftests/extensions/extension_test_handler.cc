@@ -32,8 +32,9 @@ ExtensionTestHandler::~ExtensionTestHandler() {
 }
 
 void ExtensionTestHandler::RunTest() {
-  if (create_main_browser_)
+  if (create_main_browser_) {
     OnAddMainBrowserResources();
+  }
 
   CefRefPtr<CefRequestContextHandler> rc_handler;
   if (request_context_with_handler()) {
@@ -130,12 +131,13 @@ void ExtensionTestHandler::OnExtensionLoadFailed(cef_errorcode_t result) {
 // CefMessageRouterBrowserSide::Handler methods:
 bool ExtensionTestHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                                    CefRefPtr<CefFrame> frame,
-                                   int64 query_id,
+                                   int64_t query_id,
                                    const CefString& request,
                                    bool persistent,
                                    CefRefPtr<Callback> callback) {
-  if (OnMessage(browser, request))
+  if (OnMessage(browser, request)) {
     return true;
+  }
 
   EXPECT_FALSE(true) << "Unexpected message: " << request.ToString();
   return false;
@@ -153,8 +155,9 @@ CefRefPtr<CefDictionaryValue> ExtensionTestHandler::CreateDefaultManifest(
   CefRefPtr<CefListValue> permissions = CefListValue::Create();
   permissions->SetSize(api_permissions.size() + 2);
   size_t idx = 0;
-  for (; idx < api_permissions.size(); ++idx)
+  for (; idx < api_permissions.size(); ++idx) {
     permissions->SetString(idx, api_permissions[idx]);
+  }
 
   // Allow access to all http/https origins.
   permissions->SetString(idx++, "http://*/*");

@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "include/cef_parser.h"
+#include "tests/cefclient/browser/test_runner.h"
 #include "tests/shared/browser/client_app_browser.h"
 #include "tests/shared/common/client_switches.h"
 #include "tests/shared/common/string_util.h"
@@ -21,16 +22,17 @@ const char kDefaultUrl[] = "https://www.google.com";
 // Returns the ARGB value for |color|.
 cef_color_t ParseColor(const std::string& color) {
   const std::string& colorToLower = AsciiStrToLower(color);
-  if (colorToLower == "black")
+  if (colorToLower == "black") {
     return CefColorSetARGB(255, 0, 0, 0);
-  else if (colorToLower == "blue")
+  } else if (colorToLower == "blue") {
     return CefColorSetARGB(255, 0, 0, 255);
-  else if (colorToLower == "green")
+  } else if (colorToLower == "green") {
     return CefColorSetARGB(255, 0, 255, 0);
-  else if (colorToLower == "red")
+  } else if (colorToLower == "red") {
     return CefColorSetARGB(255, 255, 0, 0);
-  else if (colorToLower == "white")
+  } else if (colorToLower == "white") {
     return CefColorSetARGB(255, 255, 255, 255);
+  }
 
   // Use the default color.
   return 0;
@@ -43,12 +45,6 @@ MainContextImpl::MainContextImpl(CefRefPtr<CefCommandLine> command_line,
     : command_line_(command_line),
       terminate_when_all_windows_closed_(terminate_when_all_windows_closed) {
   DCHECK(command_line_.get());
-
-  // Set the main URL.
-  if (command_line_->HasSwitch(switches::kUrl))
-    main_url_ = command_line_->GetSwitchValue(switches::kUrl);
-  if (main_url_.empty())
-    main_url_ = kDefaultUrl;
 
   // Whether windowless (off-screen) rendering will be used.
   use_windowless_rendering_ =
@@ -107,8 +103,9 @@ MainContextImpl::MainContextImpl(CefRefPtr<CefCommandLine> command_line,
   }
 
 #if defined(OS_WIN) || defined(OS_LINUX)
-  if (use_chrome_runtime_ && !use_views_ &&
-      !command_line->HasSwitch(switches::kUseNative)) {
+  use_chrome_runtime_native_ =
+      use_chrome_runtime_ && command_line->HasSwitch(switches::kUseNative);
+  if (use_chrome_runtime_ && !use_views_ && !use_chrome_runtime_native_) {
     LOG(WARNING) << "Chrome runtime defaults to the Views framework.";
     use_views_ = true;
   }
@@ -122,16 +119,13 @@ MainContextImpl::MainContextImpl(CefRefPtr<CefCommandLine> command_line,
   }
 #endif  // !(defined(OS_WIN) || defined(OS_LINUX))
 
-  if (use_views_ && command_line->HasSwitch(switches::kHideFrame) &&
-      !command_line_->HasSwitch(switches::kUrl)) {
-    // Use the draggable regions test as the default URL for frameless windows.
-    main_url_ = "http://tests/draggable";
-  }
-
   if (command_line_->HasSwitch(switches::kBackgroundColor)) {
     // Parse the background color value.
     background_color_ =
         ParseColor(command_line_->GetSwitchValue(switches::kBackgroundColor));
+  } else if (command_line_->HasSwitch("force-dark-mode")) {
+    // Use black background color by default with dark mode.
+    background_color_ = ParseColor("black");
   }
 
   if (background_color_ == 0 && !use_views_) {
@@ -151,12 +145,28 @@ MainContextImpl::~MainContextImpl() {
   DCHECK(!initialized_ || shutdown_);
 }
 
+CefRefPtr<CefCommandLine> MainContextImpl::GetCommandLine() {
+  return command_line_;
+}
+
 std::string MainContextImpl::GetConsoleLogPath() {
   return GetAppWorkingDirectory() + "console.log";
 }
 
-std::string MainContextImpl::GetMainURL() {
-  return main_url_;
+std::string MainContextImpl::GetMainURL(
+    CefRefPtr<CefCommandLine> command_line) {
+  if (!command_line) {
+    command_line = command_line_;
+  }
+
+  std::string main_url = kDefaultUrl;
+  if (command_line->HasSwitch(switches::kUrl)) {
+    main_url = command_line->GetSwitchValue(switches::kUrl);
+  } else if (use_views_ && command_line->HasSwitch(switches::kHideFrame)) {
+    // Use the draggable regions test as the default URL for frameless windows.
+    main_url = test_runner::GetTestURL("draggable");
+  }
+  return main_url;
 }
 
 cef_color_t MainContextImpl::GetBackgroundColor() {
@@ -165,6 +175,10 @@ cef_color_t MainContextImpl::GetBackgroundColor() {
 
 bool MainContextImpl::UseChromeRuntime() {
   return use_chrome_runtime_;
+}
+
+bool MainContextImpl::UseChromeRuntimeNative() {
+  return use_chrome_runtime_native_;
 }
 
 bool MainContextImpl::UseViews() {
@@ -187,34 +201,56 @@ bool MainContextImpl::UseDefaultPopup() {
 void MainContextImpl::PopulateSettings(CefSettings* settings) {
   client::ClientAppBrowser::PopulateSettings(command_line_, *settings);
 
-  if (use_chrome_runtime_)
+  if (use_chrome_runtime_) {
     settings->chrome_runtime = true;
+  }
 
   CefString(&settings->cache_path) =
       command_line_->GetSwitchValue(switches::kCachePath);
 
-  if (use_windowless_rendering_)
+  if (use_windowless_rendering_) {
     settings->windowless_rendering_enabled = true;
+  }
 
-  if (browser_background_color_ != 0)
+  if (browser_background_color_ != 0) {
     settings->background_color = browser_background_color_;
+  }
 
   if (command_line_->HasSwitch("lang")) {
     // Use the same locale for the Accept-Language HTTP request header.
     CefString(&settings->accept_language_list) =
         command_line_->GetSwitchValue("lang");
   }
+
+  if (command_line_->HasSwitch("enable-chrome-policy")) {
+    // Enable Chrome policy management via Platform and OS-user policies.
+    // Use the same configuration ID as Google Chrome for testing purposes.
+    // If Google Chrome is managed on this machine we'll show the same
+    // configured policies in chrome://policy/.
+    CefString(&settings->chrome_policy_id) =
+#if defined(OS_WIN)
+        "SOFTWARE\\Policies\\Google\\Chrome";
+#elif defined(OS_MAC)
+        "com.google.Chrome";
+#elif defined(OS_LINUX)
+        "/etc/opt/chrome/policies";
+#else
+        "";
+#endif
+  }
 }
 
 void MainContextImpl::PopulateBrowserSettings(CefBrowserSettings* settings) {
   settings->windowless_frame_rate = windowless_frame_rate_;
 
-  if (browser_background_color_ != 0)
+  if (browser_background_color_ != 0) {
     settings->background_color = browser_background_color_;
+  }
 
   if (use_chrome_runtime_ &&
-      command_line_->HasSwitch(switches::kHideChromeStatusBubble)) {
+      command_line_->HasSwitch(switches::kHideChromeBubbles)) {
     settings->chrome_status_bubble = STATE_DISABLED;
+    settings->chrome_zoom_bubble = STATE_DISABLED;
   }
 }
 
@@ -228,8 +264,9 @@ void MainContextImpl::PopulateOsrSettings(OsrRendererSettings* settings) {
   settings->external_begin_frame_enabled = external_begin_frame_enabled_;
   settings->begin_frame_rate = windowless_frame_rate_;
 
-  if (browser_background_color_ != 0)
+  if (browser_background_color_ != 0) {
     settings->background_color = browser_background_color_;
+  }
 }
 
 RootWindowManager* MainContextImpl::GetRootWindowManager() {
@@ -245,8 +282,9 @@ bool MainContextImpl::Initialize(const CefMainArgs& args,
   DCHECK(!initialized_);
   DCHECK(!shutdown_);
 
-  if (!CefInitialize(args, settings, application, windows_sandbox_info))
+  if (!CefInitialize(args, settings, application, windows_sandbox_info)) {
     return false;
+  }
 
   // Need to create the RootWindowManager after calling CefInitialize because
   // TempWindowX11 uses cef_get_xdisplay().

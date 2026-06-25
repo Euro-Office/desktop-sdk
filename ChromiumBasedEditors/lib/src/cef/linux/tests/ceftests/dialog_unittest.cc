@@ -10,7 +10,7 @@
 
 namespace {
 
-const char* kTestUrl = "http://tests/DialogTestHandler";
+const char* kTestUrl = "https://tests/DialogTestHandler";
 
 class DialogTestHandler : public TestHandler {
  public:
@@ -81,10 +81,11 @@ class DialogTestHandler : public TestHandler {
   }
 
   void ExecuteCallback(CefRefPtr<CefFileDialogCallback> callback) {
-    if (config_.callback_cancel)
+    if (config_.callback_cancel) {
       callback->Cancel();
-    else
+    } else {
       callback->Continue(config_.callback_paths);
+    }
   }
 
   // CefDialogHandler

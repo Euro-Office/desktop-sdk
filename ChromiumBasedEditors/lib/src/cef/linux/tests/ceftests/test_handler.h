@@ -6,6 +6,7 @@
 #define CEF_TESTS_CEFTESTS_TEST_HANDLER_H_
 #pragma once
 
+#include <atomic>
 #include <list>
 #include <map>
 #include <memory>
@@ -206,27 +207,29 @@ class TestHandler : public CefClient,
     destroy_test_expected_ = expected;
   }
 
-  // Returns true if a browser currently exists.
-  static bool HasBrowser() { return browser_count_ > 0; }
+  // Called from TestWindowDelegate when Views is enabled.
+  void OnWindowCreated(int browser_id);
+  void OnWindowDestroyed(int browser_id);
+
+  // Returns true if a TestHandler currently exists.
+  static bool HasTestHandler() {
+    return test_handler_count_.load(std::memory_order_relaxed) > 0U;
+  }
+
+  std::string debug_string_prefix() const { return debug_string_prefix_; }
 
  protected:
   // Indicate that test setup is complete. Only used in combination with a
   // Collection.
   virtual void SetupComplete();
 
-  // Close any existing non-popup browsers. Test completion will be signaled
-  // once all the browsers have closed if
-  // |signal_completion_when_all_browsers_close_| is true (default value).
-  // If no browsers exist then this method will do nothing and
-  // TestComplete() must be called manually.
+  // Close any remaining browsers. This may result in a call to TestComplete(),
+  // depending on the configuration of SetSignalCompletionCount().
   virtual void DestroyTest();
 
   // Called on the UI thread if the test times out as a result of calling
   // SetTestTimeout(). Calls DestroyTest() by default.
   virtual void OnTestTimeout(int timeout_ms, bool treat_as_error);
-
-  // Called from CreateBrowser() to optionally set per-browser settings.
-  virtual void PopulateBrowserSettings(CefBrowserSettings* settings) {}
 
   void CreateBrowser(const CefString& url,
                      CefRefPtr<CefRequestContext> request_context = nullptr,
@@ -242,38 +245,88 @@ class TestHandler : public CefClient,
 
   void ClearResources();
 
-  void SetSignalCompletionWhenAllBrowsersClose(bool val) {
-    signal_completion_when_all_browsers_close_ = val;
-  }
-  bool SignalCompletionWhenAllBrowsersClose() const {
-    return signal_completion_when_all_browsers_close_;
-  }
+  // Specify the number of times that SignalTestCompletion() needs to be
+  // explicitly called for test completion. Must be configured during test
+  // initialization before any browsers are created.
+  // - If the test creates browsers and does not explicitly call
+  //   SignalTestCompletion() then the default value (0) can be used.
+  // - If the test creates browsers and explicitly calls SignalTestCompletion()
+  //   then set a value >= 1.
+  // - If the test does not create browsers then it must explicitly call
+  //   SignalTestCompletion() and set a value >= 1.
+  void SetSignalTestCompletionCount(size_t count);
+
+  // Explicitly signal test completion a single time. Used in combination with
+  // SetSignalTestCompletionCount(). Results in a call to TestComplete() if
+  // all browsers have closed and this method has been called the expected
+  // number of times.
+  void SignalTestCompletion();
+
+  // Returns true if SignalTestCompletion() has been called the necessary
+  // number of times (may be 0), in which case TestComplete() will be called
+  // automatically when all browsers have closed. Must be called on the
+  // UI thread.
+  bool AllowTestCompletionWhenAllBrowsersClose() const;
+
+  // Returns true if all browsers have closed. Must be called on the UI
+  // thread.
+  bool AllBrowsersClosed() const;
 
   // Call OnTestTimeout() after the specified amount of time.
   void SetTestTimeout(int timeout_ms = 5000, bool treat_as_error = true);
 
-  // Signal that the test is complete. This will be called automatically when
-  // all existing non-popup browsers are closed if
-  // |signal_completion_when_all_browsers_close_| is true (default value). It
-  // is an error to call this method before all browsers have closed.
-  void TestComplete();
+  // Call prior to CreateBrowser() to configure whether browsers will be created
+  // as Views-hosted. Defaults to false unless the `--use-views` command-line
+  // flag is specified.
+  void SetUseViews(bool use_views);
 
   // Returns the single UIThreadHelper instance, creating it if necessary. Must
   // be called on the UI thread.
   UIThreadHelper* GetUIThreadHelper();
 
  private:
+  void MaybeTestComplete();
+
+  // Complete the test. It is an error to call this method before all browsers
+  // have closed.
+  void TestComplete();
+
+  enum NotifyType {
+    NT_BROWSER,
+    NT_WINDOW,
+  };
+  void OnCreated(int browser_id, NotifyType type, bool views_hosted);
+  void OnClosed(int browser_id, NotifyType type);
+
+  std::string MakeDebugStringPrefix() const;
+  const std::string debug_string_prefix_;
+
   // Used to notify when the test is complete. Can be accessed on any thread.
   CompletionState* completion_state_;
   bool completion_state_owned_;
 
-  // Map browser ID to browser object for non-popup browsers. Only accessed on
-  // the UI thread.
+  bool use_views_;
+
+  // Map of browser ID to browser object. Only accessed on the UI thread.
   BrowserMap browser_map_;
+
+  struct NotifyStatus {
+    // True if this particular browser window is Views-hosted (see SetUseViews).
+    // Some tests create popup or DevTools windows with default handling (e.g.
+    // not Views-hosted).
+    bool views_hosted;
+
+    // Keyed by NotifyType.
+    TrackCallback got_created[2];
+    TrackCallback got_closed[2];
+  };
+
+  // Map of browser ID to current status. Only accessed on the UI thread.
+  std::map<int, NotifyStatus> browser_status_map_;
 
   // Values for the first created browser. Modified on the UI thread but can be
   // accessed on any thread.
-  int first_browser_id_;
+  int first_browser_id_ = 0;
   CefRefPtr<CefBrowser> first_browser_;
 
   // Map of resources that can be automatically loaded. Only accessed on the
@@ -281,19 +334,22 @@ class TestHandler : public CefClient,
   typedef std::map<std::string, ResourceContent> ResourceMap;
   ResourceMap resource_map_;
 
-  // If true test completion will be signaled when all browsers have closed.
-  bool signal_completion_when_all_browsers_close_;
+  // Number of times that SignalTestCompletion() must be called.
+  size_t signal_completion_count_ = 0U;
 
   CefRefPtr<CefWaitableEvent> destroy_event_;
 
+  // Tracks whether OnTestTimeout() has been called.
+  bool test_timeout_called_ = false;
+
   // Tracks whether DestroyTest() is expected or has been called.
-  bool destroy_test_expected_;
-  bool destroy_test_called_;
+  bool destroy_test_expected_ = true;
+  bool destroy_test_called_ = false;
 
   std::unique_ptr<UIThreadHelper> ui_thread_helper_;
 
-  // Used to track the number of currently existing browser windows.
-  static int browser_count_;
+  // Used to track the number of currently existing TestHandlers.
+  static std::atomic<size_t> test_handler_count_;
 
   DISALLOW_COPY_AND_ASSIGN(TestHandler);
 };

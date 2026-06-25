@@ -113,7 +113,7 @@ public:
 
 	virtual void GetResponseHeaders(
 			CefRefPtr<CefResponse> response,
-			int64& response_length,
+			int64_t& response_length,
 			CefString& redirectUrl) OVERRIDE
 	{
 		CefStreamResourceHandler::GetResponseHeaders(response, response_length, redirectUrl);
@@ -149,10 +149,12 @@ protected:
 		virtual bool IsInProgress() { return false; }
 		virtual bool IsComplete() { return false; }
 		virtual bool IsCanceled() { return true; }
-		virtual int64 GetCurrentSpeed() { return 0; }
+		virtual bool IsInterrupted() { return false; }
+		virtual cef_download_interrupt_reason_t GetInterruptReason() { return CEF_DOWNLOAD_INTERRUPT_REASON_NONE; }
+		virtual int64_t GetCurrentSpeed() { return 0; }
 		virtual int GetPercentComplete() { return 0; }
-		virtual int64 GetTotalBytes() { return 0; }
-		virtual int64 GetReceivedBytes() { return 0; }
+		virtual int64_t GetTotalBytes() { return 0; }
+		virtual int64_t GetReceivedBytes() { return 0; }
 #if defined(CEF_VERSION_ABOVE_102) && !defined(CEF_VERSION_103)
 		virtual CefBaseTime GetStartTime() { return CefBaseTime(); }
 		virtual CefBaseTime GetEndTime() { return CefBaseTime(); }
@@ -161,7 +163,7 @@ protected:
 		virtual CefTime GetEndTime() { return CefTime(); }
 #endif
 		virtual CefString GetFullPath() { return ""; }
-		virtual uint32 GetId() { return 0; }
+		virtual uint32_t GetId() { return 0; }
 		virtual CefString GetURL() { return m_sUrl; }
 		virtual CefString GetOriginalUrl() { return m_sUrl; }
 		virtual CefString GetSuggestedFileName() { return ""; }
@@ -973,7 +975,7 @@ public:
 	// файлы с ссылками для метода AscDesktopEditor.DownloadFiles
 	std::map<std::wstring, CDownloadFileItem> m_arDownloadedFiles;
 	std::map<std::wstring, std::wstring> m_arDownloadedFilesComplete;
-	int64 m_nDownloadedFilesFrameId;
+	int64_t m_nDownloadedFilesFrameId;
 
 	// приходил ли хоть раз евент onDocumentModifiedChanged
 	bool m_bIsReceiveOnce_OnDocumentModified;
@@ -1780,7 +1782,7 @@ private:
 	IMPLEMENT_REFCOUNTING(CCefResizeTask);
 };
 
-class CAscClientHandler : public client::ClientHandler, public CCookieFoundCallback, public client::ClientHandler::Delegate, public CefDialogHandler
+class CAscClientHandler : public client::ClientHandler, public CCookieFoundCallback, public client::ClientHandler::Delegate, public CefDialogHandler, public CefRenderHandler
 {
 public:
 	class CAscCefJSDialogHandler : public CefJSDialogHandler
@@ -1828,6 +1830,81 @@ public:
 	public:
 		IMPLEMENT_REFCOUNTING(CAscCefJSDialogHandler);
 	};
+
+public:
+	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() OVERRIDE
+	{
+		return this;
+	}
+
+	virtual void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) OVERRIDE
+	{
+		if (m_pParent && m_pParent->GetWidgetImpl()) {
+			// In OSR mode, --force-device-scale-factor does NOT override
+			// GetScreenInfo.device_scale_factor. CEF computes the buffer as
+			// GetViewRect * device_scale_factor. So we must return DIPs here
+			// (logical pixels from QWidget::width/height), NOT physical pixels.
+			rect.x = 0;
+			rect.y = 0;
+			rect.width = m_pParent->GetWidgetImpl()->cef_width;
+			rect.height = m_pParent->GetWidgetImpl()->cef_height;
+			if (rect.width == 0) rect.width = 1;
+			if (rect.height == 0) rect.height = 1;
+		} else {
+			rect.x = rect.y = 0;
+			rect.width = rect.height = 1;
+		}
+	}
+
+	virtual bool GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo& screen_info) OVERRIDE
+	{
+		if (m_pParent && m_pParent->GetWidgetImpl()) {
+			double scale = m_pParent->GetWidgetImpl()->GetDeviceScaleFactor();
+			screen_info.device_scale_factor = (float)scale;
+			// Rect must be in DIPs (same as GetViewRect). CEF computes the
+			// physical buffer as rect * device_scale_factor internally.
+			screen_info.rect.x = 0;
+			screen_info.rect.y = 0;
+			screen_info.rect.width = m_pParent->GetWidgetImpl()->cef_width;
+			screen_info.rect.height = m_pParent->GetWidgetImpl()->cef_height;
+			if (screen_info.rect.width == 0) screen_info.rect.width = 1;
+			if (screen_info.rect.height == 0) screen_info.rect.height = 1;
+			screen_info.available_rect = screen_info.rect;
+			return true;
+		}
+		return false;
+	}
+
+	virtual bool GetScreenPoint(CefRefPtr<CefBrowser> browser,
+	                            int viewX, int viewY,
+	                            int& screenX, int& screenY) OVERRIDE
+	{
+		if (m_pParent && m_pParent->GetWidgetImpl()) {
+			double scale = m_pParent->GetWidgetImpl()->GetDeviceScaleFactor();
+			int widgetScreenX = 0, widgetScreenY = 0;
+			m_pParent->GetWidgetImpl()->GetWidgetScreenPosition(widgetScreenX, widgetScreenY);
+			// Convert view DIP coordinates to screen device (pixel) coordinates.
+			// Per CEF docs: "Windows/Linux should provide screen device (pixel) coordinates"
+			screenX = widgetScreenX + (int)(viewX * scale);
+			screenY = widgetScreenY + (int)(viewY * scale);
+
+			static int gspLog = 0;
+			if (gspLog < 5) {
+				fprintf(stderr, "[WAYLAND-OSR] GetScreenPoint: view(%d,%d) -> screen(%d,%d) widgetPos(%d,%d) scale=%.3f\n",
+				        viewX, viewY, screenX, screenY, widgetScreenX, widgetScreenY, scale);
+				gspLog++;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	virtual void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height) OVERRIDE
+	{
+		if (m_pParent && m_pParent->GetWidgetImpl()) {
+			m_pParent->GetWidgetImpl()->OnPaint(buffer, width, height);
+		}
+	}
 
 public:
 	CCefView* m_pParent;
@@ -2302,7 +2379,7 @@ public:
 			}
 		}
 
-		CheckPopup(target_url.ToWString(), false, (WOD_NEW_BACKGROUND_TAB == target_disposition) ? true : false, false, sFrameUrl);
+		CheckPopup(target_url.ToWString(), false, (CEF_WOD_NEW_BACKGROUND_TAB == target_disposition) ? true : false, false, sFrameUrl);
 		return true;
 	}
 
@@ -2317,7 +2394,7 @@ public:
 		std::wstring sFrameUrl = L"";
 		if (frame)
 			sFrameUrl = frame->GetURL().ToWString();
-		CheckPopup(target_url.ToWString(), false, (WOD_NEW_BACKGROUND_TAB == target_disposition) ? true : false, true, sFrameUrl);
+		CheckPopup(target_url.ToWString(), false, (CEF_WOD_NEW_BACKGROUND_TAB == target_disposition) ? true : false, true, sFrameUrl);
 		return true;
 	}
 
@@ -2535,9 +2612,9 @@ public:
 #if !defined(CEF_2623) && !defined(CEF_VERSION_103)
 	virtual bool OnShowPermissionPrompt(
 		CefRefPtr<CefBrowser> browser,
-		uint64 prompt_id,
+		uint64_t prompt_id,
 		const CefString& requesting_origin,
-		uint32 requested_permissions,
+		uint32_t requested_permissions,
 		CefRefPtr<CefPermissionPromptCallback> callback) OVERRIDE
 	{
 		if ((requested_permissions & CEF_PERMISSION_TYPE_CLIPBOARD) != 0)
@@ -5074,6 +5151,10 @@ virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser,
 							  const CefString& source,
 							  int line) OVERRIDE
 {
+	std::string msg = message.ToString();
+	if (msg.find("[WAYLAND-OSR-JS]") != std::string::npos) {
+		fprintf(stderr, "%s\n", msg.c_str());
+	}
 	return false;
 }
 
@@ -6368,8 +6449,21 @@ void CCefView_Private::CheckZoom()
 	if (CAscApplicationManager::IsUseSystemScaling())
 		return;
 
-	if (NULL == CAscApplicationManager::GetDpiChecker())
+	// On Wayland OSR, GetScreenInfo already reports the correct device_scale_factor
+	// to CEF, so the custom zoom compensation must be skipped. Otherwise the DPR
+	// from GetScreenInfo and the CSS zoom from SetZoomLevel compound, causing
+	// double scaling (e.g., 1.15 × 1.25 = 1.4375 effective DPR).
+	if (m_pWidgetImpl && m_pWidgetImpl->IsWayland()) {
+		static int czLog = 0;
+		if (czLog < 3) { fprintf(stderr, "[WAYLAND-OSR] CheckZoom: SKIPPED (Wayland OSR)\n"); czLog++; }
 		return;
+	}
+
+	if (NULL == CAscApplicationManager::GetDpiChecker()) {
+		static int czLog2 = 0;
+		if (czLog2 < 3) { fprintf(stderr, "[WAYLAND-OSR] CheckZoom: no DpiChecker\n"); czLog2++; }
+		return;
+	}
 
 	if (!m_bIsWindowsCheckZoom)
 		return;
@@ -6434,6 +6528,8 @@ void CCefView_Private::UpdateSize()
 	if (m_handler && m_handler->GetBrowser() && m_handler->GetBrowser()->GetHost())
 	{
 		m_handler->GetBrowser()->GetHost()->NotifyMoveOrResizeStarted();
+		if (m_handler->GetBrowser()->GetHost()->IsWindowRenderingDisabled())
+			m_handler->GetBrowser()->GetHost()->WasResized();
 
 		// Fix bug #62086
 		CefRefPtr<CefFrame> pFrame = m_handler->GetBrowser()->GetMainFrame();
@@ -6947,9 +7043,18 @@ void CCefView::load(const std::wstring& urlInputSrc)
 	int _h = m_pInternal->m_pWidgetImpl->cef_height;
 
 #ifdef CEF_VERSION_ABOVE_102
+#if defined(_LINUX) && !defined(_MAC)
+	if (m_pInternal && m_pInternal->m_pWidgetImpl && m_pInternal->m_pWidgetImpl->IsWayland()) {
+		info.SetAsWindowless(0);
+	} else {
+		info.SetAsChild(_handle, CefRect(0, 0, _w, _h));
+		m_pInternal->m_hideChecker.Hide(info, _handle);
+	}
+#else
 	info.SetAsChild(_handle, CefRect(0, 0, _w, _h));
 
 	m_pInternal->m_hideChecker.Hide(info, _handle);
+#endif
 #else
 
 #ifdef WIN32
@@ -7857,10 +7962,10 @@ void CCefView::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 		{
 			std::wstring sCode = pData->get_Value();
 
-			std::vector<int64> arIds;
+			std::vector<int64_t> arIds;
 			pBrowser->GetFrameIdentifiers(arIds);
 
-			for (std::vector<int64>::iterator iter = arIds.begin(); iter != arIds.end(); iter++)
+			for (std::vector<int64_t>::iterator iter = arIds.begin(); iter != arIds.end(); iter++)
 			{
 				CefRefPtr<CefFrame> frame = pBrowser->GetFrame(*iter);
 				if (frame)
@@ -8076,10 +8181,10 @@ void CCefView::SetParentWidgetInfo(const std::wstring& json)
 	NSStringUtils::string_replaceA(sViewportInfo, "\"", "\\\"");
 	std::string sCode = "(function(){window.AscDesktopEditor._setViewportSettings(\"" + sViewportInfo + "\");})();";
 
-	std::vector<int64> identifiers;
+	std::vector<int64_t> identifiers;
 	pBrowser->GetFrameIdentifiers(identifiers);
 
-	for (std::vector<int64>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
+	for (std::vector<int64_t>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
 	{
 		CefRefPtr<CefFrame> pFrame = pBrowser->GetFrame(*iter);
 		if (pFrame)
@@ -8109,10 +8214,10 @@ void CCefView::ExecuteInAllFrames(const std::string& sCode, const bool& isMain)
 	if (!pBrowser)
 		return;
 
-	std::vector<int64> identifiers;
+	std::vector<int64_t> identifiers;
 	pBrowser->GetFrameIdentifiers(identifiers);
 
-	for (std::vector<int64>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
+	for (std::vector<int64_t>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
 	{
 		CefRefPtr<CefFrame> pFrame = pBrowser->GetFrame(*iter);
 		if (!pFrame)
@@ -8828,10 +8933,10 @@ void CAscApplicationManager_Private::ChangeEditorViewsCount()
 	std::string sCodeValue = bIsEditorPresent ? "true" : "false";
 	std::string sCode = "(function(){if (window.onChangeEditorsCount) window.onChangeEditorsCount(" + sCodeValue + ");})();";
 
-	std::vector<int64> identifiers;
+	std::vector<int64_t> identifiers;
 	pView->m_pInternal->GetBrowser()->GetFrameIdentifiers(identifiers);
 
-	for (std::vector<int64>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
+	for (std::vector<int64_t>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
 	{
 		CefRefPtr<CefFrame> pFrame = pView->m_pInternal->GetBrowser()->GetFrame(*iter);
 		if (pFrame)
@@ -8876,6 +8981,71 @@ namespace NSRequest
 	}
 }
 #endif
+
+void CCefView::SendMouseClickEvent(int x, int y, int button, bool mouseUp, int modifiers, int clickCount)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	CefMouseEvent mouse_event;
+	mouse_event.x = x;
+	mouse_event.y = y;
+	mouse_event.modifiers = modifiers;
+
+	cef_mouse_button_type_t btn_type = MBT_LEFT;
+	if (button == 2) btn_type = MBT_RIGHT;
+	else if (button == 3) btn_type = MBT_MIDDLE;
+
+	browser->GetHost()->SendMouseClickEvent(mouse_event, btn_type, mouseUp, clickCount);
+}
+
+void CCefView::SendMouseMoveEvent(int x, int y, bool mouseLeave, int modifiers)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	CefMouseEvent mouse_event;
+	mouse_event.x = x;
+	mouse_event.y = y;
+	mouse_event.modifiers = modifiers;
+
+	browser->GetHost()->SendMouseMoveEvent(mouse_event, mouseLeave);
+}
+
+void CCefView::SendMouseWheelEvent(int x, int y, int deltaX, int deltaY, int modifiers)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	CefMouseEvent mouse_event;
+	mouse_event.x = x;
+	mouse_event.y = y;
+	mouse_event.modifiers = modifiers;
+
+	browser->GetHost()->SendMouseWheelEvent(mouse_event, deltaX, deltaY);
+}
+
+void CCefView::SendKeyEvent(int type, int key, int modifiers, const std::wstring& character)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	CefKeyEvent key_event;
+	key_event.type = (cef_key_event_type_t)type;
+	key_event.modifiers = modifiers;
+	key_event.windows_key_code = key;
+	key_event.native_key_code = (character.length() >= 3) ? static_cast<int>(character[2]) : key;
+	key_event.is_system_key = (modifiers & (1 << 3)) != 0; // EVENTFLAG_ALT_DOWN is 1 << 3
+	key_event.character = character.empty() ? 0 : character[0];
+	key_event.unmodified_character = (character.length() >= 2) ? character[1] : key_event.character;
+	key_event.focus_on_editable_field = true;
+
+	browser->GetHost()->SendKeyEvent(key_event);
+}
 
 #if defined(_LINUX) && !defined(_MAC)
 void* CefGetXDisplay(void)

@@ -188,7 +188,7 @@ typedef struct _cef_request_handler_t {
   int(CEF_CALLBACK* on_quota_request)(struct _cef_request_handler_t* self,
                                       struct _cef_browser_t* browser,
                                       const cef_string_t* origin_url,
-                                      int64 new_size,
+                                      int64_t new_size,
                                       struct _cef_callback_t* callback);
 
   ///

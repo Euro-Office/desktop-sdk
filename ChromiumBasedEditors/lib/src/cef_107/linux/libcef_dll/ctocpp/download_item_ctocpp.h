@@ -38,14 +38,14 @@ class CefDownloadItemCToCpp : public CefCToCppRefCounted<CefDownloadItemCToCpp,
   bool IsInProgress() override;
   bool IsComplete() override;
   bool IsCanceled() override;
-  int64 GetCurrentSpeed() override;
+  int64_t GetCurrentSpeed() override;
   int GetPercentComplete() override;
-  int64 GetTotalBytes() override;
-  int64 GetReceivedBytes() override;
+  int64_t GetTotalBytes() override;
+  int64_t GetReceivedBytes() override;
   CefBaseTime GetStartTime() override;
   CefBaseTime GetEndTime() override;
   CefString GetFullPath() override;
-  uint32 GetId() override;
+  uint32_t GetId() override;
   CefString GetURL() override;
   CefString GetOriginalUrl() override;
   CefString GetSuggestedFileName() override;

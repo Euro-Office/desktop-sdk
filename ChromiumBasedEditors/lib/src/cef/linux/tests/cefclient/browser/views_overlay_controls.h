@@ -25,7 +25,7 @@ class ViewsOverlayControls : public CefButtonDelegate {
     kClose,
   };
 
-  ViewsOverlayControls();
+  ViewsOverlayControls(bool with_window_buttons, bool use_bottom_controls);
 
   void Initialize(CefRefPtr<CefWindow> window,
                   CefRefPtr<CefMenuButton> menu_button,
@@ -53,6 +53,8 @@ class ViewsOverlayControls : public CefButtonDelegate {
   // Window control buttons.
   CefRefPtr<CefPanel> panel_;
   CefRefPtr<CefOverlayController> panel_controller_;
+  const bool with_window_buttons_;
+  const bool use_bottom_controls_;
 
   // Location bar.
   CefRefPtr<CefView> location_bar_;

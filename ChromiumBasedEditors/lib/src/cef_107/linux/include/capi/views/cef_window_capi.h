@@ -286,7 +286,7 @@ typedef struct _cef_window_t {
   ///
   void(CEF_CALLBACK* send_key_press)(struct _cef_window_t* self,
                                      int key_code,
-                                     uint32 event_flags);
+                                     uint32_t event_flags);
 
   ///
   /// Simulate a mouse move. The mouse cursor will be moved to the specified

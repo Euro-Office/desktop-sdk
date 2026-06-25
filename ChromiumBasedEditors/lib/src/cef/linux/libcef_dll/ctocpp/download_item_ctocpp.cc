@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=bba72992a342daab9cca87e0f02ae553cabe6cfb$
+// $hash=1e7cb6dff2acadd6117319a7a5b54e7b4e5315c6$
 //
 
 #include "libcef_dll/ctocpp/download_item_ctocpp.h"
@@ -21,8 +21,9 @@ NO_SANITIZE("cfi-icall") bool CefDownloadItemCToCpp::IsValid() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_valid))
+  if (CEF_MEMBER_MISSING(_struct, is_valid)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -37,8 +38,9 @@ NO_SANITIZE("cfi-icall") bool CefDownloadItemCToCpp::IsInProgress() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_in_progress))
+  if (CEF_MEMBER_MISSING(_struct, is_in_progress)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -53,8 +55,9 @@ NO_SANITIZE("cfi-icall") bool CefDownloadItemCToCpp::IsComplete() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_complete))
+  if (CEF_MEMBER_MISSING(_struct, is_complete)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -69,8 +72,9 @@ NO_SANITIZE("cfi-icall") bool CefDownloadItemCToCpp::IsCanceled() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_canceled))
+  if (CEF_MEMBER_MISSING(_struct, is_canceled)) {
     return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -81,17 +85,54 @@ NO_SANITIZE("cfi-icall") bool CefDownloadItemCToCpp::IsCanceled() {
   return _retval ? true : false;
 }
 
-NO_SANITIZE("cfi-icall") int64 CefDownloadItemCToCpp::GetCurrentSpeed() {
+NO_SANITIZE("cfi-icall") bool CefDownloadItemCToCpp::IsInterrupted() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_current_speed))
-    return 0;
+  if (CEF_MEMBER_MISSING(_struct, is_interrupted)) {
+    return false;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64 _retval = _struct->get_current_speed(_struct);
+  int _retval = _struct->is_interrupted(_struct);
+
+  // Return type: bool
+  return _retval ? true : false;
+}
+
+NO_SANITIZE("cfi-icall")
+cef_download_interrupt_reason_t CefDownloadItemCToCpp::GetInterruptReason() {
+  shutdown_checker::AssertNotShutdown();
+
+  cef_download_item_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, get_interrupt_reason)) {
+    return CEF_DOWNLOAD_INTERRUPT_REASON_NONE;
+  }
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  cef_download_interrupt_reason_t _retval =
+      _struct->get_interrupt_reason(_struct);
+
+  // Return type: simple
+  return _retval;
+}
+
+NO_SANITIZE("cfi-icall") int64_t CefDownloadItemCToCpp::GetCurrentSpeed() {
+  shutdown_checker::AssertNotShutdown();
+
+  cef_download_item_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, get_current_speed)) {
+    return 0;
+  }
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int64_t _retval = _struct->get_current_speed(_struct);
 
   // Return type: simple
   return _retval;
@@ -101,8 +142,9 @@ NO_SANITIZE("cfi-icall") int CefDownloadItemCToCpp::GetPercentComplete() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_percent_complete))
+  if (CEF_MEMBER_MISSING(_struct, get_percent_complete)) {
     return 0;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -113,33 +155,35 @@ NO_SANITIZE("cfi-icall") int CefDownloadItemCToCpp::GetPercentComplete() {
   return _retval;
 }
 
-NO_SANITIZE("cfi-icall") int64 CefDownloadItemCToCpp::GetTotalBytes() {
+NO_SANITIZE("cfi-icall") int64_t CefDownloadItemCToCpp::GetTotalBytes() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_total_bytes))
+  if (CEF_MEMBER_MISSING(_struct, get_total_bytes)) {
     return 0;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64 _retval = _struct->get_total_bytes(_struct);
+  int64_t _retval = _struct->get_total_bytes(_struct);
 
   // Return type: simple
   return _retval;
 }
 
-NO_SANITIZE("cfi-icall") int64 CefDownloadItemCToCpp::GetReceivedBytes() {
+NO_SANITIZE("cfi-icall") int64_t CefDownloadItemCToCpp::GetReceivedBytes() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_received_bytes))
+  if (CEF_MEMBER_MISSING(_struct, get_received_bytes)) {
     return 0;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64 _retval = _struct->get_received_bytes(_struct);
+  int64_t _retval = _struct->get_received_bytes(_struct);
 
   // Return type: simple
   return _retval;
@@ -149,8 +193,9 @@ NO_SANITIZE("cfi-icall") CefBaseTime CefDownloadItemCToCpp::GetStartTime() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_start_time))
+  if (CEF_MEMBER_MISSING(_struct, get_start_time)) {
     return CefBaseTime();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -165,8 +210,9 @@ NO_SANITIZE("cfi-icall") CefBaseTime CefDownloadItemCToCpp::GetEndTime() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_end_time))
+  if (CEF_MEMBER_MISSING(_struct, get_end_time)) {
     return CefBaseTime();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -181,8 +227,9 @@ NO_SANITIZE("cfi-icall") CefString CefDownloadItemCToCpp::GetFullPath() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_full_path))
+  if (CEF_MEMBER_MISSING(_struct, get_full_path)) {
     return CefString();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -195,17 +242,18 @@ NO_SANITIZE("cfi-icall") CefString CefDownloadItemCToCpp::GetFullPath() {
   return _retvalStr;
 }
 
-NO_SANITIZE("cfi-icall") uint32 CefDownloadItemCToCpp::GetId() {
+NO_SANITIZE("cfi-icall") uint32_t CefDownloadItemCToCpp::GetId() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_id))
+  if (CEF_MEMBER_MISSING(_struct, get_id)) {
     return 0;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  uint32 _retval = _struct->get_id(_struct);
+  uint32_t _retval = _struct->get_id(_struct);
 
   // Return type: simple
   return _retval;
@@ -215,8 +263,9 @@ NO_SANITIZE("cfi-icall") CefString CefDownloadItemCToCpp::GetURL() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_url))
+  if (CEF_MEMBER_MISSING(_struct, get_url)) {
     return CefString();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -233,8 +282,9 @@ NO_SANITIZE("cfi-icall") CefString CefDownloadItemCToCpp::GetOriginalUrl() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_original_url))
+  if (CEF_MEMBER_MISSING(_struct, get_original_url)) {
     return CefString();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -252,8 +302,9 @@ CefString CefDownloadItemCToCpp::GetSuggestedFileName() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_suggested_file_name))
+  if (CEF_MEMBER_MISSING(_struct, get_suggested_file_name)) {
     return CefString();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -271,8 +322,9 @@ CefString CefDownloadItemCToCpp::GetContentDisposition() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_content_disposition))
+  if (CEF_MEMBER_MISSING(_struct, get_content_disposition)) {
     return CefString();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -289,8 +341,9 @@ NO_SANITIZE("cfi-icall") CefString CefDownloadItemCToCpp::GetMimeType() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_mime_type))
+  if (CEF_MEMBER_MISSING(_struct, get_mime_type)) {
     return CefString();
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -319,7 +372,7 @@ CefCToCppRefCounted<CefDownloadItemCToCpp,
                     CefDownloadItem,
                     cef_download_item_t>::UnwrapDerived(CefWrapperType type,
                                                         CefDownloadItem* c) {
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

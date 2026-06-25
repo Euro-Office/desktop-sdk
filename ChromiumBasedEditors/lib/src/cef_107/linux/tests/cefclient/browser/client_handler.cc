@@ -442,7 +442,7 @@ bool ClientHandler::OnChromeCommand(CefRefPtr<CefBrowser> browser,
   DCHECK(MainContext::Get()->UseChromeRuntime());
 
   if (!with_controls_ &&
-      (disposition != WOD_CURRENT_TAB || !IsAllowedCommandId(command_id))) {
+      (disposition != CEF_WOD_CURRENT_TAB || !IsAllowedCommandId(command_id))) {
     // Block everything that doesn't target the current tab or isn't an
     // allowed command ID.
     LOG(INFO) << "Blocking command " << command_id << " with disposition "
@@ -875,7 +875,7 @@ bool ClientHandler::OnRequestMediaAccessPermission(
     CefRefPtr<CefBrowser> browser,
     CefRefPtr<CefFrame> frame,
     const CefString& requesting_origin,
-    uint32 requested_permissions,
+    uint32_t requested_permissions,
     CefRefPtr<CefMediaAccessCallback> callback) {
   callback->Continue(media_handling_disabled_ ? CEF_MEDIA_PERMISSION_NONE
                                               : requested_permissions);
@@ -899,8 +899,8 @@ bool ClientHandler::OnOpenURLFromTab(
     const CefString& target_url,
     CefRequestHandler::WindowOpenDisposition target_disposition,
     bool user_gesture) {
-  if (target_disposition == WOD_NEW_BACKGROUND_TAB ||
-      target_disposition == WOD_NEW_FOREGROUND_TAB) {
+  if (target_disposition == CEF_WOD_NEW_BACKGROUND_TAB ||
+      target_disposition == CEF_WOD_NEW_FOREGROUND_TAB) {
     // Handle middle-click and ctrl + left-click by opening the URL in a new
     // browser window.
     auto config = std::make_unique<RootWindowConfig>();
@@ -956,11 +956,11 @@ bool ClientHandler::GetAuthCredentials(CefRefPtr<CefBrowser> browser,
 
 bool ClientHandler::OnQuotaRequest(CefRefPtr<CefBrowser> browser,
                                    const CefString& origin_url,
-                                   int64 new_size,
+                                   int64_t new_size,
                                    CefRefPtr<CefCallback> callback) {
   CEF_REQUIRE_IO_THREAD();
 
-  static const int64 max_size = 1024 * 1024 * 20;  // 20mb.
+  static const int64_t max_size = 1024 * 1024 * 20;  // 20mb.
 
   // Grant the quota request if the size is reasonable.
   if (new_size <= max_size)

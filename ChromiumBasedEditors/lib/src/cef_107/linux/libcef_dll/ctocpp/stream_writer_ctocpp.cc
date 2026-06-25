@@ -83,7 +83,7 @@ size_t CefStreamWriterCToCpp::Write(const void* ptr, size_t size, size_t n) {
 }
 
 NO_SANITIZE("cfi-icall")
-int CefStreamWriterCToCpp::Seek(int64 offset, int whence) {
+int CefStreamWriterCToCpp::Seek(int64_t offset, int whence) {
   shutdown_checker::AssertNotShutdown();
 
   cef_stream_writer_t* _struct = GetStruct();
@@ -99,7 +99,7 @@ int CefStreamWriterCToCpp::Seek(int64 offset, int whence) {
   return _retval;
 }
 
-NO_SANITIZE("cfi-icall") int64 CefStreamWriterCToCpp::Tell() {
+NO_SANITIZE("cfi-icall") int64_t CefStreamWriterCToCpp::Tell() {
   shutdown_checker::AssertNotShutdown();
 
   cef_stream_writer_t* _struct = GetStruct();
@@ -109,7 +109,7 @@ NO_SANITIZE("cfi-icall") int64 CefStreamWriterCToCpp::Tell() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64 _retval = _struct->tell(_struct);
+  int64_t _retval = _struct->tell(_struct);
 
   // Return type: simple
   return _retval;

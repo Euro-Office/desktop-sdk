@@ -111,6 +111,7 @@ public:
 	virtual double GetDeviceScaleFactor() override;
 	virtual bool IsWayland() override;
 	virtual void OnPaint(const void* buffer, int width, int height) override;
+	virtual void GetWidgetScreenPosition(int& screenX, int& screenY) override;
 
 	// check support z-index
 	static bool IsSupportLayers();

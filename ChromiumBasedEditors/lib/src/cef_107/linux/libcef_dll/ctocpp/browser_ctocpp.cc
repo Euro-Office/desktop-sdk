@@ -270,7 +270,7 @@ CefRefPtr<CefFrame> CefBrowserCToCpp::GetFocusedFrame() {
 }
 
 NO_SANITIZE("cfi-icall")
-CefRefPtr<CefFrame> CefBrowserCToCpp::GetFrame(int64 identifier) {
+CefRefPtr<CefFrame> CefBrowserCToCpp::GetFrame(int64_t identifier) {
   shutdown_checker::AssertNotShutdown();
 
   cef_browser_t* _struct = GetStruct();
@@ -322,7 +322,7 @@ NO_SANITIZE("cfi-icall") size_t CefBrowserCToCpp::GetFrameCount() {
 }
 
 NO_SANITIZE("cfi-icall")
-void CefBrowserCToCpp::GetFrameIdentifiers(std::vector<int64>& identifiers) {
+void CefBrowserCToCpp::GetFrameIdentifiers(std::vector<int64_t>& identifiers) {
   shutdown_checker::AssertNotShutdown();
 
   cef_browser_t* _struct = GetStruct();
@@ -334,12 +334,12 @@ void CefBrowserCToCpp::GetFrameIdentifiers(std::vector<int64>& identifiers) {
   // Translate param: identifiers; type: simple_vec_byref
   size_t identifiersSize = identifiers.size();
   size_t identifiersCount = std::max(GetFrameCount(), identifiersSize);
-  int64* identifiersList = NULL;
+  int64_t* identifiersList = NULL;
   if (identifiersCount > 0) {
-    identifiersList = new int64[identifiersCount];
+    identifiersList = new int64_t[identifiersCount];
     DCHECK(identifiersList);
     if (identifiersList) {
-      memset(identifiersList, 0, sizeof(int64) * identifiersCount);
+      memset(identifiersList, 0, sizeof(int64_t) * identifiersCount);
     }
     if (identifiersList && identifiersSize > 0) {
       for (size_t i = 0; i < identifiersSize; ++i) {

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=007bfc91ebd5f366649cbca2b6f1e6850befd6aa$
+// $hash=e78a8da0160d6167a98c97463ebc1cb171c94a06$
 //
 
 #include "libcef_dll/cpptoc/cookie_access_filter_cpptoc.h"
@@ -32,26 +32,30 @@ cookie_access_filter_can_send_cookie(struct _cef_cookie_access_filter_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return 0;
+  }
   // Verify param: request; type: refptr_diff
   DCHECK(request);
-  if (!request)
+  if (!request) {
     return 0;
+  }
   // Verify param: cookie; type: struct_byref_const
   DCHECK(cookie);
-  if (!cookie)
+  if (!cookie) {
     return 0;
+  }
   if (!template_util::has_valid_size(cookie)) {
-    NOTREACHED() << "invalid cookie->[base.]size";
+    DCHECK(false) << "invalid cookie->[base.]size";
     return 0;
   }
   // Unverified params: browser, frame
 
   // Translate param: cookie; type: struct_byref_const
   CefCookie cookieObj;
-  if (cookie)
+  if (cookie) {
     cookieObj.Set(*cookie, false);
+  }
 
   // Execute
   bool _retval = CefCookieAccessFilterCppToC::Get(self)->CanSendCookie(
@@ -72,30 +76,35 @@ cookie_access_filter_can_save_cookie(struct _cef_cookie_access_filter_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self)
+  if (!self) {
     return 0;
+  }
   // Verify param: request; type: refptr_diff
   DCHECK(request);
-  if (!request)
+  if (!request) {
     return 0;
+  }
   // Verify param: response; type: refptr_diff
   DCHECK(response);
-  if (!response)
+  if (!response) {
     return 0;
+  }
   // Verify param: cookie; type: struct_byref_const
   DCHECK(cookie);
-  if (!cookie)
+  if (!cookie) {
     return 0;
+  }
   if (!template_util::has_valid_size(cookie)) {
-    NOTREACHED() << "invalid cookie->[base.]size";
+    DCHECK(false) << "invalid cookie->[base.]size";
     return 0;
   }
   // Unverified params: browser, frame
 
   // Translate param: cookie; type: struct_byref_const
   CefCookie cookieObj;
-  if (cookie)
+  if (cookie) {
     cookieObj.Set(*cookie, false);
+  }
 
   // Execute
   bool _retval = CefCookieAccessFilterCppToC::Get(self)->CanSaveCookie(
@@ -126,7 +135,7 @@ CefRefPtr<CefCookieAccessFilter> CefCppToCRefCounted<
     CefCookieAccessFilter,
     cef_cookie_access_filter_t>::UnwrapDerived(CefWrapperType type,
                                                cef_cookie_access_filter_t* s) {
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

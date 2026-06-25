@@ -327,7 +327,7 @@ class ClientSchemeHandlerOld : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64& response_length,
+                          int64_t& response_length,
                           CefString& redirectUrl) override {
     if (is_sub_) {
       response->SetStatus(test_results_->sub_status_code);
@@ -516,7 +516,7 @@ class ClientSchemeHandler : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64& response_length,
+                          int64_t& response_length,
                           CefString& redirectUrl) override {
     if (is_sub_) {
       response->SetStatus(test_results_->sub_status_code);

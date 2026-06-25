@@ -495,7 +495,6 @@ set(LIBCEF_INCLUDE_BASE_SRCS
   ../include/base/cef_atomic_flag.h
   ../include/base/cef_atomic_ref_count.h
   ../include/base/cef_auto_reset.h
-  ../include/base/cef_basictypes.h
   ../include/base/cef_bind.h
   ../include/base/cef_build.h
   ../include/base/cef_callback.h
@@ -511,7 +510,6 @@ set(LIBCEF_INCLUDE_BASE_SRCS
   ../include/base/cef_ptr_util.h
   ../include/base/cef_ref_counted.h
   ../include/base/cef_scoped_refptr.h
-  ../include/base/cef_template_util.h
   ../include/base/cef_thread_checker.h
   ../include/base/cef_trace_event.h
   ../include/base/cef_tuple.h
@@ -667,6 +665,7 @@ set(LIBCEF_INCLUDE_INTERNAL_SRCS
   ../include/internal/cef_time_wrappers.h
   ../include/internal/cef_trace_event_internal.h
   ../include/internal/cef_types.h
+  ../include/internal/cef_types_content_settings.h
   ../include/internal/cef_types_geometry.h
   ../include/internal/cef_types_wrappers.h
   )
@@ -740,6 +739,8 @@ set(LIBCEF_WRAPPER_SRCS
   wrapper/cef_byte_read_handler.cc
   wrapper/cef_closure_task.cc
   wrapper/cef_message_router.cc
+  wrapper/cef_message_router_utils.cc
+  wrapper/cef_message_router_utils.h
   wrapper/cef_resource_manager.cc
   wrapper/cef_scoped_temp_dir.cc
   wrapper/cef_stream_resource_handler.cc

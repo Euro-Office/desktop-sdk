@@ -52,7 +52,7 @@ void CEF_CALLBACK browser_process_handler_on_before_child_process_launch(
 
 void CEF_CALLBACK browser_process_handler_on_schedule_message_pump_work(
     struct _cef_browser_process_handler_t* self,
-    int64 delay_ms) {
+    int64_t delay_ms) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);

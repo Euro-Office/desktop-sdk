@@ -89,7 +89,7 @@ audio_handler_on_audio_stream_packet(struct _cef_audio_handler_t* self,
                                      struct _cef_browser_t* browser,
                                      const float** data,
                                      int frames,
-                                     int64 pts) {
+                                     int64_t pts) {
   shutdown_checker::AssertNotShutdown();
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING

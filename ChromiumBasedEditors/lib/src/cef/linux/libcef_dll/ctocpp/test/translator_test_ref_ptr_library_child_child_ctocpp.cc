@@ -1,4 +1,4 @@
-// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=ed0f0c476f97fffa6f0b29c005508b475268f4c2$
+// $hash=6a599664e32ec9f7c5ec06a3beeba35416551841$
 //
 
 #include "libcef_dll/ctocpp/test/translator_test_ref_ptr_library_child_child_ctocpp.h"
@@ -42,8 +42,9 @@ int CefTranslatorTestRefPtrLibraryChildChildCToCpp::GetOtherOtherValue() {
   shutdown_checker::AssertNotShutdown();
 
   cef_translator_test_ref_ptr_library_child_child_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_other_other_value))
+  if (CEF_MEMBER_MISSING(_struct, get_other_other_value)) {
     return 0;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -60,8 +61,9 @@ void CefTranslatorTestRefPtrLibraryChildChildCToCpp::SetOtherOtherValue(
   shutdown_checker::AssertNotShutdown();
 
   cef_translator_test_ref_ptr_library_child_child_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_other_other_value))
+  if (CEF_MEMBER_MISSING(_struct, set_other_other_value)) {
     return;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -76,8 +78,9 @@ int CefTranslatorTestRefPtrLibraryChildChildCToCpp::GetOtherValue() {
   cef_translator_test_ref_ptr_library_child_t* _struct =
       reinterpret_cast<cef_translator_test_ref_ptr_library_child_t*>(
           GetStruct());
-  if (CEF_MEMBER_MISSING(_struct, get_other_value))
+  if (CEF_MEMBER_MISSING(_struct, get_other_value)) {
     return 0;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -95,8 +98,9 @@ void CefTranslatorTestRefPtrLibraryChildChildCToCpp::SetOtherValue(int value) {
   cef_translator_test_ref_ptr_library_child_t* _struct =
       reinterpret_cast<cef_translator_test_ref_ptr_library_child_t*>(
           GetStruct());
-  if (CEF_MEMBER_MISSING(_struct, set_other_value))
+  if (CEF_MEMBER_MISSING(_struct, set_other_value)) {
     return;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -110,8 +114,9 @@ int CefTranslatorTestRefPtrLibraryChildChildCToCpp::GetValue() {
 
   cef_translator_test_ref_ptr_library_t* _struct =
       reinterpret_cast<cef_translator_test_ref_ptr_library_t*>(GetStruct());
-  if (CEF_MEMBER_MISSING(_struct, get_value))
+  if (CEF_MEMBER_MISSING(_struct, get_value)) {
     return 0;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -128,8 +133,9 @@ void CefTranslatorTestRefPtrLibraryChildChildCToCpp::SetValue(int value) {
 
   cef_translator_test_ref_ptr_library_t* _struct =
       reinterpret_cast<cef_translator_test_ref_ptr_library_t*>(GetStruct());
-  if (CEF_MEMBER_MISSING(_struct, set_value))
+  if (CEF_MEMBER_MISSING(_struct, set_value)) {
     return;
+  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -156,7 +162,7 @@ CefCToCppRefCounted<CefTranslatorTestRefPtrLibraryChildChildCToCpp,
                     cef_translator_test_ref_ptr_library_child_child_t>::
     UnwrapDerived(CefWrapperType type,
                   CefTranslatorTestRefPtrLibraryChildChild* c) {
-  NOTREACHED() << "Unexpected class type: " << type;
+  DCHECK(false) << "Unexpected class type: " << type;
   return nullptr;
 }
 

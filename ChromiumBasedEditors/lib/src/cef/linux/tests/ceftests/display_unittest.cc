@@ -19,8 +19,8 @@ namespace {
 // 4. History forward to kTitleUrl2 (title should be kTitleStr2)
 // 5. Set title via JavaScript (title should be kTitleStr3)
 
-const char kTitleUrl1[] = "http://tests-title/nav1.html";
-const char kTitleUrl2[] = "http://tests-title/nav2.html";
+const char kTitleUrl1[] = "https://tests-title/nav1.html";
+const char kTitleUrl2[] = "https://tests-title/nav2.html";
 const char kTitleStr1[] = "Title 1";
 const char kTitleStr2[] = "Title 2";
 const char kTitleStr3[] = "Title 3";
@@ -55,8 +55,9 @@ class TitleTestHandler : public TestHandler {
                      const CefString& title) override {
     // Ignore the 2nd OnTitleChange call which arrives after navigation
     // completion.
-    if (got_title_change_)
+    if (got_title_change_) {
       return;
+    }
 
     std::string title_str = title;
     if (step_ == 0 || step_ == 2) {
@@ -81,8 +82,9 @@ class TitleTestHandler : public TestHandler {
                             bool isLoading,
                             bool canGoBack,
                             bool canGoForward) override {
-    if (isLoading)
+    if (isLoading) {
       return;
+    }
 
     // Call NextIfReady asynchronously because an additional call to
     // OnTitleChange will be triggered later in the current call stack due to
@@ -95,8 +97,9 @@ class TitleTestHandler : public TestHandler {
 
  private:
   void NextIfReady(CefRefPtr<CefBrowser> browser) {
-    if (!got_title_change_ || !got_loading_state_change_)
+    if (!got_title_change_ || !got_loading_state_change_) {
       return;
+    }
 
     got_title_change_ = false;
     got_loading_state_change_ = false;
@@ -120,8 +123,9 @@ class TitleTestHandler : public TestHandler {
   }
 
   void DestroyTest() override {
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 5; ++i) {
       EXPECT_TRUE(got_title_[i]) << "step " << i;
+    }
 
     TestHandler::DestroyTest();
   }
@@ -147,7 +151,7 @@ TEST(DisplayTest, Title) {
 
 namespace {
 
-const char kAutoResizeUrl[] = "http://tests-display/auto-resize.html";
+const char kAutoResizeUrl[] = "https://tests-display/auto-resize.html";
 
 class AutoResizeTestHandler : public RoutingTestHandler {
  public:
@@ -210,7 +214,7 @@ class AutoResizeTestHandler : public RoutingTestHandler {
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64 query_id,
+               int64_t query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -256,7 +260,7 @@ class ConsoleTestHandler : public TestHandler {
         : level(message_level),
           message("'Test Message'"),
           expected_message("Test Message"),
-          source("http://tests-console-message/level.html"),
+          source("https://tests-console-message/level.html"),
           line(42) {}
 
     cef_log_severity_t level;
@@ -287,8 +291,9 @@ class ConsoleTestHandler : public TestHandler {
                             bool isLoading,
                             bool canGoBack,
                             bool canGoForward) override {
-    if (isLoading)
+    if (isLoading) {
       return;
+    }
 
     // Print console message after loading.
     browser->GetMainFrame()->ExecuteJavaScript("printMessage()", config_.source,
@@ -459,7 +464,7 @@ TEST(DisplayTest, OnConsoleMessageAssert) {
 
 namespace {
 
-const char kLoadinProgressUrl[] = "http://tests-display/loading-progress.html";
+const char kLoadinProgressUrl[] = "https://tests-display/loading-progress.html";
 
 // Browser side.
 class LoadingProgressTestHandler : public TestHandler {
@@ -485,8 +490,9 @@ class LoadingProgressTestHandler : public TestHandler {
                             bool isLoading,
                             bool canGoBack,
                             bool canGoForward) override {
-    if (isLoading)
+    if (isLoading) {
       return;
+    }
 
     DestroyTest();
   }
