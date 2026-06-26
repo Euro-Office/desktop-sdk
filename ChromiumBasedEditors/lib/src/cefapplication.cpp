@@ -501,7 +501,10 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 	XSetIOErrorHandler(XIOErrorHandlerImpl);
 
 	Display* pDisplay = (Display*)CefGetXDisplay();
-	XSynchronize(pDisplay, True);
+	if (pDisplay)
+	{
+		XSynchronize(pDisplay, True);
+	}
 #endif
 
 	CPluginsManager oPlugins;
@@ -657,7 +660,16 @@ bool CApplicationCEF::IsChromiumSubprocess()
 void CApplicationCEF::Prepare(int argc, char* argv[])
 {
 #if defined(_LINUX) && !defined(_MAC)
-	NSSystem::SetEnvValueA("GDK_BACKEND", "x11");
+	const char* qpaPlatform = getenv("QT_QPA_PLATFORM");
+	const char* xdgSession = getenv("XDG_SESSION_TYPE");
+	bool isWayland = false;
+	if ((qpaPlatform && std::string(qpaPlatform) == "wayland") ||
+	    (xdgSession && std::string(xdgSession) == "wayland")) {
+		isWayland = true;
+	}
+	if (!isWayland) {
+		NSSystem::SetEnvValueA("GDK_BACKEND", "x11");
+	}
 #endif
 }
 
