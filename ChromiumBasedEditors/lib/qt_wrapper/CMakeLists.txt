@@ -89,7 +89,7 @@ if(UNIX AND NOT APPLE)
     target_compile_definitions(qtascdocumentscore PRIVATE _LINUX LINUX OS_LINUX _X11)
     
     # Qt6 Linux handling
-    target_link_libraries(qtascdocumentscore PRIVATE Qt${QT_VERSION_MAJOR}::GuiPrivate)
+    target_link_libraries(qtascdocumentscore PRIVATE Qt${QT_VERSION_MAJOR}::Gui)
 
     #target_link_options(qtascdocumentscore PRIVATE "-Wl,-unresolved-symbols=ignore-in-shared-libs")
 
