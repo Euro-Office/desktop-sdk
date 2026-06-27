@@ -150,7 +150,6 @@ protected:
 		virtual bool IsComplete() { return false; }
 		virtual bool IsCanceled() { return true; }
 		virtual bool IsInterrupted() { return false; }
-		virtual cef_download_interrupt_reason_t GetInterruptReason() { return CEF_DOWNLOAD_INTERRUPT_REASON_NONE; }
 		virtual int64 GetCurrentSpeed() { return 0; }
 		virtual int GetPercentComplete() { return 0; }
 		virtual int64 GetTotalBytes() { return 0; }
