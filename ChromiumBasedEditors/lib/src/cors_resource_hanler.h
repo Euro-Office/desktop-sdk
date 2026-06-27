@@ -52,7 +52,7 @@ public:
 			  CefRefPtr<CefCallback> callback) override;
 
 	void GetResponseHeaders(CefRefPtr<CefResponse> response,
-							int64_t& response_length,
+							int64& response_length,
 							CefString& redirectUrl) override;
 
 	bool Read(void* data_out,
@@ -115,8 +115,8 @@ public:
 		m_handler->OnComplete(request);
 	}
 
-	void OnUploadProgress(CefRefPtr<CefURLRequest>, int64_t, int64_t) override {}
-	void OnDownloadProgress(CefRefPtr<CefURLRequest>, int64_t, int64_t) override {}
+	void OnUploadProgress(CefRefPtr<CefURLRequest>, int64, int64) override {}
+	void OnDownloadProgress(CefRefPtr<CefURLRequest>, int64, int64) override {}
 
 	bool GetAuthCredentials(bool, const CefString&, int, const CefString&,
 							const CefString&, CefRefPtr<CefAuthCallback>) override
@@ -197,7 +197,7 @@ bool StreamingCORSResourceHandler::Open(CefRefPtr<CefRequest> request,
 }
 
 void StreamingCORSResourceHandler::GetResponseHeaders(CefRefPtr<CefResponse> response,
-													  int64_t& response_length,
+													  int64& response_length,
 													  CefString& redirectUrl)
 {
 	CefResponse::HeaderMap headers = m_headers;

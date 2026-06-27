@@ -115,9 +115,9 @@ public:
 		return 0;
 	}
 
-	void OnScheduleMessagePumpWork(int64_t delay_ms) OVERRIDE
+	void OnScheduleMessagePumpWork(int64 delay_ms) OVERRIDE
 	{
-		message_loop_->Execute(new int64_t(delay_ms));
+		message_loop_->Execute(new int64(delay_ms));
 	}
 
 #ifdef CEF_VERSION_ABOVE_102
@@ -135,8 +135,8 @@ public:
 public:
 	void OnExecute(void* message)
 	{
-		int64_t* addr = (int64_t*)message;
-		const int64_t delay_ms = *addr;
+		int64* addr = (int64*)message;
+		const int64 delay_ms = *addr;
 		delete addr;
 		OnScheduleWork(delay_ms);
 
@@ -152,7 +152,7 @@ protected:
 		return timer_pending_;
 	}
 
-	virtual void SetTimer(int64_t delay_ms) OVERRIDE
+	virtual void SetTimer(int64 delay_ms) OVERRIDE
 	{
 		timer_pending_ = true;
 		message_loop_->SetTimer(delay_ms);
@@ -469,7 +469,7 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 	cef_string_t _cache_user;
 	memset(&_cache_user, 0, sizeof(_cache_user));
 	cef_string_from_wide(sCachePathUser.c_str(), sCachePathUser.length(), &_cache_user);
-	settings.root_cache_path = _cache_user;
+	settings.user_data_path = _cache_user;
 
 	std::wstring sCachePathLog = sCachePath + L"/log.log";
 	cef_string_t _cache_log;

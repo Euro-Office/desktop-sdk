@@ -113,7 +113,7 @@ public:
 
 	virtual void GetResponseHeaders(
 			CefRefPtr<CefResponse> response,
-			int64_t& response_length,
+			int64& response_length,
 			CefString& redirectUrl) OVERRIDE
 	{
 		CefStreamResourceHandler::GetResponseHeaders(response, response_length, redirectUrl);
@@ -151,10 +151,10 @@ protected:
 		virtual bool IsCanceled() { return true; }
 		virtual bool IsInterrupted() { return false; }
 		virtual cef_download_interrupt_reason_t GetInterruptReason() { return CEF_DOWNLOAD_INTERRUPT_REASON_NONE; }
-		virtual int64_t GetCurrentSpeed() { return 0; }
+		virtual int64 GetCurrentSpeed() { return 0; }
 		virtual int GetPercentComplete() { return 0; }
-		virtual int64_t GetTotalBytes() { return 0; }
-		virtual int64_t GetReceivedBytes() { return 0; }
+		virtual int64 GetTotalBytes() { return 0; }
+		virtual int64 GetReceivedBytes() { return 0; }
 #if defined(CEF_VERSION_ABOVE_102) && !defined(CEF_VERSION_103)
 		virtual CefBaseTime GetStartTime() { return CefBaseTime(); }
 		virtual CefBaseTime GetEndTime() { return CefBaseTime(); }
@@ -163,7 +163,7 @@ protected:
 		virtual CefTime GetEndTime() { return CefTime(); }
 #endif
 		virtual CefString GetFullPath() { return ""; }
-		virtual uint32_t GetId() { return 0; }
+		virtual uint32 GetId() { return 0; }
 		virtual CefString GetURL() { return m_sUrl; }
 		virtual CefString GetOriginalUrl() { return m_sUrl; }
 		virtual CefString GetSuggestedFileName() { return ""; }
@@ -975,7 +975,7 @@ public:
 	// файлы с ссылками для метода AscDesktopEditor.DownloadFiles
 	std::map<std::wstring, CDownloadFileItem> m_arDownloadedFiles;
 	std::map<std::wstring, std::wstring> m_arDownloadedFilesComplete;
-	int64_t m_nDownloadedFilesFrameId;
+	int64 m_nDownloadedFilesFrameId;
 
 	// приходил ли хоть раз евент onDocumentModifiedChanged
 	bool m_bIsReceiveOnce_OnDocumentModified;
@@ -2379,7 +2379,7 @@ public:
 			}
 		}
 
-		CheckPopup(target_url.ToWString(), false, (CEF_WOD_NEW_BACKGROUND_TAB == target_disposition) ? true : false, false, sFrameUrl);
+		CheckPopup(target_url.ToWString(), false, (WOD_NEW_BACKGROUND_TAB == target_disposition) ? true : false, false, sFrameUrl);
 		return true;
 	}
 
@@ -2394,7 +2394,7 @@ public:
 		std::wstring sFrameUrl = L"";
 		if (frame)
 			sFrameUrl = frame->GetURL().ToWString();
-		CheckPopup(target_url.ToWString(), false, (CEF_WOD_NEW_BACKGROUND_TAB == target_disposition) ? true : false, true, sFrameUrl);
+		CheckPopup(target_url.ToWString(), false, (WOD_NEW_BACKGROUND_TAB == target_disposition) ? true : false, true, sFrameUrl);
 		return true;
 	}
 
@@ -2612,9 +2612,9 @@ public:
 #if !defined(CEF_2623) && !defined(CEF_VERSION_103)
 	virtual bool OnShowPermissionPrompt(
 		CefRefPtr<CefBrowser> browser,
-		uint64_t prompt_id,
+		uint64 prompt_id,
 		const CefString& requesting_origin,
-		uint32_t requested_permissions,
+		uint32 requested_permissions,
 		CefRefPtr<CefPermissionPromptCallback> callback) OVERRIDE
 	{
 		if ((requested_permissions & CEF_PERMISSION_TYPE_CLIPBOARD) != 0)
@@ -7962,10 +7962,10 @@ void CCefView::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 		{
 			std::wstring sCode = pData->get_Value();
 
-			std::vector<int64_t> arIds;
+			std::vector<int64> arIds;
 			pBrowser->GetFrameIdentifiers(arIds);
 
-			for (std::vector<int64_t>::iterator iter = arIds.begin(); iter != arIds.end(); iter++)
+			for (std::vector<int64>::iterator iter = arIds.begin(); iter != arIds.end(); iter++)
 			{
 				CefRefPtr<CefFrame> frame = pBrowser->GetFrame(*iter);
 				if (frame)
@@ -8181,10 +8181,10 @@ void CCefView::SetParentWidgetInfo(const std::wstring& json)
 	NSStringUtils::string_replaceA(sViewportInfo, "\"", "\\\"");
 	std::string sCode = "(function(){window.AscDesktopEditor._setViewportSettings(\"" + sViewportInfo + "\");})();";
 
-	std::vector<int64_t> identifiers;
+	std::vector<int64> identifiers;
 	pBrowser->GetFrameIdentifiers(identifiers);
 
-	for (std::vector<int64_t>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
+	for (std::vector<int64>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
 	{
 		CefRefPtr<CefFrame> pFrame = pBrowser->GetFrame(*iter);
 		if (pFrame)
@@ -8214,10 +8214,10 @@ void CCefView::ExecuteInAllFrames(const std::string& sCode, const bool& isMain)
 	if (!pBrowser)
 		return;
 
-	std::vector<int64_t> identifiers;
+	std::vector<int64> identifiers;
 	pBrowser->GetFrameIdentifiers(identifiers);
 
-	for (std::vector<int64_t>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
+	for (std::vector<int64>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
 	{
 		CefRefPtr<CefFrame> pFrame = pBrowser->GetFrame(*iter);
 		if (!pFrame)
@@ -8933,10 +8933,10 @@ void CAscApplicationManager_Private::ChangeEditorViewsCount()
 	std::string sCodeValue = bIsEditorPresent ? "true" : "false";
 	std::string sCode = "(function(){if (window.onChangeEditorsCount) window.onChangeEditorsCount(" + sCodeValue + ");})();";
 
-	std::vector<int64_t> identifiers;
+	std::vector<int64> identifiers;
 	pView->m_pInternal->GetBrowser()->GetFrameIdentifiers(identifiers);
 
-	for (std::vector<int64_t>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
+	for (std::vector<int64>::iterator iter = identifiers.begin(); iter != identifiers.end(); iter++)
 	{
 		CefRefPtr<CefFrame> pFrame = pView->m_pInternal->GetBrowser()->GetFrame(*iter);
 		if (pFrame)
