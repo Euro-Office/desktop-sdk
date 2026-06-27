@@ -1887,12 +1887,6 @@ public:
 			screenX = widgetScreenX + (int)(viewX * scale);
 			screenY = widgetScreenY + (int)(viewY * scale);
 
-			static int gspLog = 0;
-			if (gspLog < 5) {
-				fprintf(stderr, "[WAYLAND-OSR] GetScreenPoint: view(%d,%d) -> screen(%d,%d) widgetPos(%d,%d) scale=%.3f\n",
-				        viewX, viewY, screenX, screenY, widgetScreenX, widgetScreenY, scale);
-				gspLog++;
-			}
 			return true;
 		}
 		return false;
@@ -5006,10 +5000,6 @@ virtual void OnLoadError(CefRefPtr<CefBrowser> browser,
 						 const CefString& errorText,
 						 const CefString& failedUrl) OVERRIDE
 {
-	std::string s1 = frame->GetURL().ToString();
-	std::string s2 = failedUrl.ToString();
-	std::string s3 = errorText.ToString();
-
 	if (m_pParent && errorCode != ERR_ABORTED)
 	{
 		if (frame->IsMain())
@@ -5150,10 +5140,6 @@ virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser,
 							  const CefString& source,
 							  int line) OVERRIDE
 {
-	std::string msg = message.ToString();
-	if (msg.find("[WAYLAND-OSR-JS]") != std::string::npos) {
-		fprintf(stderr, "%s\n", msg.c_str());
-	}
 	return false;
 }
 
@@ -5696,73 +5682,6 @@ virtual void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 	if (NULL == m_pParent)
 		return;
 
-#if 0
-	FILE* f = fopen("...", "a+");
-
-	fprintf(f, "-------------------------------\n");
-	fprintf(f, "IsValid: %d\n", download_item->IsValid() ? 1 : 0);
-	fprintf(f, "IsInProgress: %d\n", download_item->IsInProgress() ? 1 : 0);
-	fprintf(f, "IsComplete: %d\n", download_item->IsComplete() ? 1 : 0);
-	fprintf(f, "IsCanceled: %d\n", download_item->IsCanceled() ? 1 : 0);
-
-	fprintf(f, "GetCurrentSpeed: %d\n", (int)download_item->GetCurrentSpeed());
-	fprintf(f, "GetPercentComplete: %d\n", (int)download_item->GetPercentComplete());
-	fprintf(f, "GetTotalBytes: %d\n", (int)download_item->GetTotalBytes());
-	fprintf(f, "GetReceivedBytes: %d\n", (int)download_item->GetReceivedBytes());
-	fprintf(f, "GetId: %d\n", (int)download_item->GetId());
-
-	if (!download_item->GetFullPath().empty())
-	{
-		std::string s = download_item->GetFullPath().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetFullPath: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-	if (!download_item->GetOriginalUrl().empty())
-	{
-		std::string s = download_item->GetOriginalUrl().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetOriginalUrl: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-	if (!download_item->GetURL().empty())
-	{
-		std::string s = download_item->GetURL().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetURL: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-	if (!download_item->GetSuggestedFileName().empty())
-	{
-		std::string s = download_item->GetSuggestedFileName().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetSuggestedFileName: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-	if (!download_item->GetContentDisposition().empty())
-	{
-		std::string s = download_item->GetContentDisposition().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetContentDisposition: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-	if (!download_item->GetMimeType().empty())
-	{
-		std::string s = download_item->GetMimeType().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetMimeType: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-
-	fclose(f);
-#endif
-
 	if (!download_item->IsValid())
 		return;
 
@@ -5788,10 +5707,6 @@ virtual void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 			pEvent->m_pData = pData;
 
 			m_pParent->GetAppManager()->GetEventListener()->OnEvent(pEvent);
-
-			// OpenLocalFile нужно запускать в главном потоке
-			//m_pParent->m_pInternal->m_pDownloadViewCallback->m_pInternal->OnViewDownloadFile();
-			//m_pParent->m_pInternal->m_pDownloadViewCallback = NULL;
 		}
 		return;
 	}

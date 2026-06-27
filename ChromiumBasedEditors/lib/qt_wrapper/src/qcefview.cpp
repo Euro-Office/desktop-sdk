@@ -47,8 +47,6 @@ QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 	m_pCefView = NULL;
 	m_pProperties = NULL;
 	m_isWayland = (QGuiApplication::platformName() == "wayland");
-	qDebug() << "[WAYLAND-OSR-DEBUG] QCefView constructor: platformName =" << QGuiApplication::platformName()
-	         << "m_isWayland =" << m_isWayland;
 
 	if (!initial_size.isEmpty())
 		resize(initial_size);
@@ -184,30 +182,6 @@ void QCefView::mousePressEvent(QMouseEvent *event) {
 		if (event->button() == Qt::RightButton) button = 2;
 		else if (event->button() == Qt::MiddleButton) button = 3;
 
-		// Diagnostic: inject JS to verify DPR and mouse coords (per-browser)
-		static std::set<CCefView*> jsInjectedViews;
-		if (jsInjectedViews.find(m_pCefView) == jsInjectedViews.end()) {
-			jsInjectedViews.insert(m_pCefView);
-			std::string js =
-				"console.log('[WAYLAND-OSR-JS] devicePixelRatio=' + window.devicePixelRatio"
-				" + ' innerWidth=' + window.innerWidth"
-				" + ' innerHeight=' + window.innerHeight);"
-				"document.addEventListener('mousedown', function(e) {"
-				"  console.log('[WAYLAND-OSR-JS] click: clientX=' + e.clientX"
-				"    + ' clientY=' + e.clientY"
-				"    + ' pageX=' + e.pageX"
-				"    + ' screenX=' + e.screenX);"
-				"}, true);";
-			m_pCefView->ExecuteInAllFrames(js, true);
-		}
-
-		static int clickLog2 = 0;
-		if (clickLog2 < 15) {
-			fprintf(stderr, "[WAYLAND-OSR] mousePress: sentX=%d sentY=%d widget=%dx%d dpr=%.3f\n",
-			        event->x(), event->y(), width(), height(), devicePixelRatio());
-			clickLog2++;
-		}
-
 		// CEF coordinate space is DIPs (same as GetViewRect). Qt delivers DIPs.
 		m_pCefView->SendMouseClickEvent(event->x(), event->y(), button, false, GetCefModifiers(event->modifiers(), event->buttons()), 1);
 	}
@@ -337,12 +311,6 @@ void QCefView::resizeEvent(QResizeEvent* e)
 {
 	cef_width = width();
 	cef_height = height();
-
-	if (m_isWayland) {
-		qDebug() << "[WAYLAND-OSR] resizeEvent: widget=" << width() << "x" << height()
-		         << "cef=" << cef_width << "x" << cef_height
-		         << "dpr=" << devicePixelRatio();
-	}
 
 	if (m_pOverride)
 		m_pOverride->setGeometry(0, 0, cef_width, cef_height);
@@ -479,17 +447,6 @@ void QCefView::OnPaint(const void* buffer, int width, int height)
 	if (!m_isWayland) return;
 
 	QImage img((const uchar*)buffer, width, height, QImage::Format_ARGB32_Premultiplied);
-	static int logCount = 0;
-	if (logCount < 3) {
-		QScreen* scr = this->screen();
-		qDebug() << "[WAYLAND-OSR] OnPaint: buffer=" << width << "x" << height
-		         << "widget=" << this->QWidget::width() << "x" << this->QWidget::height()
-		         << "dpr=" << devicePixelRatio()
-		         << "physDPI=" << (scr ? scr->physicalDotsPerInchX() : -1)
-		         << "logDPI=" << (scr ? scr->logicalDotsPerInchX() : -1)
-		         << "screenSize=" << (scr ? scr->size().width() : -1) << "x" << (scr ? scr->size().height() : -1);
-		logCount++;
-	}
 	m_imageBuffer = img.copy();
 
 	// On Wayland, the surface commit + wl_display_flush() only happen when
