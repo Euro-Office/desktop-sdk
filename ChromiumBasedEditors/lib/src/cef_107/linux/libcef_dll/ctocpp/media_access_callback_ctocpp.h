@@ -35,7 +35,7 @@ class CefMediaAccessCallbackCToCpp
   virtual ~CefMediaAccessCallbackCToCpp();
 
   // CefMediaAccessCallback methods.
-  void Continue(uint32_t allowed_permissions) override;
+  void Continue(uint32 allowed_permissions) override;
   void Cancel() override;
 };
 

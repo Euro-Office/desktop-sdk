@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=d354604ce2743fda362a234dee468851dfaca3a7$
+// $hash=9b1ffc7f2bb483a6657867c8369e56b821b44684$
 //
 
 #include "libcef_dll/ctocpp/resource_skip_callback_ctocpp.h"
@@ -18,13 +18,12 @@
 // VIRTUAL METHODS - Body may be edited by hand.
 
 NO_SANITIZE("cfi-icall")
-void CefResourceSkipCallbackCToCpp::Continue(int64_t bytes_skipped) {
+void CefResourceSkipCallbackCToCpp::Continue(int64 bytes_skipped) {
   shutdown_checker::AssertNotShutdown();
 
   cef_resource_skip_callback_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, cont)) {
+  if (CEF_MEMBER_MISSING(_struct, cont))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -48,7 +47,7 @@ cef_resource_skip_callback_t* CefCToCppRefCounted<
     CefResourceSkipCallback,
     cef_resource_skip_callback_t>::UnwrapDerived(CefWrapperType type,
                                                  CefResourceSkipCallback* c) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

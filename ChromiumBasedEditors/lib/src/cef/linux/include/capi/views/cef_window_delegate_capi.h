@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2023 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,7 +33,7 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=c1c2705cdef7d9189557b57531dc2d53e9f68d0c$
+// $hash=019abf16be4e151d31181a6bdcb1ad8dfef03d00$
 //
 
 #ifndef CEF_INCLUDE_CAPI_VIEWS_CEF_WINDOW_DELEGATE_CAPI_H_
@@ -97,20 +97,6 @@ typedef struct _cef_window_delegate_t {
       const cef_rect_t* new_bounds);
 
   ///
-  /// Called when |window| is transitioning to or from fullscreen mode. On MacOS
-  /// the transition occurs asynchronously with |is_competed| set to false (0)
-  /// when the transition starts and true (1) after the transition completes. On
-  /// other platforms the transition occurs synchronously with |is_completed|
-  /// set to true (1) after the transition completes. With the Alloy runtime you
-  /// must also implement cef_display_handler_t::OnFullscreenModeChange to
-  /// handle fullscreen transitions initiated by browser content.
-  ///
-  void(CEF_CALLBACK* on_window_fullscreen_transition)(
-      struct _cef_window_delegate_t* self,
-      struct _cef_window_t* window,
-      int is_completed);
-
-  ///
   /// Return the parent for |window| or NULL if the |window| does not have a
   /// parent. Windows with parents will not get a taskbar button. Set |is_menu|
   /// to true (1) if |window| will be displayed as a menu, in which case it will
@@ -123,18 +109,6 @@ typedef struct _cef_window_delegate_t {
       struct _cef_window_t* window,
       int* is_menu,
       int* can_activate_menu);
-
-  ///
-  /// Return true (1) if |window| should be created as a window modal dialog.
-  /// Only called when a Window is returned via get_parent_window() with
-  /// |is_menu| set to false (0). All controls in the parent Window will be
-  /// disabled while |window| is visible. This functionality is not supported by
-  /// all Linux window managers. Alternately, use
-  /// cef_window_t::show_as_browser_modal_dialog() for a browser modal dialog
-  /// that works on all platforms.
-  ///
-  int(CEF_CALLBACK* is_window_modal_dialog)(struct _cef_window_delegate_t* self,
-                                            struct _cef_window_t* window);
 
   ///
   /// Return the initial bounds for |window| in density independent pixel (DIP)
@@ -162,25 +136,6 @@ typedef struct _cef_window_delegate_t {
   ///
   int(CEF_CALLBACK* is_frameless)(struct _cef_window_delegate_t* self,
                                   struct _cef_window_t* window);
-
-  ///
-  /// Return true (1) if |window| should be created with standard window buttons
-  /// like close, minimize and zoom. This function is only supported on macOS.
-  ///
-  int(CEF_CALLBACK* with_standard_window_buttons)(
-      struct _cef_window_delegate_t* self,
-      struct _cef_window_t* window);
-
-  ///
-  /// Return whether the titlebar height should be overridden, and sets the
-  /// height of the titlebar in |titlebar_height|. On macOS, it can also be used
-  /// to adjust the vertical position of the traffic light buttons in frameless
-  /// windows. The buttons will be positioned halfway down the titlebar at a
-  /// height of |titlebar_height| / 2.
-  ///
-  int(CEF_CALLBACK* get_titlebar_height)(struct _cef_window_delegate_t* self,
-                                         struct _cef_window_t* window,
-                                         float* titlebar_height);
 
   ///
   /// Return true (1) if |window| can be resized.

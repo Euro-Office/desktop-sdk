@@ -11,7 +11,7 @@
 using client::ClientAppBrowser;
 
 // Taken from:
-// https://www.iandevlin.com/blog/2012/09/html5/html5-media-and-data-uri/
+// http://www.iandevlin.com/blog/2012/09/html5/html5-media-and-data-uri/
 #define AUDIO_DATA                                                             \
   "data:audio/"                                                                \
   "ogg;base64,T2dnUwACAAAAAAAAAAA+"                                            \
@@ -801,10 +801,10 @@ const int kSampleRate = 44100;
 const int kFramesPerBuffer = 882;  // 10ms
 const CefAudioHandler::ChannelLayout kChannelLayout = CEF_CHANNEL_LAYOUT_STEREO;
 
-const char kAudioOutputTestUrl[] = "https://tests/audiooutputtest";
-const char kAudioCloseBrowserTestUrl[] = "https://tests/audioclosebrowsertest";
+const char kAudioOutputTestUrl[] = "http://tests/audiooutputtest";
+const char kAudioCloseBrowserTestUrl[] = "http://tests/audioclosebrowsertest";
 const char kAudioTogglePlaybackTestUrl[] =
-    "https://tests/audiotoggleplaybacktest";
+    "http://tests/audiotoggleplaybacktest";
 
 const char kTestHtml[] =
     "<!DOCTYPE html><html><head><meta "
@@ -916,7 +916,7 @@ class AudioTestHandler : public TestHandler, public CefAudioHandler {
   void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser,
                            const float** data,
                            int frames,
-                           int64_t pts) override {
+                           int64 pts) override {
     EXPECT_TRUE(got_on_audio_stream_started_);
     EXPECT_TRUE(browser_->IsSame(browser));
     EXPECT_EQ(frames, kFramesPerBuffer);
@@ -971,7 +971,7 @@ class AudioOutputTestHandler : public AudioTestHandler {
   void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser,
                            const float** data,
                            int frames,
-                           int64_t pts) override {
+                           int64 pts) override {
     if (!got_on_audio_stream_packet_.isSet()) {
       browser->GetMainFrame()->ExecuteJavaScript(
           "var ifr = document.getElementById(\"audio_output_frame\"); "
@@ -1002,7 +1002,7 @@ class AudioCloseBrowserTest : public AudioTestHandler {
   void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser,
                            const float** data,
                            int frames,
-                           int64_t pts) override {
+                           int64 pts) override {
     if (!got_on_audio_stream_packet_.isSet()) {
       CloseBrowser(browser, true);
     }
@@ -1055,9 +1055,8 @@ class AudioTogglePlaybackTest : public AudioTestHandler {
 
   void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) override {
     EXPECT_EQ(start_count_, ++stop_count_);
-    if (stop_count_ == kToggleCount) {
+    if (stop_count_ == kToggleCount)
       AudioTestHandler::OnAudioStreamStopped(browser);
-    }
   }
 
  protected:

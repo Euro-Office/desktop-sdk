@@ -48,7 +48,7 @@
 
 // 32-bit ARGB color value, not premultiplied. The color components are always
 // in a known order. Equivalent to the SkColor type.
-typedef uint32_t cef_color_t;
+typedef uint32 cef_color_t;
 
 // Return the alpha byte from a cef_color_t value.
 #define CefColorGetA(color) (((color) >> 24) & 0xFF)
@@ -65,17 +65,17 @@ typedef uint32_t cef_color_t;
       (static_cast<unsigned>(a) << 24) | (static_cast<unsigned>(r) << 16) | \
       (static_cast<unsigned>(g) << 8) | (static_cast<unsigned>(b) << 0))
 
-// Return an int64_t value with the specified low and high int32_t component values.
+// Return an int64 value with the specified low and high int32 component values.
 #define CefInt64Set(int32_low, int32_high)                                \
-  static_cast<int64_t>((static_cast<uint32_t>(int32_low)) |                   \
-                     (static_cast<int64_t>(static_cast<int32_t>(int32_high))) \
+  static_cast<int64>((static_cast<uint32>(int32_low)) |                   \
+                     (static_cast<int64>(static_cast<int32>(int32_high))) \
                          << 32)
 
-// Return the low int32_t value from an int64_t value.
-#define CefInt64GetLow(int64_val) static_cast<int32_t>(int64_val)
-// Return the high int32_t value from an int64_t value.
+// Return the low int32 value from an int64 value.
+#define CefInt64GetLow(int64_val) static_cast<int32>(int64_val)
+// Return the high int32 value from an int64 value.
 #define CefInt64GetHigh(int64_val) \
-  static_cast<int32_t>((static_cast<int64_t>(int64_val) >> 32) & 0xFFFFFFFFL)
+  static_cast<int32>((static_cast<int64>(int64_val) >> 32) & 0xFFFFFFFFL)
 
 #ifdef __cplusplus
 extern "C" {
@@ -956,7 +956,7 @@ typedef enum {
   ///
   /// Current tab. This is the default in most cases.
   ///
-  CEF_WOD_CURRENT_TAB,
+  WOD_CURRENT_TAB,
 
   ///
   /// Indicates that only one tab with the url should exist in the same window.
@@ -966,22 +966,22 @@ typedef enum {
   ///
   /// Shift key + Middle mouse button or meta/ctrl key while clicking.
   ///
-  CEF_WOD_NEW_FOREGROUND_TAB,
+  WOD_NEW_FOREGROUND_TAB,
 
   ///
   /// Middle mouse button or meta/ctrl key while clicking.
   ///
-  CEF_WOD_NEW_BACKGROUND_TAB,
+  WOD_NEW_BACKGROUND_TAB,
 
   ///
   /// New popup window.
   ///
-  CEF_WOD_NEW_POPUP,
+  WOD_NEW_POPUP,
 
   ///
   /// Shift key while clicking.
   ///
-  CEF_WOD_NEW_WINDOW,
+  WOD_NEW_WINDOW,
 
   ///
   /// Alt key while clicking.
@@ -1778,7 +1778,7 @@ typedef struct _cef_mouse_event_t {
   /// Bit flags describing any pressed modifier keys. See
   /// cef_event_flags_t for values.
   ///
-  uint32_t modifiers;
+  uint32 modifiers;
 } cef_mouse_event_t;
 
 ///
@@ -1856,7 +1856,7 @@ typedef struct _cef_touch_event_t {
   /// Bit flags describing any pressed modifier keys. See
   /// cef_event_flags_t for values.
   ///
-  uint32_t modifiers;
+  uint32 modifiers;
 
   ///
   /// The device type that caused the event.
@@ -2069,7 +2069,7 @@ typedef struct _cef_key_event_t {
   /// Bit flags describing any pressed modifier keys. See
   /// cef_event_flags_t for values.
   ///
-  uint32_t modifiers;
+  uint32 modifiers;
 
   ///
   /// The Windows key code for the key event. This value is used by the DOM
@@ -3284,7 +3284,7 @@ typedef struct _cef_touch_handle_state_t {
   /// Combination of cef_touch_handle_state_flags_t values indicating what state
   /// is set.
   ///
-  uint32_t flags;
+  uint32 flags;
 
   ///
   /// Enabled state. Only set if |flags| contains CEF_THS_FLAG_ENABLED.

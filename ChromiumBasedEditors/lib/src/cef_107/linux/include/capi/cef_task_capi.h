@@ -114,7 +114,7 @@ typedef struct _cef_task_runner_t {
   ///
   int(CEF_CALLBACK* post_delayed_task)(struct _cef_task_runner_t* self,
                                        struct _cef_task_t* task,
-                                       int64_t delay_ms);
+                                       int64 delay_ms);
 } cef_task_runner_t;
 
 ///
@@ -149,7 +149,7 @@ CEF_EXPORT int cef_post_task(cef_thread_id_t threadId, cef_task_t* task);
 ///
 CEF_EXPORT int cef_post_delayed_task(cef_thread_id_t threadId,
                                      cef_task_t* task,
-                                     int64_t delay_ms);
+                                     int64 delay_ms);
 
 #ifdef __cplusplus
 }

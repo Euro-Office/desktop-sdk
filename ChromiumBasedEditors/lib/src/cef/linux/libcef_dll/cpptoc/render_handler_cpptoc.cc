@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=0b4a5f175a85d506a4ba6da1bbdb6bad2306d898$
+// $hash=b08fd89d6b6af02e0dac43896369120de58af3c2$
 //
 
 #include "libcef_dll/cpptoc/render_handler_cpptoc.h"
@@ -29,9 +29,8 @@ render_handler_get_accessibility_handler(struct _cef_render_handler_t* self) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return NULL;
-  }
 
   // Execute
   CefRefPtr<CefAccessibilityHandler> _retval =
@@ -50,19 +49,16 @@ render_handler_get_root_screen_rect(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: rect; type: simple_byref
   DCHECK(rect);
-  if (!rect) {
+  if (!rect)
     return 0;
-  }
 
   // Translate param: rect; type: simple_byref
   CefRect rectVal = rect ? *rect : CefRect();
@@ -72,9 +68,8 @@ render_handler_get_root_screen_rect(struct _cef_render_handler_t* self,
       CefBrowserCToCpp::Wrap(browser), rectVal);
 
   // Restore param: rect; type: simple_byref
-  if (rect) {
+  if (rect)
     *rect = rectVal;
-  }
 
   // Return type: bool
   return _retval;
@@ -89,19 +84,16 @@ render_handler_get_view_rect(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Verify param: rect; type: simple_byref
   DCHECK(rect);
-  if (!rect) {
+  if (!rect)
     return;
-  }
 
   // Translate param: rect; type: simple_byref
   CefRect rectVal = rect ? *rect : CefRect();
@@ -111,9 +103,8 @@ render_handler_get_view_rect(struct _cef_render_handler_t* self,
       CefBrowserCToCpp::Wrap(browser), rectVal);
 
   // Restore param: rect; type: simple_byref
-  if (rect) {
+  if (rect)
     *rect = rectVal;
-  }
 }
 
 int CEF_CALLBACK
@@ -128,24 +119,20 @@ render_handler_get_screen_point(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: screenX; type: simple_byref
   DCHECK(screenX);
-  if (!screenX) {
+  if (!screenX)
     return 0;
-  }
   // Verify param: screenY; type: simple_byref
   DCHECK(screenY);
-  if (!screenY) {
+  if (!screenY)
     return 0;
-  }
 
   // Translate param: screenX; type: simple_byref
   int screenXVal = screenX ? *screenX : 0;
@@ -157,13 +144,11 @@ render_handler_get_screen_point(struct _cef_render_handler_t* self,
       CefBrowserCToCpp::Wrap(browser), viewX, viewY, screenXVal, screenYVal);
 
   // Restore param: screenX; type: simple_byref
-  if (screenX) {
+  if (screenX)
     *screenX = screenXVal;
-  }
   // Restore param: screenY; type: simple_byref
-  if (screenY) {
+  if (screenY)
     *screenY = screenYVal;
-  }
 
   // Return type: bool
   return _retval;
@@ -178,19 +163,16 @@ render_handler_get_screen_info(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: screen_info; type: simple_byref
   DCHECK(screen_info);
-  if (!screen_info) {
+  if (!screen_info)
     return 0;
-  }
 
   // Translate param: screen_info; type: simple_byref
   CefScreenInfo screen_infoVal = screen_info ? *screen_info : CefScreenInfo();
@@ -200,9 +182,8 @@ render_handler_get_screen_info(struct _cef_render_handler_t* self,
       CefBrowserCToCpp::Wrap(browser), screen_infoVal);
 
   // Restore param: screen_info; type: simple_byref
-  if (screen_info) {
+  if (screen_info)
     *screen_info = screen_infoVal;
-  }
 
   // Return type: bool
   return _retval;
@@ -217,14 +198,12 @@ render_handler_on_popup_show(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
 
   // Execute
   CefRenderHandlerCppToC::Get(self)->OnPopupShow(
@@ -240,19 +219,16 @@ render_handler_on_popup_size(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Verify param: rect; type: simple_byref_const
   DCHECK(rect);
-  if (!rect) {
+  if (!rect)
     return;
-  }
 
   // Translate param: rect; type: simple_byref_const
   CefRect rectVal = rect ? *rect : CefRect();
@@ -275,24 +251,20 @@ void CEF_CALLBACK render_handler_on_paint(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Verify param: dirtyRects; type: simple_vec_byref_const
   DCHECK(dirtyRectsCount == 0 || dirtyRects);
-  if (dirtyRectsCount > 0 && !dirtyRects) {
+  if (dirtyRectsCount > 0 && !dirtyRects)
     return;
-  }
   // Verify param: buffer; type: simple_byaddr
   DCHECK(buffer);
-  if (!buffer) {
+  if (!buffer)
     return;
-  }
 
   // Translate param: dirtyRects; type: simple_vec_byref_const
   std::vector<CefRect> dirtyRectsList;
@@ -321,24 +293,20 @@ render_handler_on_accelerated_paint(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Verify param: dirtyRects; type: simple_vec_byref_const
   DCHECK(dirtyRectsCount == 0 || dirtyRects);
-  if (dirtyRectsCount > 0 && !dirtyRects) {
+  if (dirtyRectsCount > 0 && !dirtyRects)
     return;
-  }
   // Verify param: shared_handle; type: simple_byaddr
   DCHECK(shared_handle);
-  if (!shared_handle) {
+  if (!shared_handle)
     return;
-  }
 
   // Translate param: dirtyRects; type: simple_vec_byref_const
   std::vector<CefRect> dirtyRectsList;
@@ -364,19 +332,16 @@ render_handler_get_touch_handle_size(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Verify param: size; type: simple_byref
   DCHECK(size);
-  if (!size) {
+  if (!size)
     return;
-  }
 
   // Translate param: size; type: simple_byref
   CefSize sizeVal = size ? *size : CefSize();
@@ -386,9 +351,8 @@ render_handler_get_touch_handle_size(struct _cef_render_handler_t* self,
       CefBrowserCToCpp::Wrap(browser), orientation, sizeVal);
 
   // Restore param: size; type: simple_byref
-  if (size) {
+  if (size)
     *size = sizeVal;
-  }
 }
 
 void CEF_CALLBACK render_handler_on_touch_handle_state_changed(
@@ -400,19 +364,16 @@ void CEF_CALLBACK render_handler_on_touch_handle_state_changed(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Verify param: state; type: simple_byref_const
   DCHECK(state);
-  if (!state) {
+  if (!state)
     return;
-  }
 
   // Translate param: state; type: simple_byref_const
   CefTouchHandleState stateVal = state ? *state : CefTouchHandleState();
@@ -434,19 +395,16 @@ render_handler_start_dragging(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: drag_data; type: refptr_diff
   DCHECK(drag_data);
-  if (!drag_data) {
+  if (!drag_data)
     return 0;
-  }
 
   // Execute
   bool _retval = CefRenderHandlerCppToC::Get(self)->StartDragging(
@@ -466,14 +424,12 @@ render_handler_update_drag_cursor(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
 
   // Execute
   CefRenderHandlerCppToC::Get(self)->UpdateDragCursor(
@@ -490,14 +446,12 @@ render_handler_on_scroll_offset_changed(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
 
   // Execute
   CefRenderHandlerCppToC::Get(self)->OnScrollOffsetChanged(
@@ -515,24 +469,20 @@ void CEF_CALLBACK render_handler_on_ime_composition_range_changed(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Verify param: selected_range; type: simple_byref_const
   DCHECK(selected_range);
-  if (!selected_range) {
+  if (!selected_range)
     return;
-  }
   // Verify param: character_bounds; type: simple_vec_byref_const
   DCHECK(character_boundsCount == 0 || character_bounds);
-  if (character_boundsCount > 0 && !character_bounds) {
+  if (character_boundsCount > 0 && !character_bounds)
     return;
-  }
 
   // Translate param: selected_range; type: simple_byref_const
   CefRange selected_rangeVal = selected_range ? *selected_range : CefRange();
@@ -560,14 +510,12 @@ render_handler_on_text_selection_changed(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Unverified params: selected_text, selected_range
 
   // Translate param: selected_range; type: simple_byref_const
@@ -588,14 +536,12 @@ render_handler_on_virtual_keyboard_requested(struct _cef_render_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
 
   // Execute
   CefRenderHandlerCppToC::Get(self)->OnVirtualKeyboardRequested(
@@ -644,7 +590,7 @@ CefRefPtr<CefRenderHandler> CefCppToCRefCounted<
     CefRenderHandler,
     cef_render_handler_t>::UnwrapDerived(CefWrapperType type,
                                          cef_render_handler_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

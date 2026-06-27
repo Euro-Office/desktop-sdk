@@ -214,7 +214,7 @@ typedef struct _cef_request_t {
   /// in the browser process to track a single request across multiple
   /// callbacks.
   ///
-  uint64_t(CEF_CALLBACK* get_identifier)(struct _cef_request_t* self);
+  uint64(CEF_CALLBACK* get_identifier)(struct _cef_request_t* self);
 } cef_request_t;
 
 ///

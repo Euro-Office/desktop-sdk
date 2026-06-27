@@ -60,7 +60,7 @@ class CefRequestCToCpp
   void SetFirstPartyForCookies(const CefString& url) override;
   ResourceType GetResourceType() override;
   TransitionType GetTransitionType() override;
-  uint64_t GetIdentifier() override;
+  uint64 GetIdentifier() override;
 };
 
 #endif  // CEF_LIBCEF_DLL_CTOCPP_REQUEST_CTOCPP_H_

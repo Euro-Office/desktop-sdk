@@ -183,7 +183,7 @@ class CefRequestHandler : public virtual CefBaseRefCounted {
   /*--cef()--*/
   virtual bool OnQuotaRequest(CefRefPtr<CefBrowser> browser,
                               const CefString& origin_url,
-                              int64_t new_size,
+                              int64 new_size,
                               CefRefPtr<CefCallback> callback) {
     return false;
   }

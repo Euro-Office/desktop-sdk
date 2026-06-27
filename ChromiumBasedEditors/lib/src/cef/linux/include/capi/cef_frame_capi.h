@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2023 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,7 +33,7 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=7294486141b2377198e994048a768db4a7cb9cd0$
+// $hash=b9b1308311999efcfd2aa678472f934ca783492c$
 //
 
 #ifndef CEF_INCLUDE_CAPI_CEF_FRAME_CAPI_H_
@@ -181,7 +181,7 @@ typedef struct _cef_frame_t {
   /// Returns the globally unique identifier for this frame or < 0 if the
   /// underlying frame does not yet exist.
   ///
-  int64_t(CEF_CALLBACK* get_identifier)(struct _cef_frame_t* self);
+  int64(CEF_CALLBACK* get_identifier)(struct _cef_frame_t* self);
 
   ///
   /// Returns the parent of this frame or NULL if this is the main (top-level)
@@ -216,15 +216,23 @@ typedef struct _cef_frame_t {
 
   ///
   /// Create a new URL request that will be treated as originating from this
-  /// frame and the associated browser. Use cef_urlrequest_t::Create instead if
-  /// you do not want the request to have this association, in which case it may
-  /// be handled differently (see documentation on that function). A request
-  /// created with this function may only originate from the browser process,
-  /// and will behave as follows:
-  ///   - It may be intercepted by the client via CefResourceRequestHandler or
-  ///     CefSchemeHandlerFactory.
+  /// frame and the associated browser. This request may be intercepted by the
+  /// client via cef_resource_request_handler_t or cef_scheme_handler_factory_t.
+  /// Use cef_urlrequest_t::Create instead if you do not want the request to
+  /// have this association, in which case it may be handled differently (see
+  /// documentation on that function). Requests may originate from both the
+  /// browser process and the render process.
+  ///
+  /// For requests originating from the browser process:
   ///   - POST data may only contain a single element of type PDE_TYPE_FILE or
   ///     PDE_TYPE_BYTES.
+  ///
+  /// For requests originating from the render process:
+  ///   - POST data may only contain a single element of type PDE_TYPE_BYTES.
+  ///   - If the response contains Content-Disposition or Mime-Type header
+  ///     values that would not normally be rendered then the response may
+  ///     receive special handling inside the browser (for example, via the
+  ///     file download code path instead of the URL request code path).
   ///
   /// The |request| object will be marked as read-only after calling this
   /// function.

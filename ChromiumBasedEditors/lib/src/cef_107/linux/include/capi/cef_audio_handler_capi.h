@@ -93,7 +93,7 @@ typedef struct _cef_audio_handler_t {
                                              struct _cef_browser_t* browser,
                                              const float** data,
                                              int frames,
-                                             int64_t pts);
+                                             int64 pts);
 
   ///
   /// Called on the UI thread when the stream has stopped. OnAudioSteamStopped

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=927b2017bd8e11cd1dd87ccd56cbfce242e535f7$
+// $hash=df52ba5e5d1dea0ab26d5a977ea716b94e63d57c$
 //
 
 #include "libcef_dll/ctocpp/preference_manager_ctocpp.h"
@@ -36,17 +36,15 @@ CefPreferenceManager::GetGlobalPreferenceManager() {
 NO_SANITIZE("cfi-icall")
 bool CefPreferenceManagerCToCpp::HasPreference(const CefString& name) {
   cef_preference_manager_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, has_preference)) {
+  if (CEF_MEMBER_MISSING(_struct, has_preference))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: name; type: string_byref_const
   DCHECK(!name.empty());
-  if (name.empty()) {
+  if (name.empty())
     return false;
-  }
 
   // Execute
   int _retval = _struct->has_preference(_struct, name.GetStruct());
@@ -59,17 +57,15 @@ NO_SANITIZE("cfi-icall")
 CefRefPtr<CefValue> CefPreferenceManagerCToCpp::GetPreference(
     const CefString& name) {
   cef_preference_manager_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_preference)) {
+  if (CEF_MEMBER_MISSING(_struct, get_preference))
     return nullptr;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: name; type: string_byref_const
   DCHECK(!name.empty());
-  if (name.empty()) {
+  if (name.empty())
     return nullptr;
-  }
 
   // Execute
   cef_value_t* _retval = _struct->get_preference(_struct, name.GetStruct());
@@ -82,9 +78,8 @@ NO_SANITIZE("cfi-icall")
 CefRefPtr<CefDictionaryValue> CefPreferenceManagerCToCpp::GetAllPreferences(
     bool include_defaults) {
   cef_preference_manager_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_all_preferences)) {
+  if (CEF_MEMBER_MISSING(_struct, get_all_preferences))
     return nullptr;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -99,17 +94,15 @@ CefRefPtr<CefDictionaryValue> CefPreferenceManagerCToCpp::GetAllPreferences(
 NO_SANITIZE("cfi-icall")
 bool CefPreferenceManagerCToCpp::CanSetPreference(const CefString& name) {
   cef_preference_manager_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, can_set_preference)) {
+  if (CEF_MEMBER_MISSING(_struct, can_set_preference))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: name; type: string_byref_const
   DCHECK(!name.empty());
-  if (name.empty()) {
+  if (name.empty())
     return false;
-  }
 
   // Execute
   int _retval = _struct->can_set_preference(_struct, name.GetStruct());
@@ -123,17 +116,15 @@ bool CefPreferenceManagerCToCpp::SetPreference(const CefString& name,
                                                CefRefPtr<CefValue> value,
                                                CefString& error) {
   cef_preference_manager_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_preference)) {
+  if (CEF_MEMBER_MISSING(_struct, set_preference))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: name; type: string_byref_const
   DCHECK(!name.empty());
-  if (name.empty()) {
+  if (name.empty())
     return false;
-  }
   // Unverified params: value
 
   // Execute
@@ -164,7 +155,7 @@ cef_preference_manager_t* CefCToCppRefCounted<
         CefRequestContextCToCpp::Unwrap(
             reinterpret_cast<CefRequestContext*>(c)));
   }
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

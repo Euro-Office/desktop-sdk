@@ -56,7 +56,7 @@ CefRefPtr<CefV8Value> CefV8Value::CreateBool(bool value) {
 }
 
 NO_SANITIZE("cfi-icall")
-CefRefPtr<CefV8Value> CefV8Value::CreateInt(int32_t value) {
+CefRefPtr<CefV8Value> CefV8Value::CreateInt(int32 value) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
@@ -67,7 +67,7 @@ CefRefPtr<CefV8Value> CefV8Value::CreateInt(int32_t value) {
 }
 
 NO_SANITIZE("cfi-icall")
-CefRefPtr<CefV8Value> CefV8Value::CreateUInt(uint32_t value) {
+CefRefPtr<CefV8Value> CefV8Value::CreateUInt(uint32 value) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
@@ -406,7 +406,7 @@ NO_SANITIZE("cfi-icall") bool CefV8ValueCToCpp::GetBoolValue() {
   return _retval ? true : false;
 }
 
-NO_SANITIZE("cfi-icall") int32_t CefV8ValueCToCpp::GetIntValue() {
+NO_SANITIZE("cfi-icall") int32 CefV8ValueCToCpp::GetIntValue() {
   cef_v8value_t* _struct = GetStruct();
   if (CEF_MEMBER_MISSING(_struct, get_int_value))
     return 0;
@@ -414,13 +414,13 @@ NO_SANITIZE("cfi-icall") int32_t CefV8ValueCToCpp::GetIntValue() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int32_t _retval = _struct->get_int_value(_struct);
+  int32 _retval = _struct->get_int_value(_struct);
 
   // Return type: simple
   return _retval;
 }
 
-NO_SANITIZE("cfi-icall") uint32_t CefV8ValueCToCpp::GetUIntValue() {
+NO_SANITIZE("cfi-icall") uint32 CefV8ValueCToCpp::GetUIntValue() {
   cef_v8value_t* _struct = GetStruct();
   if (CEF_MEMBER_MISSING(_struct, get_uint_value))
     return 0;
@@ -428,7 +428,7 @@ NO_SANITIZE("cfi-icall") uint32_t CefV8ValueCToCpp::GetUIntValue() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  uint32_t _retval = _struct->get_uint_value(_struct);
+  uint32 _retval = _struct->get_uint_value(_struct);
 
   // Return type: simple
   return _retval;

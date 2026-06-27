@@ -35,14 +35,12 @@ TimePoint Now();
 CefRefPtr<CefBinaryValue> CreateCefBinaryValue(
     const std::vector<uint8_t>& data);
 
-void CopyDataIntoMemory(const std::vector<uint8_t>& data, void* dst);
-
 RendererMessage GetRendererMsgFromBinary(
     const CefRefPtr<CefBinaryValue>& value);
 
 BrowserMessage GetBrowserMsgFromBinary(const CefRefPtr<CefBinaryValue>& value);
 
-std::string ToMicroSecString(const Duration& duration);
+std::string ToMilliString(const Duration& duration);
 
 }  // namespace bv_utils
 

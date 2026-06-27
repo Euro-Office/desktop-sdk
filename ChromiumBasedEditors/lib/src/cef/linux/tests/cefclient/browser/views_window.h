@@ -25,7 +25,6 @@
 #include "include/views/cef_window.h"
 #include "include/views/cef_window_delegate.h"
 #include "tests/cefclient/browser/image_cache.h"
-#include "tests/cefclient/browser/root_window.h"
 #include "tests/cefclient/browser/views_menu_bar.h"
 #include "tests/cefclient/browser/views_overlay_controls.h"
 
@@ -34,7 +33,7 @@ namespace client {
 typedef std::set<CefRefPtr<CefExtension>> ExtensionSet;
 
 // Implements a CefWindow that hosts a single CefBrowserView and optional
-// Views-hosted controls. All methods must be called on the browser process UI
+// Views-based controls. All methods must be called on the browser process UI
 // thread.
 class ViewsWindow : public CefBrowserViewDelegate,
                     public CefMenuButtonDelegate,
@@ -48,6 +47,9 @@ class ViewsWindow : public CefBrowserViewDelegate,
    public:
     // Return true if the window should show controls.
     virtual bool WithControls() = 0;
+
+    // Return true if the window is hosting an extension.
+    virtual bool WithExtension() = 0;
 
     // Return true if the window should be created initially hidden.
     virtual bool InitiallyHidden() = 0;
@@ -100,13 +102,11 @@ class ViewsWindow : public CefBrowserViewDelegate,
   // Create a new top-level ViewsWindow hosting a browser with the specified
   // configuration.
   static CefRefPtr<ViewsWindow> Create(
-      WindowType type,
       Delegate* delegate,
       CefRefPtr<CefClient> client,
       const CefString& url,
       const CefBrowserSettings& settings,
-      CefRefPtr<CefRequestContext> request_context,
-      CefRefPtr<CefCommandLine> command_line);
+      CefRefPtr<CefRequestContext> request_context);
 
   void Show();
   void Hide();
@@ -128,11 +128,8 @@ class ViewsWindow : public CefBrowserViewDelegate,
   void OnBeforeContextMenu(CefRefPtr<CefMenuModel> model);
   void OnExtensionsChanged(const ExtensionSet& extensions);
 
-  static bool SupportsWindowRestore(WindowType type);
-  bool SupportsWindowRestore() const;
   bool GetWindowRestorePreferences(cef_show_state_t& show_state,
                                    std::optional<CefRect>& dip_bounds);
-  void SetTitlebarHeight(const std::optional<float>& height);
 
   // CefBrowserViewDelegate methods:
   CefRefPtr<CefBrowserViewDelegate> GetDelegateForPopupBrowserView(
@@ -143,10 +140,7 @@ class ViewsWindow : public CefBrowserViewDelegate,
   bool OnPopupBrowserViewCreated(CefRefPtr<CefBrowserView> browser_view,
                                  CefRefPtr<CefBrowserView> popup_browser_view,
                                  bool is_devtools) override;
-  ChromeToolbarType GetChromeToolbarType(
-      CefRefPtr<CefBrowserView> browser_view) override;
-  bool UseFramelessWindowForPictureInPicture(
-      CefRefPtr<CefBrowserView> browser_view) override;
+  ChromeToolbarType GetChromeToolbarType() override;
 
   // CefButtonDelegate methods:
   void OnButtonPressed(CefRefPtr<CefButton> button) override;
@@ -177,25 +171,16 @@ class ViewsWindow : public CefBrowserViewDelegate,
   CefRefPtr<CefWindow> GetParentWindow(CefRefPtr<CefWindow> window,
                                        bool* is_menu,
                                        bool* can_activate_menu) override;
-  bool IsWindowModalDialog(CefRefPtr<CefWindow> window) override;
   CefRect GetInitialBounds(CefRefPtr<CefWindow> window) override;
   cef_show_state_t GetInitialShowState(CefRefPtr<CefWindow> window) override;
   bool IsFrameless(CefRefPtr<CefWindow> window) override;
-  bool WithStandardWindowButtons(CefRefPtr<CefWindow> window) override;
-  bool GetTitlebarHeight(CefRefPtr<CefWindow> window,
-                         float* titlebar_height) override;
   bool CanResize(CefRefPtr<CefWindow> window) override;
-  bool CanMaximize(CefRefPtr<CefWindow> window) override;
-  bool CanMinimize(CefRefPtr<CefWindow> window) override;
   bool CanClose(CefRefPtr<CefWindow> window) override;
   bool OnAccelerator(CefRefPtr<CefWindow> window, int command_id) override;
   bool OnKeyEvent(CefRefPtr<CefWindow> window,
                   const CefKeyEvent& event) override;
-  void OnWindowFullscreenTransition(CefRefPtr<CefWindow> window,
-                                    bool is_completed) override;
 
   // CefViewDelegate methods:
-  CefSize GetPreferredSize(CefRefPtr<CefView> view) override;
   CefSize GetMinimumSize(CefRefPtr<CefView> view) override;
   void OnFocus(CefRefPtr<CefView> view) override;
   void OnBlur(CefRefPtr<CefView> view) override;
@@ -212,10 +197,7 @@ class ViewsWindow : public CefBrowserViewDelegate,
   // |delegate| is guaranteed to outlive this object.
   // |browser_view| may be nullptr, in which case SetBrowserView() will be
   // called.
-  ViewsWindow(WindowType type,
-              Delegate* delegate,
-              CefRefPtr<CefBrowserView> browser_view,
-              CefRefPtr<CefCommandLine> command_line);
+  ViewsWindow(Delegate* delegate, CefRefPtr<CefBrowserView> browser_view);
 
   void SetBrowserView(CefRefPtr<CefBrowserView> browser_view);
 
@@ -251,25 +233,17 @@ class ViewsWindow : public CefBrowserViewDelegate,
                               const ImageCache::ImageSet& images);
   void OnExtensionWindowClosed();
 
-  void NudgeWindow();
-
-  const WindowType type_;
   Delegate* delegate_;  // Not owned by this object.
   CefRefPtr<CefBrowserView> browser_view_;
-  CefRefPtr<CefCommandLine> command_line_;
   bool frameless_;
   bool with_controls_;
   bool with_overlay_controls_;
-  bool with_standard_buttons_;
   ChromeToolbarType chrome_toolbar_type_;
-  bool use_window_modal_dialog_;
-  bool use_bottom_controls_;
-  bool hide_pip_frame_;
   CefRefPtr<CefWindow> window_;
 
   CefRefPtr<CefMenuModel> button_menu_model_;
-  CefRefPtr<ViewsMenuBar> menu_bar_;
-  CefRefPtr<CefView> toolbar_;
+  CefRefPtr<ViewsMenuBar> top_menu_bar_;
+  CefRefPtr<CefView> top_toolbar_;
   CefRefPtr<CefMenuButton> menu_button_;
   CefRefPtr<CefView> location_bar_;
   bool menu_has_focus_;
@@ -279,9 +253,6 @@ class ViewsWindow : public CefBrowserViewDelegate,
   CefSize minimum_window_size_;
 
   CefRefPtr<ViewsOverlayControls> overlay_controls_;
-
-  std::optional<float> default_titlebar_height_;
-  std::optional<float> override_titlebar_height_;
 
   // Structure representing an extension.
   struct ExtensionInfo {

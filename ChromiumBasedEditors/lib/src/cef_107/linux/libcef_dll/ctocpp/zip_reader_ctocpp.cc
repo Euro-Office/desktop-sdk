@@ -130,7 +130,7 @@ NO_SANITIZE("cfi-icall") CefString CefZipReaderCToCpp::GetFileName() {
   return _retvalStr;
 }
 
-NO_SANITIZE("cfi-icall") int64_t CefZipReaderCToCpp::GetFileSize() {
+NO_SANITIZE("cfi-icall") int64 CefZipReaderCToCpp::GetFileSize() {
   shutdown_checker::AssertNotShutdown();
 
   cef_zip_reader_t* _struct = GetStruct();
@@ -140,7 +140,7 @@ NO_SANITIZE("cfi-icall") int64_t CefZipReaderCToCpp::GetFileSize() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64_t _retval = _struct->get_file_size(_struct);
+  int64 _retval = _struct->get_file_size(_struct);
 
   // Return type: simple
   return _retval;
@@ -219,7 +219,7 @@ int CefZipReaderCToCpp::ReadFile(void* buffer, size_t bufferSize) {
   return _retval;
 }
 
-NO_SANITIZE("cfi-icall") int64_t CefZipReaderCToCpp::Tell() {
+NO_SANITIZE("cfi-icall") int64 CefZipReaderCToCpp::Tell() {
   shutdown_checker::AssertNotShutdown();
 
   cef_zip_reader_t* _struct = GetStruct();
@@ -229,7 +229,7 @@ NO_SANITIZE("cfi-icall") int64_t CefZipReaderCToCpp::Tell() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64_t _retval = _struct->tell(_struct);
+  int64 _retval = _struct->tell(_struct);
 
   // Return type: simple
   return _retval;

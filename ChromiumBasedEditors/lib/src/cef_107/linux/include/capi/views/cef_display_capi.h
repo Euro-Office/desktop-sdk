@@ -63,7 +63,7 @@ typedef struct _cef_display_t {
   ///
   /// Returns the unique identifier for this Display.
   ///
-  int64_t(CEF_CALLBACK* get_id)(struct _cef_display_t* self);
+  int64(CEF_CALLBACK* get_id)(struct _cef_display_t* self);
 
   ///
   /// Returns this Display's device pixel scale factor. This specifies how much

@@ -39,7 +39,7 @@ class ViewsMenuBar : public CefMenuButtonDelegate, public CefMenuModelDelegate {
   // |menu_id_start| is the ID for the first CefMenuButton in the bar. An ID
   // range starting with |menu_id_start| and extending for a reasonable distance
   // should be reserved in the client for MenuBar usage.
-  ViewsMenuBar(Delegate* delegate, int menu_id_start, bool use_bottom_controls);
+  ViewsMenuBar(Delegate* delegate, int menu_id_start);
 
   // Returns true if |menu_id| exists in the menu bar.
   bool HasMenuId(int menu_id) const;
@@ -106,14 +106,13 @@ class ViewsMenuBar : public CefMenuButtonDelegate, public CefMenuModelDelegate {
 
   Delegate* delegate_;  // Not owned by this object.
   const int id_start_;
-  const bool use_bottom_controls_;
   int id_next_;
   CefRefPtr<CefPanel> panel_;
   std::vector<CefRefPtr<CefMenuModel>> models_;
   bool last_nav_with_keyboard_;
 
   // Map of mnemonic to MenuButton ID.
-  typedef std::map<char16_t, int> MnemonicMap;
+  typedef std::map<char16, int> MnemonicMap;
   MnemonicMap mnemonics_;
 
   IMPLEMENT_REFCOUNTING(ViewsMenuBar);

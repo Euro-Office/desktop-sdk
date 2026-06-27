@@ -93,7 +93,7 @@ typedef struct _cef_browser_process_handler_t {
   ///
   void(CEF_CALLBACK* on_schedule_message_pump_work)(
       struct _cef_browser_process_handler_t* self,
-      int64_t delay_ms);
+      int64 delay_ms);
 
   ///
   /// Return the default client for use with a newly created browser window. If

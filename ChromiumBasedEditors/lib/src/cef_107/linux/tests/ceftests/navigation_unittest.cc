@@ -818,7 +818,7 @@ class RedirectSchemeHandler : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64_t& response_length,
+                          int64& response_length,
                           CefString& redirectUrl) override {
     EXPECT_TRUE(CefCurrentlyOn(TID_IO));
 
@@ -1947,7 +1947,7 @@ class LoadNavTestHandler : public TestHandler {
     else
       EXPECT_TRUE(user_gesture);
 
-    EXPECT_EQ(CEF_WOD_NEW_BACKGROUND_TAB, target_disposition);
+    EXPECT_EQ(WOD_NEW_BACKGROUND_TAB, target_disposition);
 
     // OnOpenURLFromTab should be called before OnBeforeBrowse for the file URL.
     EXPECT_FALSE(got_before_browse_);
@@ -2960,7 +2960,7 @@ class UnstartedSchemeHandler : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64_t& response_length,
+                          int64& response_length,
                           CefString& redirectUrl) override {
     response->SetStatus(200);
     response->SetMimeType("text/html");
@@ -3179,7 +3179,7 @@ class StalledSchemeHandler : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64_t& response_length,
+                          int64& response_length,
                           CefString& redirectUrl) override {
     response->SetStatus(200);
     response->SetMimeType("text/html");

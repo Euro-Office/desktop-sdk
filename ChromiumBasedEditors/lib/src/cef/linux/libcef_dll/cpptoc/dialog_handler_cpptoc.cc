@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=1bb6115ab6501d8d006585cede00970e59af9868$
+// $hash=9671f056222a413d2690a8b672dc136d3b4599a5$
 //
 
 #include "libcef_dll/cpptoc/dialog_handler_cpptoc.h"
@@ -35,19 +35,16 @@ dialog_handler_on_file_dialog(struct _cef_dialog_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: callback; type: refptr_diff
   DCHECK(callback);
-  if (!callback) {
+  if (!callback)
     return 0;
-  }
   // Unverified params: title, default_file_path, accept_filters
 
   // Translate param: accept_filters; type: string_vec_byref_const
@@ -84,7 +81,7 @@ CefRefPtr<CefDialogHandler> CefCppToCRefCounted<
     CefDialogHandler,
     cef_dialog_handler_t>::UnwrapDerived(CefWrapperType type,
                                          cef_dialog_handler_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

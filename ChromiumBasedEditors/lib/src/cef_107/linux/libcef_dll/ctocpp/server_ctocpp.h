@@ -49,7 +49,7 @@ class CefServerCToCpp
   void SendHttpResponse(int connection_id,
                         int response_code,
                         const CefString& content_type,
-                        int64_t content_length,
+                        int64 content_length,
                         const HeaderMap& extra_headers) override;
   void SendRawData(int connection_id,
                    const void* data,

@@ -95,7 +95,7 @@ resource_handler_process_request(struct _cef_resource_handler_t* self,
 void CEF_CALLBACK
 resource_handler_get_response_headers(struct _cef_resource_handler_t* self,
                                       struct _cef_response_t* response,
-                                      int64_t* response_length,
+                                      int64* response_length,
                                       cef_string_t* redirectUrl) {
   shutdown_checker::AssertNotShutdown();
 
@@ -118,7 +118,7 @@ resource_handler_get_response_headers(struct _cef_resource_handler_t* self,
     return;
 
   // Translate param: response_length; type: simple_byref
-  int64_t response_lengthVal = response_length ? *response_length : 0;
+  int64 response_lengthVal = response_length ? *response_length : 0;
   // Translate param: redirectUrl; type: string_byref
   CefString redirectUrlStr(redirectUrl);
 
@@ -132,8 +132,8 @@ resource_handler_get_response_headers(struct _cef_resource_handler_t* self,
 }
 
 int CEF_CALLBACK resource_handler_skip(struct _cef_resource_handler_t* self,
-                                       int64_t bytes_to_skip,
-                                       int64_t* bytes_skipped,
+                                       int64 bytes_to_skip,
+                                       int64* bytes_skipped,
                                        cef_resource_skip_callback_t* callback) {
   shutdown_checker::AssertNotShutdown();
 
@@ -152,7 +152,7 @@ int CEF_CALLBACK resource_handler_skip(struct _cef_resource_handler_t* self,
     return 0;
 
   // Translate param: bytes_skipped; type: simple_byref
-  int64_t bytes_skippedVal = bytes_skipped ? *bytes_skipped : 0;
+  int64 bytes_skippedVal = bytes_skipped ? *bytes_skipped : 0;
 
   // Execute
   bool _retval = CefResourceHandlerCppToC::Get(self)->Skip(

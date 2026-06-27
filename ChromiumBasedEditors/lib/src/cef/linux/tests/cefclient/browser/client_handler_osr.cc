@@ -33,26 +33,23 @@ void ClientHandlerOsr::DetachOsrDelegate() {
 
 void ClientHandlerOsr::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
   CEF_REQUIRE_UI_THREAD();
-  if (osr_delegate_) {
+  if (osr_delegate_)
     osr_delegate_->OnAfterCreated(browser);
-  }
   ClientHandler::OnAfterCreated(browser);
 }
 
 void ClientHandlerOsr::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
   CEF_REQUIRE_UI_THREAD();
-  if (osr_delegate_) {
+  if (osr_delegate_)
     osr_delegate_->OnBeforeClose(browser);
-  }
   ClientHandler::OnBeforeClose(browser);
 }
 
 bool ClientHandlerOsr::GetRootScreenRect(CefRefPtr<CefBrowser> browser,
                                          CefRect& rect) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return false;
-  }
   return osr_delegate_->GetRootScreenRect(browser, rect);
 }
 
@@ -73,35 +70,31 @@ bool ClientHandlerOsr::GetScreenPoint(CefRefPtr<CefBrowser> browser,
                                       int& screenX,
                                       int& screenY) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return false;
-  }
   return osr_delegate_->GetScreenPoint(browser, viewX, viewY, screenX, screenY);
 }
 
 bool ClientHandlerOsr::GetScreenInfo(CefRefPtr<CefBrowser> browser,
                                      CefScreenInfo& screen_info) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return false;
-  }
   return osr_delegate_->GetScreenInfo(browser, screen_info);
 }
 
 void ClientHandlerOsr::OnPopupShow(CefRefPtr<CefBrowser> browser, bool show) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return;
-  }
   return osr_delegate_->OnPopupShow(browser, show);
 }
 
 void ClientHandlerOsr::OnPopupSize(CefRefPtr<CefBrowser> browser,
                                    const CefRect& rect) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return;
-  }
   return osr_delegate_->OnPopupSize(browser, rect);
 }
 
@@ -112,9 +105,8 @@ void ClientHandlerOsr::OnPaint(CefRefPtr<CefBrowser> browser,
                                int width,
                                int height) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return;
-  }
   osr_delegate_->OnPaint(browser, type, dirtyRects, buffer, width, height);
 }
 
@@ -124,9 +116,8 @@ void ClientHandlerOsr::OnAcceleratedPaint(
     const CefRenderHandler::RectList& dirtyRects,
     void* share_handle) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return;
-  }
   osr_delegate_->OnAcceleratedPaint(browser, type, dirtyRects, share_handle);
 }
 
@@ -137,9 +128,8 @@ bool ClientHandlerOsr::StartDragging(
     int x,
     int y) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return false;
-  }
   return osr_delegate_->StartDragging(browser, drag_data, allowed_ops, x, y);
 }
 
@@ -147,9 +137,8 @@ void ClientHandlerOsr::UpdateDragCursor(
     CefRefPtr<CefBrowser> browser,
     CefRenderHandler::DragOperation operation) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return;
-  }
   osr_delegate_->UpdateDragCursor(browser, operation);
 }
 
@@ -158,18 +147,16 @@ void ClientHandlerOsr::OnImeCompositionRangeChanged(
     const CefRange& selection_range,
     const CefRenderHandler::RectList& character_bounds) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return;
-  }
   osr_delegate_->OnImeCompositionRangeChanged(browser, selection_range,
                                               character_bounds);
 }
 
 void ClientHandlerOsr::OnAccessibilityTreeChange(CefRefPtr<CefValue> value) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return;
-  }
   osr_delegate_->UpdateAccessibilityTree(value);
 }
 
@@ -191,9 +178,8 @@ bool ClientHandlerOsr::OnCursorChange(CefRefPtr<CefBrowser> browser,
 void ClientHandlerOsr::OnAccessibilityLocationChange(
     CefRefPtr<CefValue> value) {
   CEF_REQUIRE_UI_THREAD();
-  if (!osr_delegate_) {
+  if (!osr_delegate_)
     return;
-  }
   osr_delegate_->UpdateAccessibilityLocation(value);
 }
 

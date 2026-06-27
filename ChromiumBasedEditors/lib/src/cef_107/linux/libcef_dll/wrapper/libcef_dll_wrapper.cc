@@ -721,7 +721,7 @@ CEF_GLOBAL bool CefPostTask(CefThreadId threadId, CefRefPtr<CefTask> task) {
 NO_SANITIZE("cfi-icall")
 CEF_GLOBAL bool CefPostDelayedTask(CefThreadId threadId,
                                    CefRefPtr<CefTask> task,
-                                   int64_t delay_ms) {
+                                   int64 delay_ms) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: task; type: refptr_diff
@@ -767,11 +767,11 @@ CEF_GLOBAL bool CefEndTracing(const CefString& tracing_file,
   return _retval ? true : false;
 }
 
-NO_SANITIZE("cfi-icall") CEF_GLOBAL int64_t CefNowFromSystemTraceTime() {
+NO_SANITIZE("cfi-icall") CEF_GLOBAL int64 CefNowFromSystemTraceTime() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64_t _retval = cef_now_from_system_trace_time();
+  int64 _retval = cef_now_from_system_trace_time();
 
   // Return type: simple
   return _retval;

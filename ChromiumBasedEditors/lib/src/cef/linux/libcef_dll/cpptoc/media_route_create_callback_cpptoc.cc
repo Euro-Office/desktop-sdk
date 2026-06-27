@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=cfb96c6b081d44a4dde50c7cda61e3481c63ce43$
+// $hash=abdd2d0fa144397975b87421805ceb056843d709$
 //
 
 #include "libcef_dll/cpptoc/media_route_create_callback_cpptoc.h"
@@ -30,9 +30,8 @@ void CEF_CALLBACK media_route_create_callback_on_media_route_create_finished(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Unverified params: error, route
 
   // Execute
@@ -61,7 +60,7 @@ CefCppToCRefCounted<CefMediaRouteCreateCallbackCppToC,
                     CefMediaRouteCreateCallback,
                     cef_media_route_create_callback_t>::
     UnwrapDerived(CefWrapperType type, cef_media_route_create_callback_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

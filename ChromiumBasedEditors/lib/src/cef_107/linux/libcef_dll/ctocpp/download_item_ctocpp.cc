@@ -81,7 +81,7 @@ NO_SANITIZE("cfi-icall") bool CefDownloadItemCToCpp::IsCanceled() {
   return _retval ? true : false;
 }
 
-NO_SANITIZE("cfi-icall") int64_t CefDownloadItemCToCpp::GetCurrentSpeed() {
+NO_SANITIZE("cfi-icall") int64 CefDownloadItemCToCpp::GetCurrentSpeed() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
@@ -91,7 +91,7 @@ NO_SANITIZE("cfi-icall") int64_t CefDownloadItemCToCpp::GetCurrentSpeed() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64_t _retval = _struct->get_current_speed(_struct);
+  int64 _retval = _struct->get_current_speed(_struct);
 
   // Return type: simple
   return _retval;
@@ -113,7 +113,7 @@ NO_SANITIZE("cfi-icall") int CefDownloadItemCToCpp::GetPercentComplete() {
   return _retval;
 }
 
-NO_SANITIZE("cfi-icall") int64_t CefDownloadItemCToCpp::GetTotalBytes() {
+NO_SANITIZE("cfi-icall") int64 CefDownloadItemCToCpp::GetTotalBytes() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
@@ -123,13 +123,13 @@ NO_SANITIZE("cfi-icall") int64_t CefDownloadItemCToCpp::GetTotalBytes() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64_t _retval = _struct->get_total_bytes(_struct);
+  int64 _retval = _struct->get_total_bytes(_struct);
 
   // Return type: simple
   return _retval;
 }
 
-NO_SANITIZE("cfi-icall") int64_t CefDownloadItemCToCpp::GetReceivedBytes() {
+NO_SANITIZE("cfi-icall") int64 CefDownloadItemCToCpp::GetReceivedBytes() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
@@ -139,7 +139,7 @@ NO_SANITIZE("cfi-icall") int64_t CefDownloadItemCToCpp::GetReceivedBytes() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64_t _retval = _struct->get_received_bytes(_struct);
+  int64 _retval = _struct->get_received_bytes(_struct);
 
   // Return type: simple
   return _retval;
@@ -195,7 +195,7 @@ NO_SANITIZE("cfi-icall") CefString CefDownloadItemCToCpp::GetFullPath() {
   return _retvalStr;
 }
 
-NO_SANITIZE("cfi-icall") uint32_t CefDownloadItemCToCpp::GetId() {
+NO_SANITIZE("cfi-icall") uint32 CefDownloadItemCToCpp::GetId() {
   shutdown_checker::AssertNotShutdown();
 
   cef_download_item_t* _struct = GetStruct();
@@ -205,7 +205,7 @@ NO_SANITIZE("cfi-icall") uint32_t CefDownloadItemCToCpp::GetId() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  uint32_t _retval = _struct->get_id(_struct);
+  uint32 _retval = _struct->get_id(_struct);
 
   // Return type: simple
   return _retval;

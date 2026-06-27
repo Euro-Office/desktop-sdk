@@ -10,7 +10,7 @@
 
 namespace {
 
-const char kLifeSpanUrl[] = "https://tests-life-span/test.html";
+const char kLifeSpanUrl[] = "http://tests-life-span/test.html";
 const char kUnloadDialogText[] = "Are you sure?";
 const char kUnloadMsg[] = "LifeSpanTestHandler.Unload";
 
@@ -63,9 +63,8 @@ class LifeSpanTestHandler : public RoutingTestHandler {
   }
 
   bool DoClose(CefRefPtr<CefBrowser> browser) override {
-    if (executing_delay_close_) {
+    if (executing_delay_close_)
       return false;
-    }
 
     EXPECT_TRUE(browser->IsSame(GetBrowser()));
 
@@ -100,7 +99,7 @@ class LifeSpanTestHandler : public RoutingTestHandler {
     EXPECT_TRUE(browser->IsSame(GetBrowser()));
 
     // The message is no longer configurable via JavaScript.
-    // See https://crbug.com/587940.
+    // See http://crbug.com/587940.
     EXPECT_STREQ("Is it OK to leave/reload this page?",
                  message_text.ToString().c_str());
 
@@ -135,14 +134,13 @@ class LifeSpanTestHandler : public RoutingTestHandler {
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
     if (request.ToString() == kUnloadMsg) {
-      if (!executing_delay_close_) {
+      if (!executing_delay_close_)
         got_unload_message_.yes();
-      }
     }
     callback->Success("");
     return true;

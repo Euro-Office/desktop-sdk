@@ -18,7 +18,7 @@
 // VIRTUAL METHODS - Body may be edited by hand.
 
 NO_SANITIZE("cfi-icall")
-void CefMediaAccessCallbackCToCpp::Continue(uint32_t allowed_permissions) {
+void CefMediaAccessCallbackCToCpp::Continue(uint32 allowed_permissions) {
   shutdown_checker::AssertNotShutdown();
 
   cef_media_access_callback_t* _struct = GetStruct();

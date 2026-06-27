@@ -23,9 +23,8 @@ class CefCppToCRefCounted : public CefBaseRefCounted {
   // Create a new wrapper instance and associated structure reference for
   // passing an object instance the other side.
   static StructName* Wrap(CefRefPtr<BaseName> c) {
-    if (!c.get()) {
+    if (!c.get())
       return nullptr;
-    }
 
     // Wrap our object with the CefCppToCRefCounted class.
     ClassName* wrapper = new ClassName();
@@ -40,18 +39,16 @@ class CefCppToCRefCounted : public CefBaseRefCounted {
   // Retrieve the underlying object instance for a structure reference passed
   // back from the other side.
   static CefRefPtr<BaseName> Unwrap(StructName* s) {
-    if (!s) {
+    if (!s)
       return nullptr;
-    }
 
     // Cast our structure to the wrapper structure type.
     WrapperStruct* wrapperStruct = GetWrapperStruct(s);
 
     // If the type does not match this object then we need to unwrap as the
     // derived type.
-    if (wrapperStruct->type_ != kWrapperType) {
+    if (wrapperStruct->type_ != kWrapperType)
       return UnwrapDerived(wrapperStruct->type_, s);
-    }
 
     // Add the underlying object instance to a smart pointer.
     CefRefPtr<BaseName> objectPtr(wrapperStruct->object_);
@@ -146,9 +143,8 @@ class CefCppToCRefCounted : public CefBaseRefCounted {
 
   static void CEF_CALLBACK struct_add_ref(cef_base_ref_counted_t* base) {
     DCHECK(base);
-    if (!base) {
+    if (!base)
       return;
-    }
 
     WrapperStruct* wrapperStruct =
         GetWrapperStruct(reinterpret_cast<StructName*>(base));
@@ -160,9 +156,8 @@ class CefCppToCRefCounted : public CefBaseRefCounted {
 
   static int CEF_CALLBACK struct_release(cef_base_ref_counted_t* base) {
     DCHECK(base);
-    if (!base) {
+    if (!base)
       return 0;
-    }
 
     WrapperStruct* wrapperStruct =
         GetWrapperStruct(reinterpret_cast<StructName*>(base));
@@ -174,9 +169,8 @@ class CefCppToCRefCounted : public CefBaseRefCounted {
 
   static int CEF_CALLBACK struct_has_one_ref(cef_base_ref_counted_t* base) {
     DCHECK(base);
-    if (!base) {
+    if (!base)
       return 0;
-    }
 
     WrapperStruct* wrapperStruct =
         GetWrapperStruct(reinterpret_cast<StructName*>(base));
@@ -189,9 +183,8 @@ class CefCppToCRefCounted : public CefBaseRefCounted {
   static int CEF_CALLBACK
   struct_has_at_least_one_ref(cef_base_ref_counted_t* base) {
     DCHECK(base);
-    if (!base) {
+    if (!base)
       return 0;
-    }
 
     WrapperStruct* wrapperStruct =
         GetWrapperStruct(reinterpret_cast<StructName*>(base));

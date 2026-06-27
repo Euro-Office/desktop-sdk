@@ -31,7 +31,6 @@ set(CEFTESTS_SRCS
   jsdialog_unittest.cc
   life_span_unittest.cc
   media_access_unittest.cc
-  message_router_binary_unittest.cc
   message_router_harness_unittest.cc
   message_router_multi_query_unittest.cc
   message_router_single_query_unittest.cc
@@ -225,7 +224,6 @@ set(CEFTESTS_HELPER_SRCS_MAC
   dom_unittest.cc
   frame_unittest.cc
   media_access_unittest.cc
-  message_router_binary_unittest.cc
   message_router_harness_unittest.cc
   message_router_multi_query_unittest.cc
   message_router_single_query_unittest.cc
@@ -423,16 +421,6 @@ endif()
 #
 
 if(OS_MAC)
-  option(OPTION_USE_ARC "Build with ARC (automatic Reference Counting) on macOS." ON)
-  if(OPTION_USE_ARC)
-    list(APPEND CEF_COMPILER_FLAGS
-      -fobjc-arc
-      )
-    set_target_properties(${target} PROPERTIES
-      CLANG_ENABLE_OBJC_ARC "YES"
-      )
-  endif()
-
   # Output path for the main app bundle.
   set(CEF_APP "${CEF_TARGET_OUT_DIR}/${CEF_TARGET}.app")
 

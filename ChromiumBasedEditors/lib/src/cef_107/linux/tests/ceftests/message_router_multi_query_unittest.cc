@@ -272,7 +272,7 @@ class MultiQueryManager : public CefMessageRouterBrowserSide::Handler {
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -343,7 +343,7 @@ class MultiQueryManager : public CefMessageRouterBrowserSide::Handler {
 
   void OnQueryCanceled(CefRefPtr<CefBrowser> browser,
                        CefRefPtr<CefFrame> frame,
-                       int64_t query_id) override {
+                       int64 query_id) override {
     EXPECT_TRUE(finalized_);
     EXPECT_UI_THREAD();
 
@@ -469,11 +469,11 @@ class MultiQueryManager : public CefMessageRouterBrowserSide::Handler {
 
     // Set in OnQuery and verified in OnNotify or OnQueryCanceled.
     int browser_id;
-    int64_t frame_id;
+    int64 frame_id;
     bool is_main_frame;
 
     // Used when a query is canceled.
-    int64_t query_id;
+    int64 query_id;
     CefRefPtr<Callback> callback;
 
     TrackCallback got_query;
@@ -897,7 +897,7 @@ class MultiQuerySingleFrameTestHandler : public SingleLoadTestHandler,
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -910,7 +910,7 @@ class MultiQuerySingleFrameTestHandler : public SingleLoadTestHandler,
 
   void OnQueryCanceled(CefRefPtr<CefBrowser> browser,
                        CefRefPtr<CefFrame> frame,
-                       int64_t query_id) override {
+                       int64 query_id) override {
     AssertMainBrowser(browser);
     AssertMainFrame(frame);
 
@@ -1085,7 +1085,7 @@ class MultiQueryMultiHandlerTestHandler : public SingleLoadTestHandler,
 
     bool OnQuery(CefRefPtr<CefBrowser> browser,
                  CefRefPtr<CefFrame> frame,
-                 int64_t query_id,
+                 int64 query_id,
                  const CefString& request,
                  bool persistent,
                  CefRefPtr<Callback> callback) override {
@@ -1124,7 +1124,7 @@ class MultiQueryMultiHandlerTestHandler : public SingleLoadTestHandler,
 
     void OnQueryCanceled(CefRefPtr<CefBrowser> browser,
                          CefRefPtr<CefFrame> frame,
-                         int64_t query_id) override {
+                         int64 query_id) override {
       // Verify that the correct handler is called for cancellation.
       EXPECT_EQ(query_id_, query_id);
 
@@ -1177,7 +1177,7 @@ class MultiQueryMultiHandlerTestHandler : public SingleLoadTestHandler,
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -1190,7 +1190,7 @@ class MultiQueryMultiHandlerTestHandler : public SingleLoadTestHandler,
 
   void OnQueryCanceled(CefRefPtr<CefBrowser> browser,
                        CefRefPtr<CefFrame> frame,
-                       int64_t query_id) override {
+                       int64 query_id) override {
     AssertMainBrowser(browser);
     AssertMainFrame(frame);
 
@@ -1386,7 +1386,7 @@ class MultiQueryManagerMap : public CefMessageRouterBrowserSide::Handler,
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -1401,7 +1401,7 @@ class MultiQueryManagerMap : public CefMessageRouterBrowserSide::Handler,
 
   void OnQueryCanceled(CefRefPtr<CefBrowser> browser,
                        CefRefPtr<CefFrame> frame,
-                       int64_t query_id) override {
+                       int64 query_id) override {
     EXPECT_TRUE(finalized_);
     if (!running_)
       running_ = true;
@@ -1500,9 +1500,9 @@ class MultiQueryManagerMap : public CefMessageRouterBrowserSide::Handler,
 
     const int browser_id = browser->GetIdentifier();
     // Always use the same ID for the main frame.
-    const int64_t frame_id = frame->IsMain() ? -1 : frame->GetIdentifier();
+    const int64 frame_id = frame->IsMain() ? -1 : frame->GetIdentifier();
 
-    const std::pair<int, int64_t>& id = std::make_pair(browser_id, frame_id);
+    const std::pair<int, int64>& id = std::make_pair(browser_id, frame_id);
 
     // Remove the currently active manager, if any.
     ManagerMap::iterator it2 = manager_map_.find(id);
@@ -1517,7 +1517,7 @@ class MultiQueryManagerMap : public CefMessageRouterBrowserSide::Handler,
                                 CefRefPtr<CefFrame> frame) const {
     const int browser_id = browser->GetIdentifier();
     // Always use the same ID for the main frame.
-    const int64_t frame_id = frame->IsMain() ? -1 : frame->GetIdentifier();
+    const int64 frame_id = frame->IsMain() ? -1 : frame->GetIdentifier();
 
     // Find the manager in the active map.
     ManagerMap::const_iterator it =
@@ -1550,7 +1550,7 @@ class MultiQueryManagerMap : public CefMessageRouterBrowserSide::Handler,
  private:
   typedef std::vector<MultiQueryManager*> ManagerList;
   // Map of (browser ID, frame ID) to manager.
-  typedef std::map<std::pair<int, int64_t>, MultiQueryManager*> ManagerMap;
+  typedef std::map<std::pair<int, int64>, MultiQueryManager*> ManagerMap;
 
   // All managers that have been created.
   ManagerList all_managers_;
@@ -1614,7 +1614,7 @@ class MultiQueryMultiFrameTestHandler : public SingleLoadTestHandler,
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -1627,7 +1627,7 @@ class MultiQueryMultiFrameTestHandler : public SingleLoadTestHandler,
 
   void OnQueryCanceled(CefRefPtr<CefBrowser> browser,
                        CefRefPtr<CefFrame> frame,
-                       int64_t query_id) override {
+                       int64 query_id) override {
     AssertMainBrowser(browser);
     EXPECT_FALSE(frame->IsMain());
 
@@ -1755,7 +1755,7 @@ class MultiQueryMultiLoadTestHandler
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -1765,7 +1765,7 @@ class MultiQueryMultiLoadTestHandler
 
   void OnQueryCanceled(CefRefPtr<CefBrowser> browser,
                        CefRefPtr<CefFrame> frame,
-                       int64_t query_id) override {
+                       int64 query_id) override {
     manager_map_.OnQueryCanceled(browser, frame, query_id);
   }
 

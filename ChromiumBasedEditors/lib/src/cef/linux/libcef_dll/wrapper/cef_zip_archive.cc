@@ -77,13 +77,11 @@ size_t CefZipArchive::Load(CefRefPtr<CefStreamReader> stream,
   base::AutoLock lock_scope(lock_);
 
   CefRefPtr<CefZipReader> reader(CefZipReader::Create(stream));
-  if (!reader.get()) {
+  if (!reader.get())
     return 0;
-  }
 
-  if (!reader->MoveToFirstFile()) {
+  if (!reader->MoveToFirstFile())
     return 0;
-  }
 
   FileMap::iterator it;
   size_t count = 0;
@@ -95,25 +93,22 @@ size_t CefZipArchive::Load(CefRefPtr<CefStreamReader> stream,
       continue;
     }
 
-    if (!reader->OpenFile(password)) {
+    if (!reader->OpenFile(password))
       break;
-    }
 
     const CefString& name = ToLower(reader->GetFileName());
 
     it = contents_.find(name);
     if (it != contents_.end()) {
-      if (overwriteExisting) {
+      if (overwriteExisting)
         contents_.erase(it);
-      } else {  // Skip files that already exist.
+      else  // Skip files that already exist.
         continue;
-      }
     }
 
     CefRefPtr<CefZipFile> contents = new CefZipFile();
-    if (!contents->Initialize(size)) {
+    if (!contents->Initialize(size))
       continue;
-    }
     unsigned char* data = contents->data();
     size_t offset = 0;
 
@@ -154,9 +149,8 @@ CefRefPtr<CefZipArchive::File> CefZipArchive::GetFile(
     const CefString& fileName) const {
   base::AutoLock lock_scope(lock_);
   FileMap::const_iterator it = contents_.find(ToLower(fileName));
-  if (it != contents_.end()) {
+  if (it != contents_.end())
     return it->second;
-  }
   return nullptr;
 }
 

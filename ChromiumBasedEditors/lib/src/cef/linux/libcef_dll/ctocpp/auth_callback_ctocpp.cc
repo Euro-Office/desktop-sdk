@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=eef2f0ecf9926338406fd0adb69827f075a417b5$
+// $hash=649e6bf4bee8333feee6e41213c5ceb38420e33e$
 //
 
 #include "libcef_dll/ctocpp/auth_callback_ctocpp.h"
@@ -23,9 +23,8 @@ void CefAuthCallbackCToCpp::Continue(const CefString& username,
   shutdown_checker::AssertNotShutdown();
 
   cef_auth_callback_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, cont)) {
+  if (CEF_MEMBER_MISSING(_struct, cont))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -39,9 +38,8 @@ NO_SANITIZE("cfi-icall") void CefAuthCallbackCToCpp::Cancel() {
   shutdown_checker::AssertNotShutdown();
 
   cef_auth_callback_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, cancel)) {
+  if (CEF_MEMBER_MISSING(_struct, cancel))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -65,7 +63,7 @@ CefCToCppRefCounted<CefAuthCallbackCToCpp,
                     CefAuthCallback,
                     cef_auth_callback_t>::UnwrapDerived(CefWrapperType type,
                                                         CefAuthCallback* c) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

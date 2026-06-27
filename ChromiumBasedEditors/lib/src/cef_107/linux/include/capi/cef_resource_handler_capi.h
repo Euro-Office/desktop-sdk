@@ -67,7 +67,7 @@ typedef struct _cef_resource_skip_callback_t {
   /// 0 the request will fail with ERR_REQUEST_RANGE_NOT_SATISFIABLE.
   ///
   void(CEF_CALLBACK* cont)(struct _cef_resource_skip_callback_t* self,
-                           int64_t bytes_skipped);
+                           int64 bytes_skipped);
 } cef_resource_skip_callback_t;
 
 ///
@@ -146,7 +146,7 @@ typedef struct _cef_resource_handler_t {
   ///
   void(CEF_CALLBACK* get_response_headers)(struct _cef_resource_handler_t* self,
                                            struct _cef_response_t* response,
-                                           int64_t* response_length,
+                                           int64* response_length,
                                            cef_string_t* redirectUrl);
 
   ///
@@ -159,8 +159,8 @@ typedef struct _cef_resource_handler_t {
   /// function will be called in sequence but not from a dedicated thread.
   ///
   int(CEF_CALLBACK* skip)(struct _cef_resource_handler_t* self,
-                          int64_t bytes_to_skip,
-                          int64_t* bytes_skipped,
+                          int64 bytes_to_skip,
+                          int64* bytes_skipped,
                           struct _cef_resource_skip_callback_t* callback);
 
   ///

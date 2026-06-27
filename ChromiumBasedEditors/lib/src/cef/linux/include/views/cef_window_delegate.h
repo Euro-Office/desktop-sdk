@@ -85,19 +85,6 @@ class CefWindowDelegate : public CefPanelDelegate {
                                      const CefRect& new_bounds) {}
 
   ///
-  /// Called when |window| is transitioning to or from fullscreen mode. On MacOS
-  /// the transition occurs asynchronously with |is_competed| set to false when
-  /// the transition starts and true after the transition completes. On other
-  /// platforms the transition occurs synchronously with |is_completed| set to
-  /// true after the transition completes. With the Alloy runtime you must also
-  /// implement CefDisplayHandler::OnFullscreenModeChange to handle fullscreen
-  /// transitions initiated by browser content.
-  ///
-  /*--cef()--*/
-  virtual void OnWindowFullscreenTransition(CefRefPtr<CefWindow> window,
-                                            bool is_completed) {}
-
-  ///
   /// Return the parent for |window| or NULL if the |window| does not have a
   /// parent. Windows with parents will not get a taskbar button. Set |is_menu|
   /// to true if |window| will be displayed as a menu, in which case it will not
@@ -110,19 +97,6 @@ class CefWindowDelegate : public CefPanelDelegate {
                                                bool* is_menu,
                                                bool* can_activate_menu) {
     return nullptr;
-  }
-
-  ///
-  /// Return true if |window| should be created as a window modal dialog. Only
-  /// called when a Window is returned via GetParentWindow() with |is_menu| set
-  /// to false. All controls in the parent Window will be disabled while
-  /// |window| is visible. This functionality is not supported by all Linux
-  /// window managers. Alternately, use CefWindow::ShowAsBrowserModalDialog()
-  /// for a browser modal dialog that works on all platforms.
-  ///
-  /*--cef()--*/
-  virtual bool IsWindowModalDialog(CefRefPtr<CefWindow> window) {
-    return false;
   }
 
   ///
@@ -153,29 +127,6 @@ class CefWindowDelegate : public CefPanelDelegate {
   ///
   /*--cef()--*/
   virtual bool IsFrameless(CefRefPtr<CefWindow> window) { return false; }
-
-  ///
-  /// Return true if |window| should be created with standard window buttons
-  /// like close, minimize and zoom. This method is only supported on macOS.
-  ///
-  /*--cef()--*/
-  virtual bool WithStandardWindowButtons(CefRefPtr<CefWindow> window) {
-    return !IsFrameless(window);
-  }
-
-  ///
-  /// Return whether the titlebar height should be overridden,
-  /// and sets the height of the titlebar in |titlebar_height|.
-  /// On macOS, it can also be used to adjust the vertical position
-  /// of the traffic light buttons in frameless windows.
-  /// The buttons will be positioned halfway down the titlebar
-  /// at a height of |titlebar_height| / 2.
-  ///
-  /*--cef()--*/
-  virtual bool GetTitlebarHeight(CefRefPtr<CefWindow> window,
-                                 float* titlebar_height) {
-    return false;
-  }
 
   ///
   /// Return true if |window| can be resized.

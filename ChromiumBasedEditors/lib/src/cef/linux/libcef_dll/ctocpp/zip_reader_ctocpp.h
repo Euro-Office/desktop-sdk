@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=dabe033a06945fda9a2b61b7001df3e2cd219877$
+// $hash=607dfcaa8f19f7510fc4f87fc31a8754369fdc3a$
 //
 
 #ifndef CEF_LIBCEF_DLL_CTOCPP_ZIP_READER_CTOCPP_H_
@@ -39,12 +39,12 @@ class CefZipReaderCToCpp : public CefCToCppRefCounted<CefZipReaderCToCpp,
   bool MoveToFile(const CefString& fileName, bool caseSensitive) override;
   bool Close() override;
   CefString GetFileName() override;
-  int64_t GetFileSize() override;
+  int64 GetFileSize() override;
   CefBaseTime GetFileLastModified() override;
   bool OpenFile(const CefString& password) override;
   bool CloseFile() override;
   int ReadFile(void* buffer, size_t bufferSize) override;
-  int64_t Tell() override;
+  int64 Tell() override;
   bool Eof() override;
 };
 

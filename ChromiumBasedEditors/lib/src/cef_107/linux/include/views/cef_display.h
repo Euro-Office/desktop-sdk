@@ -109,7 +109,7 @@ class CefDisplay : public CefBaseRefCounted {
   /// Returns the unique identifier for this Display.
   ///
   /*--cef()--*/
-  virtual int64_t GetID() = 0;
+  virtual int64 GetID() = 0;
 
   ///
   /// Returns this Display's device pixel scale factor. This specifies how much

@@ -124,10 +124,8 @@ class ServerHandler : public CefServerHandler {
       return;
     }
 
-    if (!server->IsValidConnection(connection_id)) {
-      // This can occur if the connected browser has already closed.
-      return;
-    }
+    // No response should be sent yet.
+    EXPECT_TRUE(server->IsValidConnection(connection_id));
 
     const int response_code = response->GetStatus();
     if (response_code <= 0) {
@@ -136,7 +134,7 @@ class ServerHandler : public CefServerHandler {
     }
 
     const CefString& content_type = response->GetMimeType();
-    int64_t content_length = static_cast<int64_t>(response_data.size());
+    int64 content_length = static_cast<int64>(response_data.size());
 
     CefResponse::HeaderMap extra_headers;
     response->GetHeaderMap(extra_headers);

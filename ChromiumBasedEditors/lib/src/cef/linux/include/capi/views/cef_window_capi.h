@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2023 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,7 +33,7 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=6078993477d8e0570528593193ec06efbfd0843c$
+// $hash=04aa6e193cc5d5658c0ef28a42c0777c0a955409$
 //
 
 #ifndef CEF_INCLUDE_CAPI_VIEWS_CEF_WINDOW_CAPI_H_
@@ -50,8 +50,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-struct _cef_browser_view_t;
 
 ///
 /// A Window is a top-level Window/widget in the Views hierarchy. By default it
@@ -70,21 +68,6 @@ typedef struct _cef_window_t {
   /// Show the Window.
   ///
   void(CEF_CALLBACK* show)(struct _cef_window_t* self);
-
-  ///
-  /// Show the Window as a browser modal dialog relative to |browser_view|. A
-  /// parent Window must be returned via
-  /// cef_window_delegate_t::get_parent_window() and |browser_view| must belong
-  /// to that parent Window. While this Window is visible, |browser_view| will
-  /// be disabled while other controls in the parent Window remain enabled.
-  /// Navigating or destroying the |browser_view| will close this Window
-  /// automatically. Alternately, use show() and return true (1) from
-  /// cef_window_delegate_t::is_window_modal_dialog() for a window modal dialog
-  /// where all controls in the parent Window are disabled.
-  ///
-  void(CEF_CALLBACK* show_as_browser_modal_dialog)(
-      struct _cef_window_t* self,
-      struct _cef_browser_view_t* browser_view);
 
   ///
   /// Hide the Window.
@@ -155,9 +138,7 @@ typedef struct _cef_window_t {
   void(CEF_CALLBACK* restore)(struct _cef_window_t* self);
 
   ///
-  /// Set fullscreen Window state. The
-  /// cef_window_delegate_t::OnWindowFullscreenTransition function will be
-  /// called during the fullscreen transition for notification purposes.
+  /// Set fullscreen Window state.
   ///
   void(CEF_CALLBACK* set_fullscreen)(struct _cef_window_t* self,
                                      int fullscreen);
@@ -305,7 +286,7 @@ typedef struct _cef_window_t {
   ///
   void(CEF_CALLBACK* send_key_press)(struct _cef_window_t* self,
                                      int key_code,
-                                     uint32_t event_flags);
+                                     uint32 event_flags);
 
   ///
   /// Simulate a mouse move. The mouse cursor will be moved to the specified
@@ -332,25 +313,16 @@ typedef struct _cef_window_t {
 
   ///
   /// Set the keyboard accelerator for the specified |command_id|. |key_code|
-  /// can be any virtual key or character value. Required modifier keys are
-  /// specified by |shift_pressed|, |ctrl_pressed| and/or |alt_pressed|.
+  /// can be any virtual key or character value.
   /// cef_window_delegate_t::OnAccelerator will be called if the keyboard
   /// combination is triggered while this window has focus.
-  ///
-  /// The |high_priority| value will be considered if a child cef_browser_view_t
-  /// has focus when the keyboard combination is triggered. If |high_priority|
-  /// is true (1) then the key event will not be forwarded to the web content
-  /// (`keydown` event handler) or cef_keyboard_handler_t first. If
-  /// |high_priority| is false (0) then the behavior will depend on the
-  /// cef_browser_view_t::SetPreferAccelerators configuration.
   ///
   void(CEF_CALLBACK* set_accelerator)(struct _cef_window_t* self,
                                       int command_id,
                                       int key_code,
                                       int shift_pressed,
                                       int ctrl_pressed,
-                                      int alt_pressed,
-                                      int high_priority);
+                                      int alt_pressed);
 
   ///
   /// Remove the keyboard accelerator for the specified |command_id|.

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=d9d0689947b6b9b85f65188ffeff60212563a2da$
+// $hash=7426be91c0a1a5d650b24d18f23cc5f559c9971e$
 //
 
 #include "libcef_dll/cpptoc/domvisitor_cpptoc.h"
@@ -27,14 +27,12 @@ void CEF_CALLBACK domvisitor_visit(struct _cef_domvisitor_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: document; type: refptr_diff
   DCHECK(document);
-  if (!document) {
+  if (!document)
     return;
-  }
 
   // Execute
   CefDOMVisitorCppToC::Get(self)->Visit(CefDOMDocumentCToCpp::Wrap(document));
@@ -58,7 +56,7 @@ template <>
 CefRefPtr<CefDOMVisitor>
 CefCppToCRefCounted<CefDOMVisitorCppToC, CefDOMVisitor, cef_domvisitor_t>::
     UnwrapDerived(CefWrapperType type, cef_domvisitor_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

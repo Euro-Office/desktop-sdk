@@ -95,7 +95,7 @@ typedef struct _cef_zip_reader_t {
   ///
   /// Returns the uncompressed size of the file.
   ///
-  int64_t(CEF_CALLBACK* get_file_size)(struct _cef_zip_reader_t* self);
+  int64(CEF_CALLBACK* get_file_size)(struct _cef_zip_reader_t* self);
 
   ///
   /// Returns the last modified timestamp for the file.
@@ -126,7 +126,7 @@ typedef struct _cef_zip_reader_t {
   ///
   /// Returns the current offset in the uncompressed file contents.
   ///
-  int64_t(CEF_CALLBACK* tell)(struct _cef_zip_reader_t* self);
+  int64(CEF_CALLBACK* tell)(struct _cef_zip_reader_t* self);
 
   ///
   /// Returns true (1) if at end of the file contents.

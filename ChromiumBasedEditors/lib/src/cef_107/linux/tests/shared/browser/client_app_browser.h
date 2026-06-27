@@ -62,7 +62,7 @@ class ClientAppBrowser : public ClientApp, public CefBrowserProcessHandler {
   void OnContextInitialized() override;
   void OnBeforeChildProcessLaunch(
       CefRefPtr<CefCommandLine> command_line) override;
-  void OnScheduleMessagePumpWork(int64_t delay) override;
+  void OnScheduleMessagePumpWork(int64 delay) override;
 
   // Set of supported Delegates.
   DelegateSet delegates_;

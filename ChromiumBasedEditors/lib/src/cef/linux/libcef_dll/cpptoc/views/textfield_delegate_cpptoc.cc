@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=e0a80958b419a73b1f57655ef19f4aa7064bd19d$
+// $hash=b56864ba432849990b0208360799ff5c7689e4b3$
 //
 
 #include "libcef_dll/cpptoc/views/textfield_delegate_cpptoc.h"
@@ -30,19 +30,16 @@ textfield_delegate_on_key_event(struct _cef_textfield_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: textfield; type: refptr_diff
   DCHECK(textfield);
-  if (!textfield) {
+  if (!textfield)
     return 0;
-  }
   // Verify param: event; type: simple_byref_const
   DCHECK(event);
-  if (!event) {
+  if (!event)
     return 0;
-  }
 
   // Translate param: event; type: simple_byref_const
   CefKeyEvent eventVal = event ? *event : CefKeyEvent();
@@ -63,14 +60,12 @@ textfield_delegate_on_after_user_action(struct _cef_textfield_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: textfield; type: refptr_diff
   DCHECK(textfield);
-  if (!textfield) {
+  if (!textfield)
     return;
-  }
 
   // Execute
   CefTextfieldDelegateCppToC::Get(self)->OnAfterUserAction(
@@ -85,14 +80,12 @@ textfield_delegate_get_preferred_size(struct _cef_view_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return CefSize();
-  }
   // Verify param: view; type: refptr_diff
   DCHECK(view);
-  if (!view) {
+  if (!view)
     return CefSize();
-  }
 
   // Execute
   cef_size_t _retval = CefTextfieldDelegateCppToC::Get(
@@ -111,14 +104,12 @@ textfield_delegate_get_minimum_size(struct _cef_view_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return CefSize();
-  }
   // Verify param: view; type: refptr_diff
   DCHECK(view);
-  if (!view) {
+  if (!view)
     return CefSize();
-  }
 
   // Execute
   cef_size_t _retval = CefTextfieldDelegateCppToC::Get(
@@ -137,14 +128,12 @@ textfield_delegate_get_maximum_size(struct _cef_view_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return CefSize();
-  }
   // Verify param: view; type: refptr_diff
   DCHECK(view);
-  if (!view) {
+  if (!view)
     return CefSize();
-  }
 
   // Execute
   cef_size_t _retval = CefTextfieldDelegateCppToC::Get(
@@ -164,14 +153,12 @@ textfield_delegate_get_height_for_width(struct _cef_view_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: view; type: refptr_diff
   DCHECK(view);
-  if (!view) {
+  if (!view)
     return 0;
-  }
 
   // Execute
   int _retval = CefTextfieldDelegateCppToC::Get(
@@ -192,19 +179,16 @@ textfield_delegate_on_parent_view_changed(struct _cef_view_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: view; type: refptr_diff
   DCHECK(view);
-  if (!view) {
+  if (!view)
     return;
-  }
   // Verify param: parent; type: refptr_diff
   DCHECK(parent);
-  if (!parent) {
+  if (!parent)
     return;
-  }
 
   // Execute
   CefTextfieldDelegateCppToC::Get(
@@ -223,19 +207,16 @@ textfield_delegate_on_child_view_changed(struct _cef_view_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: view; type: refptr_diff
   DCHECK(view);
-  if (!view) {
+  if (!view)
     return;
-  }
   // Verify param: child; type: refptr_diff
   DCHECK(child);
-  if (!child) {
+  if (!child)
     return;
-  }
 
   // Execute
   CefTextfieldDelegateCppToC::Get(
@@ -253,14 +234,12 @@ textfield_delegate_on_window_changed(struct _cef_view_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: view; type: refptr_diff
   DCHECK(view);
-  if (!view) {
+  if (!view)
     return;
-  }
 
   // Execute
   CefTextfieldDelegateCppToC::Get(
@@ -277,19 +256,16 @@ textfield_delegate_on_layout_changed(struct _cef_view_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: view; type: refptr_diff
   DCHECK(view);
-  if (!view) {
+  if (!view)
     return;
-  }
   // Verify param: new_bounds; type: simple_byref_const
   DCHECK(new_bounds);
-  if (!new_bounds) {
+  if (!new_bounds)
     return;
-  }
 
   // Translate param: new_bounds; type: simple_byref_const
   CefRect new_boundsVal = new_bounds ? *new_bounds : CefRect();
@@ -307,14 +283,12 @@ void CEF_CALLBACK textfield_delegate_on_focus(struct _cef_view_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: view; type: refptr_diff
   DCHECK(view);
-  if (!view) {
+  if (!view)
     return;
-  }
 
   // Execute
   CefTextfieldDelegateCppToC::Get(
@@ -329,14 +303,12 @@ void CEF_CALLBACK textfield_delegate_on_blur(struct _cef_view_delegate_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: view; type: refptr_diff
   DCHECK(view);
-  if (!view) {
+  if (!view)
     return;
-  }
 
   // Execute
   CefTextfieldDelegateCppToC::Get(
@@ -378,7 +350,7 @@ CefRefPtr<CefTextfieldDelegate> CefCppToCRefCounted<
     CefTextfieldDelegate,
     cef_textfield_delegate_t>::UnwrapDerived(CefWrapperType type,
                                              cef_textfield_delegate_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

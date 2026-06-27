@@ -213,15 +213,13 @@ void RunLabelButtonClick(bool with_text,
   EXPECT_TRUE(button->IsVisible());
   EXPECT_FALSE(button->IsDrawn());
 
-  if (with_text) {
+  if (with_text)
     EXPECT_STREQ(kButtonText, button->GetText().ToString().c_str());
-  } else {
+  else
     EXPECT_TRUE(button->GetText().empty());
-  }
 
-  if (with_image) {
+  if (with_image)
     AddImage(button);
-  }
 
   window->AddChildView(button);
   window->Layout();
@@ -451,15 +449,13 @@ void RunMenuButtonClick(bool with_text,
   EXPECT_TRUE(button->IsVisible());
   EXPECT_FALSE(button->IsDrawn());
 
-  if (with_text) {
+  if (with_text)
     EXPECT_STREQ(kButtonText, button->GetText().ToString().c_str());
-  } else {
+  else
     EXPECT_TRUE(button->GetText().empty());
-  }
 
-  if (with_image) {
+  if (with_image)
     AddImage(button);
-  }
 
   window->AddChildView(button);
   window->Layout();
@@ -599,11 +595,10 @@ class TestMenuButtonCustomPopupDelegate : public CefMenuButtonDelegate,
   }
 
   void OnWindowDestroyed(CefRefPtr<CefWindow> window) override {
-    if (can_activate_) {
+    if (can_activate_)
       EXPECT_TRUE(got_focus_);
-    } else {
+    else
       EXPECT_FALSE(got_focus_);
-    }
 
     // Complete the test by closing the parent window.
     parent_window_->Close();

@@ -49,8 +49,8 @@ class CefV8ValueCToCpp
   bool IsFunction() override;
   bool IsSame(CefRefPtr<CefV8Value> that) override;
   bool GetBoolValue() override;
-  int32_t GetIntValue() override;
-  uint32_t GetUIntValue() override;
+  int32 GetIntValue() override;
+  uint32 GetUIntValue() override;
   double GetDoubleValue() override;
   CefBaseTime GetDateValue() override;
   CefString GetStringValue() override;

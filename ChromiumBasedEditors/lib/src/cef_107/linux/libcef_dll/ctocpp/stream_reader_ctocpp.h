@@ -35,8 +35,8 @@ class CefStreamReaderCToCpp : public CefCToCppRefCounted<CefStreamReaderCToCpp,
 
   // CefStreamReader methods.
   size_t Read(void* ptr, size_t size, size_t n) override;
-  int Seek(int64_t offset, int whence) override;
-  int64_t Tell() override;
+  int Seek(int64 offset, int whence) override;
+  int64 Tell() override;
   int Eof() override;
   bool MayBlock() override;
 };

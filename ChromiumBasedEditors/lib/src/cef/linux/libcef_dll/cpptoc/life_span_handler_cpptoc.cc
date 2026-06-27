@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=3883fd2aca10df181da30759fcce351fed62d43d$
+// $hash=89f85339fcb275b39566ce06474786b7e7d275f5$
 //
 
 #include "libcef_dll/cpptoc/life_span_handler_cpptoc.h"
@@ -43,57 +43,48 @@ int CEF_CALLBACK life_span_handler_on_before_popup(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: frame; type: refptr_diff
   DCHECK(frame);
-  if (!frame) {
+  if (!frame)
     return 0;
-  }
   // Verify param: popupFeatures; type: simple_byref_const
   DCHECK(popupFeatures);
-  if (!popupFeatures) {
+  if (!popupFeatures)
     return 0;
-  }
   // Verify param: windowInfo; type: struct_byref
   DCHECK(windowInfo);
-  if (!windowInfo) {
+  if (!windowInfo)
     return 0;
-  }
   if (!template_util::has_valid_size(windowInfo)) {
-    DCHECK(false) << "invalid windowInfo->[base.]size";
+    NOTREACHED() << "invalid windowInfo->[base.]size";
     return 0;
   }
   // Verify param: client; type: refptr_same_byref
   DCHECK(client);
-  if (!client) {
+  if (!client)
     return 0;
-  }
   // Verify param: settings; type: struct_byref
   DCHECK(settings);
-  if (!settings) {
+  if (!settings)
     return 0;
-  }
   if (!template_util::has_valid_size(settings)) {
-    DCHECK(false) << "invalid settings->[base.]size";
+    NOTREACHED() << "invalid settings->[base.]size";
     return 0;
   }
   // Verify param: extra_info; type: refptr_diff_byref
   DCHECK(extra_info);
-  if (!extra_info) {
+  if (!extra_info)
     return 0;
-  }
   // Verify param: no_javascript_access; type: bool_byaddr
   DCHECK(no_javascript_access);
-  if (!no_javascript_access) {
+  if (!no_javascript_access)
     return 0;
-  }
   // Unverified params: target_url, target_frame_name
 
   // Translate param: popupFeatures; type: simple_byref_const
@@ -101,25 +92,21 @@ int CEF_CALLBACK life_span_handler_on_before_popup(
       popupFeatures ? *popupFeatures : CefPopupFeatures();
   // Translate param: windowInfo; type: struct_byref
   CefWindowInfo windowInfoObj;
-  if (windowInfo) {
+  if (windowInfo)
     windowInfoObj.AttachTo(*windowInfo);
-  }
   // Translate param: client; type: refptr_same_byref
   CefRefPtr<CefClient> clientPtr;
-  if (client && *client) {
+  if (client && *client)
     clientPtr = CefClientCppToC::Unwrap(*client);
-  }
   CefClient* clientOrig = clientPtr.get();
   // Translate param: settings; type: struct_byref
   CefBrowserSettings settingsObj;
-  if (settings) {
+  if (settings)
     settingsObj.AttachTo(*settings);
-  }
   // Translate param: extra_info; type: refptr_diff_byref
   CefRefPtr<CefDictionaryValue> extra_infoPtr;
-  if (extra_info && *extra_info) {
+  if (extra_info && *extra_info)
     extra_infoPtr = CefDictionaryValueCToCpp::Wrap(*extra_info);
-  }
   CefDictionaryValue* extra_infoOrig = extra_infoPtr.get();
   // Translate param: no_javascript_access; type: bool_byaddr
   bool no_javascript_accessBool =
@@ -133,9 +120,8 @@ int CEF_CALLBACK life_span_handler_on_before_popup(
       settingsObj, extra_infoPtr, &no_javascript_accessBool);
 
   // Restore param: windowInfo; type: struct_byref
-  if (windowInfo) {
+  if (windowInfo)
     windowInfoObj.DetachTo(*windowInfo);
-  }
   // Restore param: client; type: refptr_same_byref
   if (client) {
     if (clientPtr.get()) {
@@ -147,9 +133,8 @@ int CEF_CALLBACK life_span_handler_on_before_popup(
     }
   }
   // Restore param: settings; type: struct_byref
-  if (settings) {
+  if (settings)
     settingsObj.DetachTo(*settings);
-  }
   // Restore param: extra_info; type: refptr_diff_byref
   if (extra_info) {
     if (extra_infoPtr.get()) {
@@ -161,132 +146,11 @@ int CEF_CALLBACK life_span_handler_on_before_popup(
     }
   }
   // Restore param: no_javascript_access; type: bool_byaddr
-  if (no_javascript_access) {
+  if (no_javascript_access)
     *no_javascript_access = no_javascript_accessBool ? true : false;
-  }
 
   // Return type: bool
   return _retval;
-}
-
-void CEF_CALLBACK life_span_handler_on_before_dev_tools_popup(
-    struct _cef_life_span_handler_t* self,
-    cef_browser_t* browser,
-    cef_window_info_t* windowInfo,
-    cef_client_t** client,
-    struct _cef_browser_settings_t* settings,
-    struct _cef_dictionary_value_t** extra_info,
-    int* use_default_window) {
-  shutdown_checker::AssertNotShutdown();
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  DCHECK(self);
-  if (!self) {
-    return;
-  }
-  // Verify param: browser; type: refptr_diff
-  DCHECK(browser);
-  if (!browser) {
-    return;
-  }
-  // Verify param: windowInfo; type: struct_byref
-  DCHECK(windowInfo);
-  if (!windowInfo) {
-    return;
-  }
-  if (!template_util::has_valid_size(windowInfo)) {
-    DCHECK(false) << "invalid windowInfo->[base.]size";
-    return;
-  }
-  // Verify param: client; type: refptr_same_byref
-  DCHECK(client);
-  if (!client) {
-    return;
-  }
-  // Verify param: settings; type: struct_byref
-  DCHECK(settings);
-  if (!settings) {
-    return;
-  }
-  if (!template_util::has_valid_size(settings)) {
-    DCHECK(false) << "invalid settings->[base.]size";
-    return;
-  }
-  // Verify param: extra_info; type: refptr_diff_byref
-  DCHECK(extra_info);
-  if (!extra_info) {
-    return;
-  }
-  // Verify param: use_default_window; type: bool_byaddr
-  DCHECK(use_default_window);
-  if (!use_default_window) {
-    return;
-  }
-
-  // Translate param: windowInfo; type: struct_byref
-  CefWindowInfo windowInfoObj;
-  if (windowInfo) {
-    windowInfoObj.AttachTo(*windowInfo);
-  }
-  // Translate param: client; type: refptr_same_byref
-  CefRefPtr<CefClient> clientPtr;
-  if (client && *client) {
-    clientPtr = CefClientCppToC::Unwrap(*client);
-  }
-  CefClient* clientOrig = clientPtr.get();
-  // Translate param: settings; type: struct_byref
-  CefBrowserSettings settingsObj;
-  if (settings) {
-    settingsObj.AttachTo(*settings);
-  }
-  // Translate param: extra_info; type: refptr_diff_byref
-  CefRefPtr<CefDictionaryValue> extra_infoPtr;
-  if (extra_info && *extra_info) {
-    extra_infoPtr = CefDictionaryValueCToCpp::Wrap(*extra_info);
-  }
-  CefDictionaryValue* extra_infoOrig = extra_infoPtr.get();
-  // Translate param: use_default_window; type: bool_byaddr
-  bool use_default_windowBool =
-      (use_default_window && *use_default_window) ? true : false;
-
-  // Execute
-  CefLifeSpanHandlerCppToC::Get(self)->OnBeforeDevToolsPopup(
-      CefBrowserCToCpp::Wrap(browser), windowInfoObj, clientPtr, settingsObj,
-      extra_infoPtr, &use_default_windowBool);
-
-  // Restore param: windowInfo; type: struct_byref
-  if (windowInfo) {
-    windowInfoObj.DetachTo(*windowInfo);
-  }
-  // Restore param: client; type: refptr_same_byref
-  if (client) {
-    if (clientPtr.get()) {
-      if (clientPtr.get() != clientOrig) {
-        *client = CefClientCppToC::Wrap(clientPtr);
-      }
-    } else {
-      *client = nullptr;
-    }
-  }
-  // Restore param: settings; type: struct_byref
-  if (settings) {
-    settingsObj.DetachTo(*settings);
-  }
-  // Restore param: extra_info; type: refptr_diff_byref
-  if (extra_info) {
-    if (extra_infoPtr.get()) {
-      if (extra_infoPtr.get() != extra_infoOrig) {
-        *extra_info = CefDictionaryValueCToCpp::Unwrap(extra_infoPtr);
-      }
-    } else {
-      *extra_info = nullptr;
-    }
-  }
-  // Restore param: use_default_window; type: bool_byaddr
-  if (use_default_window) {
-    *use_default_window = use_default_windowBool ? true : false;
-  }
 }
 
 void CEF_CALLBACK
@@ -297,14 +161,12 @@ life_span_handler_on_after_created(struct _cef_life_span_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
 
   // Execute
   CefLifeSpanHandlerCppToC::Get(self)->OnAfterCreated(
@@ -319,14 +181,12 @@ life_span_handler_do_close(struct _cef_life_span_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
 
   // Execute
   bool _retval = CefLifeSpanHandlerCppToC::Get(self)->DoClose(
@@ -344,14 +204,12 @@ life_span_handler_on_before_close(struct _cef_life_span_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
 
   // Execute
   CefLifeSpanHandlerCppToC::Get(self)->OnBeforeClose(
@@ -364,8 +222,6 @@ life_span_handler_on_before_close(struct _cef_life_span_handler_t* self,
 
 CefLifeSpanHandlerCppToC::CefLifeSpanHandlerCppToC() {
   GetStruct()->on_before_popup = life_span_handler_on_before_popup;
-  GetStruct()->on_before_dev_tools_popup =
-      life_span_handler_on_before_dev_tools_popup;
   GetStruct()->on_after_created = life_span_handler_on_after_created;
   GetStruct()->do_close = life_span_handler_do_close;
   GetStruct()->on_before_close = life_span_handler_on_before_close;
@@ -383,7 +239,7 @@ CefRefPtr<CefLifeSpanHandler> CefCppToCRefCounted<
     CefLifeSpanHandler,
     cef_life_span_handler_t>::UnwrapDerived(CefWrapperType type,
                                             cef_life_span_handler_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

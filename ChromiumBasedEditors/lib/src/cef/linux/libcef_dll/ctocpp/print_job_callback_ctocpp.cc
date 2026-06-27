@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=95a30459a8c409beef0f72b5301b0ee655240126$
+// $hash=a3bb609c6cbc5d38d8359a427664780c8e8a5625$
 //
 
 #include "libcef_dll/ctocpp/print_job_callback_ctocpp.h"
@@ -21,9 +21,8 @@ NO_SANITIZE("cfi-icall") void CefPrintJobCallbackCToCpp::Continue() {
   shutdown_checker::AssertNotShutdown();
 
   cef_print_job_callback_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, cont)) {
+  if (CEF_MEMBER_MISSING(_struct, cont))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -47,7 +46,7 @@ cef_print_job_callback_t* CefCToCppRefCounted<
     CefPrintJobCallback,
     cef_print_job_callback_t>::UnwrapDerived(CefWrapperType type,
                                              CefPrintJobCallback* c) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

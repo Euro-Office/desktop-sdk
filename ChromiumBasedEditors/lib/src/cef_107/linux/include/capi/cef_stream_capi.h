@@ -70,13 +70,13 @@ typedef struct _cef_read_handler_t {
   /// failure.
   ///
   int(CEF_CALLBACK* seek)(struct _cef_read_handler_t* self,
-                          int64_t offset,
+                          int64 offset,
                           int whence);
 
   ///
   /// Return the current offset position.
   ///
-  int64_t(CEF_CALLBACK* tell)(struct _cef_read_handler_t* self);
+  int64(CEF_CALLBACK* tell)(struct _cef_read_handler_t* self);
 
   ///
   /// Return non-zero if at end of file.
@@ -115,13 +115,13 @@ typedef struct _cef_stream_reader_t {
   /// failure.
   ///
   int(CEF_CALLBACK* seek)(struct _cef_stream_reader_t* self,
-                          int64_t offset,
+                          int64 offset,
                           int whence);
 
   ///
   /// Return the current offset position.
   ///
-  int64_t(CEF_CALLBACK* tell)(struct _cef_stream_reader_t* self);
+  int64(CEF_CALLBACK* tell)(struct _cef_stream_reader_t* self);
 
   ///
   /// Return non-zero if at end of file.
@@ -178,13 +178,13 @@ typedef struct _cef_write_handler_t {
   /// failure.
   ///
   int(CEF_CALLBACK* seek)(struct _cef_write_handler_t* self,
-                          int64_t offset,
+                          int64 offset,
                           int whence);
 
   ///
   /// Return the current offset position.
   ///
-  int64_t(CEF_CALLBACK* tell)(struct _cef_write_handler_t* self);
+  int64(CEF_CALLBACK* tell)(struct _cef_write_handler_t* self);
 
   ///
   /// Flush the stream.
@@ -223,13 +223,13 @@ typedef struct _cef_stream_writer_t {
   /// failure.
   ///
   int(CEF_CALLBACK* seek)(struct _cef_stream_writer_t* self,
-                          int64_t offset,
+                          int64 offset,
                           int whence);
 
   ///
   /// Return the current offset position.
   ///
-  int64_t(CEF_CALLBACK* tell)(struct _cef_stream_writer_t* self);
+  int64(CEF_CALLBACK* tell)(struct _cef_stream_writer_t* self);
 
   ///
   /// Flush the stream.

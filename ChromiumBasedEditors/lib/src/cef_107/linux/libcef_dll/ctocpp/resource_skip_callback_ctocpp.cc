@@ -18,7 +18,7 @@
 // VIRTUAL METHODS - Body may be edited by hand.
 
 NO_SANITIZE("cfi-icall")
-void CefResourceSkipCallbackCToCpp::Continue(int64_t bytes_skipped) {
+void CefResourceSkipCallbackCToCpp::Continue(int64 bytes_skipped) {
   shutdown_checker::AssertNotShutdown();
 
   cef_resource_skip_callback_t* _struct = GetStruct();

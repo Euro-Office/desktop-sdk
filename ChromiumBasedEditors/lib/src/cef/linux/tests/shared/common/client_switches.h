@@ -23,7 +23,6 @@ extern const char kSharedTextureEnabled[];
 extern const char kExternalBeginFrameEnabled[];
 extern const char kMouseCursorChangeDisabled[];
 extern const char kOffline[];
-extern const char kFilterChromeCommands[];
 extern const char kRequestContextPerBrowser[];
 extern const char kRequestContextSharedCache[];
 extern const char kBackgroundColor[];
@@ -43,14 +42,10 @@ extern const char kNoActivate[];
 extern const char kEnableChromeRuntime[];
 extern const char kShowChromeToolbar[];
 extern const char kInitialShowState[];
+extern const char kHideChromeStatusBubble[];
 extern const char kUseDefaultPopup[];
 extern const char kUseClientDialogs[];
 extern const char kUseTestHttpServer[];
-extern const char kShowWindowButtons[];
-extern const char kUseWindowModalDialog[];
-extern const char kUseBottomControls[];
-extern const char kHidePipFrame[];
-extern const char kHideChromeBubbles[];
 
 }  // namespace switches
 }  // namespace client

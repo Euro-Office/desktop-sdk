@@ -52,21 +52,11 @@ class ClientRequestContextHandler : public CefRequestContextHandler,
         std::string part;
         std::istringstream f(extension_path);
         while (getline(f, part, ';')) {
-          if (!part.empty()) {
+          if (!part.empty())
             extension_util::LoadExtension(request_context, part, this);
-          }
         }
       }
     }
-
-    // Allow the startup URL to create popups that bypass the popup blocker.
-    // For example, via Tests > New Popup from the top menu. This applies for
-    // for the Chrome runtime only.
-    const auto& startup_url =
-        MainContext::Get()->GetMainURL(/*command_line=*/nullptr);
-    request_context->SetContentSetting(startup_url, startup_url,
-                                       CEF_CONTENT_SETTING_TYPE_POPUPS,
-                                       CEF_CONTENT_SETTING_VALUE_ALLOW);
   }
 
   // CefExtensionHandler methods:
@@ -122,8 +112,8 @@ scoped_refptr<RootWindow> RootWindowManager::CreateRootWindow(
   CefBrowserSettings settings;
   MainContext::Get()->PopulateBrowserSettings(&settings);
 
-  scoped_refptr<RootWindow> root_window = RootWindow::Create(
-      MainContext::Get()->UseViews(), /*parent_window=*/nullptr);
+  scoped_refptr<RootWindow> root_window =
+      RootWindow::Create(MainContext::Get()->UseViews());
   root_window->Init(this, std::move(config), settings);
 
   // Store a reference to the root window on the main thread.
@@ -133,7 +123,6 @@ scoped_refptr<RootWindow> RootWindowManager::CreateRootWindow(
 }
 
 scoped_refptr<RootWindow> RootWindowManager::CreateRootWindowAsPopup(
-    scoped_refptr<RootWindow> parent_window,
     bool with_controls,
     bool with_osr,
     const CefPopupFeatures& popupFeatures,
@@ -157,11 +146,8 @@ scoped_refptr<RootWindow> RootWindowManager::CreateRootWindowAsPopup(
     temp_window_.reset(new TempWindow());
   }
 
-  const bool use_views = parent_window ? parent_window->IsViewsHosted()
-                                       : MainContext::Get()->UseViews();
-
   scoped_refptr<RootWindow> root_window =
-      RootWindow::Create(use_views, parent_window);
+      RootWindow::Create(MainContext::Get()->UseViews());
   root_window->InitAsPopup(this, with_controls, with_osr, popupFeatures,
                            windowInfo, client, settings);
 
@@ -188,9 +174,9 @@ scoped_refptr<RootWindow> RootWindowManager::CreateRootWindowAsExtension(
   // We'll show the window when the desired size becomes available via
   // ClientHandler::OnAutoResize.
   auto config = std::make_unique<RootWindowConfig>();
-  config->window_type = WindowType::EXTENSION;
   config->with_controls = with_controls;
   config->with_osr = with_osr;
+  config->with_extension = true;
   config->initially_hidden = true;
   config->source_bounds = source_bounds;
   config->parent_window = parent_window;
@@ -204,21 +190,18 @@ bool RootWindowManager::HasRootWindowAsExtension(
   REQUIRE_MAIN_THREAD();
 
   for (auto root_window : root_windows_) {
-    if (!root_window->WithExtension()) {
+    if (!root_window->WithExtension())
       continue;
-    }
 
     CefRefPtr<CefBrowser> browser = root_window->GetBrowser();
-    if (!browser) {
+    if (!browser)
       continue;
-    }
 
     CefRefPtr<CefExtension> browser_extension =
         browser->GetHost()->GetExtension();
     DCHECK(browser_extension);
-    if (browser_extension->GetIdentifier() == extension->GetIdentifier()) {
+    if (browser_extension->GetIdentifier() == extension->GetIdentifier())
       return true;
-    }
   }
 
   return false;
@@ -230,9 +213,8 @@ scoped_refptr<RootWindow> RootWindowManager::GetWindowForBrowser(
 
   for (auto root_window : root_windows_) {
     CefRefPtr<CefBrowser> browser = root_window->GetBrowser();
-    if (browser.get() && browser->GetIdentifier() == browser_id) {
+    if (browser.get() && browser->GetIdentifier() == browser_id)
       return root_window;
-    }
   }
   return nullptr;
 }
@@ -255,9 +237,8 @@ void RootWindowManager::CloseAllWindows(bool force) {
     return;
   }
 
-  if (root_windows_.empty()) {
+  if (root_windows_.empty())
     return;
-  }
 
   // Use a copy of |root_windows_| because the original set may be modified
   // in OnRootWindowDestroyed while iterating.
@@ -277,16 +258,14 @@ void RootWindowManager::AddExtension(CefRefPtr<CefExtension> extension) {
   }
 
   // Don't track extensions that can't be loaded directly.
-  if (extension_util::GetExtensionURL(extension).empty()) {
+  if (extension_util::GetExtensionURL(extension).empty())
     return;
-  }
 
   // Don't add the same extension multiple times.
   ExtensionSet::const_iterator it = extensions_.begin();
   for (; it != extensions_.end(); ++it) {
-    if ((*it)->GetIdentifier() == extension->GetIdentifier()) {
+    if ((*it)->GetIdentifier() == extension->GetIdentifier())
       return;
-    }
   }
 
   extensions_.insert(extension);
@@ -318,9 +297,8 @@ void RootWindowManager::NotifyExtensionsChanged() {
   REQUIRE_MAIN_THREAD();
 
   for (auto root_window : root_windows_) {
-    if (!root_window->WithExtension()) {
+    if (!root_window->WithExtension())
       root_window->OnExtensionsChanged(extensions_);
-    }
   }
 }
 
@@ -388,9 +366,8 @@ void RootWindowManager::OnRootWindowDestroyed(RootWindow* root_window) {
 
   RootWindowSet::iterator it = root_windows_.find(root_window);
   DCHECK(it != root_windows_.end());
-  if (it != root_windows_.end()) {
+  if (it != root_windows_.end())
     root_windows_.erase(it);
-  }
 
   if (root_window == active_root_window_) {
     active_root_window_ = nullptr;
@@ -414,9 +391,8 @@ void RootWindowManager::OnRootWindowActivated(RootWindow* root_window) {
     return;
   }
 
-  if (root_window == active_root_window_) {
+  if (root_window == active_root_window_)
     return;
-  }
 
   active_root_window_ = root_window;
 

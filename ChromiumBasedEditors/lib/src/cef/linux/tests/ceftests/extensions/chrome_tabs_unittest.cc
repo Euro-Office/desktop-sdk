@@ -52,11 +52,10 @@ class TabsTestHandler : public ExtensionTestHandler {
     EXPECT_FALSE(extension_);
     extension_ = extension;
 
-    if (create_main_browser_first_) {
+    if (create_main_browser_first_)
       CreateBrowserForExtensionIfReady();
-    } else {
+    else
       CreateBrowserForExtension();
-    }
   }
 
   void OnExtensionUnloaded(CefRefPtr<CefExtension> extension) override {
@@ -169,9 +168,8 @@ class TabsTestHandler : public ExtensionTestHandler {
       EXPECT_TRUE(browser->IsSame(main_browser_));
       EXPECT_FALSE(got_main_body_onload_);
       got_main_body_onload_.yes();
-      if (create_main_browser_first_) {
+      if (create_main_browser_first_)
         CreateBrowserForExtensionIfReady();
-      }
       TriggerTabsApiJSFunctionIfReady();
       return true;
     }
@@ -300,9 +298,8 @@ class TabsTestHandler : public ExtensionTestHandler {
  private:
   void CreateBrowserForExtensionIfReady() {
     DCHECK(create_main_browser_first_);
-    if (extension_ && main_browser_) {
+    if (extension_ && main_browser_)
       CreateBrowserForExtension();
-    }
   }
 
   void CreateBrowserForExtension() {
@@ -320,9 +317,8 @@ class TabsTestHandler : public ExtensionTestHandler {
   }
 
   void TriggerTabsApiJSFunctionIfReady() {
-    if (got_main_body_onload_ && got_extension_body_onload_) {
+    if (got_main_body_onload_ && got_extension_body_onload_)
       TriggerTabsApiJSFunction();
-    }
   }
 
   void TriggerTabsApiJSFunction() {
@@ -517,9 +513,8 @@ class CreateTestHandler : public TabsTestHandler {
   }
 
   void TriggerDestroyTestIfReady() {
-    if (got_tab_callback_message_ && got_success_message()) {
+    if (got_tab_callback_message_ && got_success_message())
       TriggerDestroyTest();
-    }
   }
 
   CefRefPtr<CefBrowser> created_browser_;

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=a92e5209291a403b3e9ebbddb79f4893c6c708f3$
+// $hash=fcaaaa6226f370716672939f3846d3361929d5ef$
 //
 
 #include "libcef_dll/ctocpp/context_menu_params_ctocpp.h"
@@ -22,9 +22,8 @@ NO_SANITIZE("cfi-icall") int CefContextMenuParamsCToCpp::GetXCoord() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_xcoord)) {
+  if (CEF_MEMBER_MISSING(_struct, get_xcoord))
     return 0;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -39,9 +38,8 @@ NO_SANITIZE("cfi-icall") int CefContextMenuParamsCToCpp::GetYCoord() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_ycoord)) {
+  if (CEF_MEMBER_MISSING(_struct, get_ycoord))
     return 0;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -57,9 +55,8 @@ CefContextMenuParams::TypeFlags CefContextMenuParamsCToCpp::GetTypeFlags() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_type_flags)) {
+  if (CEF_MEMBER_MISSING(_struct, get_type_flags))
     return CM_TYPEFLAG_NONE;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -74,9 +71,8 @@ NO_SANITIZE("cfi-icall") CefString CefContextMenuParamsCToCpp::GetLinkUrl() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_link_url)) {
+  if (CEF_MEMBER_MISSING(_struct, get_link_url))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -94,9 +90,8 @@ CefString CefContextMenuParamsCToCpp::GetUnfilteredLinkUrl() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_unfiltered_link_url)) {
+  if (CEF_MEMBER_MISSING(_struct, get_unfiltered_link_url))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -113,9 +108,8 @@ NO_SANITIZE("cfi-icall") CefString CefContextMenuParamsCToCpp::GetSourceUrl() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_source_url)) {
+  if (CEF_MEMBER_MISSING(_struct, get_source_url))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -132,9 +126,8 @@ NO_SANITIZE("cfi-icall") bool CefContextMenuParamsCToCpp::HasImageContents() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, has_image_contents)) {
+  if (CEF_MEMBER_MISSING(_struct, has_image_contents))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -149,9 +142,8 @@ NO_SANITIZE("cfi-icall") CefString CefContextMenuParamsCToCpp::GetTitleText() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_title_text)) {
+  if (CEF_MEMBER_MISSING(_struct, get_title_text))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -168,9 +160,8 @@ NO_SANITIZE("cfi-icall") CefString CefContextMenuParamsCToCpp::GetPageUrl() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_page_url)) {
+  if (CEF_MEMBER_MISSING(_struct, get_page_url))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -187,9 +178,8 @@ NO_SANITIZE("cfi-icall") CefString CefContextMenuParamsCToCpp::GetFrameUrl() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_frame_url)) {
+  if (CEF_MEMBER_MISSING(_struct, get_frame_url))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -207,9 +197,8 @@ CefString CefContextMenuParamsCToCpp::GetFrameCharset() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_frame_charset)) {
+  if (CEF_MEMBER_MISSING(_struct, get_frame_charset))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -227,9 +216,8 @@ CefContextMenuParams::MediaType CefContextMenuParamsCToCpp::GetMediaType() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_media_type)) {
+  if (CEF_MEMBER_MISSING(_struct, get_media_type))
     return CM_MEDIATYPE_NONE;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -246,9 +234,8 @@ CefContextMenuParamsCToCpp::GetMediaStateFlags() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_media_state_flags)) {
+  if (CEF_MEMBER_MISSING(_struct, get_media_state_flags))
     return CM_MEDIAFLAG_NONE;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -265,9 +252,8 @@ CefString CefContextMenuParamsCToCpp::GetSelectionText() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_selection_text)) {
+  if (CEF_MEMBER_MISSING(_struct, get_selection_text))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -285,9 +271,8 @@ CefString CefContextMenuParamsCToCpp::GetMisspelledWord() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_misspelled_word)) {
+  if (CEF_MEMBER_MISSING(_struct, get_misspelled_word))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -306,18 +291,16 @@ bool CefContextMenuParamsCToCpp::GetDictionarySuggestions(
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_dictionary_suggestions)) {
+  if (CEF_MEMBER_MISSING(_struct, get_dictionary_suggestions))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Translate param: suggestions; type: string_vec_byref
   cef_string_list_t suggestionsList = cef_string_list_alloc();
   DCHECK(suggestionsList);
-  if (suggestionsList) {
+  if (suggestionsList)
     transfer_string_list_contents(suggestions, suggestionsList);
-  }
 
   // Execute
   int _retval = _struct->get_dictionary_suggestions(_struct, suggestionsList);
@@ -337,9 +320,8 @@ NO_SANITIZE("cfi-icall") bool CefContextMenuParamsCToCpp::IsEditable() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_editable)) {
+  if (CEF_MEMBER_MISSING(_struct, is_editable))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -355,9 +337,8 @@ bool CefContextMenuParamsCToCpp::IsSpellCheckEnabled() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_spell_check_enabled)) {
+  if (CEF_MEMBER_MISSING(_struct, is_spell_check_enabled))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -374,9 +355,8 @@ CefContextMenuParamsCToCpp::GetEditStateFlags() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_edit_state_flags)) {
+  if (CEF_MEMBER_MISSING(_struct, get_edit_state_flags))
     return CM_EDITFLAG_NONE;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -392,9 +372,8 @@ NO_SANITIZE("cfi-icall") bool CefContextMenuParamsCToCpp::IsCustomMenu() {
   shutdown_checker::AssertNotShutdown();
 
   cef_context_menu_params_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_custom_menu)) {
+  if (CEF_MEMBER_MISSING(_struct, is_custom_menu))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -421,7 +400,7 @@ cef_context_menu_params_t* CefCToCppRefCounted<
     CefContextMenuParams,
     cef_context_menu_params_t>::UnwrapDerived(CefWrapperType type,
                                               CefContextMenuParams* c) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

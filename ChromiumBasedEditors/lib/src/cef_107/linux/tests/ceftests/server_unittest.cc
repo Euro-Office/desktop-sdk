@@ -729,7 +729,7 @@ void SendHttpServerResponse(CefRefPtr<CefServer> server,
           connection_id, response.response_code, response.content_type,
           response.no_content_length
               ? -1
-              : static_cast<int64_t>(response.content.size()),
+              : static_cast<int64>(response.content.size()),
           response.extra_headers);
       if (!response.content.empty()) {
         server->SendRawData(connection_id, response.content.data(),
@@ -892,12 +892,12 @@ class StaticHttpURLRequestClient : public CefURLRequestClient {
   }
 
   void OnUploadProgress(CefRefPtr<CefURLRequest> request,
-                        int64_t current,
-                        int64_t total) override {}
+                        int64 current,
+                        int64 total) override {}
 
   void OnDownloadProgress(CefRefPtr<CefURLRequest> request,
-                          int64_t current,
-                          int64_t total) override {}
+                          int64 current,
+                          int64 total) override {}
 
   void OnDownloadData(CefRefPtr<CefURLRequest> request,
                       const void* data,
@@ -1186,7 +1186,7 @@ class WebSocketTestHandler : public RoutingTestHandler {
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {

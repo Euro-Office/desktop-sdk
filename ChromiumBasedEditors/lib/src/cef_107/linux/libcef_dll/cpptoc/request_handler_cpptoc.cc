@@ -205,7 +205,7 @@ int CEF_CALLBACK
 request_handler_on_quota_request(struct _cef_request_handler_t* self,
                                  cef_browser_t* browser,
                                  const cef_string_t* origin_url,
-                                 int64_t new_size,
+                                 int64 new_size,
                                  cef_callback_t* callback) {
   shutdown_checker::AssertNotShutdown();
 

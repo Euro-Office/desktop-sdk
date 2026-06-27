@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=f18efb5dc36f4cb87068f42e73370a57fc00d3c2$
+// $hash=fea7cb7db8c0d055cc574e5ccb49e0e6c7ffa9e0$
 //
 
 #include "libcef_dll/cpptoc/command_handler_cpptoc.h"
@@ -30,112 +30,16 @@ command_handler_on_chrome_command(struct _cef_command_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
 
   // Execute
   bool _retval = CefCommandHandlerCppToC::Get(self)->OnChromeCommand(
       CefBrowserCToCpp::Wrap(browser), command_id, disposition);
-
-  // Return type: bool
-  return _retval;
-}
-
-int CEF_CALLBACK command_handler_is_chrome_app_menu_item_visible(
-    struct _cef_command_handler_t* self,
-    cef_browser_t* browser,
-    int command_id) {
-  shutdown_checker::AssertNotShutdown();
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  DCHECK(self);
-  if (!self) {
-    return 0;
-  }
-  // Verify param: browser; type: refptr_diff
-  DCHECK(browser);
-  if (!browser) {
-    return 0;
-  }
-
-  // Execute
-  bool _retval = CefCommandHandlerCppToC::Get(self)->IsChromeAppMenuItemVisible(
-      CefBrowserCToCpp::Wrap(browser), command_id);
-
-  // Return type: bool
-  return _retval;
-}
-
-int CEF_CALLBACK command_handler_is_chrome_app_menu_item_enabled(
-    struct _cef_command_handler_t* self,
-    cef_browser_t* browser,
-    int command_id) {
-  shutdown_checker::AssertNotShutdown();
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  DCHECK(self);
-  if (!self) {
-    return 0;
-  }
-  // Verify param: browser; type: refptr_diff
-  DCHECK(browser);
-  if (!browser) {
-    return 0;
-  }
-
-  // Execute
-  bool _retval = CefCommandHandlerCppToC::Get(self)->IsChromeAppMenuItemEnabled(
-      CefBrowserCToCpp::Wrap(browser), command_id);
-
-  // Return type: bool
-  return _retval;
-}
-
-int CEF_CALLBACK command_handler_is_chrome_page_action_icon_visible(
-    struct _cef_command_handler_t* self,
-    cef_chrome_page_action_icon_type_t icon_type) {
-  shutdown_checker::AssertNotShutdown();
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  DCHECK(self);
-  if (!self) {
-    return 0;
-  }
-
-  // Execute
-  bool _retval =
-      CefCommandHandlerCppToC::Get(self)->IsChromePageActionIconVisible(
-          icon_type);
-
-  // Return type: bool
-  return _retval;
-}
-
-int CEF_CALLBACK command_handler_is_chrome_toolbar_button_visible(
-    struct _cef_command_handler_t* self,
-    cef_chrome_toolbar_button_type_t button_type) {
-  shutdown_checker::AssertNotShutdown();
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  DCHECK(self);
-  if (!self) {
-    return 0;
-  }
-
-  // Execute
-  bool _retval =
-      CefCommandHandlerCppToC::Get(self)->IsChromeToolbarButtonVisible(
-          button_type);
 
   // Return type: bool
   return _retval;
@@ -147,14 +51,6 @@ int CEF_CALLBACK command_handler_is_chrome_toolbar_button_visible(
 
 CefCommandHandlerCppToC::CefCommandHandlerCppToC() {
   GetStruct()->on_chrome_command = command_handler_on_chrome_command;
-  GetStruct()->is_chrome_app_menu_item_visible =
-      command_handler_is_chrome_app_menu_item_visible;
-  GetStruct()->is_chrome_app_menu_item_enabled =
-      command_handler_is_chrome_app_menu_item_enabled;
-  GetStruct()->is_chrome_page_action_icon_visible =
-      command_handler_is_chrome_page_action_icon_visible;
-  GetStruct()->is_chrome_toolbar_button_visible =
-      command_handler_is_chrome_toolbar_button_visible;
 }
 
 // DESTRUCTOR - Do not edit by hand.
@@ -169,7 +65,7 @@ CefRefPtr<CefCommandHandler> CefCppToCRefCounted<
     CefCommandHandler,
     cef_command_handler_t>::UnwrapDerived(CefWrapperType type,
                                           cef_command_handler_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

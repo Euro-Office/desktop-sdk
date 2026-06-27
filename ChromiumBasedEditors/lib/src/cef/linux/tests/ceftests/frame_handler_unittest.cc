@@ -86,7 +86,7 @@ struct FrameStatus {
     // Specific formulation of the frame ID is an implementation detail that
     // should generally not be relied upon, but this decomposed format makes the
     // debug logging easier to follow.
-    uint64_t frame_id = frame->GetIdentifier();
+    uint64 frame_id = frame->GetIdentifier();
     uint32_t process_id = frame_id >> 32;
     uint32_t routing_id = std::numeric_limits<uint32_t>::max() & frame_id;
     std::stringstream ss;
@@ -100,7 +100,7 @@ struct FrameStatus {
         is_main_(frame->IsMain()),
         ident_str_(GetFrameDebugString(frame)) {}
 
-  int64_t frame_id() const { return frame_id_; }
+  int64 frame_id() const { return frame_id_; }
   bool is_main() const { return is_main_; }
 
   bool AllQueriesDelivered(std::string* msg = nullptr) const {
@@ -132,9 +132,8 @@ struct FrameStatus {
       ss << ident_str_ << "(";
       for (int i = 0; i <= LOAD_END; ++i) {
         ss << GetCallbackName(i) << "=" << got_callback_[i];
-        if (i < LOAD_END) {
+        if (i < LOAD_END)
           ss << " ";
-        }
       }
       ss << ")";
       *msg += ss.str();
@@ -317,9 +316,8 @@ struct FrameStatus {
     EXPECT_GE(pending_queries_.size(), 1U);
     const std::string& expected_query = pending_queries_.front();
     EXPECT_STREQ(expected_query.c_str(), received_query.c_str());
-    if (expected_query == received_query) {
+    if (expected_query == received_query)
       pending_queries_.pop();
-    }
 
     EXPECT_LT(delivered_query_ct_, expected_query_ct_);
     delivered_query_ct_++;
@@ -361,9 +359,8 @@ struct FrameStatus {
   }
 
   bool IsExpectedCallback(int callback) const {
-    if (!is_main_ && IsMainFrameOnlyCallback(callback)) {
+    if (!is_main_ && IsMainFrameOnlyCallback(callback))
       return false;
-    }
 
     if (is_main_) {
       if ((callback == MAIN_FRAME_INITIAL_ASSIGNED ||
@@ -481,12 +478,11 @@ struct FrameStatus {
     EXPECT_TRUE(got_callback_[callback]) << GetCallbackName(callback);
     got_callback_[callback].reset();
 
-    if (expect_query) {
+    if (expect_query)
       delivered_query_ct_--;
-    }
   }
 
-  const int64_t frame_id_;
+  const int64 frame_id_;
   const bool is_main_;
   const std::string ident_str_;
 
@@ -506,7 +502,7 @@ struct FrameStatus {
   int delivered_query_ct_ = 0;
 };
 
-const char kOrderMainUrl[] = "https://tests-frame-handler/main-order.html";
+const char kOrderMainUrl[] = "http://tests-frame-handler/main-order.html";
 
 class OrderMainTestHandler : public RoutingTestHandler, public CefFrameHandler {
  public:
@@ -576,7 +572,7 @@ class OrderMainTestHandler : public RoutingTestHandler, public CefFrameHandler {
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -701,17 +697,15 @@ class OrderMainTestHandler : public RoutingTestHandler, public CefFrameHandler {
 
   virtual bool AllQueriesDelivered(std::string* msg = nullptr) const {
     EXPECT_UI_THREAD();
-    if (pending_main_frame_) {
+    if (pending_main_frame_)
       return false;
-    }
     return current_main_frame_->AllQueriesDelivered(msg);
   }
 
   virtual bool AllFramesLoaded(std::string* msg = nullptr) const {
     EXPECT_UI_THREAD();
-    if (pending_main_frame_) {
+    if (pending_main_frame_)
       return false;
-    }
     return current_main_frame_->IsLoaded(msg);
   }
 
@@ -797,7 +791,7 @@ TEST(FrameHandlerTest, OrderMain) {
 
 namespace {
 
-const char kOrderMainUrlPrefix[] = "https://tests-frame-handler";
+const char kOrderMainUrlPrefix[] = "http://tests-frame-handler";
 
 class NavigateOrderMainTestHandler : public OrderMainTestHandler {
  public:
@@ -900,7 +894,7 @@ class FrameStatusMap {
 
     EXPECT_LT(size(), expected_frame_ct_);
 
-    const int64_t id = frame->GetIdentifier();
+    const int64 id = frame->GetIdentifier();
     EXPECT_NE(kInvalidFrameId, id);
     EXPECT_EQ(frame_map_.find(id), frame_map_.end());
 
@@ -912,7 +906,7 @@ class FrameStatusMap {
   FrameStatus* GetFrameStatus(CefRefPtr<CefFrame> frame) const {
     EXPECT_UI_THREAD();
 
-    const int64_t id = frame->GetIdentifier();
+    const int64 id = frame->GetIdentifier();
     EXPECT_NE(kInvalidFrameId, id);
     Map::const_iterator it = frame_map_.find(id);
     EXPECT_NE(it, frame_map_.end());
@@ -920,7 +914,7 @@ class FrameStatusMap {
   }
 
   void RemoveFrameStatus(CefRefPtr<CefFrame> frame) {
-    const int64_t id = frame->GetIdentifier();
+    const int64 id = frame->GetIdentifier();
     Map::iterator it = frame_map_.find(id);
     EXPECT_NE(it, frame_map_.end());
     frame_map_.erase(it);
@@ -990,15 +984,13 @@ class FrameStatusMap {
   }
 
   bool AllFramesDetached() const {
-    if (size() != expected_frame_ct_) {
+    if (size() != expected_frame_ct_)
       return false;
-    }
 
     Map::const_iterator it = frame_map_.begin();
     for (; it != frame_map_.end(); ++it) {
-      if (!it->second->IsDetached()) {
+      if (!it->second->IsDetached())
         return false;
-      }
     }
 
     return true;
@@ -1017,7 +1009,7 @@ class FrameStatusMap {
   size_t size() const { return frame_map_.size(); }
 
  private:
-  using Map = std::map<int64_t, FrameStatus*>;
+  using Map = std::map<int64, FrameStatus*>;
   Map frame_map_;
 
   // The expected number of sub-frames.
@@ -1063,7 +1055,7 @@ class OrderSubTestHandler : public NavigateOrderMainTestHandler {
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -1189,27 +1181,24 @@ class OrderSubTestHandler : public NavigateOrderMainTestHandler {
   bool AllQueriesDelivered(std::string* msg = nullptr) const override {
     if (!NavigateOrderMainTestHandler::AllQueriesDelivered(msg)) {
 #if VERBOSE_DEBUGGING
-      if (msg) {
+      if (msg)
         *msg += " MAIN PENDING";
-      }
 #endif
       return false;
     }
 
     if (frame_maps_.empty()) {
 #if VERBOSE_DEBUGGING
-      if (msg) {
+      if (msg)
         *msg += " NO SUBS";
-      }
 #endif
       return false;
     }
 
     if (!frame_maps_.back()->AllQueriesDelivered(msg)) {
 #if VERBOSE_DEBUGGING
-      if (msg) {
+      if (msg)
         *msg += " SUBS PENDING";
-      }
 #endif
       return false;
     }
@@ -1219,27 +1208,24 @@ class OrderSubTestHandler : public NavigateOrderMainTestHandler {
   bool AllFramesLoaded(std::string* msg = nullptr) const override {
     if (!NavigateOrderMainTestHandler::AllFramesLoaded(msg)) {
 #if VERBOSE_DEBUGGING
-      if (msg) {
+      if (msg)
         *msg += " MAIN PENDING";
-      }
 #endif
       return false;
     }
 
     if (frame_maps_.empty()) {
 #if VERBOSE_DEBUGGING
-      if (msg) {
+      if (msg)
         *msg += " NO SUBS";
-      }
 #endif
       return false;
     }
 
     if (!frame_maps_.back()->AllFramesLoaded(msg)) {
 #if VERBOSE_DEBUGGING
-      if (msg) {
+      if (msg)
         *msg += " SUBS PENDING";
-      }
 #endif
       return false;
     }
@@ -1255,9 +1241,8 @@ class OrderSubTestHandler : public NavigateOrderMainTestHandler {
 
   FrameStatusMap* GetFrameMap(CefRefPtr<CefFrame> frame) const {
     for (auto& map : frame_maps_) {
-      if (map->Contains(frame)) {
+      if (map->Contains(frame))
         return map.get();
-      }
     }
     return nullptr;
   }
@@ -1281,9 +1266,8 @@ class OrderSubTestHandler : public NavigateOrderMainTestHandler {
   }
 
   FrameStatusMap* GetOrCreateFrameMap(CefRefPtr<CefFrame> frame) {
-    if (auto map = GetFrameMap(frame)) {
+    if (auto map = GetFrameMap(frame))
       return map;
-    }
 
     if (frame_maps_.empty() ||
         frame_maps_.back()->size() >= expected_frame_ct_) {
@@ -1468,7 +1452,7 @@ TEST(FrameHandlerTest, OrderSubCrossOriginChildrenNavCrossOrigin) {
 namespace {
 
 const char kOrderMainCrossUrl[] =
-    "https://tests-frame-handler-cross/main-order.html";
+    "http://tests-frame-handler-cross/main-order.html";
 
 // Will be assigned as popup handler via
 // ParentOrderMainTestHandler::OnBeforePopup.
@@ -1590,7 +1574,7 @@ class PopupOrderMainTestHandler : public OrderMainTestHandler {
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -1666,8 +1650,6 @@ class ParentOrderMainTestHandler : public OrderMainTestHandler {
 
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
     OrderMainTestHandler::OnAfterCreated(browser);
-
-    GrantPopupPermission(browser->GetHost()->GetRequestContext(), GetMainURL());
 
     // Create the popup ASAP.
     browser->GetMainFrame()->ExecuteJavaScript(

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=63f55ceeec4a649ad2331bb0304557b7c0e4cb31$
+// $hash=56d4812b8f81cbda67550a8b03e8b7af911e5e28$
 //
 
 #include "libcef_dll/cpptoc/audio_handler_cpptoc.h"
@@ -29,19 +29,16 @@ audio_handler_get_audio_parameters(struct _cef_audio_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: params; type: simple_byref
   DCHECK(params);
-  if (!params) {
+  if (!params)
     return 0;
-  }
 
   // Translate param: params; type: simple_byref
   CefAudioParameters paramsVal = params ? *params : CefAudioParameters();
@@ -51,9 +48,8 @@ audio_handler_get_audio_parameters(struct _cef_audio_handler_t* self,
       CefBrowserCToCpp::Wrap(browser), paramsVal);
 
   // Restore param: params; type: simple_byref
-  if (params) {
+  if (params)
     *params = paramsVal;
-  }
 
   // Return type: bool
   return _retval;
@@ -69,19 +65,16 @@ audio_handler_on_audio_stream_started(struct _cef_audio_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Verify param: params; type: simple_byref_const
   DCHECK(params);
-  if (!params) {
+  if (!params)
     return;
-  }
 
   // Translate param: params; type: simple_byref_const
   CefAudioParameters paramsVal = params ? *params : CefAudioParameters();
@@ -96,25 +89,22 @@ audio_handler_on_audio_stream_packet(struct _cef_audio_handler_t* self,
                                      struct _cef_browser_t* browser,
                                      const float** data,
                                      int frames,
-                                     int64_t pts) {
+                                     int64 pts) {
   shutdown_checker::AssertNotShutdown();
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Verify param: data; type: simple_byaddr
   DCHECK(data);
-  if (!data) {
+  if (!data)
     return;
-  }
 
   // Execute
   CefAudioHandlerCppToC::Get(self)->OnAudioStreamPacket(
@@ -129,14 +119,12 @@ audio_handler_on_audio_stream_stopped(struct _cef_audio_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
 
   // Execute
   CefAudioHandlerCppToC::Get(self)->OnAudioStreamStopped(
@@ -152,19 +140,16 @@ audio_handler_on_audio_stream_error(struct _cef_audio_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
   // Verify param: message; type: string_byref_const
   DCHECK(message);
-  if (!message) {
+  if (!message)
     return;
-  }
 
   // Execute
   CefAudioHandlerCppToC::Get(self)->OnAudioStreamError(
@@ -195,7 +180,7 @@ CefRefPtr<CefAudioHandler> CefCppToCRefCounted<
     CefAudioHandler,
     cef_audio_handler_t>::UnwrapDerived(CefWrapperType type,
                                         cef_audio_handler_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

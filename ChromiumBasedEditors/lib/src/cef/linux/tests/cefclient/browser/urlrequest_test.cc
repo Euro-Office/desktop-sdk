@@ -37,9 +37,8 @@ class RequestClient : public CefURLRequestClient {
 
   void Detach() {
     CEF_REQUIRE_UI_THREAD();
-    if (!callback_.is_null()) {
+    if (!callback_.is_null())
       callback_.Reset();
-    }
   }
 
   void OnRequestComplete(CefRefPtr<CefURLRequest> request) override {
@@ -50,12 +49,12 @@ class RequestClient : public CefURLRequestClient {
   }
 
   void OnUploadProgress(CefRefPtr<CefURLRequest> request,
-                        int64_t current,
-                        int64_t total) override {}
+                        int64 current,
+                        int64 total) override {}
 
   void OnDownloadProgress(CefRefPtr<CefURLRequest> request,
-                          int64_t current,
-                          int64_t total) override {}
+                          int64 current,
+                          int64 total) override {}
 
   void OnDownloadData(CefRefPtr<CefURLRequest> request,
                       const void* data,
@@ -91,7 +90,7 @@ class Handler : public CefMessageRouterBrowserSide::Handler {
   // Called due to cefQuery execution in urlrequest.html.
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -99,9 +98,8 @@ class Handler : public CefMessageRouterBrowserSide::Handler {
 
     // Only handle messages from the test URL.
     const std::string& url = frame->GetURL();
-    if (!test_runner::IsTestURL(url, kTestUrlPath)) {
+    if (!test_runner::IsTestURL(url, kTestUrlPath))
       return false;
-    }
 
     const std::string& message_name = request;
     if (message_name.find(kTestMessageName) == 0) {
@@ -162,11 +160,10 @@ class Handler : public CefMessageRouterBrowserSide::Handler {
                          const std::string& download_data) {
     CEF_REQUIRE_UI_THREAD();
 
-    if (error_code == ERR_NONE) {
+    if (error_code == ERR_NONE)
       callback_->Success(download_data);
-    } else {
+    else
       callback_->Failure(error_code, test_runner::GetErrorString(error_code));
-    }
 
     callback_ = nullptr;
     urlrequest_ = nullptr;

@@ -166,7 +166,6 @@ class CefDOMNode : public virtual CefBaseRefCounted {
  public:
   typedef std::map<CefString, CefString> AttributeMap;
   typedef cef_dom_node_type_t Type;
-  typedef cef_dom_form_control_type_t FormControlType;
 
   ///
   /// Returns the type for this node.
@@ -195,14 +194,14 @@ class CefDOMNode : public virtual CefBaseRefCounted {
   ///
   /// Returns true if this is a form control element node.
   ///
-  /*--cef(default_retval=DOM_NODE_TYPE_UNSUPPORTED)--*/
+  /*--cef()--*/
   virtual bool IsFormControlElement() = 0;
 
   ///
   /// Returns the type of this form control element node.
   ///
-  /*--cef(default_retval=DOM_FORM_CONTROL_TYPE_UNSUPPORTED)--*/
-  virtual FormControlType GetFormControlElementType() = 0;
+  /*--cef()--*/
+  virtual CefString GetFormControlElementType() = 0;
 
   ///
   /// Returns true if this object is pointing to the same handle as |that|

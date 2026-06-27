@@ -265,7 +265,7 @@ public:
 	}
 
 	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response,
-									int64_t& response_length,
+									int64& response_length,
 									CefString& redirectUrl) OVERRIDE
 	{
 		CEF_REQUIRE_IO_THREAD();
@@ -424,7 +424,7 @@ public:
 	}
 
 	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response,
-									int64_t& response_length,
+									int64& response_length,
 									CefString& redirectUrl) OVERRIDE
 	{
 		CEF_REQUIRE_IO_THREAD();

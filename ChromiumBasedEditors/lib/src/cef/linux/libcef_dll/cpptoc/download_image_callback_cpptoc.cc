@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=2fc7e28909287ddaf20efa9f3ded39c65d3ff8be$
+// $hash=83a570d6d3a6b45d9d7502bbeba9e2e8fa726d0e$
 //
 
 #include "libcef_dll/cpptoc/download_image_callback_cpptoc.h"
@@ -30,14 +30,12 @@ void CEF_CALLBACK download_image_callback_on_download_image_finished(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: image_url; type: string_byref_const
   DCHECK(image_url);
-  if (!image_url) {
+  if (!image_url)
     return;
-  }
   // Unverified params: image
 
   // Execute
@@ -67,7 +65,7 @@ CefRefPtr<CefDownloadImageCallback> CefCppToCRefCounted<
     cef_download_image_callback_t>::UnwrapDerived(CefWrapperType type,
                                                   cef_download_image_callback_t*
                                                       s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

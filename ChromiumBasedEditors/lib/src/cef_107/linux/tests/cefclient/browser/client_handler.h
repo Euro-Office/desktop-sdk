@@ -238,7 +238,7 @@ class ClientHandler : public CefClient,
       CefRefPtr<CefBrowser> browser,
       CefRefPtr<CefFrame> frame,
       const CefString& requesting_origin,
-      uint32_t requested_permissions,
+      uint32 requested_permissions,
       CefRefPtr<CefMediaAccessCallback> callback) override;
 
   // CefRequestHandler methods
@@ -271,7 +271,7 @@ class ClientHandler : public CefClient,
                           CefRefPtr<CefAuthCallback> callback) override;
   bool OnQuotaRequest(CefRefPtr<CefBrowser> browser,
                       const CefString& origin_url,
-                      int64_t new_size,
+                      int64 new_size,
                       CefRefPtr<CefCallback> callback) override;
   bool OnCertificateError(CefRefPtr<CefBrowser> browser,
                           ErrorCode cert_error,

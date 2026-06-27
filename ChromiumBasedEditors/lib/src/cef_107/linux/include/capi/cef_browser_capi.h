@@ -167,7 +167,7 @@ typedef struct _cef_browser_t {
   ///
   struct _cef_frame_t*(CEF_CALLBACK* get_frame_byident)(
       struct _cef_browser_t* self,
-      int64_t identifier);
+      int64 identifier);
 
   ///
   /// Returns the frame with the specified name, or NULL if not found.
@@ -185,7 +185,7 @@ typedef struct _cef_browser_t {
   ///
   void(CEF_CALLBACK* get_frame_identifiers)(struct _cef_browser_t* self,
                                             size_t* identifiersCount,
-                                            int64_t* identifiers);
+                                            int64* identifiers);
 
   ///
   /// Returns the names of all existing frames.
@@ -424,7 +424,7 @@ typedef struct _cef_browser_host_t {
       struct _cef_browser_host_t* self,
       const cef_string_t* image_url,
       int is_favicon,
-      uint32_t max_image_size,
+      uint32 max_image_size,
       int bypass_cache,
       struct _cef_download_image_callback_t* callback);
 

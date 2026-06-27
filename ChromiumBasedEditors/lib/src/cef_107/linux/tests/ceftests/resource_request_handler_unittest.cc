@@ -129,7 +129,7 @@ class CallbackResourceHandler : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64_t& response_length,
+                          int64& response_length,
                           CefString& redirectUrl) override {
     response->SetStatus(status_code_);
     response->SetStatusText(status_text_);
@@ -262,7 +262,7 @@ class IncompleteResourceHandlerOld : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64_t& response_length,
+                          int64& response_length,
                           CefString& redirectUrl) override {
     EXPECT_IO_THREAD();
     EXPECT_EQ(test_mode_, BLOCK_READ_RESPONSE);
@@ -365,7 +365,7 @@ class IncompleteResourceHandler : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64_t& response_length,
+                          int64& response_length,
                           CefString& redirectUrl) override {
     EXPECT_IO_THREAD();
     EXPECT_EQ(test_mode_, BLOCK_READ);
@@ -788,7 +788,7 @@ class BasicResponseTest : public TestHandler {
                               CefRefPtr<CefRequest> request,
                               CefRefPtr<CefResponse> response,
                               URLRequestStatus status,
-                              int64_t received_content_length) override {
+                              int64 received_content_length) override {
     EXPECT_IO_THREAD();
 
     if (IsChromeRuntimeEnabled() && request->GetResourceType() == RT_FAVICON) {
@@ -806,7 +806,7 @@ class BasicResponseTest : public TestHandler {
       EXPECT_EQ(0, received_content_length);
     } else {
       EXPECT_EQ(UR_SUCCESS, status);
-      EXPECT_EQ(static_cast<int64_t>(GetResponseBody().length()),
+      EXPECT_EQ(static_cast<int64>(GetResponseBody().length()),
                 received_content_length);
     }
 
@@ -1368,7 +1368,7 @@ class BasicResponseTest : public TestHandler {
   const bool unhandled_;
 
   int browser_id_ = 0;
-  uint64_t request_id_ = 0U;
+  uint64 request_id_ = 0U;
 
   int resource_handler_created_ct_ = 0;
 
@@ -1886,7 +1886,7 @@ class SubresourceResponseTest : public RoutingTestHandler {
                               CefRefPtr<CefRequest> request,
                               CefRefPtr<CefResponse> response,
                               URLRequestStatus status,
-                              int64_t received_content_length) override {
+                              int64 received_content_length) override {
     EXPECT_IO_THREAD();
 
     if (IsChromeRuntimeEnabled() && request->GetResourceType() == RT_FAVICON) {
@@ -1899,13 +1899,13 @@ class SubresourceResponseTest : public RoutingTestHandler {
     if (IsMainURL(request->GetURL())) {
       EXPECT_TRUE(frame->IsMain());
       EXPECT_EQ(UR_SUCCESS, status);
-      EXPECT_EQ(static_cast<int64_t>(GetMainResponseBody().length()),
+      EXPECT_EQ(static_cast<int64>(GetMainResponseBody().length()),
                 received_content_length);
       return;
     } else if (IsSubURL(request->GetURL())) {
       EXPECT_FALSE(frame->IsMain());
       EXPECT_EQ(UR_SUCCESS, status);
-      EXPECT_EQ(static_cast<int64_t>(GetSubResponseBody().length()),
+      EXPECT_EQ(static_cast<int64>(GetSubResponseBody().length()),
                 received_content_length);
       EXPECT_TRUE(subframe_);
       return;
@@ -1920,7 +1920,7 @@ class SubresourceResponseTest : public RoutingTestHandler {
       EXPECT_EQ(0, received_content_length);
     } else {
       EXPECT_EQ(UR_SUCCESS, status);
-      EXPECT_EQ(static_cast<int64_t>(GetResponseBody().length()),
+      EXPECT_EQ(static_cast<int64>(GetResponseBody().length()),
                 received_content_length);
     }
 
@@ -1971,7 +1971,7 @@ class SubresourceResponseTest : public RoutingTestHandler {
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -2562,8 +2562,8 @@ class SubresourceResponseTest : public RoutingTestHandler {
   const bool subframe_;
 
   int browser_id_ = 0;
-  int64_t frame_id_ = 0;
-  uint64_t request_id_ = 0U;
+  int64 frame_id_ = 0;
+  uint64 request_id_ = 0U;
 
   int resource_handler_created_ct_ = 0;
 
@@ -2837,7 +2837,7 @@ class RedirectResponseTest : public TestHandler {
                                 CefRefPtr<CefRequest> request,
                                 CefRefPtr<CefResponse> response,
                                 URLRequestStatus status,
-                                int64_t received_content_length) {
+                                int64 received_content_length) {
       EXPECT_TRUE(CheckUrl(request->GetURL()));
 
       // Verify the response returned by GetResourceHandler.
@@ -3154,7 +3154,7 @@ class RedirectResponseTest : public TestHandler {
                                 CefRefPtr<CefRequest> request,
                                 CefRefPtr<CefResponse> response,
                                 URLRequestStatus status,
-                                int64_t received_content_length) override {
+                                int64 received_content_length) override {
       EXPECT_IO_THREAD();
 
       if (IsChromeRuntimeEnabled() &&
@@ -3182,8 +3182,8 @@ class RedirectResponseTest : public TestHandler {
    private:
     RedirectResponseTest* const test_;
 
-    uint64_t main_request_id_ = 0U;
-    uint64_t sub_request_id_ = 0U;
+    uint64 main_request_id_ = 0U;
+    uint64 sub_request_id_ = 0U;
 
     IMPLEMENT_REFCOUNTING(ResourceRequestHandler);
     DISALLOW_COPY_AND_ASSIGN(ResourceRequestHandler);
@@ -3519,7 +3519,7 @@ class ResponseFilterTestBase : public CefResponseFilter {
 
   // Verify the output from the filter.
   virtual void VerifyOutput(cef_urlrequest_status_t status,
-                            int64_t received_content_length,
+                            int64 received_content_length,
                             const std::string& received_content) {
     EXPECT_TRUE(got_init_filter_);
     EXPECT_GT(filter_count_, 0U);
@@ -3570,7 +3570,7 @@ class ResponseFilterPassThru : public ResponseFilterTestBase {
   }
 
   void VerifyOutput(cef_urlrequest_status_t status,
-                    int64_t received_content_length,
+                    int64 received_content_length,
                     const std::string& received_content) override {
     ResponseFilterTestBase::VerifyOutput(status, received_content_length,
                                          received_content);
@@ -3702,7 +3702,7 @@ class ResponseFilterNeedMore : public ResponseFilterTestBase {
   }
 
   void VerifyOutput(cef_urlrequest_status_t status,
-                    int64_t received_content_length,
+                    int64 received_content_length,
                     const std::string& received_content) override {
     ResponseFilterTestBase::VerifyOutput(status, received_content_length,
                                          received_content);
@@ -3790,7 +3790,7 @@ class ResponseFilterError : public ResponseFilterTestBase {
   }
 
   void VerifyOutput(cef_urlrequest_status_t status,
-                    int64_t received_content_length,
+                    int64 received_content_length,
                     const std::string& received_content) override {
     ResponseFilterTestBase::VerifyOutput(status, received_content_length,
                                          received_content);
@@ -3844,7 +3844,7 @@ class ResponseFilterTestHandler : public TestHandler {
                               CefRefPtr<CefRequest> request,
                               CefRefPtr<CefResponse> response,
                               URLRequestStatus status,
-                              int64_t received_content_length) override {
+                              int64 received_content_length) override {
     EXPECT_IO_THREAD();
 
     if (IsChromeRuntimeEnabled() && request->GetResourceType() == RT_FAVICON) {
@@ -3920,7 +3920,7 @@ class ResponseFilterTestHandler : public TestHandler {
   TrackCallback got_load_end_;
 
   URLRequestStatus status_;
-  int64_t received_content_length_;
+  int64 received_content_length_;
 
   IMPLEMENT_REFCOUNTING(ResponseFilterTestHandler);
 };

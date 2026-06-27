@@ -38,7 +38,7 @@ class CefTaskRunnerCToCpp : public CefCToCppRefCounted<CefTaskRunnerCToCpp,
   bool BelongsToCurrentThread() override;
   bool BelongsToThread(CefThreadId threadId) override;
   bool PostTask(CefRefPtr<CefTask> task) override;
-  bool PostDelayedTask(CefRefPtr<CefTask> task, int64_t delay_ms) override;
+  bool PostDelayedTask(CefRefPtr<CefTask> task, int64 delay_ms) override;
 };
 
 #endif  // CEF_LIBCEF_DLL_CTOCPP_TASK_RUNNER_CTOCPP_H_

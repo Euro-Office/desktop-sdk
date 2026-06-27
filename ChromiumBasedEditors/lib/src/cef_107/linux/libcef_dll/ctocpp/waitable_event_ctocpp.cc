@@ -90,7 +90,7 @@ NO_SANITIZE("cfi-icall") void CefWaitableEventCToCpp::Wait() {
   _struct->wait(_struct);
 }
 
-NO_SANITIZE("cfi-icall") bool CefWaitableEventCToCpp::TimedWait(int64_t max_ms) {
+NO_SANITIZE("cfi-icall") bool CefWaitableEventCToCpp::TimedWait(int64 max_ms) {
   shutdown_checker::AssertNotShutdown();
 
   cef_waitable_event_t* _struct = GetStruct();

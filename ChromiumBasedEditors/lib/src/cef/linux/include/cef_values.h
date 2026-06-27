@@ -279,13 +279,6 @@ class CefBinaryValue : public virtual CefBaseRefCounted {
   virtual CefRefPtr<CefBinaryValue> Copy() = 0;
 
   ///
-  /// Returns a pointer to the beginning of the memory block.
-  /// The returned pointer is valid as long as the CefBinaryValue is alive.
-  ///
-  /*--cef()--*/
-  virtual const void* GetRawData() = 0;
-
-  ///
   /// Returns the data size.
   ///
   /*--cef()--*/

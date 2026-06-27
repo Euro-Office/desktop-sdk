@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=38eaa64d351352f888b318541aae316ac74938e6$
+// $hash=0a182976f79666acbe49e7bc5fe2e8b07b3afe7c$
 //
 
 #include "libcef_dll/cpptoc/resolve_callback_cpptoc.h"
@@ -29,9 +29,8 @@ resolve_callback_on_resolve_completed(struct _cef_resolve_callback_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Unverified params: resolved_ips
 
   // Translate param: resolved_ips; type: string_vec_byref_const
@@ -63,7 +62,7 @@ CefRefPtr<CefResolveCallback> CefCppToCRefCounted<
     CefResolveCallback,
     cef_resolve_callback_t>::UnwrapDerived(CefWrapperType type,
                                            cef_resolve_callback_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

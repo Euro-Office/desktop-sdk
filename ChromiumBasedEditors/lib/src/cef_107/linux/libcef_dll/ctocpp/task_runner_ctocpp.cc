@@ -125,7 +125,7 @@ bool CefTaskRunnerCToCpp::PostTask(CefRefPtr<CefTask> task) {
 
 NO_SANITIZE("cfi-icall")
 bool CefTaskRunnerCToCpp::PostDelayedTask(CefRefPtr<CefTask> task,
-                                          int64_t delay_ms) {
+                                          int64 delay_ms) {
   shutdown_checker::AssertNotShutdown();
 
   cef_task_runner_t* _struct = GetStruct();

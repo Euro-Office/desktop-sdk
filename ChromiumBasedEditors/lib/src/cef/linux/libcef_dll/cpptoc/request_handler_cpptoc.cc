@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=4a0c9cb5d77d315e067d07ed633b623a8e12a1fc$
+// $hash=d8188baecddc69aae0e6f833325a46ae6a83a4ac$
 //
 
 #include "libcef_dll/cpptoc/request_handler_cpptoc.h"
@@ -40,24 +40,20 @@ request_handler_on_before_browse(struct _cef_request_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: frame; type: refptr_diff
   DCHECK(frame);
-  if (!frame) {
+  if (!frame)
     return 0;
-  }
   // Verify param: request; type: refptr_diff
   DCHECK(request);
-  if (!request) {
+  if (!request)
     return 0;
-  }
 
   // Execute
   bool _retval = CefRequestHandlerCppToC::Get(self)->OnBeforeBrowse(
@@ -81,24 +77,20 @@ int CEF_CALLBACK request_handler_on_open_urlfrom_tab(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: frame; type: refptr_diff
   DCHECK(frame);
-  if (!frame) {
+  if (!frame)
     return 0;
-  }
   // Verify param: target_url; type: string_byref_const
   DCHECK(target_url);
-  if (!target_url) {
+  if (!target_url)
     return 0;
-  }
 
   // Execute
   bool _retval = CefRequestHandlerCppToC::Get(self)->OnOpenURLFromTab(
@@ -124,29 +116,24 @@ request_handler_get_resource_request_handler(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return NULL;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return NULL;
-  }
   // Verify param: frame; type: refptr_diff
   DCHECK(frame);
-  if (!frame) {
+  if (!frame)
     return NULL;
-  }
   // Verify param: request; type: refptr_diff
   DCHECK(request);
-  if (!request) {
+  if (!request)
     return NULL;
-  }
   // Verify param: disable_default_handling; type: bool_byref
   DCHECK(disable_default_handling);
-  if (!disable_default_handling) {
+  if (!disable_default_handling)
     return NULL;
-  }
   // Unverified params: request_initiator
 
   // Translate param: disable_default_handling; type: bool_byref
@@ -162,9 +149,8 @@ request_handler_get_resource_request_handler(
           disable_default_handlingBool);
 
   // Restore param: disable_default_handling; type: bool_byref
-  if (disable_default_handling) {
+  if (disable_default_handling)
     *disable_default_handling = disable_default_handlingBool ? true : false;
-  }
 
   // Return type: refptr_same
   return CefResourceRequestHandlerCppToC::Wrap(_retval);
@@ -185,29 +171,24 @@ request_handler_get_auth_credentials(struct _cef_request_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: origin_url; type: string_byref_const
   DCHECK(origin_url);
-  if (!origin_url) {
+  if (!origin_url)
     return 0;
-  }
   // Verify param: host; type: string_byref_const
   DCHECK(host);
-  if (!host) {
+  if (!host)
     return 0;
-  }
   // Verify param: callback; type: refptr_diff
   DCHECK(callback);
-  if (!callback) {
+  if (!callback)
     return 0;
-  }
   // Unverified params: realm, scheme
 
   // Execute
@@ -232,29 +213,24 @@ request_handler_on_certificate_error(struct _cef_request_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: request_url; type: string_byref_const
   DCHECK(request_url);
-  if (!request_url) {
+  if (!request_url)
     return 0;
-  }
   // Verify param: ssl_info; type: refptr_diff
   DCHECK(ssl_info);
-  if (!ssl_info) {
+  if (!ssl_info)
     return 0;
-  }
   // Verify param: callback; type: refptr_diff
   DCHECK(callback);
-  if (!callback) {
+  if (!callback)
     return 0;
-  }
 
   // Execute
   bool _retval = CefRequestHandlerCppToC::Get(self)->OnCertificateError(
@@ -279,29 +255,24 @@ int CEF_CALLBACK request_handler_on_select_client_certificate(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return 0;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return 0;
-  }
   // Verify param: host; type: string_byref_const
   DCHECK(host);
-  if (!host) {
+  if (!host)
     return 0;
-  }
   // Verify param: certificates; type: refptr_vec_diff_byref_const
   DCHECK(certificatesCount == 0 || certificates);
-  if (certificatesCount > 0 && !certificates) {
+  if (certificatesCount > 0 && !certificates)
     return 0;
-  }
   // Verify param: callback; type: refptr_diff
   DCHECK(callback);
-  if (!callback) {
+  if (!callback)
     return 0;
-  }
 
   // Translate param: certificates; type: refptr_vec_diff_byref_const
   std::vector<CefRefPtr<CefX509Certificate>> certificatesList;
@@ -331,14 +302,12 @@ request_handler_on_render_view_ready(struct _cef_request_handler_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
 
   // Execute
   CefRequestHandlerCppToC::Get(self)->OnRenderViewReady(
@@ -354,14 +323,12 @@ void CEF_CALLBACK request_handler_on_render_process_terminated(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
 
   // Execute
   CefRequestHandlerCppToC::Get(self)->OnRenderProcessTerminated(
@@ -376,14 +343,12 @@ void CEF_CALLBACK request_handler_on_document_available_in_main_frame(
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Verify param: browser; type: refptr_diff
   DCHECK(browser);
-  if (!browser) {
+  if (!browser)
     return;
-  }
 
   // Execute
   CefRequestHandlerCppToC::Get(self)->OnDocumentAvailableInMainFrame(
@@ -422,7 +387,7 @@ CefRefPtr<CefRequestHandler> CefCppToCRefCounted<
     CefRequestHandler,
     cef_request_handler_t>::UnwrapDerived(CefWrapperType type,
                                           cef_request_handler_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

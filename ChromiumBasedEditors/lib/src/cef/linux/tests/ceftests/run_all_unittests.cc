@@ -52,14 +52,13 @@ namespace {
 void QuitMessageLoop() {
   CEF_REQUIRE_UI_THREAD();
   client::MainMessageLoop* message_loop = client::MainMessageLoop::Get();
-  if (message_loop) {
+  if (message_loop)
     message_loop->Quit();
-  } else {
+  else
     CefQuitMessageLoop();
-  }
 }
 
-void sleep(int64_t ms) {
+void sleep(int64 ms) {
 #if defined(OS_WIN)
   Sleep(ms);
 #elif defined(OS_POSIX)
@@ -74,10 +73,9 @@ void RunTestsOnTestThread() {
   // Run the test suite.
   CefTestSuite::GetInstance()->Run();
 
-  // Wait for all TestHandlers to be destroyed.
-  while (TestHandler::HasTestHandler()) {
+  // Wait for all browsers to exit.
+  while (TestHandler::HasBrowser())
     sleep(100);
-  }
 
   // Wait for the test server to stop, and then quit the CEF message loop.
   test_server::Stop(base::BindOnce(QuitMessageLoop));
@@ -133,15 +131,19 @@ int main(int argc, char* argv[]) {
   // Load the CEF framework library at runtime instead of linking directly
   // as required by the macOS sandbox implementation.
   CefScopedLibraryLoader library_loader;
-  if (!library_loader.LoadInMain()) {
+  if (!library_loader.LoadInMain())
     return 1;
-  }
 #endif
 
   // Create the singleton test suite object.
   CefTestSuite test_suite(argc, argv);
 
 #if defined(OS_WIN)
+  if (test_suite.command_line()->HasSwitch("enable-high-dpi-support")) {
+    // Enable High-DPI support on Windows 7 and newer.
+    CefEnableHighDPISupport();
+  }
+
   CefMainArgs main_args(::GetModuleHandle(nullptr));
 #else
   CefMainArgs main_args(argc, argv);
@@ -171,9 +173,8 @@ int main(int argc, char* argv[]) {
 
   // Execute the secondary process, if any.
   exit_code = CefExecuteProcess(main_args, app, windows_sandbox_info);
-  if (exit_code >= 0) {
+  if (exit_code >= 0)
     return exit_code;
-  }
 #else
   } else {
     // On OS X this executable is only used for the main process.
@@ -207,11 +208,10 @@ int main(int argc, char* argv[]) {
   // Create the MessageLoop.
   std::unique_ptr<client::MainMessageLoop> message_loop;
   if (!settings.multi_threaded_message_loop) {
-    if (settings.external_message_pump) {
+    if (settings.external_message_pump)
       message_loop = client::MainMessageLoopExternalPump::Create();
-    } else {
+    else
       message_loop.reset(new client::MainMessageLoopStd);
-    }
   }
 
   // Initialize CEF.
@@ -234,9 +234,8 @@ int main(int argc, char* argv[]) {
   } else {
     // Create and start the test thread.
     CefRefPtr<CefThread> thread = CefThread::CreateThread("test_thread");
-    if (!thread) {
+    if (!thread)
       return 1;
-    }
 
     // Start the tests from the UI thread so that any pending UI tasks get a
     // chance to execute first.

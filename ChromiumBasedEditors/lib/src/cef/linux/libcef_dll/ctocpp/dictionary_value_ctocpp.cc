@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=b495bbe7a2721bdf22569007aa10183948819dc8$
+// $hash=aa3f8a292eeec9a65ab219958a3706b40500faa5$
 //
 
 #include "libcef_dll/ctocpp/dictionary_value_ctocpp.h"
@@ -40,9 +40,8 @@ NO_SANITIZE("cfi-icall") bool CefDictionaryValueCToCpp::IsValid() {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_valid)) {
+  if (CEF_MEMBER_MISSING(_struct, is_valid))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -57,9 +56,8 @@ NO_SANITIZE("cfi-icall") bool CefDictionaryValueCToCpp::IsOwned() {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_owned)) {
+  if (CEF_MEMBER_MISSING(_struct, is_owned))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -74,9 +72,8 @@ NO_SANITIZE("cfi-icall") bool CefDictionaryValueCToCpp::IsReadOnly() {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_read_only)) {
+  if (CEF_MEMBER_MISSING(_struct, is_read_only))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -92,17 +89,15 @@ bool CefDictionaryValueCToCpp::IsSame(CefRefPtr<CefDictionaryValue> that) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_same)) {
+  if (CEF_MEMBER_MISSING(_struct, is_same))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: that; type: refptr_same
   DCHECK(that.get());
-  if (!that.get()) {
+  if (!that.get())
     return false;
-  }
 
   // Execute
   int _retval =
@@ -117,17 +112,15 @@ bool CefDictionaryValueCToCpp::IsEqual(CefRefPtr<CefDictionaryValue> that) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_equal)) {
+  if (CEF_MEMBER_MISSING(_struct, is_equal))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: that; type: refptr_same
   DCHECK(that.get());
-  if (!that.get()) {
+  if (!that.get())
     return false;
-  }
 
   // Execute
   int _retval =
@@ -143,9 +136,8 @@ CefRefPtr<CefDictionaryValue> CefDictionaryValueCToCpp::Copy(
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, copy)) {
+  if (CEF_MEMBER_MISSING(_struct, copy))
     return nullptr;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -161,9 +153,8 @@ NO_SANITIZE("cfi-icall") size_t CefDictionaryValueCToCpp::GetSize() {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_size)) {
+  if (CEF_MEMBER_MISSING(_struct, get_size))
     return 0;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -178,9 +169,8 @@ NO_SANITIZE("cfi-icall") bool CefDictionaryValueCToCpp::Clear() {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, clear)) {
+  if (CEF_MEMBER_MISSING(_struct, clear))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -196,17 +186,15 @@ bool CefDictionaryValueCToCpp::HasKey(const CefString& key) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, has_key)) {
+  if (CEF_MEMBER_MISSING(_struct, has_key))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
 
   // Execute
   int _retval = _struct->has_key(_struct, key.GetStruct());
@@ -219,18 +207,16 @@ NO_SANITIZE("cfi-icall") bool CefDictionaryValueCToCpp::GetKeys(KeyList& keys) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_keys)) {
+  if (CEF_MEMBER_MISSING(_struct, get_keys))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Translate param: keys; type: string_vec_byref
   cef_string_list_t keysList = cef_string_list_alloc();
   DCHECK(keysList);
-  if (keysList) {
+  if (keysList)
     transfer_string_list_contents(keys, keysList);
-  }
 
   // Execute
   int _retval = _struct->get_keys(_struct, keysList);
@@ -251,17 +237,15 @@ bool CefDictionaryValueCToCpp::Remove(const CefString& key) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, remove)) {
+  if (CEF_MEMBER_MISSING(_struct, remove))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
 
   // Execute
   int _retval = _struct->remove(_struct, key.GetStruct());
@@ -275,17 +259,15 @@ CefValueType CefDictionaryValueCToCpp::GetType(const CefString& key) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_type)) {
+  if (CEF_MEMBER_MISSING(_struct, get_type))
     return VTYPE_INVALID;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return VTYPE_INVALID;
-  }
 
   // Execute
   cef_value_type_t _retval = _struct->get_type(_struct, key.GetStruct());
@@ -299,17 +281,15 @@ CefRefPtr<CefValue> CefDictionaryValueCToCpp::GetValue(const CefString& key) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_value)) {
+  if (CEF_MEMBER_MISSING(_struct, get_value))
     return nullptr;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return nullptr;
-  }
 
   // Execute
   cef_value_t* _retval = _struct->get_value(_struct, key.GetStruct());
@@ -323,17 +303,15 @@ bool CefDictionaryValueCToCpp::GetBool(const CefString& key) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_bool)) {
+  if (CEF_MEMBER_MISSING(_struct, get_bool))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
 
   // Execute
   int _retval = _struct->get_bool(_struct, key.GetStruct());
@@ -347,17 +325,15 @@ int CefDictionaryValueCToCpp::GetInt(const CefString& key) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_int)) {
+  if (CEF_MEMBER_MISSING(_struct, get_int))
     return 0;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return 0;
-  }
 
   // Execute
   int _retval = _struct->get_int(_struct, key.GetStruct());
@@ -371,17 +347,15 @@ double CefDictionaryValueCToCpp::GetDouble(const CefString& key) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_double)) {
+  if (CEF_MEMBER_MISSING(_struct, get_double))
     return 0;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return 0;
-  }
 
   // Execute
   double _retval = _struct->get_double(_struct, key.GetStruct());
@@ -395,17 +369,15 @@ CefString CefDictionaryValueCToCpp::GetString(const CefString& key) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_string)) {
+  if (CEF_MEMBER_MISSING(_struct, get_string))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return CefString();
-  }
 
   // Execute
   cef_string_userfree_t _retval = _struct->get_string(_struct, key.GetStruct());
@@ -422,17 +394,15 @@ CefRefPtr<CefBinaryValue> CefDictionaryValueCToCpp::GetBinary(
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_binary)) {
+  if (CEF_MEMBER_MISSING(_struct, get_binary))
     return nullptr;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return nullptr;
-  }
 
   // Execute
   cef_binary_value_t* _retval = _struct->get_binary(_struct, key.GetStruct());
@@ -447,17 +417,15 @@ CefRefPtr<CefDictionaryValue> CefDictionaryValueCToCpp::GetDictionary(
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_dictionary)) {
+  if (CEF_MEMBER_MISSING(_struct, get_dictionary))
     return nullptr;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return nullptr;
-  }
 
   // Execute
   cef_dictionary_value_t* _retval =
@@ -473,17 +441,15 @@ CefRefPtr<CefListValue> CefDictionaryValueCToCpp::GetList(
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_list)) {
+  if (CEF_MEMBER_MISSING(_struct, get_list))
     return nullptr;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return nullptr;
-  }
 
   // Execute
   cef_list_value_t* _retval = _struct->get_list(_struct, key.GetStruct());
@@ -498,22 +464,19 @@ bool CefDictionaryValueCToCpp::SetValue(const CefString& key,
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_value)) {
+  if (CEF_MEMBER_MISSING(_struct, set_value))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
   // Verify param: value; type: refptr_same
   DCHECK(value.get());
-  if (!value.get()) {
+  if (!value.get())
     return false;
-  }
 
   // Execute
   int _retval = _struct->set_value(_struct, key.GetStruct(),
@@ -528,17 +491,15 @@ bool CefDictionaryValueCToCpp::SetNull(const CefString& key) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_null)) {
+  if (CEF_MEMBER_MISSING(_struct, set_null))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
 
   // Execute
   int _retval = _struct->set_null(_struct, key.GetStruct());
@@ -552,17 +513,15 @@ bool CefDictionaryValueCToCpp::SetBool(const CefString& key, bool value) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_bool)) {
+  if (CEF_MEMBER_MISSING(_struct, set_bool))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
 
   // Execute
   int _retval = _struct->set_bool(_struct, key.GetStruct(), value);
@@ -576,17 +535,15 @@ bool CefDictionaryValueCToCpp::SetInt(const CefString& key, int value) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_int)) {
+  if (CEF_MEMBER_MISSING(_struct, set_int))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
 
   // Execute
   int _retval = _struct->set_int(_struct, key.GetStruct(), value);
@@ -600,17 +557,15 @@ bool CefDictionaryValueCToCpp::SetDouble(const CefString& key, double value) {
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_double)) {
+  if (CEF_MEMBER_MISSING(_struct, set_double))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
 
   // Execute
   int _retval = _struct->set_double(_struct, key.GetStruct(), value);
@@ -625,17 +580,15 @@ bool CefDictionaryValueCToCpp::SetString(const CefString& key,
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_string)) {
+  if (CEF_MEMBER_MISSING(_struct, set_string))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
   // Unverified params: value
 
   // Execute
@@ -652,22 +605,19 @@ bool CefDictionaryValueCToCpp::SetBinary(const CefString& key,
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_binary)) {
+  if (CEF_MEMBER_MISSING(_struct, set_binary))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
   // Verify param: value; type: refptr_same
   DCHECK(value.get());
-  if (!value.get()) {
+  if (!value.get())
     return false;
-  }
 
   // Execute
   int _retval = _struct->set_binary(_struct, key.GetStruct(),
@@ -684,22 +634,19 @@ bool CefDictionaryValueCToCpp::SetDictionary(
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_dictionary)) {
+  if (CEF_MEMBER_MISSING(_struct, set_dictionary))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
   // Verify param: value; type: refptr_same
   DCHECK(value.get());
-  if (!value.get()) {
+  if (!value.get())
     return false;
-  }
 
   // Execute
   int _retval = _struct->set_dictionary(
@@ -715,22 +662,19 @@ bool CefDictionaryValueCToCpp::SetList(const CefString& key,
   shutdown_checker::AssertNotShutdown();
 
   cef_dictionary_value_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, set_list)) {
+  if (CEF_MEMBER_MISSING(_struct, set_list))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: key; type: string_byref_const
   DCHECK(!key.empty());
-  if (key.empty()) {
+  if (key.empty())
     return false;
-  }
   // Verify param: value; type: refptr_same
   DCHECK(value.get());
-  if (!value.get()) {
+  if (!value.get())
     return false;
-  }
 
   // Execute
   int _retval = _struct->set_list(_struct, key.GetStruct(),
@@ -756,7 +700,7 @@ cef_dictionary_value_t* CefCToCppRefCounted<
     CefDictionaryValue,
     cef_dictionary_value_t>::UnwrapDerived(CefWrapperType type,
                                            CefDictionaryValue* c) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

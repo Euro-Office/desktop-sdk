@@ -17,13 +17,9 @@
 namespace client {
 
 // static
-scoped_refptr<RootWindow> RootWindow::Create(
-    bool use_views,
-    scoped_refptr<RootWindow> parent_window) {
+scoped_refptr<RootWindow> RootWindow::Create(bool use_views) {
   if (use_views) {
-    CHECK(!parent_window || parent_window->IsViewsHosted());
-    return new RootWindowViews(
-        static_cast<RootWindowViews*>(parent_window.get()));
+    return new RootWindowViews();
   }
 
 #if defined(OS_WIN)

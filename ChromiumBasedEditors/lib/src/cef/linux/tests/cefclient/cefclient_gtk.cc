@@ -79,9 +79,8 @@ int RunMain(int argc, char* argv[]) {
 
   // Execute the secondary process, if any.
   int exit_code = CefExecuteProcess(main_args, app, nullptr);
-  if (exit_code >= 0) {
+  if (exit_code >= 0)
     return exit_code;
-  }
 
   // Create the main context object.
   auto context = std::make_unique<MainContextImpl>(command_line, true);
@@ -107,20 +106,15 @@ int RunMain(int argc, char* argv[]) {
 
   // Create the main message loop object.
   std::unique_ptr<MainMessageLoop> message_loop;
-  if (settings.multi_threaded_message_loop) {
+  if (settings.multi_threaded_message_loop)
     message_loop.reset(new MainMessageLoopMultithreadedGtk);
-  } else if (settings.external_message_pump) {
+  else if (settings.external_message_pump)
     message_loop = MainMessageLoopExternalPump::Create();
-  } else {
+  else
     message_loop.reset(new MainMessageLoopStd);
-  }
 
-  // Initialize the CEF browser process. May return false if initialization
-  // fails or if early exit is desired (for example, due to process singleton
-  // relaunch behavior).
-  if (!context->Initialize(main_args, settings, app, nullptr)) {
-    return 1;
-  }
+  // Initialize CEF.
+  context->Initialize(main_args, settings, app, nullptr);
 
   // Force Gtk to use Xwayland (in case a Wayland compositor is being used).
   gdk_set_allowed_backends("x11");
@@ -144,6 +138,8 @@ int RunMain(int argc, char* argv[]) {
   auto window_config = std::make_unique<RootWindowConfig>();
   window_config->always_on_top =
       command_line->HasSwitch(switches::kAlwaysOnTop);
+  window_config->with_controls =
+      !command_line->HasSwitch(switches::kHideControls);
   window_config->with_osr =
       settings.windowless_rendering_enabled ? true : false;
 

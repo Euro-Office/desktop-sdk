@@ -188,7 +188,7 @@ typedef struct _cef_resource_request_handler_t {
       struct _cef_request_t* request,
       struct _cef_response_t* response,
       cef_urlrequest_status_t status,
-      int64_t received_content_length);
+      int64 received_content_length);
 
   ///
   /// Called on the IO thread to handle requests for URLs with an unknown

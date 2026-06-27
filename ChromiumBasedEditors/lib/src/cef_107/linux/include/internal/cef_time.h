@@ -47,7 +47,7 @@ extern "C" {
 /// This is equivalent of Chromium `base::Time` (see base/time/time.h).
 ///
 typedef struct _cef_basetime_t {
-  int64_t val;
+  int64 val;
 } cef_basetime_t;
 
 ///

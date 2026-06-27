@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=15ed98715c71448aa3bd8b0142920f21a418d08b$
+// $hash=5e22146a6ab1326e04c4de9d822b663e9ce6dee4$
 //
 
 #include "libcef_dll/cpptoc/string_visitor_cpptoc.h"
@@ -26,9 +26,8 @@ void CEF_CALLBACK string_visitor_visit(struct _cef_string_visitor_t* self,
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
-  if (!self) {
+  if (!self)
     return;
-  }
   // Unverified params: string
 
   // Execute
@@ -55,7 +54,7 @@ CefRefPtr<CefStringVisitor> CefCppToCRefCounted<
     CefStringVisitor,
     cef_string_visitor_t>::UnwrapDerived(CefWrapperType type,
                                          cef_string_visitor_t* s) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

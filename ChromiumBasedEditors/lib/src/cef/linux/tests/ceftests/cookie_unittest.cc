@@ -25,7 +25,7 @@
 
 namespace {
 
-const char* kTestUrl = "https://www.test.com/path/to/cookietest/foo.html";
+const char* kTestUrl = "http://www.test.com/path/to/cookietest/foo.html";
 const char* kTestDomain = "www.test.com";
 const char* kTestPath = "/path/to/cookietest";
 
@@ -111,9 +111,8 @@ class TestVisitor : public CefCookieVisitor {
              bool& deleteCookie) override {
     EXPECT_TRUE(CefCurrentlyOn(TID_UI));
     cookies_->push_back(cookie);
-    if (delete_cookies_) {
+    if (delete_cookies_)
       deleteCookie = true;
-    }
     return true;
   }
 
@@ -168,9 +167,8 @@ void CreateCookie(CefRefPtr<CefCookieManager> manager,
                   CefRefPtr<CefWaitableEvent> event) {
   CefString(&cookie.name).FromASCII("my_cookie");
   CefString(&cookie.value).FromASCII("My Value");
-  if (withDomain) {
+  if (withDomain)
     CefString(&cookie.domain).FromASCII(kTestDomain);
-  }
   CefString(&cookie.path).FromASCII(kTestPath);
   if (!sessionCookie) {
     cookie.has_expires = true;
@@ -244,18 +242,16 @@ void GetCookie(CefRefPtr<CefCookieManager> manager,
   VisitUrlCookies(manager, kTestUrl, false, cookies, deleteCookies, event);
 
   EXPECT_EQ(1U, cookies.size());
-  if (cookies.size() != 1U) {
+  if (cookies.size() != 1U)
     return;
-  }
 
   const CefCookie& cookie_read = cookies[0];
   EXPECT_EQ(CefString(&cookie_read.name), "my_cookie");
   EXPECT_EQ(CefString(&cookie_read.value), "My Value");
-  if (withDomain) {
+  if (withDomain)
     EXPECT_EQ(CefString(&cookie_read.domain), ".www.test.com");
-  } else {
+  else
     EXPECT_EQ(CefString(&cookie_read.domain), kTestDomain);
-  }
   EXPECT_EQ(CefString(&cookie_read.path), kTestPath);
   EXPECT_EQ(cookie.has_expires, cookie_read.has_expires);
   EXPECT_EQ(cookie.expires.val, cookie_read.expires.val);
@@ -319,7 +315,7 @@ void TestInvalidCookie(CefRefPtr<CefCookieManager> manager,
   CookieVector cookies;
 
   CefCookie cookie;
-  const char* kUrl = "https://www.xyz.com";
+  const char* kUrl = "http://www.xyz.com";
   CefString(&cookie.name).FromASCII("invalid1");
   CefString(&cookie.value).FromASCII("invalid1");
   CefString(&cookie.domain).FromASCII(".zyx.com");  // domain mismatch
@@ -383,9 +379,8 @@ void TestMultipleCookies(CefRefPtr<CefCookieManager> manager,
   VisitUrlCookies(manager, kTestUrl, false, cookies, false, event);
 
   EXPECT_EQ(3U, cookies.size());
-  if (cookies.size() != 3U) {
+  if (cookies.size() != 3U)
     return;
-  }
 
   EXPECT_EQ(CefString(&cookies[0].name), "my_cookie0");
   EXPECT_EQ(CefString(&cookies[1].name), "my_cookie2");
@@ -441,7 +436,7 @@ void TestAllCookies(CefRefPtr<CefCookieManager> manager,
 
   // Create cookies with 2 separate hosts.
   CefCookie cookie1;
-  const char* kUrl1 = "https://www.foo.com";
+  const char* kUrl1 = "http://www.foo.com";
   CefString(&cookie1.name).FromASCII("my_cookie1");
   CefString(&cookie1.value).FromASCII("My Value 1");
 
@@ -450,7 +445,7 @@ void TestAllCookies(CefRefPtr<CefCookieManager> manager,
   cookies.clear();
 
   CefCookie cookie2;
-  const char* kUrl2 = "https://www.bar.com";
+  const char* kUrl2 = "http://www.bar.com";
   CefString(&cookie2.name).FromASCII("my_cookie2");
   CefString(&cookie2.value).FromASCII("My Value 2");
 
@@ -462,9 +457,8 @@ void TestAllCookies(CefRefPtr<CefCookieManager> manager,
   VisitAllCookies(manager, cookies, false, event);
 
   EXPECT_EQ(2U, cookies.size());
-  if (cookies.size() != 2U) {
+  if (cookies.size() != 2U)
     return;
-  }
 
   EXPECT_EQ(CefString(&cookies[0].name), "my_cookie1");
   EXPECT_EQ(CefString(&cookies[0].value), "My Value 1");
@@ -478,9 +472,8 @@ void TestAllCookies(CefRefPtr<CefCookieManager> manager,
   VisitUrlCookies(manager, kUrl1, false, cookies, false, event);
 
   EXPECT_EQ(1U, cookies.size());
-  if (cookies.size() != 1U) {
+  if (cookies.size() != 1U)
     return;
-  }
 
   EXPECT_EQ(CefString(&cookies[0].name), "my_cookie1");
   EXPECT_EQ(CefString(&cookies[0].value), "My Value 1");
@@ -490,9 +483,8 @@ void TestAllCookies(CefRefPtr<CefCookieManager> manager,
   VisitUrlCookies(manager, kUrl2, false, cookies, false, event);
 
   EXPECT_EQ(1U, cookies.size());
-  if (cookies.size() != 1U) {
+  if (cookies.size() != 1U)
     return;
-  }
 
   EXPECT_EQ(CefString(&cookies[0].name), "my_cookie2");
   EXPECT_EQ(CefString(&cookies[0].value), "My Value 2");
@@ -574,8 +566,8 @@ TEST(CookieTest, BasicAllCookies) {
 
 namespace {
 
-const char* kCookieJSUrl1 = "https://tests/cookie1.html";
-const char* kCookieJSUrl2 = "https://tests/cookie2.html";
+const char* kCookieJSUrl1 = "http://tests/cookie1.html";
+const char* kCookieJSUrl2 = "http://tests/cookie2.html";
 
 class CookieTestJSHandler : public TestHandler {
  public:
@@ -751,9 +743,8 @@ class CookieTestSchemeHandler : public TestHandler {
         CefRequest::HeaderMap headerMap;
         request->GetHeaderMap(headerMap);
         CefRequest::HeaderMap::iterator it = headerMap.find("Cookie");
-        if (it != headerMap.end() && it->second == "name2=value2") {
+        if (it != headerMap.end() && it->second == "name2=value2")
           handler_->got_process_request_cookie_.yes();
-        }
       }
 
       // Continue immediately.
@@ -762,7 +753,7 @@ class CookieTestSchemeHandler : public TestHandler {
     }
 
     void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                            int64_t& response_length,
+                            int64& response_length,
                             CefString& redirectUrl) override {
       response_length = content_.size();
 
@@ -828,9 +819,8 @@ class CookieTestSchemeHandler : public TestHandler {
         CefRequest::HeaderMap headerMap;
         request->GetHeaderMap(headerMap);
         CefRequest::HeaderMap::iterator it = headerMap.find("Cookie");
-        if (it != headerMap.end() && it->second == "name2=value2") {
+        if (it != headerMap.end() && it->second == "name2=value2")
           handler_->got_create_cookie_.yes();
-        }
       }
 
       return new SchemeHandler(handler_);
@@ -1023,7 +1013,7 @@ class CookieTestSchemeHandler : public TestHandler {
 // Verify use of the global cookie manager with HTTP.
 TEST(CookieTest, GetCookieManagerHttpGlobal) {
   CefRefPtr<CookieTestSchemeHandler> handler =
-      new CookieTestSchemeHandler("https", true);
+      new CookieTestSchemeHandler("http", true);
   handler->ExecuteTest();
   ReleaseAndWaitForDestructor(handler);
 }
@@ -1031,7 +1021,7 @@ TEST(CookieTest, GetCookieManagerHttpGlobal) {
 // Verify use of an in-memory cookie manager with HTTP.
 TEST(CookieTest, GetCookieManagerHttpInMemory) {
   CefRefPtr<CookieTestSchemeHandler> handler =
-      new CookieTestSchemeHandler("https", false);
+      new CookieTestSchemeHandler("http", false);
   handler->ExecuteTest();
   ReleaseAndWaitForDestructor(handler);
 }
@@ -1039,7 +1029,7 @@ TEST(CookieTest, GetCookieManagerHttpInMemory) {
 // Verify use of an in-memory cookie manager with HTTP to block all cookies.
 TEST(CookieTest, GetCookieManagerHttpInMemoryBlocked) {
   CefRefPtr<CookieTestSchemeHandler> handler =
-      new CookieTestSchemeHandler("https", false, true);
+      new CookieTestSchemeHandler("http", false, true);
   handler->ExecuteTest();
   ReleaseAndWaitForDestructor(handler);
 }
@@ -1153,7 +1143,7 @@ class CookieAccessSchemeHandler : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64_t& response_length,
+                          int64& response_length,
                           CefString& redirectUrl) override {
     EXPECT_IO_THREAD();
 
@@ -1440,14 +1430,12 @@ class CookieAccessTestHandler : public RoutingTestHandler,
         test_backend_(test_backend),
         scheme_(custom_scheme ? kCustomCookieScheme : GetCookieAccessScheme()),
         use_global_(use_global) {
-    if (test_mode_ == BLOCK_ALL_COOKIES) {
+    if (test_mode_ == BLOCK_ALL_COOKIES)
       CHECK(!use_global_);
-    } else if (test_mode_ == ALLOW_NO_HANDLER) {
+    else if (test_mode_ == ALLOW_NO_HANDLER)
       CHECK_NE(RESOURCE_HANDLER, test_backend_);
-    }
-    if (test_backend_ == SERVER) {
+    if (test_backend_ == SERVER)
       CHECK(!custom_scheme);
-    }
   }
 
   void RunTest() override {
@@ -1565,9 +1553,8 @@ class CookieAccessTestHandler : public RoutingTestHandler,
       CefRefPtr<CefRequest> request) override {
     EXPECT_IO_THREAD();
 
-    if (test_mode_ == ALLOW_NO_FILTER) {
+    if (test_mode_ == ALLOW_NO_FILTER)
       return nullptr;
-    }
 
     return this;
   }
@@ -1580,9 +1567,8 @@ class CookieAccessTestHandler : public RoutingTestHandler,
       bool is_download,
       const CefString& request_initiator,
       bool& disable_default_handling) override {
-    if (test_mode_ == ALLOW_NO_HANDLER) {
+    if (test_mode_ == ALLOW_NO_HANDLER)
       return nullptr;
-    }
 
     return this;
   }
@@ -1637,7 +1623,7 @@ class CookieAccessTestHandler : public RoutingTestHandler,
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -1777,11 +1763,10 @@ class CookieAccessTestHandler : public RoutingTestHandler,
                  bool& deleteCookie) override {
         const std::string& name = CefString(&cookie.name);
         const std::string& value = CefString(&cookie.value);
-        if (name == "name_js" && value == "value_js") {
+        if (name == "name_js" && value == "value_js")
           handler_->cookie_js3_ct_++;
-        } else if (name == "name_net" && value == "value_net") {
+        else if (name == "name_net" && value == "value_net")
           handler_->cookie_net3_ct_++;
-        }
 
         // Clean up the cookies.
         deleteCookie = true;
@@ -2114,7 +2099,7 @@ class CookieRestartTestHandler : public RoutingTestHandler,
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -2230,11 +2215,10 @@ class CookieRestartTestHandler : public RoutingTestHandler,
                  bool& deleteCookie) override {
         const std::string& name = CefString(&cookie.name);
         const std::string& value = CefString(&cookie.value);
-        if (name == "name_js" && value == "value_js") {
+        if (name == "name_js" && value == "value_js")
           handler_->cookie_manager_js_ct_++;
-        } else if (name == "name_net" && value == "value_net") {
+        else if (name == "name_net" && value == "value_net")
           handler_->cookie_manager_net_ct_++;
-        }
 
         // Clean up the cookies.
         deleteCookie = true;

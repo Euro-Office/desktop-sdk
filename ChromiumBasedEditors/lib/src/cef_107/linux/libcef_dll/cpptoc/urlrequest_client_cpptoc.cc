@@ -44,8 +44,8 @@ urlrequest_client_on_request_complete(struct _cef_urlrequest_client_t* self,
 void CEF_CALLBACK
 urlrequest_client_on_upload_progress(struct _cef_urlrequest_client_t* self,
                                      cef_urlrequest_t* request,
-                                     int64_t current,
-                                     int64_t total) {
+                                     int64 current,
+                                     int64 total) {
   shutdown_checker::AssertNotShutdown();
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
@@ -66,8 +66,8 @@ urlrequest_client_on_upload_progress(struct _cef_urlrequest_client_t* self,
 void CEF_CALLBACK
 urlrequest_client_on_download_progress(struct _cef_urlrequest_client_t* self,
                                        cef_urlrequest_t* request,
-                                       int64_t current,
-                                       int64_t total) {
+                                       int64 current,
+                                       int64 total) {
   shutdown_checker::AssertNotShutdown();
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING

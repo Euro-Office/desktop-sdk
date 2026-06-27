@@ -96,7 +96,7 @@ typedef struct _cef_waitable_event_t {
   /// called on the browser process UI or IO threads.
   ///
   int(CEF_CALLBACK* timed_wait)(struct _cef_waitable_event_t* self,
-                                int64_t max_ms);
+                                int64 max_ms);
 } cef_waitable_event_t;
 
 ///

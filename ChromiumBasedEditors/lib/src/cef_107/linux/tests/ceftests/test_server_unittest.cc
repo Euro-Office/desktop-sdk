@@ -601,12 +601,12 @@ class StaticHttpURLRequestClient : public CefURLRequestClient {
   }
 
   void OnUploadProgress(CefRefPtr<CefURLRequest> request,
-                        int64_t current,
-                        int64_t total) override {}
+                        int64 current,
+                        int64 total) override {}
 
   void OnDownloadProgress(CefRefPtr<CefURLRequest> request,
-                          int64_t current,
-                          int64_t total) override {}
+                          int64 current,
+                          int64 total) override {}
 
   void OnDownloadData(CefRefPtr<CefURLRequest> request,
                       const void* data,

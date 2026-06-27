@@ -64,7 +64,7 @@ class DownloadSchemeHandler : public CefResourceHandler {
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64_t& response_length,
+                          int64& response_length,
                           CefString& redirectUrl) override {
     response_length = content_.size();
 
@@ -370,7 +370,7 @@ class DownloadTestHandler : public TestHandler {
     EXPECT_TRUE(download_item->IsInProgress());
     EXPECT_FALSE(download_item->IsComplete());
     EXPECT_FALSE(download_item->IsCanceled());
-    EXPECT_EQ(static_cast<int64_t>(sizeof(kTestContent) - 1),
+    EXPECT_EQ(static_cast<int64>(sizeof(kTestContent) - 1),
               download_item->GetTotalBytes());
     EXPECT_EQ(0UL, download_item->GetFullPath().length());
     EXPECT_STREQ(kTestDownloadUrl, download_item->GetURL().ToString().c_str());
@@ -431,9 +431,9 @@ class DownloadTestHandler : public TestHandler {
 
       EXPECT_FALSE(download_item->IsInProgress());
       EXPECT_EQ(100, download_item->GetPercentComplete());
-      EXPECT_EQ(static_cast<int64_t>(sizeof(kTestContent) - 1),
+      EXPECT_EQ(static_cast<int64>(sizeof(kTestContent) - 1),
                 download_item->GetReceivedBytes());
-      EXPECT_EQ(static_cast<int64_t>(sizeof(kTestContent) - 1),
+      EXPECT_EQ(static_cast<int64>(sizeof(kTestContent) - 1),
                 download_item->GetTotalBytes());
 
       DestroyTest();
@@ -567,7 +567,7 @@ class DownloadTestHandler : public TestHandler {
   std::string download_url_;
   CefScopedTempDir temp_dir_;
   std::string test_path_;
-  uint32_t download_id_;
+  uint32 download_id_;
   bool verified_results_;
   bool destroyed_ = false;
 

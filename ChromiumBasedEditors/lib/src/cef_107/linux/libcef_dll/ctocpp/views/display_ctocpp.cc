@@ -138,7 +138,7 @@ CefPoint CefDisplay::ConvertScreenPointFromPixels(const CefPoint& point) {
 
 // VIRTUAL METHODS - Body may be edited by hand.
 
-NO_SANITIZE("cfi-icall") int64_t CefDisplayCToCpp::GetID() {
+NO_SANITIZE("cfi-icall") int64 CefDisplayCToCpp::GetID() {
   shutdown_checker::AssertNotShutdown();
 
   cef_display_t* _struct = GetStruct();
@@ -148,7 +148,7 @@ NO_SANITIZE("cfi-icall") int64_t CefDisplayCToCpp::GetID() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Execute
-  int64_t _retval = _struct->get_id(_struct);
+  int64 _retval = _struct->get_id(_struct);
 
   // Return type: simple
   return _retval;

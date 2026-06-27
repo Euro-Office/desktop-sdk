@@ -7,7 +7,6 @@
 #if defined(OS_WIN)
 #include <gl/gl.h>
 #elif defined(OS_MAC)
-#define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl.h>
 #elif defined(OS_LINUX)
 #include <GL/gl.h>
@@ -55,9 +54,8 @@ OsrRenderer::~OsrRenderer() {
 }
 
 void OsrRenderer::Initialize() {
-  if (initialized_) {
+  if (initialized_)
     return;
-  }
 
   glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
   VERIFY_NO_ERROR;
@@ -96,15 +94,13 @@ void OsrRenderer::Initialize() {
 }
 
 void OsrRenderer::Cleanup() {
-  if (texture_id_ != 0) {
+  if (texture_id_ != 0)
     glDeleteTextures(1, &texture_id_);
-  }
 }
 
 void OsrRenderer::Render() {
-  if (view_width_ == 0 || view_height_ == 0) {
+  if (view_width_ == 0 || view_height_ == 0)
     return;
-  }
 
   DCHECK(initialized_);
 
@@ -250,9 +246,8 @@ void OsrRenderer::OnPopupShow(CefRefPtr<CefBrowser> browser, bool show) {
 
 void OsrRenderer::OnPopupSize(CefRefPtr<CefBrowser> browser,
                               const CefRect& rect) {
-  if (rect.width <= 0 || rect.height <= 0) {
+  if (rect.width <= 0 || rect.height <= 0)
     return;
-  }
   original_popup_rect_ = rect;
   popup_rect_ = GetPopupRectInWebView(original_popup_rect_);
 }
@@ -260,26 +255,20 @@ void OsrRenderer::OnPopupSize(CefRefPtr<CefBrowser> browser,
 CefRect OsrRenderer::GetPopupRectInWebView(const CefRect& original_rect) {
   CefRect rc(original_rect);
   // if x or y are negative, move them to 0.
-  if (rc.x < 0) {
+  if (rc.x < 0)
     rc.x = 0;
-  }
-  if (rc.y < 0) {
+  if (rc.y < 0)
     rc.y = 0;
-  }
   // if popup goes outside the view, try to reposition origin
-  if (rc.x + rc.width > view_width_) {
+  if (rc.x + rc.width > view_width_)
     rc.x = view_width_ - rc.width;
-  }
-  if (rc.y + rc.height > view_height_) {
+  if (rc.y + rc.height > view_height_)
     rc.y = view_height_ - rc.height;
-  }
   // if x or y became negative, move them to 0 again.
-  if (rc.x < 0) {
+  if (rc.x < 0)
     rc.x = 0;
-  }
-  if (rc.y < 0) {
+  if (rc.y < 0)
     rc.y = 0;
-  }
   return rc;
 }
 
@@ -294,9 +283,8 @@ void OsrRenderer::OnPaint(CefRefPtr<CefBrowser> browser,
                           const void* buffer,
                           int width,
                           int height) {
-  if (!initialized_) {
+  if (!initialized_)
     Initialize();
-  }
 
   if (IsTransparent()) {
     // Enable alpha blending.
@@ -319,9 +307,8 @@ void OsrRenderer::OnPaint(CefRefPtr<CefBrowser> browser,
     view_width_ = width;
     view_height_ = height;
 
-    if (settings_.show_update_rect) {
+    if (settings_.show_update_rect)
       update_rect_ = dirtyRects[0];
-    }
 
     glPixelStorei(GL_UNPACK_ROW_LENGTH, view_width_);
     VERIFY_NO_ERROR;
@@ -370,12 +357,10 @@ void OsrRenderer::OnPaint(CefRefPtr<CefBrowser> browser,
       skip_rows = -y;
       y = 0;
     }
-    if (x + w > view_width_) {
+    if (x + w > view_width_)
       w -= x + w - view_width_;
-    }
-    if (y + h > view_height_) {
+    if (y + h > view_height_)
       h -= y + h - view_height_;
-    }
 
     // Update the popup rectangle.
     glPixelStorei(GL_UNPACK_ROW_LENGTH, width);

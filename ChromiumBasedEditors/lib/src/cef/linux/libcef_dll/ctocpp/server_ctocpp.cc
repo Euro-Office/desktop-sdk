@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2023 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=a3c8e5188e462ca35ced2a8d1992b4ac0bac3b35$
+// $hash=31e56774368e5a843a41c99e9446d8d97d6fc9da$
 //
 
 #include "libcef_dll/ctocpp/server_ctocpp.h"
@@ -22,7 +22,7 @@
 
 NO_SANITIZE("cfi-icall")
 void CefServer::CreateServer(const CefString& address,
-                             uint16_t port,
+                             uint16 port,
                              int backlog,
                              CefRefPtr<CefServerHandler> handler) {
   shutdown_checker::AssertNotShutdown();
@@ -31,14 +31,12 @@ void CefServer::CreateServer(const CefString& address,
 
   // Verify param: address; type: string_byref_const
   DCHECK(!address.empty());
-  if (address.empty()) {
+  if (address.empty())
     return;
-  }
   // Verify param: handler; type: refptr_diff
   DCHECK(handler.get());
-  if (!handler.get()) {
+  if (!handler.get())
     return;
-  }
 
   // Execute
   cef_server_create(address.GetStruct(), port, backlog,
@@ -52,9 +50,8 @@ CefRefPtr<CefTaskRunner> CefServerCToCpp::GetTaskRunner() {
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_task_runner)) {
+  if (CEF_MEMBER_MISSING(_struct, get_task_runner))
     return nullptr;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -69,9 +66,8 @@ NO_SANITIZE("cfi-icall") void CefServerCToCpp::Shutdown() {
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, shutdown)) {
+  if (CEF_MEMBER_MISSING(_struct, shutdown))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -83,9 +79,8 @@ NO_SANITIZE("cfi-icall") bool CefServerCToCpp::IsRunning() {
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_running)) {
+  if (CEF_MEMBER_MISSING(_struct, is_running))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -100,9 +95,8 @@ NO_SANITIZE("cfi-icall") CefString CefServerCToCpp::GetAddress() {
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, get_address)) {
+  if (CEF_MEMBER_MISSING(_struct, get_address))
     return CefString();
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -119,9 +113,8 @@ NO_SANITIZE("cfi-icall") bool CefServerCToCpp::HasConnection() {
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, has_connection)) {
+  if (CEF_MEMBER_MISSING(_struct, has_connection))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -137,9 +130,8 @@ bool CefServerCToCpp::IsValidConnection(int connection_id) {
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, is_valid_connection)) {
+  if (CEF_MEMBER_MISSING(_struct, is_valid_connection))
     return false;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -158,22 +150,19 @@ void CefServerCToCpp::SendHttp200Response(int connection_id,
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, send_http200response)) {
+  if (CEF_MEMBER_MISSING(_struct, send_http200response))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: content_type; type: string_byref_const
   DCHECK(!content_type.empty());
-  if (content_type.empty()) {
+  if (content_type.empty())
     return;
-  }
   // Verify param: data; type: simple_byaddr
   DCHECK(data);
-  if (!data) {
+  if (!data)
     return;
-  }
 
   // Execute
   _struct->send_http200response(_struct, connection_id,
@@ -185,9 +174,8 @@ void CefServerCToCpp::SendHttp404Response(int connection_id) {
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, send_http404response)) {
+  if (CEF_MEMBER_MISSING(_struct, send_http404response))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -201,17 +189,15 @@ void CefServerCToCpp::SendHttp500Response(int connection_id,
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, send_http500response)) {
+  if (CEF_MEMBER_MISSING(_struct, send_http500response))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: error_message; type: string_byref_const
   DCHECK(!error_message.empty());
-  if (error_message.empty()) {
+  if (error_message.empty())
     return;
-  }
 
   // Execute
   _struct->send_http500response(_struct, connection_id,
@@ -222,30 +208,27 @@ NO_SANITIZE("cfi-icall")
 void CefServerCToCpp::SendHttpResponse(int connection_id,
                                        int response_code,
                                        const CefString& content_type,
-                                       int64_t content_length,
+                                       int64 content_length,
                                        const HeaderMap& extra_headers) {
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, send_http_response)) {
+  if (CEF_MEMBER_MISSING(_struct, send_http_response))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: content_type; type: string_byref_const
   DCHECK(!content_type.empty());
-  if (content_type.empty()) {
+  if (content_type.empty())
     return;
-  }
   // Unverified params: extra_headers
 
   // Translate param: extra_headers; type: string_map_multi_byref_const
   cef_string_multimap_t extra_headersMultimap = cef_string_multimap_alloc();
   DCHECK(extra_headersMultimap);
-  if (extra_headersMultimap) {
+  if (extra_headersMultimap)
     transfer_string_multimap_contents(extra_headers, extra_headersMultimap);
-  }
 
   // Execute
   _struct->send_http_response(_struct, connection_id, response_code,
@@ -253,9 +236,8 @@ void CefServerCToCpp::SendHttpResponse(int connection_id,
                               extra_headersMultimap);
 
   // Restore param:extra_headers; type: string_map_multi_byref_const
-  if (extra_headersMultimap) {
+  if (extra_headersMultimap)
     cef_string_multimap_free(extra_headersMultimap);
-  }
 }
 
 NO_SANITIZE("cfi-icall")
@@ -265,17 +247,15 @@ void CefServerCToCpp::SendRawData(int connection_id,
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, send_raw_data)) {
+  if (CEF_MEMBER_MISSING(_struct, send_raw_data))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: data; type: simple_byaddr
   DCHECK(data);
-  if (!data) {
+  if (!data)
     return;
-  }
 
   // Execute
   _struct->send_raw_data(_struct, connection_id, data, data_size);
@@ -286,9 +266,8 @@ void CefServerCToCpp::CloseConnection(int connection_id) {
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, close_connection)) {
+  if (CEF_MEMBER_MISSING(_struct, close_connection))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -303,17 +282,15 @@ void CefServerCToCpp::SendWebSocketMessage(int connection_id,
   shutdown_checker::AssertNotShutdown();
 
   cef_server_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, send_web_socket_message)) {
+  if (CEF_MEMBER_MISSING(_struct, send_web_socket_message))
     return;
-  }
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: data; type: simple_byaddr
   DCHECK(data);
-  if (!data) {
+  if (!data)
     return;
-  }
 
   // Execute
   _struct->send_web_socket_message(_struct, connection_id, data, data_size);
@@ -334,7 +311,7 @@ cef_server_t*
 CefCToCppRefCounted<CefServerCToCpp, CefServer, cef_server_t>::UnwrapDerived(
     CefWrapperType type,
     CefServer* c) {
-  DCHECK(false) << "Unexpected class type: " << type;
+  NOTREACHED() << "Unexpected class type: " << type;
   return nullptr;
 }
 

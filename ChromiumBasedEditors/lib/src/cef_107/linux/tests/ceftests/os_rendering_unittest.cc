@@ -248,7 +248,7 @@ class OSRTestHandler : public RoutingTestHandler,
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -357,7 +357,7 @@ class OSRTestHandler : public RoutingTestHandler,
 
   bool handleBoundsQuery(CefRefPtr<CefBrowser> browser,
                          CefRefPtr<CefFrame> frame,
-                         int64_t query_id,
+                         int64 query_id,
                          const CefString& request,
                          bool persistent,
                          CefRefPtr<Callback> callback) {
@@ -524,7 +524,7 @@ class OSRTestHandler : public RoutingTestHandler,
 
     // start test only when painting something else then background
     if (IsBackgroundInBuffer(
-            reinterpret_cast<const uint32_t*>(buffer), width * height,
+            reinterpret_cast<const uint32*>(buffer), width * height,
             test_type_ == OSR_TEST_TRANSPARENCY ? 0x00000000 : 0xFFFFFFFF))
       return;
 
@@ -536,7 +536,7 @@ class OSRTestHandler : public RoutingTestHandler,
           EXPECT_EQ(dirtyRects.size(), 1U);
           EXPECT_TRUE(IsFullRepaint(dirtyRects[0], GetScaledInt(kOsrWidth),
                                     GetScaledInt(kOsrHeight)));
-          EXPECT_EQ(0xffff7f7fU, *(reinterpret_cast<const uint32_t*>(buffer)));
+          EXPECT_EQ(0xffff7f7fU, *(reinterpret_cast<const uint32*>(buffer)));
           DestroySucceededTestSoon();
         }
         break;
@@ -546,7 +546,7 @@ class OSRTestHandler : public RoutingTestHandler,
           EXPECT_EQ(dirtyRects.size(), 1U);
           EXPECT_TRUE(IsFullRepaint(dirtyRects[0], GetScaledInt(kOsrWidth),
                                     GetScaledInt(kOsrHeight)));
-          EXPECT_EQ(0x80800000U, *(reinterpret_cast<const uint32_t*>(buffer)));
+          EXPECT_EQ(0x80800000U, *(reinterpret_cast<const uint32*>(buffer)));
           DestroySucceededTestSoon();
         }
         break;
@@ -808,9 +808,9 @@ class OSRTestHandler : public RoutingTestHandler,
           // Unselected option background color is cyan.
           // Go down 100 pixels to skip the selected option and over 5 pixels to
           // avoid hitting the border.
-          const uint32_t offset = dirtyRects[0].width * 100 + 5;
+          const uint32 offset = dirtyRects[0].width * 100 + 5;
           EXPECT_EQ(0xff00ffff,
-                    *(reinterpret_cast<const uint32_t*>(buffer) + offset));
+                    *(reinterpret_cast<const uint32*>(buffer) + offset));
 
           if (ExpectComputedPopupSize()) {
             EXPECT_EQ(expanded_select_rect.width, width);
@@ -1589,9 +1589,9 @@ class OSRTestHandler : public RoutingTestHandler,
     return rc.width == width && rc.height == height;
   }
 
-  static bool IsBackgroundInBuffer(const uint32_t* buffer,
+  static bool IsBackgroundInBuffer(const uint32* buffer,
                                    size_t size,
-                                   uint32_t rgba) {
+                                   uint32 rgba) {
     for (size_t i = 0; i < size; i++) {
       if (buffer[i] != rgba) {
         return false;

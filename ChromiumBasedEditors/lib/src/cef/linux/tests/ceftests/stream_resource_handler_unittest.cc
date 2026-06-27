@@ -15,7 +15,7 @@
 
 namespace {
 
-const char kTestUrl[] = "https://tests-srh/test.html";
+const char kTestUrl[] = "http://tests-srh/test.html";
 const size_t kReadBlockSize = 1024U;  // 1k.
 
 // The usual network buffer size is about 32k. Choose a value that's larger.
@@ -58,12 +58,12 @@ class ReadHandler : public CefReadHandler {
     return read_bytes;
   }
 
-  int Seek(int64_t offset, int whence) override {
+  int Seek(int64 offset, int whence) override {
     EXPECT_TRUE(false);  // Not reached.
     return 0;
   }
 
-  int64_t Tell() override {
+  int64 Tell() override {
     EXPECT_TRUE(false);  // Not reached.
     return 0;
   }
@@ -117,7 +117,7 @@ class ReadTestHandler : public RoutingTestHandler {
 
   bool OnQuery(CefRefPtr<CefBrowser> browser,
                CefRefPtr<CefFrame> frame,
-               int64_t query_id,
+               int64 query_id,
                const CefString& request,
                bool persistent,
                CefRefPtr<Callback> callback) override {
@@ -143,9 +143,8 @@ class ReadTestHandler : public RoutingTestHandler {
 
  private:
   void DestroyTestIfDone() {
-    if (got_on_query_ && got_on_loading_state_change_done_) {
+    if (got_on_query_ && got_on_loading_state_change_done_)
       DestroyTest();
-    }
   }
 
   void DestroyTest() override {

@@ -74,7 +74,7 @@ class ClientAppRenderer : public ClientApp, public CefRenderProcessHandler {
 
   ClientAppRenderer();
 
- private:
+ protected:
   // Creates all of the Delegate objects. Implemented by cefclient in
   // client_app_delegates_renderer.cc
   static void CreateDelegates(DelegateSet& delegates);
@@ -109,7 +109,7 @@ class ClientAppRenderer : public ClientApp, public CefRenderProcessHandler {
                                 CefProcessId source_process,
                                 CefRefPtr<CefProcessMessage> message) override;
 
- private:
+ protected:
   // Set of supported Delegates.
   DelegateSet delegates_;
 
