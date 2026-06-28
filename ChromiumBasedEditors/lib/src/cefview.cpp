@@ -6368,14 +6368,10 @@ void CCefView_Private::CheckZoom()
 	// from GetScreenInfo and the CSS zoom from SetZoomLevel compound, causing
 	// double scaling (e.g., 1.15 × 1.25 = 1.4375 effective DPR).
 	if (m_pWidgetImpl && m_pWidgetImpl->IsWayland()) {
-		static int czLog = 0;
-		if (czLog < 3) { fprintf(stderr, "[WAYLAND-OSR] CheckZoom: SKIPPED (Wayland OSR)\n"); czLog++; }
 		return;
 	}
 
 	if (NULL == CAscApplicationManager::GetDpiChecker()) {
-		static int czLog2 = 0;
-		if (czLog2 < 3) { fprintf(stderr, "[WAYLAND-OSR] CheckZoom: no DpiChecker\n"); czLog2++; }
 		return;
 	}
 
