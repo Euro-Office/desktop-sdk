@@ -12,7 +12,7 @@ LONG WINAPI vlc_exception_filter(struct _EXCEPTION_POINTERS *lpExceptionInfo)
 	return EXCEPTION_CONTINUE_EXECUTION;
 }
 
-#ifdef QT_VERSION_6
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QOperatingSystemVersion>
 static void CheckWindowsOld()
 {

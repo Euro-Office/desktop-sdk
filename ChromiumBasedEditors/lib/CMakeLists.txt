@@ -1109,7 +1109,7 @@ target_sources(ascdocumentscore PRIVATE ${ASCDOCUMENTSCORE_HEADERS} ${ASCDOCUMEN
 # Add Crypto & Compound dependencies
 target_link_directories(ascdocumentscore PRIVATE "${CORE_BUILDS_LIBRARIES_PATH}"
     $<$<CONFIG:Debug>:${CEF_ROOT}/Debug>
-    $<$<CONFIG:Release>:${CEF_ROOT}/Release>
+    $<$<NOT:$<CONFIG:Debug>>:${CEF_ROOT}/Release>
 )
 
 # Boost and ICU
@@ -1181,7 +1181,7 @@ add_officeutils(editors_helper ${CORE_ROOT_DIR}/OfficeUtils)
 
 target_link_directories(editors_helper PRIVATE
     $<$<CONFIG:Debug>:${CEF_ROOT}/Debug>
-    $<$<CONFIG:Release>:${CEF_ROOT}/Release>
+    $<$<NOT:$<CONFIG:Debug>>:${CEF_ROOT}/Release>
 )
 
 target_link_libraries(editors_helper PUBLIC 

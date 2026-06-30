@@ -48,7 +48,7 @@ public:
 protected:
 	QAscVideoView* m_pMediaView;
 
-protected slots:
+protected Q_SLOTS:
 	void onMediaKeyDown(int key, Qt::KeyboardModifiers mods);
 };
 

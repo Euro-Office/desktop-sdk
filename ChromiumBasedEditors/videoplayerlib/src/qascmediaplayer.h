@@ -3,7 +3,7 @@
 #include <QWidget>
 #include <QMediaPlayer>
 
-#ifdef QT_VERSION_6
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QAudioOutput>
 
 typedef QMediaPlayer::PlaybackState QMediaPlayer_State;

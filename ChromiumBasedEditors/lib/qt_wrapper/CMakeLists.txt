@@ -12,7 +12,6 @@ set(CMAKE_AUTORCC ON)
 include(${CORE_ROOT_DIR}/common.cmake)
 
 
-
 # Paths
 set(CORE_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../../core")
 set(PWD_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
@@ -89,13 +88,8 @@ endif()
 if(UNIX AND NOT APPLE)
     target_compile_definitions(qtascdocumentscore PRIVATE _LINUX LINUX OS_LINUX _X11)
     
-    # Qt5/6 Linux handling
-    if(QT_VERSION_MAJOR LESS_EQUAL 5)
-        find_package(Qt5 REQUIRED COMPONENTS X11Extras)
-        target_link_libraries(qtascdocumentscore PRIVATE Qt5::X11Extras)
-    else()
-        target_link_libraries(qtascdocumentscore PRIVATE Qt6::GuiPrivate)
-    endif()
+    # Qt6 Linux handling
+    target_link_libraries(qtascdocumentscore PRIVATE Qt${QT_VERSION_MAJOR}::GuiPrivate)
 
     #target_link_options(qtascdocumentscore PRIVATE "-Wl,-unresolved-symbols=ignore-in-shared-libs")
 

@@ -46,12 +46,16 @@ QCefView_Media::~QCefView_Media()
 }
 
 #ifdef _LINUX
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QX11Info>
+#endif
 QWidget* getMainPanel(QWidget* widget, int& x, int& y)
 {
 	x = 0; y = 0;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	if (!QX11Info::isCompositingManagerRunning())
 		return widget;
+#endif
 
 	QWidget* cur = widget;
 	while (cur->parentWidget() && cur->objectName() != "mainPanel")
