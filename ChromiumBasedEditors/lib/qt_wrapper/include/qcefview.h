@@ -38,7 +38,7 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
-#include <QTimer>
+
 
 #include "./../../include/cefview.h"
 #include "./../../include/applicationmanager.h"
@@ -128,9 +128,6 @@ protected:
 	
 	QImage m_imageBuffer;
 	bool m_isWayland;
-	double m_lastDpr;
-	bool m_bufferDirty;
-	QTimer* m_waylandTimer;
 
 	void Init();
 
@@ -138,12 +135,12 @@ Q_SIGNALS:
 	void closeWidget(QCloseEvent *);
 	void _loaded();
 	void _closed();
-	void imageUpdated(const QImage& img);
+
 
 protected Q_SLOTS:
 	void _loadedSlot();
 	void _closedSlot();
-	void handleImageUpdated(const QImage& img);
+
 };
 
 #if defined (_LINUX) && !defined(_MAC)

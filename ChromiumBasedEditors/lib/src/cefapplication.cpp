@@ -480,9 +480,6 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 
 	settings.persist_session_cookies = true;
 
-#if defined(_LINUX) && !defined(_MAC)
-	settings.windowless_rendering_enabled = true;
-#endif
 
 	// Initialize CEF.
 	m_pInternal->context->Initialize(main_args, settings, m_pInternal->m_app.get(), NULL);

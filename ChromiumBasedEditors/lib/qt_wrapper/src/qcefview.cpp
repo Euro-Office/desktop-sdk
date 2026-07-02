@@ -54,9 +54,7 @@ QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 	QObject::connect(this, SIGNAL( _loaded() ) , this, SLOT( _loadedSlot() ), Qt::QueuedConnection );
 	QObject::connect(this, SIGNAL( _closed() ) , this, SLOT( _closedSlot() ), Qt::QueuedConnection );
 	if (m_isWayland) {
-		m_lastDpr = 0;
-		m_bufferDirty = false;
-		m_waylandTimer = nullptr;
+
 	}
 
 	if (IsSupportLayers())
@@ -448,32 +446,10 @@ void QCefView::OnPaint(const void* buffer, int width, int height)
 
 	QImage img((const uchar*)buffer, width, height, QImage::Format_ARGB32_Premultiplied);
 	m_imageBuffer = img.copy();
-
-	// On Wayland, the surface commit + wl_display_flush() only happen when
-	// the event loop runs a full iteration. processEvents() triggers this.
-	// However, processEvents() from within OnPaint creates re-entrancy:
-	//   OnPaint → processEvents → CEF work → OnPaint → processEvents → ...
-	// The static guard prevents this infinite loop, ensuring processEvents()
-	// runs at most once at a time. Subsequent OnPaint calls within the
-	// nested processEvents() just call update(), and their events are
-	// processed when the outer processEvents() continues.
 	update();
-	static bool s_inProcessEvents = false;
-	if (!s_inProcessEvents) {
-		s_inProcessEvents = true;
-		QCoreApplication::processEvents();
-		s_inProcessEvents = false;
-	}
 }
 
-void QCefView::handleImageUpdated(const QImage& img)
-{
-	m_imageBuffer = img;
-	// Use repaint() instead of update() to force immediate synchronous painting.
-	// On Wayland, update() only schedules a repaint for the next event loop
-	// iteration, which may not trigger until the next user input event.
-	repaint();
-}
+
 
 void QCefView::paintEvent(QPaintEvent* event)
 {
