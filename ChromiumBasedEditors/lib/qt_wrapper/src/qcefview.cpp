@@ -447,15 +447,13 @@ void QCefView::OnPaint(const void* buffer, int width, int height)
 	QImage img((const uchar*)buffer, width, height, QImage::Format_ARGB32_Premultiplied);
 	m_imageBuffer = img.copy();
 
-	// Schedule a repaint on the next event loop iteration.
-	// Unlike processEvents() (which re-enters the event loop from within
-	// a CEF callback and risks reentrancy), singleShot(0) posts an event
-	// that Qt processes after CEF's OnPaint has fully returned.
-	// repaint() forces a synchronous paint, ensuring the Wayland compositor
-	// receives the surface commit promptly.
-	QTimer::singleShot(0, this, [this]() {
-		repaint();
-	});
+	// repaint() is synchronous: it calls paintEvent() immediately, which
+	// draws the buffer and commits the Wayland surface.  Unlike
+	// processEvents() it does NOT process arbitrary events, so there is
+	// no risk of re-entering CefDoMessageLoopWork.  Unlike update() or
+	// QTimer::singleShot(0) it does not rely on the Qt event loop running
+	// between CEF message-pump iterations.
+	repaint();
 }
 
 
