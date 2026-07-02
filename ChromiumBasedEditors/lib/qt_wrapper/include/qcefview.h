@@ -128,6 +128,7 @@ protected:
 	
 	QImage m_imageBuffer;
 	bool m_isWayland;
+	bool m_inPaint;
 
 	void Init();
 

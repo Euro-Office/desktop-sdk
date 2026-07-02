@@ -47,6 +47,7 @@ QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 	m_pCefView = NULL;
 	m_pProperties = NULL;
 	m_isWayland = (QGuiApplication::platformName() == "wayland");
+	m_inPaint = false;
 
 	if (!initial_size.isEmpty())
 		resize(initial_size);
@@ -447,13 +448,18 @@ void QCefView::OnPaint(const void* buffer, int width, int height)
 	QImage img((const uchar*)buffer, width, height, QImage::Format_ARGB32_Premultiplied);
 	m_imageBuffer = img.copy();
 
-	// repaint() is synchronous: it calls paintEvent() immediately, which
-	// draws the buffer and commits the Wayland surface.  Unlike
-	// processEvents() it does NOT process arbitrary events, so there is
-	// no risk of re-entering CefDoMessageLoopWork.  Unlike update() or
-	// QTimer::singleShot(0) it does not rely on the Qt event loop running
-	// between CEF message-pump iterations.
-	repaint();
+	// processEvents() is necessary because neither repaint(), update(),
+	// nor QTimer::singleShot work — the Wayland surface commit requires
+	// the full event loop to flush the backing store to the compositor.
+	// The m_inPaint guard prevents reentrancy: if processEvents()
+	// triggers CefDoMessageLoopWork → OnPaint, we update the buffer
+	// but skip processEvents() to avoid unbounded recursion.
+	if (!m_inPaint) {
+		m_inPaint = true;
+		update();
+		QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+		m_inPaint = false;
+	}
 }
 
 
