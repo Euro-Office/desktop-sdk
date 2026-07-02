@@ -33,6 +33,13 @@
 #include <QDebug>
 #include <QPointer>
 
+#include <QImage>
+#include <QGuiApplication>
+#include <QMouseEvent>
+#include <QWheelEvent>
+#include <QKeyEvent>
+
+
 #include "./../../include/cefview.h"
 #include "./../../include/applicationmanager.h"
 
@@ -55,6 +62,14 @@ public:
 	// move/resize
 	virtual void resizeEvent(QResizeEvent* e);
 	virtual void moveEvent(QMoveEvent* e);
+
+	// input events for OSR
+	virtual void mousePressEvent(QMouseEvent *event) override;
+	virtual void mouseReleaseEvent(QMouseEvent *event) override;
+	virtual void mouseMoveEvent(QMouseEvent *event) override;
+	virtual void wheelEvent(QWheelEvent *event) override;
+	virtual void keyPressEvent(QKeyEvent *event) override;
+	virtual void keyReleaseEvent(QKeyEvent *event) override;
 
 	// drag'n'drop
 #if defined (_LINUX) && !defined(_MAC)
@@ -93,6 +108,11 @@ public:
 	void SetBackgroundCefColor(unsigned char r, unsigned char g, unsigned char b);
 	void paintEvent(QPaintEvent *event);
 
+	virtual double GetDeviceScaleFactor() override;
+	virtual bool IsWayland() override;
+	virtual void OnPaint(const void* buffer, int width, int height) override;
+	virtual void GetWidgetScreenPosition(int& screenX, int& screenY) override;
+
 	// check support z-index
 	static bool IsSupportLayers();
 	void SetCaptionMaskSize(int);
@@ -105,6 +125,10 @@ protected:
 	CCefView* m_pCefView;
 	QPointer<QWidget> m_pOverride;
 	QCefViewProps* m_pProperties;
+	
+	QImage m_imageBuffer;
+	bool m_isWayland;
+	bool m_inPaint;
 
 	void Init();
 
@@ -113,9 +137,11 @@ Q_SIGNALS:
 	void _loaded();
 	void _closed();
 
+
 protected Q_SLOTS:
 	void _loadedSlot();
 	void _closedSlot();
+
 };
 
 #if defined (_LINUX) && !defined(_MAC)

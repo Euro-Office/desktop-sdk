@@ -26,6 +26,10 @@
 #include "./../include/qcefview.h"
 #include <QPainter>
 #include <QApplication>
+#include <QAbstractEventDispatcher>
+#include <QTimer>
+#include <QDebug>
+#include <set>
 
 class QCefViewProps
 {
@@ -42,12 +46,17 @@ QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 {
 	m_pCefView = NULL;
 	m_pProperties = NULL;
+	m_isWayland = (QGuiApplication::platformName() == "wayland");
+	m_inPaint = false;
 
 	if (!initial_size.isEmpty())
 		resize(initial_size);
 
 	QObject::connect(this, SIGNAL( _loaded() ) , this, SLOT( _loadedSlot() ), Qt::QueuedConnection );
 	QObject::connect(this, SIGNAL( _closed() ) , this, SLOT( _closedSlot() ), Qt::QueuedConnection );
+	if (m_isWayland) {
+
+	}
 
 	if (IsSupportLayers())
 		this->installEventFilter(this);
@@ -97,6 +106,190 @@ bool QCefView::setFocusToCef()
 
 	//qDebug() << "focus: id = " << m_pCefView->GetId() << ", use = " << isActivate;
 	return isActivate;
+}
+
+static int GetCefModifiers(Qt::KeyboardModifiers qt_mod, Qt::MouseButtons qt_btn) {
+	int modifiers = 0;
+	if (qt_mod & Qt::ShiftModifier) modifiers |= 1 << 1;    // EVENTFLAG_SHIFT_DOWN
+	if (qt_mod & Qt::ControlModifier) modifiers |= 1 << 2;  // EVENTFLAG_CONTROL_DOWN
+	if (qt_mod & Qt::AltModifier) modifiers |= 1 << 3;      // EVENTFLAG_ALT_DOWN
+	if (qt_btn & Qt::LeftButton) modifiers |= 1 << 4;       // EVENTFLAG_LEFT_MOUSE_BUTTON
+	if (qt_btn & Qt::MiddleButton) modifiers |= 1 << 5;     // EVENTFLAG_MIDDLE_MOUSE_BUTTON
+	if (qt_btn & Qt::RightButton) modifiers |= 1 << 6;      // EVENTFLAG_RIGHT_MOUSE_BUTTON
+	return modifiers;
+}
+
+static int QtKeyToWindowsKeyCode(int key) {
+	if (key >= Qt::Key_0 && key <= Qt::Key_9)
+		return key; // 0x30 - 0x39
+	if (key >= Qt::Key_A && key <= Qt::Key_Z)
+		return key; // 0x41 - 0x5a
+
+	switch (key) {
+	case Qt::Key_Backspace: return 0x08;
+	case Qt::Key_Tab:       return 0x09;
+	case Qt::Key_Clear:     return 0x0C;
+	case Qt::Key_Return:    return 0x0D;
+	case Qt::Key_Enter:     return 0x0D;
+	case Qt::Key_Shift:     return 0x10;
+	case Qt::Key_Control:   return 0x11;
+	case Qt::Key_Alt:       return 0x12;
+	case Qt::Key_Pause:     return 0x13;
+	case Qt::Key_CapsLock:  return 0x14;
+	case Qt::Key_Escape:    return 0x1B;
+	case Qt::Key_Space:     return 0x20;
+	case Qt::Key_PageUp:    return 0x21;
+	case Qt::Key_PageDown:  return 0x22;
+	case Qt::Key_End:       return 0x23;
+	case Qt::Key_Home:      return 0x24;
+	case Qt::Key_Left:      return 0x25;
+	case Qt::Key_Up:        return 0x26;
+	case Qt::Key_Right:     return 0x27;
+	case Qt::Key_Down:      return 0x28;
+	case Qt::Key_Select:    return 0x29;
+	case Qt::Key_Print:     return 0x2A;
+	case Qt::Key_Execute:   return 0x2B;
+	case Qt::Key_SysReq:    return 0x2C;
+	case Qt::Key_Insert:    return 0x2D;
+	case Qt::Key_Delete:    return 0x2E;
+	case Qt::Key_Help:      return 0x2F;
+	case Qt::Key_NumLock:   return 0x90;
+	case Qt::Key_ScrollLock: return 0x91;
+	case Qt::Key_Semicolon: return 0xBA;
+	case Qt::Key_Equal:     return 0xBB;
+	case Qt::Key_Plus:      return 0xBB;
+	case Qt::Key_Comma:     return 0xBC;
+	case Qt::Key_Minus:     return 0xBD;
+	case Qt::Key_Period:    return 0xBE;
+	case Qt::Key_Slash:     return 0xBF;
+	case Qt::Key_QuoteLeft: return 0xC0;
+	case Qt::Key_BracketLeft: return 0xDB;
+	case Qt::Key_Backslash: return 0xDC;
+	case Qt::Key_BracketRight: return 0xDD;
+	case Qt::Key_Apostrophe: return 0xDE;
+	default:
+		if (key >= Qt::Key_F1 && key <= Qt::Key_F24)
+			return 0x70 + (key - Qt::Key_F1);
+		break;
+	}
+	return 0;
+}
+
+void QCefView::mousePressEvent(QMouseEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		int button = 1;
+		if (event->button() == Qt::RightButton) button = 2;
+		else if (event->button() == Qt::MiddleButton) button = 3;
+
+		// CEF coordinate space is DIPs (same as GetViewRect). Qt delivers DIPs.
+		m_pCefView->SendMouseClickEvent(event->x(), event->y(), button, false, GetCefModifiers(event->modifiers(), event->buttons()), 1);
+	}
+	QWidget::mousePressEvent(event);
+}
+
+void QCefView::mouseReleaseEvent(QMouseEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		int button = 1;
+		if (event->button() == Qt::RightButton) button = 2;
+		else if (event->button() == Qt::MiddleButton) button = 3;
+		m_pCefView->SendMouseClickEvent(event->x(), event->y(), button, true, GetCefModifiers(event->modifiers(), event->buttons()), 1);
+	}
+	QWidget::mouseReleaseEvent(event);
+}
+
+void QCefView::mouseMoveEvent(QMouseEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		m_pCefView->SendMouseMoveEvent(event->x(), event->y(), false, GetCefModifiers(event->modifiers(), event->buttons()));
+	}
+	QWidget::mouseMoveEvent(event);
+}
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+void QCefView::wheelEvent(QWheelEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		m_pCefView->SendMouseWheelEvent(event->position().x(), event->position().y(), event->angleDelta().x(), event->angleDelta().y(), GetCefModifiers(event->modifiers(), event->buttons()));
+	}
+	QWidget::wheelEvent(event);
+}
+#else
+void QCefView::wheelEvent(QWheelEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		m_pCefView->SendMouseWheelEvent(event->pos().x(), event->pos().y(), event->angleDelta().x(), event->angleDelta().y(), GetCefModifiers(event->modifiers(), event->buttons()));
+	}
+	QWidget::wheelEvent(event);
+}
+#endif
+
+void QCefView::keyPressEvent(QKeyEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		int key = event->key();
+		int windows_key_code = QtKeyToWindowsKeyCode(key);
+		
+		wchar_t unmodified_char = 0;
+		if (key >= Qt::Key_A && key <= Qt::Key_Z) {
+			unmodified_char = (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
+		} else if (key >= Qt::Key_0 && key <= Qt::Key_9) {
+			unmodified_char = key;
+		} else if (key == Qt::Key_Space) {
+			unmodified_char = ' ';
+		} else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+			unmodified_char = '\r';
+		} else {
+			if (!event->text().isEmpty()) {
+				unmodified_char = event->text()[0].unicode();
+			}
+		}
+
+		wchar_t character = unmodified_char;
+		if (event->modifiers() & Qt::ControlModifier) {
+			if (key >= Qt::Key_A && key <= Qt::Key_Z) {
+				character = key - Qt::Key_A + 1;
+			}
+		}
+
+		std::wstring character_str;
+		character_str.push_back(character);
+		character_str.push_back(unmodified_char);
+		character_str.push_back(static_cast<wchar_t>(event->nativeScanCode() + 8));
+
+		m_pCefView->SendKeyEvent(0, windows_key_code, GetCefModifiers(event->modifiers(), Qt::NoButton), character_str);
+		m_pCefView->SendKeyEvent(3, windows_key_code, GetCefModifiers(event->modifiers(), Qt::NoButton), character_str);
+		event->accept();
+		return;
+	}
+	QWidget::keyPressEvent(event);
+}
+
+void QCefView::keyReleaseEvent(QKeyEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		int key = event->key();
+		int windows_key_code = QtKeyToWindowsKeyCode(key);
+		
+		wchar_t unmodified_char = 0;
+		if (key >= Qt::Key_A && key <= Qt::Key_Z) {
+			unmodified_char = (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
+		} else if (key >= Qt::Key_0 && key <= Qt::Key_9) {
+			unmodified_char = key;
+		} else if (key == Qt::Key_Space) {
+			unmodified_char = ' ';
+		} else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+			unmodified_char = '\r';
+		} else {
+			if (!event->text().isEmpty()) {
+				unmodified_char = event->text()[0].unicode();
+			}
+		}
+
+		std::wstring character_str;
+		character_str.push_back(unmodified_char);
+		character_str.push_back(unmodified_char);
+		character_str.push_back(static_cast<wchar_t>(event->nativeScanCode() + 8));
+
+		m_pCefView->SendKeyEvent(2, windows_key_code, GetCefModifiers(event->modifiers(), Qt::NoButton), character_str);
+		event->accept();
+		return;
+	}
+	QWidget::keyReleaseEvent(event);
 }
 
 // focus
@@ -225,8 +418,70 @@ void QCefView::SetBackgroundCefColor(unsigned char r, unsigned char g, unsigned 
 	this->setStyleSheet(sStyle);
 }
 
-void QCefView::paintEvent(QPaintEvent *)
+double QCefView::GetDeviceScaleFactor()
 {
+	return this->devicePixelRatio();
+}
+
+bool QCefView::IsWayland()
+{
+	return m_isWayland;
+}
+
+void QCefView::GetWidgetScreenPosition(int& screenX, int& screenY)
+{
+	// Map widget's top-left to global screen coordinates.
+	// On Wayland, mapToGlobal may return (0,0) since global coords
+	// aren't available, but CEF primarily needs the widget offset
+	// for internal coordinate calculations.
+	QPoint globalPos = mapToGlobal(QPoint(0, 0));
+	double dpr = devicePixelRatio();
+	// CEF expects screen device (pixel) coordinates on Linux
+	screenX = (int)(globalPos.x() * dpr);
+	screenY = (int)(globalPos.y() * dpr);
+}
+
+void QCefView::OnPaint(const void* buffer, int width, int height)
+{
+	if (!m_isWayland) return;
+
+	QImage img((const uchar*)buffer, width, height, QImage::Format_ARGB32_Premultiplied);
+	m_imageBuffer = img.copy();
+
+	// processEvents() is necessary because neither repaint(), update(),
+	// nor QTimer::singleShot work — the Wayland surface commit requires
+	// the full event loop to flush the backing store to the compositor.
+	// The m_inPaint guard prevents reentrancy: if processEvents()
+	// triggers CefDoMessageLoopWork → OnPaint, we update the buffer
+	// but skip processEvents() to avoid unbounded recursion.
+	if (!m_inPaint) {
+		m_inPaint = true;
+		update();
+		QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+		m_inPaint = false;
+	}
+}
+
+
+
+void QCefView::paintEvent(QPaintEvent* event)
+{
+	if (m_isWayland && !m_imageBuffer.isNull()) {
+		QPainter painter(this);
+		// Draw the full physical-pixel CEF buffer into the full widget area.
+		// Source: all physical pixels from the CEF OnPaint buffer.
+		// Target: full widget rect in logical (DIP) coordinates.
+		// Qt maps source onto target, stretching to fill. Since the buffer
+		// is DIP*DPR pixels and the widget is DIP logical (= DIP*DPR physical),
+		// this results in a 1:1 pixel mapping with no clipping.
+		painter.drawImage(
+			QRectF(0, 0, width(), height()),
+			m_imageBuffer,
+			QRectF(0, 0, m_imageBuffer.width(), m_imageBuffer.height())
+		);
+		return;
+	}
+
 	QStyleOption opt;
 	opt.initFrom(this);
 	QPainter p(this);
@@ -416,7 +671,14 @@ bool QCefEmbedWindow::eventFilter(QObject *watched, QEvent *event)
 
 void QCefView::Init()
 {
-	if (IsSupportLayers())
+	if (m_isWayland)
+	{
+		cef_handle = 0;
+		setAcceptDrops(true);
+		setMouseTracking(true);
+		setFocusPolicy(Qt::StrongFocus);
+	}
+	else if (IsSupportLayers())
 	{
 		Display* display = (Display*)CefGetXDisplay();
 		Window x11root = XDefaultRootWindow(display);
@@ -501,6 +763,8 @@ void SetWindowSize(Window window, QWidget* parent)
 
 void QCefView::UpdateSize()
 {
+	if (m_isWayland) return;
+
 	if (IsSupportLayers())
 		SetWindowSize(cef_handle, this);
 
