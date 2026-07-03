@@ -91,6 +91,15 @@ public:
 	virtual void OnLoaded() {}
 	virtual void OnRelease() {}
 
+	virtual double GetDeviceScaleFactor() { return 1.0; }
+	virtual bool IsWayland() { return false; }
+
+	// Returns the widget's top-left position in screen device (pixel) coordinates.
+	// Used by CEF's GetScreenPoint to map view DIPs to screen pixels.
+	virtual void GetWidgetScreenPosition(int& screenX, int& screenY) { screenX = 0; screenY = 0; }
+
+	virtual void OnPaint(const void* buffer, int width, int height) {}
+
 	static void SetParentNull(WindowHandleId handle);
 };
 
@@ -147,6 +156,11 @@ public:
 	int GetRecentId();
 
 	void ExecuteInAllFrames(const std::string& sCode, const bool& isMain = true);
+
+	void SendMouseClickEvent(int x, int y, int button, bool mouseUp, int modifiers, int clickCount);
+	void SendMouseMoveEvent(int x, int y, bool mouseLeave, int modifiers);
+	void SendMouseWheelEvent(int x, int y, int deltaX, int deltaY, int modifiers);
+	void SendKeyEvent(int type, int key, int modifiers, const std::wstring& character);
 
 protected:
 	int m_nId;
