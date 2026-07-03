@@ -54,6 +54,7 @@ public Q_SLOTS:
 
 private:
 	QTimer m_timer;
+	QTimer* m_wayland_poller = nullptr;
 	CAscApplicationManager* m_manager;
 };
 

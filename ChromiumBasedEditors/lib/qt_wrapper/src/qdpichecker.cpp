@@ -29,13 +29,7 @@
 #include <QApplication>
 #include "./../include/qcefview.h"
 
-#ifdef _LINUX
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#include <QtGui/private/qtx11extras_p.h>
-#else
-#include <QX11Info>
-#endif
-#endif
+
 
 
 
@@ -72,16 +66,7 @@ int QDpiChecker::GetMonitorDpi(int nScreenNumber, unsigned int* dx, unsigned int
 	int nDpiX = _screen->physicalDotsPerInchX();
 	int nDpiY = _screen->physicalDotsPerInchY();
 
-#ifdef _LINUX
-	if (QX11Info::isPlatformX11())
-	{
-		int _x11_dpix = QX11Info::appDpiX(nScreenNumber),
-				_x11_dpiy = QX11Info::appDpiY(nScreenNumber);
 
-		if (nDpiX < _x11_dpix) nDpiX = _x11_dpix;
-		if (nDpiY < _x11_dpiy) nDpiY = _x11_dpiy;
-	}
-#endif
 
 
 	QSize size = _screen->size();
