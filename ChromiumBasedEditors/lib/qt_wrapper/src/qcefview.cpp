@@ -33,6 +33,7 @@
 #include <QWindow>
 #include <QTimer>
 #include <set>
+#include <QInputMethodEvent>
 
 class QCefViewProps
 {
@@ -225,6 +226,14 @@ void QCefView::wheelEvent(QWheelEvent *event) {
 void QCefView::keyPressEvent(QKeyEvent *event) {
 	if (m_isWayland && m_pCefView) {
 		int key = event->key();
+
+		// Suppress raw dead key events — let Qt's input method compose them.
+		// The composed character will arrive via inputMethodEvent.
+		if (key >= Qt::Key_Dead_Grave && key <= Qt::Key_Dead_Greek) {
+			event->accept();
+			return;
+		}
+
 		int windows_key_code = QtKeyToWindowsKeyCode(key);
 		
 		wchar_t unmodified_char = 0;
@@ -265,6 +274,13 @@ void QCefView::keyPressEvent(QKeyEvent *event) {
 void QCefView::keyReleaseEvent(QKeyEvent *event) {
 	if (m_isWayland && m_pCefView) {
 		int key = event->key();
+
+		// Suppress raw dead key release events — matching keyPressEvent suppression.
+		if (key >= Qt::Key_Dead_Grave && key <= Qt::Key_Dead_Greek) {
+			event->accept();
+			return;
+		}
+
 		int windows_key_code = QtKeyToWindowsKeyCode(key);
 		
 		wchar_t unmodified_char = 0;
@@ -292,6 +308,42 @@ void QCefView::keyReleaseEvent(QKeyEvent *event) {
 		return;
 	}
 	QWidget::keyReleaseEvent(event);
+}
+
+// An alternative approach would be to use CEF's ImeCommitText API directly,
+// which is the canonical IME path. However, this would require:
+//
+// 1. Adding a new ImeCommitText wrapper to CCefView (similar to existing SendKeyEvent)
+// 2. Including additional CEF headers for CefRange
+//
+// The SendKeyEvent(KEYEVENT_CHAR) approach is simpler, already proven in the
+// codebase, and sufficient for dead key compose sequences (which produce final
+// committed characters, not preedit/intermediate compositions like CJK input).
+void QCefView::inputMethodEvent(QInputMethodEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		QString commitStr = event->commitString();
+		if (!commitStr.isEmpty()) {
+			for (int i = 0; i < commitStr.length(); i++) {
+				wchar_t ch = commitStr[i].unicode();
+				std::wstring character_str;
+				character_str.push_back(ch);
+				character_str.push_back(ch);
+				character_str.push_back(0);
+				// Send the full key event sequence: KEYDOWN(0) -> CHAR(3) -> KEYUP(2)
+				// CEF requires the complete sequence to properly inject characters.
+				m_pCefView->SendKeyEvent(0, ch, 0, character_str);
+				m_pCefView->SendKeyEvent(3, ch, 0, character_str);
+				m_pCefView->SendKeyEvent(2, ch, 0, character_str);
+			}
+		}
+	}
+	event->accept();
+}
+
+QVariant QCefView::inputMethodQuery(Qt::InputMethodQuery query) const {
+	if (query == Qt::ImEnabled)
+		return true;
+	return QWidget::inputMethodQuery(query);
 }
 
 // focus
@@ -673,6 +725,7 @@ void QCefView::Init()
 		setAcceptDrops(true);
 		setMouseTracking(true);
 		setFocusPolicy(Qt::StrongFocus);
+		setAttribute(Qt::WA_InputMethodEnabled, true);
 	}
 	else if (IsSupportLayers())
 	{
