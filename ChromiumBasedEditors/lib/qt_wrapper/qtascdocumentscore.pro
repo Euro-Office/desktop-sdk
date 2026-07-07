@@ -1,4 +1,4 @@
-QT       += core gui printsupport widgets
+QT       += core gui printsupport widgets openglwidgets
 
 TARGET = qtascdocumentscore
 TEMPLATE = lib
