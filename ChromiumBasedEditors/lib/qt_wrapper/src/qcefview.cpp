@@ -46,6 +46,8 @@ public:
 	}
 };
 
+QList<QCefView*> QCefView::s_waylandViews;
+
 QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 {
 	m_pCefView = NULL;
@@ -58,7 +60,7 @@ QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 	QObject::connect(this, SIGNAL( _loaded() ) , this, SLOT( _loadedSlot() ), Qt::QueuedConnection );
 	QObject::connect(this, SIGNAL( _closed() ) , this, SLOT( _closedSlot() ), Qt::QueuedConnection );
 	if (m_isWayland) {
-
+		s_waylandViews.append(this);
 	}
 
 	if (IsSupportLayers())
@@ -67,6 +69,9 @@ QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 
 QCefView::~QCefView()
 {
+	if (m_isWayland)
+		s_waylandViews.removeAll(this);
+
 	// release from CApplicationManager
 	if (m_pProperties)
 	{
@@ -367,6 +372,8 @@ void QCefView::resizeEvent(QResizeEvent* e)
 
 	if (m_pOverride)
 		m_pOverride->setGeometry(0, 0, cef_width, cef_height);
+	if (m_pGLView)
+		m_pGLView->setGeometry(0, 0, cef_width, cef_height);
 	if (m_pCefView)
 		m_pCefView->resizeEvent();
 }
@@ -495,18 +502,72 @@ void QCefView::GetWidgetScreenPosition(int& screenX, int& screenY)
 	screenY = (int)(globalPos.y() * dpr);
 }
 
+QCefGLWidget::QCefGLWidget(QWidget* parent)
+	: QOpenGLWidget(parent)
+{
+	// Input stays with the QCefView parent; this overlay is display-only.
+	setAttribute(Qt::WA_TransparentForMouseEvents, true);
+	setFocusPolicy(Qt::NoFocus);
+	setAutoFillBackground(false);
+}
+
+void QCefGLWidget::SetFrame(const QImage& image)
+{
+	// image is already a deep copy owned by the caller (QImage is implicitly
+	// shared, so this is a cheap ref, not a second pixel copy).
+	m_frame = image;
+	// Schedules paintGL() + a GL swap. On Wayland the swap is the surface
+	// commit and is throttled by the compositor's frame callback natively, so
+	// the frame is presented without needing a physical input event.
+	update();
+}
+
+void QCefGLWidget::paintGL()
+{
+	if (m_frame.isNull())
+		return;
+
+	// Draw the full physical-pixel CEF buffer into the full widget area, same
+	// mapping as QCefView::paintEvent used for the raster path.
+	QPainter painter(this);
+	painter.drawImage(
+		QRectF(0, 0, width(), height()),
+		m_frame,
+		QRectF(0, 0, m_frame.width(), m_frame.height())
+	);
+}
+
 void QCefView::OnPaint(const void* buffer, int width, int height)
 {
 	if (!m_isWayland) return;
 
+	// Runs inside CEF's OnPaint callback: only stage the frame (no event-loop
+	// re-entrancy). Push it to the GL overlay, which presents it via a GL swap
+	// (= wl_surface_commit) that participates in the compositor frame-callback
+	// loop, so no top-of-loop flush is needed to unstick the commit.
 	QImage img((const uchar*)buffer, width, height, QImage::Format_ARGB32_Premultiplied);
-	m_imageBuffer = img.copy();
-	repaint();
-	if (m_isWayland) {
-		if (auto* win = this->window()->windowHandle()) {
-			QEvent req(QEvent::UpdateRequest);
-			QCoreApplication::sendEvent(win, &req);
-		}
+	QImage frame = img.copy();
+
+	// Keep a raster copy too: QCefView::paintEvent uses it as a backdrop behind
+	// the GL overlay (e.g. during resize), and it costs nothing extra (COW).
+	m_imageBuffer = frame;
+
+	if (m_pGLView)
+		m_pGLView->SetFrame(frame);
+
+	m_dirty.storeRelaxed(1);
+}
+
+void QCefView::FlushDirtyWaylandViews()
+{
+	// Runs from the message-loop poller (top of loop, non-reentrant) after CEF
+	// has been pumped. Nudge a repaint of any view that produced a frame this
+	// tick so the GL swap is scheduled at the top of the loop. No event-loop
+	// spin here: nothing that could starve input or re-enter CEF.
+	for (QCefView* view : s_waylandViews)
+	{
+		if (view->m_dirty.fetchAndStoreRelaxed(0) && view->m_pGLView)
+			view->m_pGLView->update();
 	}
 }
 
@@ -726,6 +787,14 @@ void QCefView::Init()
 		setMouseTracking(true);
 		setFocusPolicy(Qt::StrongFocus);
 		setAttribute(Qt::WA_InputMethodEnabled, true);
+
+		// GL overlay that presents the CEF OSR buffer (see QCefGLWidget). It
+		// fully covers this view and is mouse-transparent, so QCefView keeps
+		// handling all input.
+		m_pGLView = new QCefGLWidget(this);
+		m_pGLView->setGeometry(0, 0, width(), height());
+		m_pGLView->show();
+		m_pGLView->raise();
 	}
 	else if (IsSupportLayers())
 	{

@@ -24,6 +24,8 @@
  */
 
 #include "./../include/qexternalmessageloop.h"
+#include "./../include/qcefview.h"
+#include <QGuiApplication>
 
 QExternalMessageLoop::QExternalMessageLoop(CAscApplicationManager* manager)
 {
@@ -32,16 +34,18 @@ QExternalMessageLoop::QExternalMessageLoop(CAscApplicationManager* manager)
 	QObject::connect(&m_timer, SIGNAL(timeout()), this, SLOT(slot_onTimeout()), Qt::QueuedConnection);
 	QObject::connect(this, SIGNAL(onExecuteCommand(void*)), this, SLOT(slot_onExecuteCommand(void*)), Qt::QueuedConnection);
 
-	QByteArray qpaPlatform = qgetenv("QT_QPA_PLATFORM");
-	QByteArray xdgSession = qgetenv("XDG_SESSION_TYPE");
-	if (qpaPlatform == "wayland" || xdgSession == "wayland") {
+	if (QGuiApplication::platformName() == "wayland" || qgetenv("XDG_SESSION_TYPE").toLower().contains("wayland")) {
 		// On Wayland, the Qt event dispatcher can go into deep sleep when there is no user input,
 		// stalling QueuedConnection events and starving the CEF message pump.
 		// A 16ms heartbeat timer forces the event loop to wake up and process CEF queues at 60Hz.
 		m_wayland_poller = new QTimer(this);
 		m_wayland_poller->setInterval(16);
 		QObject::connect(m_wayland_poller, &QTimer::timeout, this, [manager](){
-			manager->ExternalMessageLoop_OnTimeout();
+			manager->ExternalMessageLoop_OnTimeout();   // pump CEF (may stage frames)
+			// Repaint any view whose OnPaint staged a frame and drive the
+			// Wayland frame-callback handshake. Runs at the top of the loop
+			// (non-reentrant), never from inside a CEF callback.
+			QCefView::FlushDirtyWaylandViews();
 		});
 		m_wayland_poller->start();
 	}

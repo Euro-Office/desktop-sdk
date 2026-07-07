@@ -38,12 +38,37 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
+#include <QAtomicInt>
+#include <QList>
+#include <QOpenGLWidget>
 
 
 #include "./../../include/cefview.h"
 #include "./../../include/applicationmanager.h"
 
 class QCefViewProps;
+
+// Wayland-only presenter for the CEF off-screen buffer. Rendering through a GL
+// surface makes the swap itself the wl_surface_commit, which participates in
+// the compositor's frame-callback / vsync loop natively -- so the raster
+// backing-store "commit never completes until input" deadlock cannot occur.
+// It is a mouse-transparent, non-focusable child that fully overlays its
+// QCefView parent; all input continues to be handled by QCefView.
+class QCefGLWidget : public QOpenGLWidget
+{
+	Q_OBJECT
+public:
+	explicit QCefGLWidget(QWidget* parent);
+	// Stage a new frame (deep-copied by the caller) and schedule a GL repaint.
+	void SetFrame(const QImage& image);
+
+protected:
+	virtual void paintGL() override;
+
+private:
+	QImage m_frame;
+};
+
 class DESKTOP_DECL QCefView : public QWidget, public CCefViewWidgetImpl
 {
 	Q_OBJECT
@@ -115,6 +140,13 @@ public:
 	virtual void OnPaint(const void* buffer, int width, int height) override;
 	virtual void GetWidgetScreenPosition(int& screenX, int& screenY) override;
 
+	// Wayland: called from the external message loop poller (top of loop,
+	// non-reentrant) after CEF is pumped. Repaints any view whose OnPaint
+	// staged a new frame and drives the frame-callback handshake so the
+	// commit is synchronized to the compositor. Must never be called from
+	// inside a CEF callback (e.g. OnPaint).
+	static void FlushDirtyWaylandViews();
+
 	// check support z-index
 	static bool IsSupportLayers();
 	void SetCaptionMaskSize(int);
@@ -130,6 +162,18 @@ protected:
 	
 	QImage m_imageBuffer;
 	bool m_isWayland;
+
+	// Wayland: GL presenter overlaying this view (see QCefGLWidget). null on
+	// other platforms and until Init() runs.
+	QCefGLWidget* m_pGLView = nullptr;
+
+	// Set by OnPaint when a new frame is staged; cleared by the poller.
+	QAtomicInt m_dirty;
+
+	// Registry of live Wayland views, so the message-loop poller can find
+	// dirty views to drive the frame-callback handshake. Populated only on
+	// Wayland; single-threaded access (main/UI thread).
+	static QList<QCefView*> s_waylandViews;
 
 	void Init();
 
