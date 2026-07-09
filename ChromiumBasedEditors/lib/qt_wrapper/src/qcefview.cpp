@@ -34,6 +34,11 @@
 #include <QTimer>
 #include <set>
 #include <QInputMethodEvent>
+#include <QClipboard>
+#include <QMimeData>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QBuffer>
 
 class QCefViewProps
 {
@@ -500,6 +505,84 @@ void QCefView::GetWidgetScreenPosition(int& screenX, int& screenY)
 	// CEF expects screen device (pixel) coordinates on Linux
 	screenX = (int)(globalPos.x() * dpr);
 	screenY = (int)(globalPos.y() * dpr);
+}
+
+void QCefView::SetClipboardData(const std::wstring& sJson)
+{
+	QJsonParseError err;
+	QJsonDocument doc = QJsonDocument::fromJson(QString::fromStdWString(sJson).toUtf8(), &err);
+	if (err.error != QJsonParseError::NoError || !doc.isObject())
+		return;
+
+	QJsonObject obj = doc.object();
+	QMimeData* pMime = new QMimeData();
+
+	if (obj.contains("text/plain"))
+		pMime->setText(obj.value("text/plain").toString());
+
+	if (obj.contains("text/html"))
+		pMime->setHtml(obj.value("text/html").toString());
+
+	// The internal high-fidelity fragment sdkjs already builds for same-app
+	// paste (shapes, tables, embedded objects). Stored as a raw custom MIME
+	// type so it round-trips exactly through GetClipboardData below; other
+	// applications simply won't see/use this entry.
+	if (obj.contains("text/x-custom"))
+	{
+		QByteArray data = obj.value("text/x-custom").toString().toUtf8();
+		pMime->setData("text/x-custom", data);
+	}
+
+	if (obj.contains("image/png"))
+	{
+		QByteArray b64 = obj.value("image/png").toString().toUtf8();
+		QByteArray png = QByteArray::fromBase64(b64);
+		if (!png.isEmpty())
+			pMime->setData("image/png", png);
+	}
+
+	QApplication::clipboard()->setMimeData(pMime);
+}
+
+std::wstring QCefView::GetClipboardData()
+{
+	const QMimeData* pMime = QApplication::clipboard()->mimeData();
+	if (!pMime)
+		return L"";
+
+	QJsonObject obj;
+
+	// Prefer the internal fragment when present -- it means the clipboard
+	// currently holds a same-app (or another Euro-Office instance's) copy,
+	// so paste can reconstruct it with full fidelity instead of falling
+	// back to HTML/plain text.
+	if (pMime->hasFormat("text/x-custom"))
+		obj["text/x-custom"] = QString::fromUtf8(pMime->data("text/x-custom"));
+
+	if (pMime->hasHtml())
+		obj["text/html"] = pMime->html();
+
+	if (pMime->hasText())
+		obj["text/plain"] = pMime->text();
+
+	if (pMime->hasImage())
+	{
+		QImage img = qvariant_cast<QImage>(pMime->imageData());
+		if (!img.isNull())
+		{
+			QByteArray png;
+			QBuffer buffer(&png);
+			buffer.open(QIODevice::WriteOnly);
+			img.save(&buffer, "PNG");
+			obj["image/png"] = QString::fromUtf8(png.toBase64());
+		}
+	}
+
+	if (obj.isEmpty())
+		return L"";
+
+	QJsonDocument doc(obj);
+	return QString::fromUtf8(doc.toJson(QJsonDocument::Compact)).toStdWString();
 }
 
 QCefGLWidget::QCefGLWidget(QWidget* parent)
