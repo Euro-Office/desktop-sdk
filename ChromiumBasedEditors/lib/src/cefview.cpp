@@ -1781,6 +1781,12 @@ private:
 	IMPLEMENT_REFCOUNTING(CCefResizeTask);
 };
 
+// X11/X.h #defines Success to 0, which clashes with
+// CefMessageRouterBrowserSide::Callback::Success below.
+#ifdef Success
+#undef Success
+#endif
+
 // Handles the "clipboard_read" query sent via window.cefQuery from
 // sdkjs/common/clipboard_base.js on paste. Unlike the copy direction
 // ("clipboard_write", a fire-and-forget CefProcessMessage -- see

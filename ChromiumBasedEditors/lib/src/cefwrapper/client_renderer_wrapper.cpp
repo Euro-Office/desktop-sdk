@@ -4574,10 +4574,10 @@ window.AscDesktopEditor.CallInFrame(\"" +
 				// the real OS clipboard. See CCefViewWidgetImpl::SetClipboardData.
 				if (arguments.size() >= 1 && arguments[0]->IsString())
 				{
-					CefRefPtr<CefBrowser> browser = CefV8Context::GetCurrentContext()->GetBrowser();
+					CefRefPtr<CefFrame> frame = CefV8Context::GetCurrentContext()->GetFrame();
 					CefRefPtr<CefProcessMessage> message = CefProcessMessage::Create("clipboard_write");
 					message->GetArgumentList()->SetString(0, arguments[0]->GetStringValue());
-					browser->SendProcessMessage(PID_BROWSER, message);
+					frame->SendProcessMessage(PID_BROWSER, message);
 				}
 
 				retval = CefV8Value::CreateBool(true);
@@ -5506,7 +5506,7 @@ if (targetElem) { targetElem.dispatchEvent(event); }})();";
 
 			CefRefPtr<CefV8Handler> handler = pWrapper;
 
-#define EXTEND_METHODS_COUNT 197
+#define EXTEND_METHODS_COUNT 198
 			const char* methods[EXTEND_METHODS_COUNT] = {
 				"Copy",
 				"Paste",
