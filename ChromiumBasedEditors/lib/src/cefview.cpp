@@ -1951,6 +1951,8 @@ public:
 	bool m_bIsEditorTypeSet;
 	int m_nBeforeBrowserCounter;
 
+	bool m_bClipboardHandlerRegistered;
+
 	CefRefPtr<CefBrowser> browser_;
 	int browser_id_;
 
@@ -1984,6 +1986,8 @@ public:
 		m_bIsEditorTypeSet = false;
 		m_nBeforeBrowserCounter = 0;
 
+		m_bClipboardHandlerRegistered = false;
+
 		browser_id_ = 0;
 
 		m_pCefJSDialogHandler = new CAscCefJSDialogHandler();
@@ -1994,11 +1998,17 @@ public:
 	{
 	}
 
-	// message_router_ is protected in the base client::ClientHandler, so this
-	// thin wrapper is needed to register from outside the class (m_pParent
-	// isn't set until just after construction -- see where this is called).
+	// message_router_ (protected, in the base client::ClientHandler) is only
+	// constructed lazily, inside OnAfterCreated() below, once a browser
+	// actually exists -- it is still null right after CAscClientHandler's own
+	// construction. Call this only from OnAfterCreated(), after the base
+	// class call that creates it; m_bClipboardHandlerRegistered guards
+	// against OnAfterCreated() firing again for popup windows.
 	void RegisterClipboardQueryHandler()
 	{
+		if (m_bClipboardHandlerRegistered || !message_router_)
+			return;
+		m_bClipboardHandlerRegistered = true;
 		message_router_->AddHandler(new CClipboardQueryHandler(m_pParent), false);
 	}
 
@@ -4869,6 +4879,7 @@ public:
 virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser) OVERRIDE
 {
 	client::ClientHandler::OnAfterCreated(browser);
+	RegisterClipboardQueryHandler();
 	if (!GetBrowser())
 	{
 		// We need to keep the main child window, but not popup windows
@@ -6990,7 +7001,6 @@ void CCefView::load(const std::wstring& urlInputSrc)
 	// Create the single static handler class instance
 	CAscClientHandler* pClientHandler = new CAscClientHandler();
 	pClientHandler->m_pParent = this;
-	pClientHandler->RegisterClipboardQueryHandler();
 	m_pInternal->m_handler = pClientHandler;
 	m_pInternal->m_oDownloaderAbortChecker.m_pHandler = pClientHandler;
 
