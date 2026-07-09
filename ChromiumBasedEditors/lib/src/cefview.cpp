@@ -1781,6 +1781,39 @@ private:
 	IMPLEMENT_REFCOUNTING(CCefResizeTask);
 };
 
+// Handles the "clipboard_read" query sent via window.cefQuery from
+// sdkjs/common/clipboard_base.js on paste. Unlike the copy direction
+// ("clipboard_write", a fire-and-forget CefProcessMessage -- see
+// OnProcessMessageReceived below), paste needs the *current* clipboard
+// contents back, so it goes through CEF's message-router query/callback
+// mechanism instead: a real request/response round trip.
+class CClipboardQueryHandler : public CefMessageRouterBrowserSide::Handler
+{
+public:
+	explicit CClipboardQueryHandler(CCefView* pParent) : m_pParent(pParent) {}
+
+	virtual bool OnQuery(CefRefPtr<CefBrowser> browser,
+						 CefRefPtr<CefFrame> frame,
+						 int64 query_id,
+						 const CefString& request,
+						 bool persistent,
+						 CefRefPtr<Callback> callback) OVERRIDE
+	{
+		if (request.ToString() != "clipboard_read")
+			return false;
+
+		std::wstring sJson;
+		if (m_pParent && m_pParent->GetWidgetImpl())
+			sJson = m_pParent->GetWidgetImpl()->GetClipboardData();
+
+		callback->Success(sJson);
+		return true;
+	}
+
+private:
+	CCefView* m_pParent;
+};
+
 class CAscClientHandler : public client::ClientHandler, public CCookieFoundCallback, public client::ClientHandler::Delegate, public CefDialogHandler, public CefRenderHandler
 {
 public:
@@ -1953,6 +1986,14 @@ public:
 
 	virtual ~CAscClientHandler()
 	{
+	}
+
+	// message_router_ is protected in the base client::ClientHandler, so this
+	// thin wrapper is needed to register from outside the class (m_pParent
+	// isn't set until just after construction -- see where this is called).
+	void RegisterClipboardQueryHandler()
+	{
+		message_router_->AddHandler(new CClipboardQueryHandler(m_pParent), false);
 	}
 
 	CefRefPtr<CefBrowser> GetBrowser() const
@@ -2654,6 +2695,15 @@ public:
 			pEvent->m_pData = pData;
 
 			pListener->OnEvent(pEvent);
+			return true;
+		}
+		else if (message_name == "clipboard_write")
+		{
+			// See CCefViewWidgetImpl::SetClipboardData -- routes the copy
+			// payload built in the renderer to the platform widget's real OS
+			// clipboard, bypassing CEF's own broken OSR+Wayland clipboard path.
+			if (m_pParent && m_pParent->GetWidgetImpl())
+				m_pParent->GetWidgetImpl()->SetClipboardData(args->GetString(0).ToWString());
 			return true;
 		}
 		else if (message_name == "spell_check_task")
@@ -6934,6 +6984,7 @@ void CCefView::load(const std::wstring& urlInputSrc)
 	// Create the single static handler class instance
 	CAscClientHandler* pClientHandler = new CAscClientHandler();
 	pClientHandler->m_pParent = this;
+	pClientHandler->RegisterClipboardQueryHandler();
 	m_pInternal->m_handler = pClientHandler;
 	m_pInternal->m_oDownloaderAbortChecker.m_pHandler = pClientHandler;
 

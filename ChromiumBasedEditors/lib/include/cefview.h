@@ -100,6 +100,18 @@ public:
 
 	virtual void OnPaint(const void* buffer, int width, int height) {}
 
+	// Native OS clipboard bridge. CEF's own OS clipboard integration does not
+	// work in off-screen-rendering mode under Wayland (Chromium's clipboard
+	// requires a real wl_surface + input serial to claim ownership, which OSR
+	// mode never has), so copy/paste is routed through here to whatever real
+	// clipboard mechanism the platform widget implementation provides.
+	// sJson carries a JSON object of MIME type -> data (mirroring the
+	// c_oAscClipboardDataFormat entries sdkjs already builds for copy: at
+	// least "text/plain" and "text/html", plus "text/x-custom" for the
+	// internal high-fidelity fragment format used for same-app paste).
+	virtual void SetClipboardData(const std::wstring& sJson) {}
+	virtual std::wstring GetClipboardData() { return L""; }
+
 	static void SetParentNull(WindowHandleId handle);
 };
 
