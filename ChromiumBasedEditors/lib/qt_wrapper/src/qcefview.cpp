@@ -194,6 +194,15 @@ void QCefView::mousePressEvent(QMouseEvent *event) {
 		if (event->button() == Qt::RightButton) button = 2;
 		else if (event->button() == Qt::MiddleButton) button = 3;
 
+		if (button == 2) {
+			// TEMP DIAGNOSTIC (to be reverted): compare against GL overlay's
+			// actual frame buffer size and this widget's own geometry.
+			fprintf(stderr, "[MOUSEPRESS_DEBUG] click=(%d,%d) widget_size=(%d,%d) cef_wh=(%u,%u) dpr=%f glview_size=(%d,%d)\n",
+				event->x(), event->y(), width(), height(), cef_width, cef_height, devicePixelRatio(),
+				m_pGLView ? m_pGLView->width() : -1, m_pGLView ? m_pGLView->height() : -1);
+			fflush(stderr);
+		}
+
 		// CEF coordinate space is DIPs (same as GetViewRect). Qt delivers DIPs.
 		m_pCefView->SendMouseClickEvent(event->x(), event->y(), button, false, GetCefModifiers(event->modifiers(), event->buttons()), 1);
 	}
