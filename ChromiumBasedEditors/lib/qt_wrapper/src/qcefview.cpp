@@ -194,16 +194,6 @@ void QCefView::mousePressEvent(QMouseEvent *event) {
 		if (event->button() == Qt::RightButton) button = 2;
 		else if (event->button() == Qt::MiddleButton) button = 3;
 
-		if (button == 2) {
-			// TEMP DIAGNOSTIC: comparing what we send CEF (DIPs) against the
-			// widget's own reported/actual geometry to isolate the context
-			// menu offset bug (rules out OS DPI and editor zoom already).
-			fprintf(stderr, "[CTXMENU_DEBUG] click=(%d,%d) widget_size=(%d,%d) cef_wh=(%u,%u) dpr=%f global=(%d,%d)\n",
-				event->x(), event->y(), width(), height(), cef_width, cef_height, devicePixelRatio(),
-				mapToGlobal(event->pos()).x(), mapToGlobal(event->pos()).y());
-			fflush(stderr);
-		}
-
 		// CEF coordinate space is DIPs (same as GetViewRect). Qt delivers DIPs.
 		m_pCefView->SendMouseClickEvent(event->x(), event->y(), button, false, GetCefModifiers(event->modifiers(), event->buttons()), 1);
 	}
