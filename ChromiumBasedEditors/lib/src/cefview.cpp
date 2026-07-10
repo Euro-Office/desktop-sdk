@@ -1936,6 +1936,13 @@ public:
 			screenX = (int)(widgetScreenX / scale) + viewX;
 			screenY = (int)(widgetScreenY / scale) + viewY;
 
+			// TEMP DIAGNOSTIC (to be reverted): is this callback even invoked
+			// for the sdkjs context menu, and with what values?
+			fprintf(stderr, "[GETSCREENPOINT_DEBUG] viewXY=(%d,%d) scale=%f widgetScreenRaw=(%d,%d) screenXY_out=(%d,%d) cef_wh=(%u,%u)\n",
+				viewX, viewY, scale, widgetScreenX, widgetScreenY, screenX, screenY,
+				m_pParent->GetWidgetImpl()->cef_width, m_pParent->GetWidgetImpl()->cef_height);
+			fflush(stderr);
+
 			return true;
 		}
 		return false;
