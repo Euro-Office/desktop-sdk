@@ -1921,10 +1921,20 @@ public:
 			double scale = m_pParent->GetWidgetImpl()->GetDeviceScaleFactor();
 			int widgetScreenX = 0, widgetScreenY = 0;
 			m_pParent->GetWidgetImpl()->GetWidgetScreenPosition(widgetScreenX, widgetScreenY);
-			// Convert view DIP coordinates to screen device (pixel) coordinates.
-			// Per CEF docs: "Windows/Linux should provide screen device (pixel) coordinates"
-			screenX = widgetScreenX + (int)(viewX * scale);
-			screenY = widgetScreenY + (int)(viewY * scale);
+			// GetWidgetScreenPosition() returns physical/device pixels; viewX/viewY
+			// are DIPs (same convention as GetViewRect/mouse events). Chromium
+			// exposes this via GetScreenPoint as MouseEvent.screenX/screenY, which
+			// per the DOM spec must be in CSS pixels (i.e. DIPs, the same units as
+			// clientX/clientY) -- not raw device pixels. Multiplying viewX/viewY by
+			// scale here (as CEF's own comment for this callback suggests) produced
+			// a screenX/screenY that grew increasingly wrong the further from the
+			// origin a click was (confirmed empirically: fractional device scale
+			// factor, offset proportional to click position), pushing
+			// sdkjs's own edge-avoidance context-menu positioning off-screen for
+			// clicks near the edge of a maximized window. Normalize both terms to
+			// DIPs instead.
+			screenX = (int)(widgetScreenX / scale) + viewX;
+			screenY = (int)(widgetScreenY / scale) + viewY;
 
 			return true;
 		}
