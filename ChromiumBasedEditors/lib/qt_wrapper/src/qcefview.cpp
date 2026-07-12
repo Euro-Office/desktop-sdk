@@ -194,8 +194,12 @@ void QCefView::mousePressEvent(QMouseEvent *event) {
 		if (event->button() == Qt::RightButton) button = 2;
 		else if (event->button() == Qt::MiddleButton) button = 3;
 
-		// CEF coordinate space is DIPs (same as GetViewRect). Qt delivers DIPs.
-		m_pCefView->SendMouseClickEvent(event->x(), event->y(), button, false, GetCefModifiers(event->modifiers(), event->buttons()), 1);
+		// EXPERIMENTAL (dsf-1.0-osr): CEF's view-rect is now reported in
+		// physical pixels (device_scale_factor forced to 1.0), so mouse
+		// coordinates sent to CEF must also be physical pixels. Qt delivers
+		// DIPs here, so scale up by devicePixelRatio() to match.
+		double scale = devicePixelRatio();
+		m_pCefView->SendMouseClickEvent((int)(event->x() * scale), (int)(event->y() * scale), button, false, GetCefModifiers(event->modifiers(), event->buttons()), 1);
 	}
 	QWidget::mousePressEvent(event);
 }
@@ -205,14 +209,16 @@ void QCefView::mouseReleaseEvent(QMouseEvent *event) {
 		int button = 1;
 		if (event->button() == Qt::RightButton) button = 2;
 		else if (event->button() == Qt::MiddleButton) button = 3;
-		m_pCefView->SendMouseClickEvent(event->x(), event->y(), button, true, GetCefModifiers(event->modifiers(), event->buttons()), 1);
+		double scale = devicePixelRatio();
+		m_pCefView->SendMouseClickEvent((int)(event->x() * scale), (int)(event->y() * scale), button, true, GetCefModifiers(event->modifiers(), event->buttons()), 1);
 	}
 	QWidget::mouseReleaseEvent(event);
 }
 
 void QCefView::mouseMoveEvent(QMouseEvent *event) {
 	if (m_isWayland && m_pCefView) {
-		m_pCefView->SendMouseMoveEvent(event->x(), event->y(), false, GetCefModifiers(event->modifiers(), event->buttons()));
+		double scale = devicePixelRatio();
+		m_pCefView->SendMouseMoveEvent((int)(event->x() * scale), (int)(event->y() * scale), false, GetCefModifiers(event->modifiers(), event->buttons()));
 	}
 	QWidget::mouseMoveEvent(event);
 }
@@ -220,14 +226,16 @@ void QCefView::mouseMoveEvent(QMouseEvent *event) {
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
 void QCefView::wheelEvent(QWheelEvent *event) {
 	if (m_isWayland && m_pCefView) {
-		m_pCefView->SendMouseWheelEvent(event->position().x(), event->position().y(), event->angleDelta().x(), event->angleDelta().y(), GetCefModifiers(event->modifiers(), event->buttons()));
+		double scale = devicePixelRatio();
+		m_pCefView->SendMouseWheelEvent(event->position().x() * scale, event->position().y() * scale, event->angleDelta().x(), event->angleDelta().y(), GetCefModifiers(event->modifiers(), event->buttons()));
 	}
 	QWidget::wheelEvent(event);
 }
 #else
 void QCefView::wheelEvent(QWheelEvent *event) {
 	if (m_isWayland && m_pCefView) {
-		m_pCefView->SendMouseWheelEvent(event->pos().x(), event->pos().y(), event->angleDelta().x(), event->angleDelta().y(), GetCefModifiers(event->modifiers(), event->buttons()));
+		double scale = devicePixelRatio();
+		m_pCefView->SendMouseWheelEvent(event->pos().x() * scale, event->pos().y() * scale, event->angleDelta().x(), event->angleDelta().y(), GetCefModifiers(event->modifiers(), event->buttons()));
 	}
 	QWidget::wheelEvent(event);
 }

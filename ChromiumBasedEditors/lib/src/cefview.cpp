@@ -1878,14 +1878,19 @@ public:
 	virtual void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) OVERRIDE
 	{
 		if (m_pParent && m_pParent->GetWidgetImpl()) {
-			// In OSR mode, --force-device-scale-factor does NOT override
-			// GetScreenInfo.device_scale_factor. CEF computes the buffer as
-			// GetViewRect * device_scale_factor. So we must return DIPs here
-			// (logical pixels from QWidget::width/height), NOT physical pixels.
+			// EXPERIMENTAL (dsf-1.0-osr): report device_scale_factor as 1.0
+			// (see GetScreenInfo below), so CEF's internal buffer = rect *
+			// dsf collapses to buffer = rect. To keep the same physical
+			// buffer resolution as before (cef_width/height are DIPs), we
+			// must report the PHYSICAL pixel size here directly instead of
+			// DIPs -- this makes CEF's CSS pixel grid equal to physical
+			// pixels 1:1, eliminating the internal OSR zoom quirk at the
+			// source instead of compensating for it in JS.
+			double scale = m_pParent->GetWidgetImpl()->GetDeviceScaleFactor();
 			rect.x = 0;
 			rect.y = 0;
-			rect.width = m_pParent->GetWidgetImpl()->cef_width;
-			rect.height = m_pParent->GetWidgetImpl()->cef_height;
+			rect.width = (int)(m_pParent->GetWidgetImpl()->cef_width * scale);
+			rect.height = (int)(m_pParent->GetWidgetImpl()->cef_height * scale);
 			if (rect.width == 0) rect.width = 1;
 			if (rect.height == 0) rect.height = 1;
 		} else {
@@ -1898,13 +1903,14 @@ public:
 	{
 		if (m_pParent && m_pParent->GetWidgetImpl()) {
 			double scale = m_pParent->GetWidgetImpl()->GetDeviceScaleFactor();
-			screen_info.device_scale_factor = (float)scale;
-			// Rect must be in DIPs (same as GetViewRect). CEF computes the
-			// physical buffer as rect * device_scale_factor internally.
+			// EXPERIMENTAL (dsf-1.0-osr): always report 1.0 so CEF applies no
+			// internal CSS zoom. See GetViewRect for the matching physical-pixel
+			// rect size this requires.
+			screen_info.device_scale_factor = 1.0f;
 			screen_info.rect.x = 0;
 			screen_info.rect.y = 0;
-			screen_info.rect.width = m_pParent->GetWidgetImpl()->cef_width;
-			screen_info.rect.height = m_pParent->GetWidgetImpl()->cef_height;
+			screen_info.rect.width = (int)(m_pParent->GetWidgetImpl()->cef_width * scale);
+			screen_info.rect.height = (int)(m_pParent->GetWidgetImpl()->cef_height * scale);
 			if (screen_info.rect.width == 0) screen_info.rect.width = 1;
 			if (screen_info.rect.height == 0) screen_info.rect.height = 1;
 			screen_info.available_rect = screen_info.rect;
@@ -1918,23 +1924,14 @@ public:
 	                            int& screenX, int& screenY) OVERRIDE
 	{
 		if (m_pParent && m_pParent->GetWidgetImpl()) {
-			double scale = m_pParent->GetWidgetImpl()->GetDeviceScaleFactor();
 			int widgetScreenX = 0, widgetScreenY = 0;
 			m_pParent->GetWidgetImpl()->GetWidgetScreenPosition(widgetScreenX, widgetScreenY);
-			// GetWidgetScreenPosition() returns physical/device pixels; viewX/viewY
-			// are DIPs (same convention as GetViewRect/mouse events). Chromium
-			// exposes this via GetScreenPoint as MouseEvent.screenX/screenY, which
-			// per the DOM spec must be in CSS pixels (i.e. DIPs, the same units as
-			// clientX/clientY) -- not raw device pixels. Multiplying viewX/viewY by
-			// scale here (as CEF's own comment for this callback suggests) produced
-			// a screenX/screenY that grew increasingly wrong the further from the
-			// origin a click was (confirmed empirically: fractional device scale
-			// factor, offset proportional to click position), pushing
-			// sdkjs's own edge-avoidance context-menu positioning off-screen for
-			// clicks near the edge of a maximized window. Normalize both terms to
-			// DIPs instead.
-			screenX = (int)(widgetScreenX / scale) + viewX;
-			screenY = (int)(widgetScreenY / scale) + viewY;
+			// EXPERIMENTAL (dsf-1.0-osr): with device_scale_factor reported as
+			// 1.0, CEF's CSS-pixel space equals physical pixels, the same
+			// space GetWidgetScreenPosition() already returns. No DIP/physical
+			// conversion needed on either term.
+			screenX = widgetScreenX + viewX;
+			screenY = widgetScreenY + viewY;
 
 			return true;
 		}
