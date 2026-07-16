@@ -39,6 +39,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QBuffer>
+#include <QDateTime>
 
 class QCefViewProps
 {
@@ -194,12 +195,39 @@ void QCefView::mousePressEvent(QMouseEvent *event) {
 		if (event->button() == Qt::RightButton) button = 2;
 		else if (event->button() == Qt::MiddleButton) button = 3;
 
+		// Qt's Wayland backend delivers an ordinary QMouseEvent::MousePress
+		// for *every* physical click, including the second click of a
+		// double-click -- it does not substitute a MouseButtonDblClick in
+		// its place the way some other platforms' Qt backends do (verified
+		// via diagnostic logging: a plain mousePressEvent fired for the
+		// second click, immediately followed by mouseDoubleClickEvent for
+		// the same click). Native OSR input forwarding bypasses Qt's own
+		// multi-click detection entirely, so replicate it here: track the
+		// time/position of the previous click and increment clickCount
+		// when within Qt's double-click interval and a small pixel radius,
+		// resetting otherwise. This clickCount is forwarded to CEF/Blink,
+		// which trusts it as-is for MouseEvent.detail -- sdkjs's
+		// double-click handling depends on that value being correct.
+		qint64 now = QDateTime::currentMSecsSinceEpoch();
+		QPoint pos = event->pos();
+		const int kClickRadius = 6;
+		if (event->button() == Qt::LeftButton &&
+			m_clickCount > 0 &&
+			(now - m_lastClickTimeMs) <= QApplication::doubleClickInterval() &&
+			(pos - m_lastClickPos).manhattanLength() <= kClickRadius) {
+			m_clickCount = (m_clickCount % 2) + 1; // 1 -> 2, 2 -> 1 (triple click treated as a new single click)
+		} else {
+			m_clickCount = 1;
+		}
+		m_lastClickTimeMs = now;
+		m_lastClickPos = pos;
+
 		// EXPERIMENTAL (dsf-1.0-osr): CEF's view-rect is now reported in
 		// physical pixels (device_scale_factor forced to 1.0), so mouse
 		// coordinates sent to CEF must also be physical pixels. Qt delivers
 		// DIPs here, so scale up by devicePixelRatio() to match.
 		double scale = devicePixelRatio();
-		m_pCefView->SendMouseClickEvent((int)(event->x() * scale), (int)(event->y() * scale), button, false, GetCefModifiers(event->modifiers(), event->buttons()), 1);
+		m_pCefView->SendMouseClickEvent((int)(event->x() * scale), (int)(event->y() * scale), button, false, GetCefModifiers(event->modifiers(), event->buttons()), m_clickCount);
 	}
 	QWidget::mousePressEvent(event);
 }
@@ -210,9 +238,25 @@ void QCefView::mouseReleaseEvent(QMouseEvent *event) {
 		if (event->button() == Qt::RightButton) button = 2;
 		else if (event->button() == Qt::MiddleButton) button = 3;
 		double scale = devicePixelRatio();
-		m_pCefView->SendMouseClickEvent((int)(event->x() * scale), (int)(event->y() * scale), button, true, GetCefModifiers(event->modifiers(), event->buttons()), 1);
+		// Use the same clickCount computed in mousePressEvent so the
+		// press/release pair CEF sees for a double-click's second click is
+		// (down, clickCount=2)/(up, clickCount=2), matching what Blink
+		// expects instead of a mismatched (down, 2)/(up, 1) pair.
+		int clickCount = (event->button() == Qt::LeftButton && m_clickCount > 0) ? m_clickCount : 1;
+		m_pCefView->SendMouseClickEvent((int)(event->x() * scale), (int)(event->y() * scale), button, true, GetCefModifiers(event->modifiers(), event->buttons()), clickCount);
 	}
 	QWidget::mouseReleaseEvent(event);
+}
+
+void QCefView::mouseDoubleClickEvent(QMouseEvent *event) {
+	// Deliberately does NOT forward a synthetic click to CEF: Qt's Wayland
+	// backend already sent an ordinary mousePressEvent for this same
+	// physical click (with the correct clickCount computed above), so
+	// forwarding another one here would double-send it. This override
+	// exists only to stop QWidget's default (no-op) handling from
+	// consuming the event silently -- forward to the base implementation
+	// so Qt's own bookkeeping still runs, without talking to CEF again.
+	QWidget::mouseDoubleClickEvent(event);
 }
 
 void QCefView::mouseMoveEvent(QMouseEvent *event) {
@@ -370,9 +414,35 @@ void QCefView::focusInEvent(QFocusEvent* e)
 	if (m_pCefView)
 		m_pCefView->focus(true);
 }
+bool QCefView::focusNextPrevChild(bool next)
+{
+	// Qt's default QWidget::focusNextPrevChild() intercepts Tab/Shift+Tab
+	// for widget-to-widget focus traversal *before* keyPressEvent ever
+	// sees the key. Diagnostic logging showed every Tab press produced a
+	// focusOutEvent(TabFocusReason) with no matching focusInEvent for
+	// seconds (sometimes indefinitely) -- Qt was handing focus to "the
+	// next widget in tab order" and nothing ever reclaimed it. Refuse the
+	// traversal on Wayland so Tab falls through to keyPressEvent() and
+	// gets forwarded to CEF like any other key, matching X11 behavior
+	// where CEF's native OSR input path bypassed Qt's focus chain
+	// entirely.
+	if (m_isWayland)
+		return false;
+	return QWidget::focusNextPrevChild(next);
+}
+
 void QCefView::focusOutEvent(QFocusEvent* e)
 {
-	return;
+	// On Wayland, keyboard events are forwarded to CEF manually (see
+	// keyPressEvent/keyReleaseEvent above) regardless of Qt's own focus
+	// state. If CEF is never told it lost focus, its internal focus
+	// traversal (e.g. on Tab) gets out of sync with Qt: CEF still thinks
+	// it owns focus, Qt still thinks the widget is focused, and no key
+	// event (including Alt-menu accelerators, which never reach this
+	// widget at all) can resolve the mismatch until a mouse click forces
+	// Qt to re-run focus resolution. Always propagate the focus-out to
+	// CEF so SetFocus(false)/SetFocus(true) stay in sync with Qt's own
+	// focus transitions.
 	if (m_pCefView)
 		m_pCefView->focus(false);
 }
