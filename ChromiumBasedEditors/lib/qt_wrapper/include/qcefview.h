@@ -83,6 +83,7 @@ public:
 	// focus
 	virtual void focusInEvent(QFocusEvent* e);
 	virtual void focusOutEvent(QFocusEvent* e);
+	virtual bool focusNextPrevChild(bool next) override;
 
 	// move/resize
 	virtual void resizeEvent(QResizeEvent* e);
@@ -91,6 +92,7 @@ public:
 	// input events for OSR
 	virtual void mousePressEvent(QMouseEvent *event) override;
 	virtual void mouseReleaseEvent(QMouseEvent *event) override;
+	virtual void mouseDoubleClickEvent(QMouseEvent *event) override;
 	virtual void mouseMoveEvent(QMouseEvent *event) override;
 	virtual void wheelEvent(QWheelEvent *event) override;
 	virtual void keyPressEvent(QKeyEvent *event) override;
@@ -164,6 +166,17 @@ protected:
 	
 	QImage m_imageBuffer;
 	bool m_isWayland;
+
+	// Wayland click-count tracking (mirrors Qt's own multi-click detection,
+	// which native OSR input forwarding bypasses). Needed because Qt's
+	// Wayland backend delivers an ordinary mousePressEvent for every
+	// physical click -- including the second click of a double-click --
+	// so the correct click count must be computed here and forwarded to
+	// CEF on both press and release; it cannot be inferred from Qt event
+	// type alone (see mouseDoubleClickEvent).
+	qint64 m_lastClickTimeMs = 0;
+	QPoint m_lastClickPos;
+	int m_clickCount = 0;
 
 	// Wayland: GL presenter overlaying this view (see QCefGLWidget). null on
 	// other platforms and until Init() runs.
