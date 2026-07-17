@@ -30,7 +30,40 @@
 #include "./../include/qcefview.h"
 
 
+#if defined(_LINUX) && !defined(_MAC)
+#include <QGuiApplication>
+#include <X11/Xlib.h>
+#include <cstdlib>
 
+namespace {
+// Restores the X11 DPI detection that was lost when the QX11Info private
+// header was dropped. QX11Info::appDpiX/Y reflected the desktop's font
+// scaling (the Xft.dpi X resource); with AA_Use96Dpi active this is the
+// only place the app learns the session's real scale on X11.
+// Falls back to the core-protocol DPI from the physical screen size.
+int getX11SessionDpi()
+{
+    static int s_dpi = -2;              // -2 = not queried yet
+    if (s_dpi != -2)
+        return s_dpi;
+    s_dpi = 0;
+    if (QGuiApplication::platformName() != QLatin1String("xcb"))
+        return s_dpi;                   // inert on Wayland
+    if (Display* dpy = XOpenDisplay(NULL)) {
+        if (char* v = XGetDefault(dpy, "Xft", "dpi"))
+            s_dpi = (int)(atof(v) + 0.5);
+        if (s_dpi <= 0) {
+            int scr = DefaultScreen(dpy);
+            int wmm = DisplayWidthMM(dpy, scr);
+            if (wmm > 0)
+                s_dpi = (int)(DisplayWidth(dpy, scr) * 25.4 / wmm + 0.5);
+        }
+        XCloseDisplay(dpy);
+    }
+    return s_dpi;
+}
+}
+#endif
 
 
 QDpiChecker::QDpiChecker(CAscApplicationManager* pManager) : CAscDpiChecker(pManager)
@@ -66,8 +99,14 @@ int QDpiChecker::GetMonitorDpi(int nScreenNumber, unsigned int* dx, unsigned int
 	int nDpiX = _screen->physicalDotsPerInchX();
 	int nDpiY = _screen->physicalDotsPerInchY();
 
-
-
+#if defined(_LINUX) && !defined(_MAC)
+	int _x11_dpi = getX11SessionDpi();
+	if (_x11_dpi > 0)
+	{
+		if (nDpiX < _x11_dpi) nDpiX = _x11_dpi;
+		if (nDpiY < _x11_dpi) nDpiY = _x11_dpi;
+	}
+#endif
 
 	QSize size = _screen->size();
 	if (size.width() <= 1600 && size.height() <= 900)
