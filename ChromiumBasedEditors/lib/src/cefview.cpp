@@ -1945,6 +1945,22 @@ public:
 		}
 	}
 
+	// CefDisplayHandler. In OSR mode (Wayland) there is no CEF-owned native
+	// window to set the OS cursor for us, so bridge the requested shape to
+	// the platform widget ourselves. Returning true tells CEF the app has
+	// handled it, so it will not try (and fail) to set a cursor itself.
+	virtual bool OnCursorChange(CefRefPtr<CefBrowser> browser,
+								CefCursorHandle cursor,
+								cef_cursor_type_t type,
+								const CefCursorInfo& custom_cursor_info) OVERRIDE
+	{
+		if (m_pParent && m_pParent->GetWidgetImpl()) {
+			m_pParent->GetWidgetImpl()->SetCursorType((int)type);
+			return true;
+		}
+		return false;
+	}
+
 public:
 	CCefView* m_pParent;
 	bool m_bIsLoaded;

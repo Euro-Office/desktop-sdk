@@ -112,6 +112,14 @@ public:
 	virtual void SetClipboardData(const std::wstring& sJson) {}
 	virtual std::wstring GetClipboardData() { return L""; }
 
+	// Native OS cursor bridge. In windowed CEF mode, CEF owns a real native
+	// window and sets the OS cursor itself when the page requests a cursor
+	// change (text I-beam, resize handles, hand, move, etc). In
+	// off-screen-rendering mode (used for Wayland, see IsWayland above)
+	// there is no CEF-owned window, so nothing sets the OS cursor unless we
+	// do it here ourselves. cursorType is a cef_cursor_type_t value.
+	virtual void SetCursorType(int cursorType) {}
+
 	static void SetParentNull(WindowHandleId handle);
 };
 
