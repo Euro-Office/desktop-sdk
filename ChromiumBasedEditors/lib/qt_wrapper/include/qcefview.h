@@ -35,6 +35,7 @@
 
 #include <QImage>
 #include <QGuiApplication>
+#include <QScreen>
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
@@ -138,6 +139,7 @@ public:
 	void paintEvent(QPaintEvent *event);
 
 	virtual double GetDeviceScaleFactor() override;
+	virtual double GetUIScalePercentage() override;
 	virtual bool IsWayland() override;
 	virtual void OnPaint(const void* buffer, int width, int height) override;
 	virtual void GetWidgetScreenPosition(int& screenX, int& screenY) override;
