@@ -94,6 +94,14 @@ public:
 	virtual double GetDeviceScaleFactor() { return 1.0; }
 	virtual bool IsWayland() { return false; }
 
+	// UI layout scale as a percentage (100 = no scaling), bucketed off real
+	// monitor DPI the same way LibreOffice's CountDPIScaleFactor() does.
+	// Deliberately independent of GetDeviceScaleFactor()/devicePixelRatio,
+	// which dsf-1.0-osr (see cefview.cpp GetViewRect/GetScreenInfo) forces
+	// to always report 1:1 for CEF's OSR coordinate mapping -- reusing that
+	// value here would lose the real DPI signal on HiDPI displays.
+	virtual double GetUIScalePercentage() { return 100.0; }
+
 	// Returns the widget's top-left position in screen device (pixel) coordinates.
 	// Used by CEF's GetScreenPoint to map view DIPs to screen pixels.
 	virtual void GetWidgetScreenPosition(int& screenX, int& screenY) { screenX = 0; screenY = 0; }
@@ -173,6 +181,14 @@ public:
 	void LoadReporter(void* reporter_data);
 
 	double GetDeviceScale();
+
+	// Pushes GetWidgetImpl()->GetUIScalePercentage() into the page as CSS
+	// custom properties (--pixel-ratio-factor, --x-small-btn-size,
+	// --x-small-btn-icon-size) and corrects window.devicePixelRatio for
+	// sdkjs's own canvas scaling, which reads it directly. Call on load and
+	// whenever the widget's DPI may have changed (e.g. moved to another
+	// monitor).
+	void UpdateUIScalePercentage();
 
 	int GetPrintPageOrientation(const int& nPage);
 

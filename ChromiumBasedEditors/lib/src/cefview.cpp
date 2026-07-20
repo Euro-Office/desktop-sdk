@@ -5055,6 +5055,9 @@ virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser,
 	}
 #endif
 
+	if (frame && frame->IsMain())
+		m_pParent->UpdateUIScalePercentage();
+
 	bool bIsCryptoSupport = true;
 	if (m_pParent->m_pInternal->m_bIsExternalCloud)
 	{
@@ -8171,6 +8174,33 @@ double CCefView::GetDeviceScale()
 #endif
 
 	return dDeviceScale;
+}
+
+void CCefView::UpdateUIScalePercentage()
+{
+	if (!GetWidgetImpl() || !m_pInternal->GetBrowser())
+		return;
+
+	CefRefPtr<CefFrame> frame = m_pInternal->GetBrowser()->GetMainFrame();
+	if (!frame)
+		return;
+
+	double dPercentage = GetWidgetImpl()->GetUIScalePercentage();
+	double dFactor = dPercentage / 100.0;
+
+	std::string sCode =
+		"(function(){"
+			"var f=" + std::to_string(dFactor) + ";"
+			"Object.defineProperty(window,'devicePixelRatio',{value:f,writable:true,configurable:true});"
+			"document.documentElement.style.setProperty('--pixel-ratio-factor', f);"
+			"document.documentElement.style.setProperty('--x-small-btn-size', (16*f)+'px');"
+			"document.documentElement.style.setProperty('--x-small-btn-icon-size', (16*f)+'px');"
+			"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
+				"window.AscCommon.AscBrowser.checkZoom();"
+			"}"
+		"})();";
+
+	frame->ExecuteJavaScript(sCode, frame->GetURL(), 0);
 }
 
 int CCefView::GetPrintPageOrientation(const int& nPage)

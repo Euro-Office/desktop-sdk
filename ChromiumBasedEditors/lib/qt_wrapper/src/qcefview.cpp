@@ -465,7 +465,12 @@ void QCefView::resizeEvent(QResizeEvent* e)
 void QCefView::moveEvent(QMoveEvent* e)
 {
 	if (m_pCefView)
+	{
 		m_pCefView->moveEvent();
+		// Moving across monitors may change the effective DPI; re-push the
+		// UI scale so it doesn't stay pinned to the monitor the app started on.
+		m_pCefView->UpdateUIScalePercentage();
+	}
 	QWidget::moveEvent(e);
 }
 
@@ -567,6 +572,27 @@ void QCefView::SetBackgroundCefColor(unsigned char r, unsigned char g, unsigned 
 double QCefView::GetDeviceScaleFactor()
 {
 	return this->devicePixelRatio();
+}
+
+double QCefView::GetUIScalePercentage()
+{
+	// Bucketed off real monitor DPI the same way LibreOffice's
+	// CountDPIScaleFactor() (vcl/source/window/window.cxx) computes it,
+	// off a 96 DPI baseline. Deliberately reads Qt's logicalDotsPerInch()
+	// directly rather than GetDeviceScaleFactor()/devicePixelRatio(), since
+	// those are forced to 1:1 by the dsf-1.0-osr coordinate-mapping fix
+	// and would lose the real DPI signal.
+	qreal dDpi = 96.0;
+	if (QScreen* pScreen = this->screen())
+		dDpi = pScreen->logicalDotsPerInch();
+
+	if (dDpi > 216)
+		return 250.0;
+	else if (dDpi > 168)
+		return 200.0;
+	else if (dDpi > 120)
+		return 150.0;
+	return 100.0;
 }
 
 bool QCefView::IsWayland()
