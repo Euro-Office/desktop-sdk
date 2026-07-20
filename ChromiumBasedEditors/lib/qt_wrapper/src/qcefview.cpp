@@ -663,6 +663,52 @@ std::wstring QCefView::GetClipboardData()
 	return QString::fromUtf8(doc.toJson(QJsonDocument::Compact)).toStdWString();
 }
 
+void QCefView::SetCursorType(int cursorType)
+{
+	// Mirrors cef_cursor_type_t (include/internal/cef_types.h) by numeric
+	// value -- duplicated here instead of included so the Qt wrapper doesn't
+	// pick up a dependency on the CEF include path.
+	enum {
+		CT_POINTER = 0, CT_CROSS = 1, CT_HAND = 2, CT_IBEAM = 3, CT_WAIT = 4,
+		CT_EASTRESIZE = 6, CT_NORTHRESIZE = 7, CT_NORTHEASTRESIZE = 8,
+		CT_NORTHWESTRESIZE = 9, CT_SOUTHRESIZE = 10, CT_SOUTHEASTRESIZE = 11,
+		CT_SOUTHWESTRESIZE = 12, CT_WESTRESIZE = 13, CT_NORTHSOUTHRESIZE = 14,
+		CT_EASTWESTRESIZE = 15, CT_COLUMNRESIZE = 18, CT_ROWRESIZE = 19,
+		CT_MOVE = 29, CT_CELL = 31, CT_NODROP = 35, CT_NOTALLOWED = 38,
+		CT_ZOOMIN = 39, CT_ZOOMOUT = 40,
+	};
+
+	Qt::CursorShape shape = Qt::ArrowCursor;
+	switch (cursorType)
+	{
+		case CT_IBEAM:                                  shape = Qt::IBeamCursor; break;
+		case CT_HAND:                                   shape = Qt::PointingHandCursor; break;
+		case CT_CROSS:
+		case CT_CELL:
+		case CT_ZOOMIN:
+		case CT_ZOOMOUT:                                shape = Qt::CrossCursor; break;
+		case CT_EASTRESIZE:
+		case CT_WESTRESIZE:
+		case CT_EASTWESTRESIZE:                         shape = Qt::SizeHorCursor; break;
+		case CT_NORTHRESIZE:
+		case CT_SOUTHRESIZE:
+		case CT_NORTHSOUTHRESIZE:                       shape = Qt::SizeVerCursor; break;
+		case CT_NORTHEASTRESIZE:
+		case CT_SOUTHWESTRESIZE:                        shape = Qt::SizeBDiagCursor; break;
+		case CT_NORTHWESTRESIZE:
+		case CT_SOUTHEASTRESIZE:                        shape = Qt::SizeFDiagCursor; break;
+		case CT_COLUMNRESIZE:                           shape = Qt::SplitHCursor; break;
+		case CT_ROWRESIZE:                              shape = Qt::SplitVCursor; break;
+		case CT_MOVE:                                   shape = Qt::SizeAllCursor; break;
+		case CT_WAIT:                                   shape = Qt::WaitCursor; break;
+		case CT_NODROP:
+		case CT_NOTALLOWED:                             shape = Qt::ForbiddenCursor; break;
+		case CT_POINTER:
+		default:                                        shape = Qt::ArrowCursor; break;
+	}
+	setCursor(shape);
+}
+
 QCefGLWidget::QCefGLWidget(QWidget* parent)
 	: QOpenGLWidget(parent)
 {
