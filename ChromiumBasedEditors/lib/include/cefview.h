@@ -120,6 +120,13 @@ public:
 	// do it here ourselves. cursorType is a cef_cursor_type_t value.
 	virtual void SetCursorType(int cursorType) {}
 
+	// Bridge for CSS `cursor: url(...)` custom-image cursors (CEF reports
+	// these as cef_cursor_type_t::CT_CUSTOM with the actual bitmap here
+	// instead of a named type -- see SetCursorType above). buffer is a
+	// premultiplied BGRA pixel buffer of width x height; hotspotX/Y is the
+	// cursor's hotspot in that bitmap's own pixel coordinates.
+	virtual void SetCursorCustom(const void* buffer, int width, int height, int hotspotX, int hotspotY) {}
+
 	static void SetParentNull(WindowHandleId handle);
 };
 

@@ -40,6 +40,8 @@
 #include <QJsonObject>
 #include <QBuffer>
 #include <QDateTime>
+#include <QPixmap>
+#include <QCursor>
 
 class QCefViewProps
 {
@@ -707,6 +709,21 @@ void QCefView::SetCursorType(int cursorType)
 		default:                                        shape = Qt::ArrowCursor; break;
 	}
 	setCursor(shape);
+}
+
+void QCefView::SetCursorCustom(const void* buffer, int width, int height, int hotspotX, int hotspotY)
+{
+	if (!buffer || width <= 0 || height <= 0) {
+		setCursor(Qt::ArrowCursor);
+		return;
+	}
+
+	// Same premultiplied-BGRA layout CEF uses for the OSR frame buffer (see
+	// OnPaint above) -- Format_ARGB32_Premultiplied matches it byte-for-byte
+	// on little-endian.
+	QImage img((const uchar*)buffer, width, height, QImage::Format_ARGB32_Premultiplied);
+	QCursor cursor(QPixmap::fromImage(img.copy()), hotspotX, hotspotY);
+	setCursor(cursor);
 }
 
 QCefGLWidget::QCefGLWidget(QWidget* parent)
