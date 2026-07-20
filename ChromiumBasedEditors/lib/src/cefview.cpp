@@ -1955,7 +1955,23 @@ public:
 								const CefCursorInfo& custom_cursor_info) OVERRIDE
 	{
 		if (m_pParent && m_pParent->GetWidgetImpl()) {
-			m_pParent->GetWidgetImpl()->SetCursorType((int)type);
+			// A CSS `cursor: url(...)` value (used throughout sdkjs for
+			// things like the spreadsheet's column/row resize-divider hover
+			// cursor, table-select cursors, etc, registered via
+			// g_oHtmlCursor.register in editorscommon.js) is reported as
+			// CT_CUSTOM with the actual bitmap in custom_cursor_info, not as
+			// one of the named enum values -- SetCursorType only knows the
+			// named ones, so route this to the bitmap-based bridge instead.
+			if (CT_CUSTOM == type && custom_cursor_info.buffer) {
+				m_pParent->GetWidgetImpl()->SetCursorCustom(
+					custom_cursor_info.buffer,
+					custom_cursor_info.size.width,
+					custom_cursor_info.size.height,
+					custom_cursor_info.hotspot.x,
+					custom_cursor_info.hotspot.y);
+			} else {
+				m_pParent->GetWidgetImpl()->SetCursorType((int)type);
+			}
 			return true;
 		}
 		return false;

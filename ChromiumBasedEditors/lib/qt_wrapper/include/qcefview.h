@@ -144,6 +144,7 @@ public:
 	virtual void SetClipboardData(const std::wstring& sJson) override;
 	virtual std::wstring GetClipboardData() override;
 	virtual void SetCursorType(int cursorType) override;
+	virtual void SetCursorCustom(const void* buffer, int width, int height, int hotspotX, int hotspotY) override;
 
 	// Wayland: called from the external message loop poller (top of loop,
 	// non-reentrant) after CEF is pumped. Repaints any view whose OnPaint
