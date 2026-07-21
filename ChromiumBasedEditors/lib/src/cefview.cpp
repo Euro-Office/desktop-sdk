@@ -8217,19 +8217,38 @@ void CCefView::UpdateUIScalePercentage()
 			// Each step wrapped separately so a throw in one (e.g. if
 			// devicePixelRatio is non-configurable in this Chromium build)
 			// can't silently abort the rest of the script.
+			// Overriding window.devicePixelRatio directly (tried previously)
+			// loses a race against Chromium's own internal reassertion of
+			// that property on a REAL OS-level display-scale change -- the
+			// renderer runs with --force-device-scale-factor=1, and a real
+			// scale-change event lets Chromium reassert that forced value
+			// faster than anything JS-level can reliably observe (matches
+			// what was seen live: icons flash to the correct larger size
+			// for a single frame, then snap back, far faster than a 1s
+			// poll or CDP console logging could be racing against). Keep
+			// setting it too (harmless, other code may read it directly),
+			// but the actual, race-proof fix is monkeypatching
+			// AscCommon.checkDeviceScale() itself -- a plain JS function
+			// this app defines, with no browser-native reassertion
+			// mechanism -- so it always returns this value regardless of
+			// what window.devicePixelRatio equals at call time.
 			"try {"
 				"Object.defineProperty(window,'devicePixelRatio',{value:f,writable:true,configurable:true});"
 			"} catch(e) { console.error('[UIScale] devicePixelRatio override threw: ' + e); }"
 			"try {"
 				"document.documentElement.style.setProperty('--pixel-ratio-factor', f);"
-				"console.log('[UIScale] devicePixelRatio overridden to ' + f + ' on ' + window.location.href);"
+				"window['AscCommon'] = window['AscCommon'] || {};"
+				"window.AscCommon.checkDeviceScale = function(){"
+					"return { zoom: 1, devicePixelRatio: f, applicationPixelRatio: f, correct: false };"
+				"};"
+				"console.log('[UIScale] devicePixelRatio overridden to ' + f + ', checkDeviceScale monkeypatched, on ' + window.location.href);"
 			"} catch(e) { console.error('[UIScale] setProperty threw: ' + e); }"
 			// The app already has its own comprehensive HiDPI scaling
 			// system: Common.Utils' checkSize() (web-apps
 			// apps/common/main/lib/util/utils.js) reads
-			// window.AscCommon.checkDeviceScale() (which in turn reads
-			// window.devicePixelRatio, just overridden above) and adds a
-			// pixel-ratio__1_25/1_5/1_75/2/2_5 class to document.body,
+			// window.AscCommon.checkDeviceScale() (just monkeypatched
+			// above) and adds a pixel-ratio__1_25/1_5/1_75/2/2_5 class to
+			// document.body,
 			// which is what essentially every scale-aware CSS rule in this
 			// codebase is actually keyed to -- buttons, dropdowns, color
 			// swatches, ribbon spacing, etc. all together, not just the
