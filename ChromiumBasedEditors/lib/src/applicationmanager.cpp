@@ -240,6 +240,15 @@ CAscApplicationManager::CAscApplicationManager()
 	m_pInternal->m_oTemplatesCache.SetManager(this);
 	m_pInternal->m_pAdditional = Create_ApplicationManagerAdditional(this);
 	m_pInternal->m_pAdditional->m_arApplyEvents = &m_pInternal->m_arApplyEvents;
+
+	// TEMPORARY debug hook for the UI-scale-percentage investigation: set
+	// EURO_OFFICE_DEBUG=1 in the environment to enable F1 -> DevTools (see
+	// OnPreKeyEvent in cefview.cpp), so console.log/console.error from the
+	// UpdateUIScalePercentage() injection are actually visible. Remove once
+	// the fix is confirmed working.
+	const char* pDebugEnv = getenv("EURO_OFFICE_DEBUG");
+	if (pDebugEnv && std::string(pDebugEnv) == "1")
+		SetDebugInfoSupport(true);
 }
 
 CAscApplicationManager::~CAscApplicationManager()
