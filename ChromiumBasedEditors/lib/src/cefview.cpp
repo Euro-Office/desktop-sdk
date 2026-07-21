@@ -8202,112 +8202,97 @@ void CCefView::UpdateUIScalePercentage()
 		UIScaleDebugLog("UpdateUIScalePercentage: no GetWidgetImpl(), bailing out");
 		return;
 	}
-	if (!m_pInternal->GetBrowser())
+	if (!m_pInternal->GetBrowser() || !m_pInternal->GetBrowser()->GetHost())
 	{
-		UIScaleDebugLog("UpdateUIScalePercentage: no GetBrowser(), bailing out");
+		UIScaleDebugLog("UpdateUIScalePercentage: no GetBrowser()/GetHost(), bailing out");
 		return;
 	}
 
 	double dPercentage = GetWidgetImpl()->GetUIScalePercentage();
 	double dFactor = dPercentage / 100.0;
 
+	// Uniform, single-point scaling via CEF's own page zoom, instead of the
+	// per-selector CSS/JS patchwork tried previously (pixel-ratio__N body
+	// classes, checkDeviceScale() monkeypatching): SetZoomLevel scales the
+	// entire rendered page proportionally in one place, and Chromium's own
+	// input-event pipeline already handles translating mouse coordinates
+	// into zoomed-layout coordinates correctly (this is core, load-bearing
+	// functionality every zoomed webpage already depends on) -- it doesn't
+	// need any compensation in the mouse-coordinate code that dsf-1.0-osr
+	// added.
+	//
+	// This app has an existing (currently Linux-dead: GetDpiChecker() is
+	// WIN32-only) CheckZoom()/SetZoomLevel() mechanism in this same file
+	// that explicitly SKIPS zoom on Wayland, with a comment warning that
+	// GetScreenInfo's device_scale_factor and SetZoomLevel's CSS zoom
+	// compound into double-scaling if both are non-neutral at once. That
+	// comment predates dsf-1.0-osr: GetScreenInfo now unconditionally
+	// forces device_scale_factor to 1.0 (neutral), so it no longer
+	// contributes any real scale to compound with -- SetZoomLevel can (and
+	// per this fix, now does) safely be the sole scaling mechanism.
+	//
+	// CEF's zoom level is logarithmic in 20%-per-level steps
+	// (zoomFactor = 1.2^zoomLevel), matching the existing CheckZoom()'s own
+	// conversion and its below-1.1 dead-zone (to avoid zoom jitter for
+	// near-100% scales).
+	double dZoomLevel = (dFactor > 1.1) ? (log(dFactor) / log(1.2)) : 0.0;
+
+	CefRefPtr<CefBrowserHost> host = m_pInternal->GetBrowser()->GetHost();
+	host->SetZoomLevel(dZoomLevel);
+	host->WasResized();
+
+	UIScaleDebugLog("UpdateUIScalePercentage: percentage=" + std::to_string(dPercentage) +
+		" factor=" + std::to_string(dFactor) + " zoomLevel=" + std::to_string(dZoomLevel));
+
+	// SetZoomLevel scales DOM/CSS layout uniformly, but the document/page
+	// canvas (the actual Word/Excel content) is a <canvas> element whose
+	// backing-buffer pixel resolution is set explicitly by sdkjs's own JS
+	// (AscBrowser.retinaPixelRatio), independent of page zoom -- zoom will
+	// stretch whatever resolution that canvas already has, so it still
+	// needs to be told the real display scale directly to avoid
+	// blurriness, via the same checkDeviceScale() monkeypatch used
+	// previously (still needed here specifically: window.devicePixelRatio
+	// itself was found to race against Chromium's own reassertion of that
+	// property on a real scale change, but AscCommon.checkDeviceScale() is
+	// a plain app-defined JS function with no such native reassertion risk).
 	std::string sCode =
 		"(function(){"
 			"var f=" + std::to_string(dFactor) + ";"
-			// Each step wrapped separately so a throw in one (e.g. if
-			// devicePixelRatio is non-configurable in this Chromium build)
-			// can't silently abort the rest of the script.
-			// Overriding window.devicePixelRatio directly (tried previously)
-			// loses a race against Chromium's own internal reassertion of
-			// that property on a REAL OS-level display-scale change -- the
-			// renderer runs with --force-device-scale-factor=1, and a real
-			// scale-change event lets Chromium reassert that forced value
-			// faster than anything JS-level can reliably observe (matches
-			// what was seen live: icons flash to the correct larger size
-			// for a single frame, then snap back, far faster than a 1s
-			// poll or CDP console logging could be racing against). Keep
-			// setting it too (harmless, other code may read it directly),
-			// but the actual, race-proof fix is monkeypatching
-			// AscCommon.checkDeviceScale() itself -- a plain JS function
-			// this app defines, with no browser-native reassertion
-			// mechanism -- so it always returns this value regardless of
-			// what window.devicePixelRatio equals at call time.
 			"try {"
-				"Object.defineProperty(window,'devicePixelRatio',{value:f,writable:true,configurable:true});"
-			"} catch(e) { console.error('[UIScale] devicePixelRatio override threw: ' + e); }"
-			"try {"
-				"document.documentElement.style.setProperty('--pixel-ratio-factor', f);"
 				"window['AscCommon'] = window['AscCommon'] || {};"
 				"window.AscCommon.checkDeviceScale = function(){"
 					"return { zoom: 1, devicePixelRatio: f, applicationPixelRatio: f, correct: false };"
 				"};"
-				"console.log('[UIScale] devicePixelRatio overridden to ' + f + ', checkDeviceScale monkeypatched, on ' + window.location.href);"
-			"} catch(e) { console.error('[UIScale] setProperty threw: ' + e); }"
-			// The app already has its own comprehensive HiDPI scaling
-			// system: Common.Utils' checkSize() (web-apps
-			// apps/common/main/lib/util/utils.js) reads
-			// window.AscCommon.checkDeviceScale() (just monkeypatched
-			// above) and adds a pixel-ratio__1_25/1_5/1_75/2/2_5 class to
-			// document.body,
-			// which is what essentially every scale-aware CSS rule in this
-			// codebase is actually keyed to -- buttons, dropdowns, color
-			// swatches, ribbon spacing, etc. all together, not just the
-			// handful of selectors this fix previously patched by hand
-			// (which was incomplete and caused visible overlap/clipping,
-			// e.g. font-color swatch positioning was never covered).
-			// checkSize() normally only runs on load and on window resize;
-			// it's also exposed as Common.Utils.checkSize so it can be
-			// re-run directly here instead of faking a resize event.
-			//
-			// This injection runs at OnLoadEnd, which fires before the
-			// app's own JS bootstrap has finished -- Common.Utils and
-			// AscCommon are reliably undefined at that point (confirmed via
-			// live logging: both always report "not present" on first
-			// injection). Poll for up to ~10s instead of trying once.
+			"} catch(e) { console.error('[UIScale] checkDeviceScale monkeypatch threw: ' + e); }"
 			"var pollTries = 0;"
 			"var pollFn = function(){"
 				"pollTries++;"
-				"var bDone = true;"
-				"try {"
-					"if (window.Common && window.Common.Utils && window.Common.Utils.checkSize) {"
-						"window.Common.Utils.checkSize();"
-						"console.log('[UIScale] checkSize() re-run (try ' + pollTries + '), body class=' + document.body.className);"
-					"} else { bDone = false; }"
-				"} catch(e) { console.error('[UIScale] checkSize threw: ' + e); }"
 				"try {"
 					"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
 						"window.AscCommon.AscBrowser.checkZoom();"
-						"console.log('[UIScale] checkZoom() re-run (try ' + pollTries + '), retinaPixelRatio=' + window.AscCommon.AscBrowser.retinaPixelRatio);"
-					"} else { bDone = false; }"
+						"console.log('[UIScale] canvas checkZoom() re-run (try ' + pollTries + '), retinaPixelRatio=' + window.AscCommon.AscBrowser.retinaPixelRatio);"
+						"return;"
+					"}"
 				"} catch(e) { console.error('[UIScale] checkZoom threw: ' + e); }"
-				"if (!bDone && pollTries < 50) {"
+				"if (pollTries < 50) {"
 					"setTimeout(pollFn, 200);"
-				"} else if (!bDone) {"
-					"console.log('[UIScale] gave up waiting for Common.Utils/AscCommon after ' + pollTries + ' tries');"
+				"} else {"
+					"console.log('[UIScale] gave up waiting for AscCommon.AscBrowser after ' + pollTries + ' tries');"
 				"}"
 			"};"
 			"pollFn();"
 		"})();";
 
-	// The actual editor UI (ribbon, AscCommon) loads in a nested iframe --
-	// a separate browsing context with its own documentElement/CSSOM from
-	// the outer shell page. Inject into every frame of the browser, not
-	// just the main one, so the iframe that actually renders the toolbar
-	// gets the CSS custom properties too.
+	// The document canvas lives in a nested iframe, a separate browsing
+	// context from the outer shell page -- inject into every frame so
+	// whichever one actually has AscBrowser gets it.
 	std::vector<int64> arFrameIds;
 	m_pInternal->GetBrowser()->GetFrameIdentifiers(arFrameIds);
-
-	UIScaleDebugLog("UpdateUIScalePercentage: percentage=" + std::to_string(dPercentage) +
-		" factor=" + std::to_string(dFactor) + " frameCount=" + std::to_string(arFrameIds.size()));
-
 	for (size_t i = 0; i < arFrameIds.size(); i++)
 	{
 		CefRefPtr<CefFrame> frame = m_pInternal->GetBrowser()->GetFrame(arFrameIds[i]);
-		if (!frame)
-			continue;
-
-		UIScaleDebugLog("UpdateUIScalePercentage: injecting into frame url=" + frame->GetURL().ToString());
-		frame->ExecuteJavaScript(sCode, frame->GetURL(), 0);
+		if (frame)
+			frame->ExecuteJavaScript(sCode, frame->GetURL(), 0);
 	}
 }
 
