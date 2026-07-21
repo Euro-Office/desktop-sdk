@@ -8222,47 +8222,31 @@ void CCefView::UpdateUIScalePercentage()
 			"} catch(e) { console.error('[UIScale] devicePixelRatio override threw: ' + e); }"
 			"try {"
 				"document.documentElement.style.setProperty('--pixel-ratio-factor', f);"
-				"document.documentElement.style.setProperty('--x-small-btn-size', (20*f)+'px');"
-				"document.documentElement.style.setProperty('--x-small-btn-icon-size', (20*f)+'px');"
-			// The CSS-custom-property route above doesn't reach every
-			// consumer in this build (verified: the toolbar's .btn-toolbar
-			// height stayed unchanged even after setting --x-small-btn-size
-			// directly via devtools). Force the resolved sizes directly via
-			// an injected !important stylesheet instead, which is
-			// guaranteed to win regardless of whatever is defeating the
-			// variable indirection. Baselines: every element here keeps
-			// Euro-Office's own existing default as its 1.0x reference and
-			// only scales up/down from there with the real display-scale
-			// factor -- this is not about matching LibreOffice's sizing,
-			// only about restoring correct display-scale tracking after
-			// dsf-1.0-osr flattened it.
-				"var sStyleId = 'ui-scale-override-style';"
-				"var oStyle = document.getElementById(sStyleId);"
-				"if (!oStyle) {"
-					"oStyle = document.createElement('style');"
-					"oStyle.id = sStyleId;"
-					"document.head.appendChild(oStyle);"
-				"}"
-				"var px = function(base){ return Math.round(base*f) + 'px'; };"
-				"oStyle.textContent = "
-					// Small toolbar buttons (Home-tab Bold/Italic/etc.) -- 20px baseline, Euro-Office's own default.
-					"'.btn-toolbar { height: ' + px(20) + ' !important; min-width: ' + px(20) + ' !important; }' +"
-					"'.btn-toolbar .icon, .btn-toolbar svg.icon { width: ' + px(20) + ' !important; height: ' + px(20) + ' !important; }' +"
-					// Ribbon-tab (x-huge) buttons -- keep Euro-Office's own 52px/28px defaults as the 1.0x reference.
-					"'.btn.x-huge, .btn-group.icon-top.x-huge { height: ' + px(52) + ' !important; min-width: ' + px(52) + ' !important; }' +"
-					"'.btn.icon-top.x-huge .icon:not(svg), .btn-group.icon-top.x-huge .icon:not(svg), .btn.icon-top.x-huge svg.icon, .btn-group.icon-top.x-huge svg.icon { width: ' + px(28) + ' !important; height: ' + px(28) + ' !important; }' +"
-					// Form controls (dropdowns, text/number inputs) -- 22px baseline (@form-control-size default).
-					"'.btn.normal, .btn-text-default, .btn-icon-default, .combobox .btn { height: ' + px(22) + ' !important; }' +"
-					// Document/UI text sizes -- baselines match each class's own default px value.
-					"'.font-size-tiny { font-size: ' + px(9) + ' !important; }' +"
-					"'.font-size-small { font-size: ' + px(10) + ' !important; }' +"
-					"'.font-size-normal { font-size: ' + px(11) + ' !important; }' +"
-					"'.font-size-medium { font-size: ' + px(12) + ' !important; }' +"
-					"'.font-size-large { font-size: ' + px(13) + ' !important; }' +"
-					"'.font-size-huge { font-size: ' + px(14) + ' !important; }' +"
-					"'.font-size-very-huge { font-size: ' + px(16) + ' !important; }';"
-				"console.log('[UIScale] applied factor=' + f + ' on ' + window.location.href);"
+				"console.log('[UIScale] devicePixelRatio overridden to ' + f + ' on ' + window.location.href);"
 			"} catch(e) { console.error('[UIScale] setProperty threw: ' + e); }"
+			// The app already has its own comprehensive HiDPI scaling
+			// system: Common.Utils' checkSize() (web-apps
+			// apps/common/main/lib/util/utils.js) reads
+			// window.AscCommon.checkDeviceScale() (which in turn reads
+			// window.devicePixelRatio, just overridden above) and adds a
+			// pixel-ratio__1_25/1_5/1_75/2/2_5 class to document.body,
+			// which is what essentially every scale-aware CSS rule in this
+			// codebase is actually keyed to -- buttons, dropdowns, color
+			// swatches, ribbon spacing, etc. all together, not just the
+			// handful of selectors this fix previously patched by hand
+			// (which was incomplete and caused visible overlap/clipping,
+			// e.g. font-color swatch positioning was never covered).
+			// checkSize() normally only runs on load and on window resize;
+			// it's also exposed as Common.Utils.checkSize so it can be
+			// re-run directly here instead of faking a resize event.
+			"try {"
+				"if (window.Common && window.Common.Utils && window.Common.Utils.checkSize) {"
+					"window.Common.Utils.checkSize();"
+					"console.log('[UIScale] checkSize() re-run, body class=' + document.body.className);"
+				"} else {"
+					"console.log('[UIScale] Common.Utils.checkSize not present at injection time');"
+				"}"
+			"} catch(e) { console.error('[UIScale] checkSize threw: ' + e); }"
 			"try {"
 				"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
 					"window.AscCommon.AscBrowser.checkZoom();"
