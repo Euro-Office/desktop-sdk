@@ -8176,28 +8176,68 @@ double CCefView::GetDeviceScale()
 	return dDeviceScale;
 }
 
+// TEMPORARY debug logging for the UI-scale-percentage investigation. Writes
+// to a fixed path regardless of CEF's own logging config (the app is
+// normally launched with --log-severity=disable, which would silently drop
+// LOG(INFO)-style messages). Remove once the fix is confirmed working.
+static void UIScaleDebugLog(const std::string& sMsg)
+{
+	FILE* f = fopen("/tmp/uiscale_debug.log", "a");
+	if (!f)
+		return;
+	fprintf(f, "%s\n", sMsg.c_str());
+	fclose(f);
+}
+
 void CCefView::UpdateUIScalePercentage()
 {
-	if (!GetWidgetImpl() || !m_pInternal->GetBrowser())
+	if (!GetWidgetImpl())
+	{
+		UIScaleDebugLog("UpdateUIScalePercentage: no GetWidgetImpl(), bailing out");
 		return;
+	}
+	if (!m_pInternal->GetBrowser())
+	{
+		UIScaleDebugLog("UpdateUIScalePercentage: no GetBrowser(), bailing out");
+		return;
+	}
 
 	CefRefPtr<CefFrame> frame = m_pInternal->GetBrowser()->GetMainFrame();
 	if (!frame)
+	{
+		UIScaleDebugLog("UpdateUIScalePercentage: no GetMainFrame(), bailing out");
 		return;
+	}
 
 	double dPercentage = GetWidgetImpl()->GetUIScalePercentage();
 	double dFactor = dPercentage / 100.0;
 
+	UIScaleDebugLog("UpdateUIScalePercentage: percentage=" + std::to_string(dPercentage) +
+		" factor=" + std::to_string(dFactor) + " url=" + frame->GetURL().ToString());
+
 	std::string sCode =
 		"(function(){"
 			"var f=" + std::to_string(dFactor) + ";"
-			"Object.defineProperty(window,'devicePixelRatio',{value:f,writable:true,configurable:true});"
-			"document.documentElement.style.setProperty('--pixel-ratio-factor', f);"
-			"document.documentElement.style.setProperty('--x-small-btn-size', (16*f)+'px');"
-			"document.documentElement.style.setProperty('--x-small-btn-icon-size', (16*f)+'px');"
-			"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
-				"window.AscCommon.AscBrowser.checkZoom();"
-			"}"
+			// Each step wrapped separately so a throw in one (e.g. if
+			// devicePixelRatio is non-configurable in this Chromium build)
+			// can't silently abort the rest of the script.
+			"try {"
+				"Object.defineProperty(window,'devicePixelRatio',{value:f,writable:true,configurable:true});"
+			"} catch(e) { console.error('[UIScale] devicePixelRatio override threw: ' + e); }"
+			"try {"
+				"document.documentElement.style.setProperty('--pixel-ratio-factor', f);"
+				"document.documentElement.style.setProperty('--x-small-btn-size', (16*f)+'px');"
+				"document.documentElement.style.setProperty('--x-small-btn-icon-size', (16*f)+'px');"
+				"console.log('[UIScale] applied factor=' + f + ' iconSize=' + (16*f) + 'px');"
+			"} catch(e) { console.error('[UIScale] setProperty threw: ' + e); }"
+			"try {"
+				"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
+					"window.AscCommon.AscBrowser.checkZoom();"
+					"console.log('[UIScale] checkZoom() re-run, retinaPixelRatio=' + window.AscCommon.AscBrowser.retinaPixelRatio);"
+				"} else {"
+					"console.log('[UIScale] AscCommon.AscBrowser.checkZoom not present at injection time');"
+				"}"
+			"} catch(e) { console.error('[UIScale] checkZoom threw: ' + e); }"
 		"})();";
 
 	frame->ExecuteJavaScript(sCode, frame->GetURL(), 0);
