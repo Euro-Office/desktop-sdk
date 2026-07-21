@@ -188,6 +188,11 @@ public:
 	// sdkjs's own canvas scaling, which reads it directly. Call on load and
 	// whenever the widget's DPI may have changed (e.g. moved to another
 	// monitor).
+	// Injects into every frame of the browser, not just the main one -- the
+	// actual editor UI (ribbon, AscCommon) loads in a nested iframe, which
+	// is a separate browsing context with its own documentElement/CSSOM;
+	// setting these CSS custom properties on the main frame alone has no
+	// effect on an iframe's own styles.
 	void UpdateUIScalePercentage();
 
 	int GetPrintPageOrientation(const int& nPage);
