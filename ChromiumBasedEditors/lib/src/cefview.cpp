@@ -8239,22 +8239,35 @@ void CCefView::UpdateUIScalePercentage()
 			// checkSize() normally only runs on load and on window resize;
 			// it's also exposed as Common.Utils.checkSize so it can be
 			// re-run directly here instead of faking a resize event.
-			"try {"
-				"if (window.Common && window.Common.Utils && window.Common.Utils.checkSize) {"
-					"window.Common.Utils.checkSize();"
-					"console.log('[UIScale] checkSize() re-run, body class=' + document.body.className);"
-				"} else {"
-					"console.log('[UIScale] Common.Utils.checkSize not present at injection time');"
+			//
+			// This injection runs at OnLoadEnd, which fires before the
+			// app's own JS bootstrap has finished -- Common.Utils and
+			// AscCommon are reliably undefined at that point (confirmed via
+			// live logging: both always report "not present" on first
+			// injection). Poll for up to ~10s instead of trying once.
+			"var pollTries = 0;"
+			"var pollFn = function(){"
+				"pollTries++;"
+				"var bDone = true;"
+				"try {"
+					"if (window.Common && window.Common.Utils && window.Common.Utils.checkSize) {"
+						"window.Common.Utils.checkSize();"
+						"console.log('[UIScale] checkSize() re-run (try ' + pollTries + '), body class=' + document.body.className);"
+					"} else { bDone = false; }"
+				"} catch(e) { console.error('[UIScale] checkSize threw: ' + e); }"
+				"try {"
+					"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
+						"window.AscCommon.AscBrowser.checkZoom();"
+						"console.log('[UIScale] checkZoom() re-run (try ' + pollTries + '), retinaPixelRatio=' + window.AscCommon.AscBrowser.retinaPixelRatio);"
+					"} else { bDone = false; }"
+				"} catch(e) { console.error('[UIScale] checkZoom threw: ' + e); }"
+				"if (!bDone && pollTries < 50) {"
+					"setTimeout(pollFn, 200);"
+				"} else if (!bDone) {"
+					"console.log('[UIScale] gave up waiting for Common.Utils/AscCommon after ' + pollTries + ' tries');"
 				"}"
-			"} catch(e) { console.error('[UIScale] checkSize threw: ' + e); }"
-			"try {"
-				"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
-					"window.AscCommon.AscBrowser.checkZoom();"
-					"console.log('[UIScale] checkZoom() re-run, retinaPixelRatio=' + window.AscCommon.AscBrowser.retinaPixelRatio);"
-				"} else {"
-					"console.log('[UIScale] AscCommon.AscBrowser.checkZoom not present at injection time');"
-				"}"
-			"} catch(e) { console.error('[UIScale] checkZoom threw: ' + e); }"
+			"};"
+			"pollFn();"
 		"})();";
 
 	// The actual editor UI (ribbon, AscCommon) loads in a nested iframe --
