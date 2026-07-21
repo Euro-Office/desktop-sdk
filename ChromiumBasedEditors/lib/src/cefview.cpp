@@ -5055,7 +5055,13 @@ virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser,
 	}
 #endif
 
-	if (frame && frame->IsMain())
+	// Not gated on frame->IsMain(): the actual editor UI (ribbon,
+	// AscCommon) loads in a nested iframe, which finishes loading and
+	// fires its own OnLoadEnd separately from the outer shell page.
+	// UpdateUIScalePercentage() itself re-injects into every frame of the
+	// browser each time, so this is a little redundant across multiple
+	// frame loads but keeps the iframe from ever being missed.
+	if (frame)
 		m_pParent->UpdateUIScalePercentage();
 
 	bool bIsCryptoSupport = true;
@@ -8202,18 +8208,8 @@ void CCefView::UpdateUIScalePercentage()
 		return;
 	}
 
-	CefRefPtr<CefFrame> frame = m_pInternal->GetBrowser()->GetMainFrame();
-	if (!frame)
-	{
-		UIScaleDebugLog("UpdateUIScalePercentage: no GetMainFrame(), bailing out");
-		return;
-	}
-
 	double dPercentage = GetWidgetImpl()->GetUIScalePercentage();
 	double dFactor = dPercentage / 100.0;
-
-	UIScaleDebugLog("UpdateUIScalePercentage: percentage=" + std::to_string(dPercentage) +
-		" factor=" + std::to_string(dFactor) + " url=" + frame->GetURL().ToString());
 
 	std::string sCode =
 		"(function(){"
@@ -8228,7 +8224,24 @@ void CCefView::UpdateUIScalePercentage()
 				"document.documentElement.style.setProperty('--pixel-ratio-factor', f);"
 				"document.documentElement.style.setProperty('--x-small-btn-size', (16*f)+'px');"
 				"document.documentElement.style.setProperty('--x-small-btn-icon-size', (16*f)+'px');"
-				"console.log('[UIScale] applied factor=' + f + ' iconSize=' + (16*f) + 'px');"
+			// The CSS-custom-property route above doesn't reach every
+			// consumer in this build (verified: the toolbar's .btn-toolbar
+			// height stayed unchanged even after setting --x-small-btn-size
+			// directly via devtools). Force the resolved size directly via
+			// an injected !important stylesheet, which is guaranteed to win
+			// regardless of whatever is defeating the variable indirection.
+				"var sStyleId = 'ui-scale-override-style';"
+				"var oStyle = document.getElementById(sStyleId);"
+				"if (!oStyle) {"
+					"oStyle = document.createElement('style');"
+					"oStyle.id = sStyleId;"
+					"document.head.appendChild(oStyle);"
+				"}"
+				"var nIconPx = Math.round(16*f);"
+				"oStyle.textContent = "
+					"'.btn-toolbar { height: ' + nIconPx + 'px !important; min-width: ' + nIconPx + 'px !important; }' +"
+					"'.btn-toolbar .icon, .btn-toolbar svg.icon { width: ' + nIconPx + 'px !important; height: ' + nIconPx + 'px !important; }';"
+				"console.log('[UIScale] applied factor=' + f + ' iconSize=' + nIconPx + 'px' + ' on ' + window.location.href);"
 			"} catch(e) { console.error('[UIScale] setProperty threw: ' + e); }"
 			"try {"
 				"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
@@ -8240,7 +8253,26 @@ void CCefView::UpdateUIScalePercentage()
 			"} catch(e) { console.error('[UIScale] checkZoom threw: ' + e); }"
 		"})();";
 
-	frame->ExecuteJavaScript(sCode, frame->GetURL(), 0);
+	// The actual editor UI (ribbon, AscCommon) loads in a nested iframe --
+	// a separate browsing context with its own documentElement/CSSOM from
+	// the outer shell page. Inject into every frame of the browser, not
+	// just the main one, so the iframe that actually renders the toolbar
+	// gets the CSS custom properties too.
+	std::vector<int64> arFrameIds;
+	m_pInternal->GetBrowser()->GetFrameIdentifiers(arFrameIds);
+
+	UIScaleDebugLog("UpdateUIScalePercentage: percentage=" + std::to_string(dPercentage) +
+		" factor=" + std::to_string(dFactor) + " frameCount=" + std::to_string(arFrameIds.size()));
+
+	for (size_t i = 0; i < arFrameIds.size(); i++)
+	{
+		CefRefPtr<CefFrame> frame = m_pInternal->GetBrowser()->GetFrame(arFrameIds[i]);
+		if (!frame)
+			continue;
+
+		UIScaleDebugLog("UpdateUIScalePercentage: injecting into frame url=" + frame->GetURL().ToString());
+		frame->ExecuteJavaScript(sCode, frame->GetURL(), 0);
+	}
 }
 
 int CCefView::GetPrintPageOrientation(const int& nPage)
