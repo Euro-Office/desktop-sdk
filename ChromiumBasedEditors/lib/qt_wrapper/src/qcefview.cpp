@@ -24,6 +24,7 @@
  */
 
 #include "./../include/qcefview.h"
+#include <cstdio>
 #include <QPainter>
 #include <QApplication>
 #include <QAbstractEventDispatcher>
@@ -79,6 +80,16 @@ QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 	m_pUIScalePollTimer = new QTimer(this);
 	QObject::connect(m_pUIScalePollTimer, &QTimer::timeout, this, [this]() {
 		double dCurrent = this->GetUIScalePercentage();
+		// TEMPORARY: log every tick's raw reading (not just changes) to
+		// find out whether Qt's own devicePixelRatio() is itself
+		// unstable/flip-flopping after a real display-scale change,
+		// separately from whether this code correctly reacts to it.
+		FILE* pLogFile = fopen("/tmp/uiscale_debug.log", "a");
+		if (pLogFile)
+		{
+			fprintf(pLogFile, "[qt-poll-tick] raw=%f lastKnown=%f\n", dCurrent, m_dLastKnownUIScalePercentage);
+			fclose(pLogFile);
+		}
 		if (m_dLastKnownUIScalePercentage >= 0 && dCurrent == m_dLastKnownUIScalePercentage)
 			return;
 		m_dLastKnownUIScalePercentage = dCurrent;
