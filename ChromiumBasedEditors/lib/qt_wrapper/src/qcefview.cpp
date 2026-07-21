@@ -73,6 +73,19 @@ QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 
 	if (IsSupportLayers())
 		this->installEventFilter(this);
+
+	// See m_pUIScalePollTimer's declaration: no Qt/CEF signal was found
+	// that fires on a pure OS-level display-scale change, so poll for it.
+	m_pUIScalePollTimer = new QTimer(this);
+	QObject::connect(m_pUIScalePollTimer, &QTimer::timeout, this, [this]() {
+		double dCurrent = this->GetUIScalePercentage();
+		if (m_dLastKnownUIScalePercentage >= 0 && dCurrent == m_dLastKnownUIScalePercentage)
+			return;
+		m_dLastKnownUIScalePercentage = dCurrent;
+		if (m_pCefView)
+			m_pCefView->UpdateUIScalePercentage();
+	});
+	m_pUIScalePollTimer->start(1000);
 }
 
 QCefView::~QCefView()

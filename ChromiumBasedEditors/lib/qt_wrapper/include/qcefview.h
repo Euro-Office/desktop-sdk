@@ -36,6 +36,7 @@
 #include <QImage>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QTimer>
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
@@ -195,6 +196,15 @@ protected:
 	static QList<QCefView*> s_waylandViews;
 
 	void Init();
+
+	// Polls for a live desktop display-scale change. Neither moveEvent nor
+	// resizeEvent fire on a pure OS-level scale change (confirmed live: no
+	// re-injection occurred when the scale was changed in KDE's display
+	// settings), so there is no Qt signal this code found to hook directly
+	// -- poll devicePixelRatio() instead and only re-inject when it
+	// actually changes.
+	QTimer* m_pUIScalePollTimer = nullptr;
+	double m_dLastKnownUIScalePercentage = -1.0;
 
 Q_SIGNALS:
 	void closeWidget(QCloseEvent *);
