@@ -8227,9 +8227,17 @@ void CCefView::UpdateUIScalePercentage()
 			// The CSS-custom-property route above doesn't reach every
 			// consumer in this build (verified: the toolbar's .btn-toolbar
 			// height stayed unchanged even after setting --x-small-btn-size
-			// directly via devtools). Force the resolved size directly via
-			// an injected !important stylesheet, which is guaranteed to win
-			// regardless of whatever is defeating the variable indirection.
+			// directly via devtools). Force the resolved sizes directly via
+			// an injected !important stylesheet instead, which is
+			// guaranteed to win regardless of whatever is defeating the
+			// variable indirection. Baselines: the small toolbar buttons
+			// use LibreOffice's compact 16px as the 1.0x reference (no
+			// better reference size exists); everything else (ribbon
+			// buttons, form controls, document/UI text) keeps Euro-Office's
+			// own existing default as its 1.0x reference and only scales
+			// up/down from there with the real display-scale factor -- none
+			// of this is about matching LibreOffice, only about restoring
+			// correct display-scale tracking after dsf-1.0-osr flattened it.
 				"var sStyleId = 'ui-scale-override-style';"
 				"var oStyle = document.getElementById(sStyleId);"
 				"if (!oStyle) {"
@@ -8237,11 +8245,25 @@ void CCefView::UpdateUIScalePercentage()
 					"oStyle.id = sStyleId;"
 					"document.head.appendChild(oStyle);"
 				"}"
-				"var nIconPx = Math.round(16*f);"
+				"var px = function(base){ return Math.round(base*f) + 'px'; };"
 				"oStyle.textContent = "
-					"'.btn-toolbar { height: ' + nIconPx + 'px !important; min-width: ' + nIconPx + 'px !important; }' +"
-					"'.btn-toolbar .icon, .btn-toolbar svg.icon { width: ' + nIconPx + 'px !important; height: ' + nIconPx + 'px !important; }';"
-				"console.log('[UIScale] applied factor=' + f + ' iconSize=' + nIconPx + 'px' + ' on ' + window.location.href);"
+					// Small toolbar buttons (Home-tab Bold/Italic/etc.) -- 16px baseline, matches LibreOffice.
+					"'.btn-toolbar { height: ' + px(16) + ' !important; min-width: ' + px(16) + ' !important; }' +"
+					"'.btn-toolbar .icon, .btn-toolbar svg.icon { width: ' + px(16) + ' !important; height: ' + px(16) + ' !important; }' +"
+					// Ribbon-tab (x-huge) buttons -- keep Euro-Office's own 52px/28px defaults as the 1.0x reference.
+					"'.btn.x-huge, .btn-group.icon-top.x-huge { height: ' + px(52) + ' !important; min-width: ' + px(52) + ' !important; }' +"
+					"'.btn.icon-top.x-huge .icon:not(svg), .btn-group.icon-top.x-huge .icon:not(svg), .btn.icon-top.x-huge svg.icon, .btn-group.icon-top.x-huge svg.icon { width: ' + px(28) + ' !important; height: ' + px(28) + ' !important; }' +"
+					// Form controls (dropdowns, text/number inputs) -- 22px baseline (@form-control-size default).
+					"'.btn.normal, .btn-text-default, .btn-icon-default, .combobox .btn { height: ' + px(22) + ' !important; }' +"
+					// Document/UI text sizes -- baselines match each class's own default px value.
+					"'.font-size-tiny { font-size: ' + px(9) + ' !important; }' +"
+					"'.font-size-small { font-size: ' + px(10) + ' !important; }' +"
+					"'.font-size-normal { font-size: ' + px(11) + ' !important; }' +"
+					"'.font-size-medium { font-size: ' + px(12) + ' !important; }' +"
+					"'.font-size-large { font-size: ' + px(13) + ' !important; }' +"
+					"'.font-size-huge { font-size: ' + px(14) + ' !important; }' +"
+					"'.font-size-very-huge { font-size: ' + px(16) + ' !important; }';"
+				"console.log('[UIScale] applied factor=' + f + ' on ' + window.location.href);"
 			"} catch(e) { console.error('[UIScale] setProperty threw: ' + e); }"
 			"try {"
 				"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
