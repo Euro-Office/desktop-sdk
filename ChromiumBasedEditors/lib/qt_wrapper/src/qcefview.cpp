@@ -576,23 +576,18 @@ double QCefView::GetDeviceScaleFactor()
 
 double QCefView::GetUIScalePercentage()
 {
-	// Bucketed off real monitor DPI the same way LibreOffice's
-	// CountDPIScaleFactor() (vcl/source/window/window.cxx) computes it,
-	// off a 96 DPI baseline. Deliberately reads Qt's logicalDotsPerInch()
-	// directly rather than GetDeviceScaleFactor()/devicePixelRatio(), since
-	// those are forced to 1:1 by the dsf-1.0-osr coordinate-mapping fix
-	// and would lose the real DPI signal.
-	qreal dDpi = 96.0;
-	if (QScreen* pScreen = this->screen())
-		dDpi = pScreen->logicalDotsPerInch();
-
-	if (dDpi > 216)
-		return 250.0;
-	else if (dDpi > 168)
-		return 200.0;
-	else if (dDpi > 120)
-		return 150.0;
-	return 100.0;
+	// Originally bucketed off logicalDotsPerInch() the way LibreOffice's
+	// CountDPIScaleFactor() does (96 DPI baseline, X11-era heuristic) --
+	// but that returns a flat 100% on a standard-DPI Wayland output even
+	// when the compositor has a real configured display scale, silently
+	// discarding the signal this is actually meant to track. Wayland sets
+	// an explicit output scale directly rather than relying on physical
+	// DPI, and Qt's own devicePixelRatio() already reflects that scale
+	// live (this is a different value from what dsf-1.0-osr forces CEF's
+	// own device_scale_factor to for coordinate-mapping purposes -- Qt
+	// keeps tracking the real ratio locally regardless of what we report
+	// to CEF), so use it directly instead.
+	return this->devicePixelRatio() * 100.0;
 }
 
 bool QCefView::IsWayland()
