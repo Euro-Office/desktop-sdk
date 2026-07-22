@@ -1078,7 +1078,13 @@ void QCefView::Init()
 	{
 		Display* display = (Display*)CefGetXDisplay();
 		Window x11root = XDefaultRootWindow(display);
-		Window x11w = XCreateSimpleWindow(display, x11root, 0, 0, width(), height(), 0, 0,
+		// width()/height() are in DIPs; X11 wants physical pixels. Qt's own
+		// window still ends up sized in physical pixels by the platform
+		// plugin even with AA_Use96Dpi set (devicePixelRatio() isn't
+		// reliably neutralized under XWayland), so scale explicitly here
+		// to match, the same way SetWindowSize() below does.
+		double scale = devicePixelRatio();
+		Window x11w = XCreateSimpleWindow(display, x11root, 0, 0, (int)(width() * scale), (int)(height() * scale), 0, 0,
 										  (m_pCefView && m_pCefView->GetType() != cvwtEditor) ? 0xFFFFFFFF : 0xFFF4F4F4);
 		XReparentWindow(display, x11w, this->winId(), 0, 0);
 		XMapWindow(display, x11w);
@@ -1143,8 +1149,12 @@ void SetWindowSize(Window window, QWidget* parent)
 		XWindowChanges changes = {};
 		changes.x = 0;
 		changes.y = 0;
-		changes.width = parent->width();
-		changes.height = parent->height();
+		// parent->width()/height() are DIPs; X11 geometry is physical
+		// pixels, so scale by devicePixelRatio() to match (see Init()'s
+		// XCreateSimpleWindow call for the same reasoning).
+		double scale = parent->devicePixelRatio();
+		changes.width = (int)(parent->width() * scale);
+		changes.height = (int)(parent->height() * scale);
 
 		// XErrorHandlerImpl: BadValue error occurs
 		if (changes.width && changes.height)
