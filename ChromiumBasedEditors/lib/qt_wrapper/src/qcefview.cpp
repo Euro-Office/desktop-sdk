@@ -611,7 +611,16 @@ double QCefView::GetUIScalePercentage()
 	// own device_scale_factor to for coordinate-mapping purposes -- Qt
 	// keeps tracking the real ratio locally regardless of what we report
 	// to CEF), so use it directly instead.
-	return this->devicePixelRatio() * 100.0;
+	//
+	// xcb-only: devicePixelRatio() still reflects Xft.dpi here despite
+	// AA_Use96Dpi and the HiDPI env overrides, and that Xft.dpi scale is
+	// already applied once to window/widget geometry via
+	// QDpiChecker::GetMonitorDpi()/Core_GetMonitorScale. Feeding it here
+	// too would apply it a second time as a CEF page zoom on top of the
+	// already-scaled geometry, so leave zoom neutral on xcb.
+	if (m_isWayland)
+		return this->devicePixelRatio() * 100.0;
+	return 100.0;
 }
 
 bool QCefView::IsWayland()
