@@ -77,47 +77,16 @@ QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 
 	// See m_pUIScalePollTimer's declaration: no Qt/CEF signal was found
 	// that fires on a pure OS-level display-scale change, so poll for it.
+	// The debounce against transient devicePixelRatio() misreads lives in
+	// CCefView::UpdateUIScalePercentage() itself, since that's the single
+	// choke point moveEvent()/OnLoadEnd() also call into -- no need to
+	// track/compare readings here too.
 	m_pUIScalePollTimer = new QTimer(this);
 	QObject::connect(m_pUIScalePollTimer, &QTimer::timeout, this, [this]() {
-		MaybeUpdateUIScale();
+		if (m_pCefView)
+			m_pCefView->UpdateUIScalePercentage();
 	});
 	m_pUIScalePollTimer->start(1000);
-}
-
-void QCefView::MaybeUpdateUIScale()
-{
-	double dCurrent = this->GetUIScalePercentage();
-	// TEMPORARY: log every check's raw reading (not just commits) to
-	// confirm the debounce actually absorbs the startup misreads instead
-	// of just delaying them by one tick.
-	FILE* pLogFile = fopen("/tmp/uiscale_debug.log", "a");
-	if (pLogFile)
-	{
-		fprintf(pLogFile, "[ui-scale-check] raw=%f pending=%f lastKnown=%f\n",
-			dCurrent, m_dPendingUIScalePercentage, m_dLastKnownUIScalePercentage);
-		fclose(pLogFile);
-	}
-
-	if (m_dLastKnownUIScalePercentage >= 0 && dCurrent == m_dLastKnownUIScalePercentage)
-	{
-		m_dPendingUIScalePercentage = -1.0;
-		return;
-	}
-
-	// Only commit once the same reading shows up on two consecutive
-	// checks (from either the poll timer or moveEvent) -- a single-check
-	// misread just becomes the new pending value and gets overwritten by
-	// whatever the next check reads instead of being acted on.
-	if (dCurrent != m_dPendingUIScalePercentage)
-	{
-		m_dPendingUIScalePercentage = dCurrent;
-		return;
-	}
-
-	m_dPendingUIScalePercentage = -1.0;
-	m_dLastKnownUIScalePercentage = dCurrent;
-	if (m_pCefView)
-		m_pCefView->UpdateUIScalePercentage();
 }
 
 QCefView::~QCefView()
@@ -514,11 +483,9 @@ void QCefView::moveEvent(QMoveEvent* e)
 		m_pCefView->moveEvent();
 		// Moving across monitors may change the effective DPI; re-check the
 		// UI scale so it doesn't stay pinned to the monitor the app started
-		// on. Goes through the same debounced path as the poll timer (see
-		// MaybeUpdateUIScale()) rather than committing immediately, since
-		// move events fire repeatedly during startup window placement and
-		// can each transiently misread devicePixelRatio().
-		MaybeUpdateUIScale();
+		// on. Debounced against transient devicePixelRatio() misreads
+		// inside UpdateUIScalePercentage() itself.
+		m_pCefView->UpdateUIScalePercentage();
 	}
 	QWidget::moveEvent(e);
 }
