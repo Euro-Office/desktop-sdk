@@ -206,6 +206,15 @@ protected:
 	QTimer* m_pUIScalePollTimer = nullptr;
 	double m_dLastKnownUIScalePercentage = -1.0;
 
+	// Shared by the poll timer and moveEvent(): a reading only gets
+	// committed (applied via UpdateUIScalePercentage()) once it's seen on
+	// two consecutive checks, regardless of which trigger read it. Startup
+	// window placement can transiently misreport devicePixelRatio() on a
+	// single check (see m_dPendingUIScalePercentage's use in the .cpp),
+	// and this stops any one bad reading from being acted on.
+	double m_dPendingUIScalePercentage = -1.0;
+	void MaybeUpdateUIScale();
+
 Q_SIGNALS:
 	void closeWidget(QCloseEvent *);
 	void _loaded();
