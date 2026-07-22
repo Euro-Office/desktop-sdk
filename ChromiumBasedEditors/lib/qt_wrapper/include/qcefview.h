@@ -201,19 +201,9 @@ protected:
 	// resizeEvent fire on a pure OS-level scale change (confirmed live: no
 	// re-injection occurred when the scale was changed in KDE's display
 	// settings), so there is no Qt signal this code found to hook directly
-	// -- poll devicePixelRatio() instead and only re-inject when it
-	// actually changes.
+	// -- poll and re-inject every tick instead; UpdateUIScalePercentage()
+	// itself debounces against transient devicePixelRatio() misreads.
 	QTimer* m_pUIScalePollTimer = nullptr;
-	double m_dLastKnownUIScalePercentage = -1.0;
-
-	// Shared by the poll timer and moveEvent(): a reading only gets
-	// committed (applied via UpdateUIScalePercentage()) once it's seen on
-	// two consecutive checks, regardless of which trigger read it. Startup
-	// window placement can transiently misreport devicePixelRatio() on a
-	// single check (see m_dPendingUIScalePercentage's use in the .cpp),
-	// and this stops any one bad reading from being acted on.
-	double m_dPendingUIScalePercentage = -1.0;
-	void MaybeUpdateUIScale();
 
 Q_SIGNALS:
 	void closeWidget(QCloseEvent *);

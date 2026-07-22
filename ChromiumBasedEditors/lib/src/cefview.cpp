@@ -8208,7 +8208,35 @@ void CCefView::UpdateUIScalePercentage()
 		return;
 	}
 
-	double dPercentage = GetWidgetImpl()->GetUIScalePercentage();
+	double dRawPercentage = GetWidgetImpl()->GetUIScalePercentage();
+
+	// This is called from three independent triggers (QCefView's poll
+	// timer, moveEvent(), and this OnLoadEnd() firing once per frame
+	// including nested iframes), any of which can catch devicePixelRatio()
+	// transiently misreporting during startup window placement. Only
+	// trust a reading once it's seen on two consecutive calls (from any
+	// trigger); otherwise keep using the last confirmed value so a single
+	// bad read doesn't flash the zoom. The per-frame JS injection below
+	// still runs on every call regardless -- each frame needs it
+	// independent of whether the scale itself just changed.
+	double dPercentage;
+	if (m_dLastKnownUIScalePercentage >= 0 && dRawPercentage == m_dLastKnownUIScalePercentage)
+	{
+		m_dPendingUIScalePercentage = -1.0;
+		dPercentage = m_dLastKnownUIScalePercentage;
+	}
+	else if (dRawPercentage == m_dPendingUIScalePercentage)
+	{
+		m_dPendingUIScalePercentage = -1.0;
+		m_dLastKnownUIScalePercentage = dRawPercentage;
+		dPercentage = dRawPercentage;
+	}
+	else
+	{
+		m_dPendingUIScalePercentage = dRawPercentage;
+		dPercentage = (m_dLastKnownUIScalePercentage >= 0) ? m_dLastKnownUIScalePercentage : dRawPercentage;
+	}
+
 	double dFactor = dPercentage / 100.0;
 
 	// Uniform, single-point scaling via CEF's own page zoom, instead of the
@@ -8243,6 +8271,7 @@ void CCefView::UpdateUIScalePercentage()
 
 	UIScaleDebugLog("UpdateUIScalePercentage: type=" + std::to_string((int)GetType()) +
 		" size=" + std::to_string(GetWidgetImpl()->cef_width) + "x" + std::to_string(GetWidgetImpl()->cef_height) +
+		" raw=" + std::to_string(dRawPercentage) +
 		" percentage=" + std::to_string(dPercentage) +
 		" factor=" + std::to_string(dFactor) + " zoomLevel=" + std::to_string(dZoomLevel));
 
