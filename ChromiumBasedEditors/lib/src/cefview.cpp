@@ -8241,7 +8241,9 @@ void CCefView::UpdateUIScalePercentage()
 	host->SetZoomLevel(dZoomLevel);
 	host->WasResized();
 
-	UIScaleDebugLog("UpdateUIScalePercentage: percentage=" + std::to_string(dPercentage) +
+	UIScaleDebugLog("UpdateUIScalePercentage: type=" + std::to_string((int)GetType()) +
+		" size=" + std::to_string(GetWidgetImpl()->cef_width) + "x" + std::to_string(GetWidgetImpl()->cef_height) +
+		" percentage=" + std::to_string(dPercentage) +
 		" factor=" + std::to_string(dFactor) + " zoomLevel=" + std::to_string(dZoomLevel));
 
 	// SetZoomLevel scales DOM/CSS layout uniformly, but the document/page
