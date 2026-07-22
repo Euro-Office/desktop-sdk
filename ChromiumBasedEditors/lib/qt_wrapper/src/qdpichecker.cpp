@@ -106,10 +106,41 @@ int QDpiChecker::GetMonitorDpi(int nScreenNumber, unsigned int* dx, unsigned int
 		if (nDpiX < _x11_dpi) nDpiX = _x11_dpi;
 		if (nDpiY < _x11_dpi) nDpiY = _x11_dpi;
 	}
+	else if (QGuiApplication::platformName() == QLatin1String("wayland"))
+	{
+		// getX11SessionDpi() is inert on Wayland (no Xft.dpi equivalent),
+		// and physicalDotsPerInchX/Y() above is flat regardless of the
+		// compositor's actual output scale -- derive an equivalent DPI
+		// from devicePixelRatio() instead, matching how CEF content is
+		// already scaled (QCefView::GetUIScalePercentage()).
+		int _wayland_dpi = (int)(96.0 * _screen->devicePixelRatio() + 0.5);
+		if (nDpiX < _wayland_dpi) nDpiX = _wayland_dpi;
+		if (nDpiY < _wayland_dpi) nDpiY = _wayland_dpi;
+	}
 #endif
 
 	QSize size = _screen->size();
-	if (size.width() <= 1600 && size.height() <= 900)
+	// This 96-DPI clamp for small (<=1600x900) screens has flip-flopped
+	// without documented rationale: introduced 2021-05-31 forcing 192 DPI
+	// (Ascensio/ONLYOFFICE tracker bug 50621 -- we don't have access to
+	// that tracker, so no detail beyond the bug number, presumably to fix
+	// small-but-legitimately-HiDPI laptop panels being misdetected as
+	// low-DPI), then flipped to 96 three days later (tracker bug 50711,
+	// again no access/detail -- likely the 192 fix broke small *actually*-
+	// low-DPI screens, e.g. VMs/badly configured X sessions misreporting
+	// DPI, and 96 was chosen as the safer default rather than finding a
+	// real discriminator between the two cases). Left as-is for xcb/
+	// legacy: no test hardware or bug report detail available to know
+	// which small-screen case regresses if changed, and it's unrelated to
+	// the Wayland work below.
+	//
+	// It does, however, stomp the Wayland devicePixelRatio()-derived DPI
+	// added above on any Wayland output <=1600x900, silently discarding a
+	// real compositor-reported scale in favor of this guess -- so carve
+	// Wayland out of the clamp, since there we have an actual scale
+	// signal to trust instead of guessing from resolution alone.
+	bool bSkipSmallScreenClampWayland = QGuiApplication::platformName() == QLatin1String("wayland");
+	if (!bSkipSmallScreenClampWayland && size.width() <= 1600 && size.height() <= 900)
 	{
 		nDpiX = 96;
 		nDpiY = 96;
