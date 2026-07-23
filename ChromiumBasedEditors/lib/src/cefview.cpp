@@ -8182,37 +8182,12 @@ double CCefView::GetDeviceScale()
 	return dDeviceScale;
 }
 
-// TEMPORARY debug logging for the UI-scale-percentage investigation. Writes
-// to a fixed path regardless of CEF's own logging config (the app is
-// normally launched with --log-severity=disable, which would silently drop
-// LOG(INFO)-style messages). Remove once the fix is confirmed working.
-#include <chrono>
-static void UIScaleDebugLog(const std::string& sMsg)
-{
-	FILE* f = fopen("/tmp/uiscale_debug.log", "a");
-	if (!f)
-		return;
-	// Millisecond epoch timestamp, matching the format used in
-	// desktop-apps' native-widget debug log, so the two can be
-	// correlated by time during startup-race investigation.
-	long long nMs = std::chrono::duration_cast<std::chrono::milliseconds>(
-		std::chrono::system_clock::now().time_since_epoch()).count();
-	fprintf(f, "[%lld] %s\n", nMs, sMsg.c_str());
-	fclose(f);
-}
-
 void CCefView::UpdateUIScalePercentage()
 {
 	if (!GetWidgetImpl())
-	{
-		UIScaleDebugLog("UpdateUIScalePercentage: no GetWidgetImpl(), bailing out");
 		return;
-	}
 	if (!m_pInternal->GetBrowser() || !m_pInternal->GetBrowser()->GetHost())
-	{
-		UIScaleDebugLog("UpdateUIScalePercentage: no GetBrowser()/GetHost(), bailing out");
 		return;
-	}
 
 	double dRawPercentage = GetWidgetImpl()->GetUIScalePercentage();
 
@@ -8274,12 +8249,6 @@ void CCefView::UpdateUIScalePercentage()
 	CefRefPtr<CefBrowserHost> host = m_pInternal->GetBrowser()->GetHost();
 	host->SetZoomLevel(dZoomLevel);
 	host->WasResized();
-
-	UIScaleDebugLog("UpdateUIScalePercentage: type=" + std::to_string((int)GetType()) +
-		" size=" + std::to_string(GetWidgetImpl()->cef_width) + "x" + std::to_string(GetWidgetImpl()->cef_height) +
-		" raw=" + std::to_string(dRawPercentage) +
-		" percentage=" + std::to_string(dPercentage) +
-		" factor=" + std::to_string(dFactor) + " zoomLevel=" + std::to_string(dZoomLevel));
 
 	// SetZoomLevel scales DOM/CSS layout uniformly, but the document/page
 	// canvas (the actual Word/Excel content) is a <canvas> element whose
