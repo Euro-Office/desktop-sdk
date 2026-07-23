@@ -8186,12 +8186,18 @@ double CCefView::GetDeviceScale()
 // to a fixed path regardless of CEF's own logging config (the app is
 // normally launched with --log-severity=disable, which would silently drop
 // LOG(INFO)-style messages). Remove once the fix is confirmed working.
+#include <chrono>
 static void UIScaleDebugLog(const std::string& sMsg)
 {
 	FILE* f = fopen("/tmp/uiscale_debug.log", "a");
 	if (!f)
 		return;
-	fprintf(f, "%s\n", sMsg.c_str());
+	// Millisecond epoch timestamp, matching the format used in
+	// desktop-apps' native-widget debug log, so the two can be
+	// correlated by time during startup-race investigation.
+	long long nMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::system_clock::now().time_since_epoch()).count();
+	fprintf(f, "[%lld] %s\n", nMs, sMsg.c_str());
 	fclose(f);
 }
 
