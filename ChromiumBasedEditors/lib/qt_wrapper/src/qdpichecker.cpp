@@ -176,24 +176,6 @@ int QDpiChecker::GetWidgetDpi(QWidget* w, unsigned int* dx, unsigned int* dy)
 		*dy = 96;
 		return 0;
 	}
-
-#if defined(_LINUX) && !defined(_MAC)
-	// On Wayland, QScreen::devicePixelRatio() (queried below via
-	// GetMonitorDpi()) appears to stay pinned to the initial integer-
-	// rounded buffer scale and never receive the fractional-scale
-	// correction that QWidget::devicePixelRatio() does (confirmed
-	// correct/self-correcting for CEF's UI scale, which reads the
-	// widget-level value) -- use the widget's own value directly here
-	// instead of going through the screen-level lookup.
-	if (QGuiApplication::platformName() == QLatin1String("wayland"))
-	{
-		int _wayland_dpi = (int)(96.0 * w->devicePixelRatio() + 0.5);
-		*dx = _wayland_dpi;
-		*dy = _wayland_dpi;
-		return 0;
-	}
-#endif
-
 	int nScreenNumber = QApplication::screens().indexOf(w->screen());
 	return GetMonitorDpi(nScreenNumber, dx, dy);
 }
