@@ -176,6 +176,20 @@ int QDpiChecker::GetWidgetDpi(QWidget* w, unsigned int* dx, unsigned int* dy)
 		*dy = 96;
 		return 0;
 	}
+
+	// On Wayland, the compositor's fractional-scale answer for a widget's own
+	// surface can arrive after QScreen::devicePixelRatio() was last queried,
+	// leaving the screen-level value stuck at the rounded integer while
+	// w->devicePixelRatio() has already self-corrected to the fractional
+	// value. Read the widget's own ratio directly in that case.
+	if (QGuiApplication::platformName() == QLatin1String("wayland"))
+	{
+		double dRatio = w->devicePixelRatio();
+		*dx = (unsigned int)(96.0 * dRatio + 0.5);
+		*dy = *dx;
+		return 0;
+	}
+
 	int nScreenNumber = QApplication::screens().indexOf(w->screen());
 	return GetMonitorDpi(nScreenNumber, dx, dy);
 }
