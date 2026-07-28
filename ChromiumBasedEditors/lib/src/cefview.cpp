@@ -8184,6 +8184,8 @@ double CCefView::GetDeviceScale()
 
 void CCefView::UpdateUIScalePercentage()
 {
+#if defined(_LINUX) && !defined(_MAC)
+
 	if (!GetWidgetImpl())
 		return;
 	if (!m_pInternal->GetBrowser() || !m_pInternal->GetBrowser()->GetHost())
@@ -8300,6 +8302,7 @@ void CCefView::UpdateUIScalePercentage()
 		if (frame)
 			frame->ExecuteJavaScript(sCode, frame->GetURL(), 0);
 	}
+#endif
 }
 
 int CCefView::GetPrintPageOrientation(const int& nPage)
