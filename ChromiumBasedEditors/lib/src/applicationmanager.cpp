@@ -38,12 +38,18 @@
 CApplicationCEF* CLinuxData::app_cef = NULL;
 CAscApplicationManager* CLinuxData::app_manager = NULL;
 
-void posix_death_signal(int signum)
+void posix_crash_signal(int signum)
+{
+	signal(signum, SIG_DFL);
+	raise(signum);
+}
+
+gboolean posix_term_signal(gpointer user_data)
 {
 	// release all subprocesses
 	CLinuxData::Close();
-	signal(signum, SIG_DFL);
 	exit(3);
+	return G_SOURCE_REMOVE;
 }
 
 #if !defined(_MAC) && !defined(CEF_VERSION_107)

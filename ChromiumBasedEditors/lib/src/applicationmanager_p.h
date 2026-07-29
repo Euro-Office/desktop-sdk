@@ -85,7 +85,19 @@ do {                                                             \
 #ifdef LINUX
 #include "signal.h"
 #include <unistd.h>
-void posix_death_signal(int signum);
+#include <glib-unix.h>
+
+// Real signal-handler context: SIGSEGV only. Must stay async-signal-safe,
+// so no app-level cleanup and no exit() here -- the heap/Qt/CEF state is
+// already suspect after a segfault. Just restore the default handler and
+// re-raise so the OS produces a normal, debuggable core dump.
+void posix_crash_signal(int signum);
+
+// GLib main-context callback for SIGTERM, invoked via g_unix_signal_add's
+// own self-pipe plumbing rather than directly from signal-handler context.
+// Safe to run CloseApplication()/exit() here, unlike inside an actual
+// signal handler -- see posix_crash_signal for why that distinction matters.
+gboolean posix_term_signal(gpointer user_data);
 
 class CLinuxData
 {
@@ -99,8 +111,8 @@ public:
 		if (NULL == app_manager)
 		{
 			app_manager = manager;
-			signal(SIGSEGV, posix_death_signal);
-			signal(SIGTERM, posix_death_signal);
+			signal(SIGSEGV, posix_crash_signal);
+			g_unix_signal_add(SIGTERM, posix_term_signal, NULL);
 		}
 	}
 	static void Close()
