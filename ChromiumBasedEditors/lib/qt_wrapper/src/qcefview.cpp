@@ -604,7 +604,37 @@ double QCefView::GetUIScalePercentage()
 	// keeps tracking the real ratio locally regardless of what we report
 	// to CEF), so use it directly instead.
 	if (m_isWayland)
-		return this->devicePixelRatio() * 100.0;
+	{
+		// Read the ratio from the top-level window, not from this view.
+		// CTabPanel marks the CEF view WA_NativeWindow +
+		// WA_DontCreateNativeAncestors, so on Wayland it owns a separate
+		// child wl_surface; Qt commonly reports devicePixelRatio() == 1.0
+		// for such a surface even while the window it lives in carries the
+		// real compositor scale. A 1.0 reading here lands in
+		// UpdateUIScalePercentage()'s (dFactor > 1.1) dead zone, so the
+		// page zoom stays neutral and the document canvas is told a 1.0
+		// pixel ratio -- the editor then renders completely unscaled while
+		// the native chrome around it scales normally. Same widget-vs-
+		// container split already handled in QDpiChecker::GetWidgetDpi().
+		QWidget * pRef = this->window();
+		double dRatio = (pRef ? pRef : this)->devicePixelRatio();
+
+		// TEMPORARY diagnostic: confirm which surface reports what, in the
+		// same log the chrome scaling writes to. To be removed with the
+		// chrome-side logging.
+		if (FILE * pLog = fopen("/tmp/euro_office_scaling_debug.log", "a"))
+		{
+			fprintf(pLog,
+				"[%lld] phase=cefUIScale viewDPR=%.4f windowDPR=%.4f chosen=%.4f pct=%.1f\n",
+				(long long)QDateTime::currentMSecsSinceEpoch(),
+				this->devicePixelRatio(),
+				pRef ? pRef->devicePixelRatio() : -1.0,
+				dRatio, dRatio * 100.0);
+			fclose(pLog);
+		}
+
+		return dRatio * 100.0;
+	}
 
 	// xcb: devicePixelRatio() still reflects Xft.dpi here despite
 	// AA_Use96Dpi and the HiDPI env overrides, but window/CEF-surface
