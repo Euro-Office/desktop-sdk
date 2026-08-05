@@ -1949,12 +1949,23 @@ public:
 	// window to set the OS cursor for us, so bridge the requested shape to
 	// the platform widget ourselves. Returning true tells CEF the app has
 	// handled it, so it will not try (and fail) to set a cursor itself.
+	//
+	// In windowed mode (X11/xcb, Windows) CEF owns a real native child
+	// window and sets the OS cursor on it directly when this returns
+	// false -- that's the only window actually under the pointer, so a
+	// setCursor() call on the Qt QCefView ancestor here has no visible
+	// effect. This handler used to intercept and return true
+	// unconditionally on every platform, which told CEF's windowed mode
+	// to skip its own cursor-setting everywhere, freezing the cursor at
+	// its default arrow across all windowed platforms: no I-beam over
+	// text, no resize handles, no row/column select arrows, no move
+	// cursor -- anywhere in the editor content.
 	virtual bool OnCursorChange(CefRefPtr<CefBrowser> browser,
 								CefCursorHandle cursor,
 								cef_cursor_type_t type,
 								const CefCursorInfo& custom_cursor_info) OVERRIDE
 	{
-		if (m_pParent && m_pParent->GetWidgetImpl()) {
+		if (m_pParent && m_pParent->GetWidgetImpl() && m_pParent->GetWidgetImpl()->IsWayland()) {
 			// A CSS `cursor: url(...)` value (used throughout sdkjs for
 			// things like the spreadsheet's column/row resize-divider hover
 			// cursor, table-select cursors, etc, registered via
