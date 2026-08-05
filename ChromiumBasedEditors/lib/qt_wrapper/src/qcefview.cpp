@@ -631,26 +631,11 @@ double QCefView::GetUIScalePercentage()
 		if (m_uiScaleSettleClock.isValid() && m_uiScaleSettleClock.elapsed() < kUIScaleSettleMs)
 			return -1.0;
 
-		double dRatio = this->devicePixelRatio();
-
-		// TEMPORARY diagnostic: the view's own ratio was measured to track
-		// the window's exactly (both 2.0 during the startup round-trip,
-		// both 1.25 after), so reading from window() instead makes no
-		// difference and the view is not the source of any scale error.
-		// Kept logging both until the chrome-side scaling work is done.
-		if (FILE * pLog = fopen("/tmp/euro_office_scaling_debug.log", "a"))
-		{
-			QWidget * pWin = this->window();
-			fprintf(pLog,
-				"[%lld] phase=cefUIScale viewDPR=%.4f windowDPR=%.4f chosen=%.4f pct=%.1f\n",
-				(long long)QDateTime::currentMSecsSinceEpoch(),
-				this->devicePixelRatio(),
-				pWin ? pWin->devicePixelRatio() : -1.0,
-				dRatio, dRatio * 100.0);
-			fclose(pLog);
-		}
-
-		return dRatio * 100.0;
+		// Read from the view itself: measured against window() during the
+		// investigation, the two track each other exactly (both 2.0 during
+		// the startup round-trip, both 1.25 after), so the view is never
+		// the source of a scale error and needs no indirection.
+		return this->devicePixelRatio() * 100.0;
 	}
 
 	// xcb: devicePixelRatio() still reflects Xft.dpi here despite
