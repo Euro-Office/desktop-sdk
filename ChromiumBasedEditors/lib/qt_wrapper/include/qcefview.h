@@ -37,6 +37,7 @@
 #include <QGuiApplication>
 #include <QScreen>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
@@ -204,6 +205,15 @@ protected:
 	// -- poll and re-inject every tick instead; UpdateUIScalePercentage()
 	// itself debounces against transient devicePixelRatio() misreads.
 	QTimer* m_pUIScalePollTimer = nullptr;
+
+	// Wayland only. A freshly created surface reports the compositor's
+	// rounded integer scale (2.0 for a real 1.25 output) until the
+	// fractional-scale protocol answers, ~90ms in. Applying a zoom derived
+	// from that first reading makes the editor visibly jump 200% -> 125%
+	// once it corrects. Started when the view is constructed; scale reads
+	// are withheld until it passes, by which point the page is normally
+	// still loading, so the correct zoom is the first one ever applied.
+	QElapsedTimer m_uiScaleSettleClock;
 
 Q_SIGNALS:
 	void closeWidget(QCloseEvent *);

@@ -57,6 +57,11 @@ public:
 
 QList<QCefView*> QCefView::s_waylandViews;
 
+// How long a freshly created Wayland surface may still be reporting the
+// compositor's rounded integer scale instead of the real fractional one
+// (measured: 2.0 for ~90ms on a 1.25 output). See m_uiScaleSettleClock.
+static const qint64 kUIScaleSettleMs = 250;
+
 QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 {
 	m_pCefView = NULL;
@@ -70,6 +75,17 @@ QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 	QObject::connect(this, SIGNAL( _closed() ) , this, SLOT( _closedSlot() ), Qt::QueuedConnection );
 	if (m_isWayland) {
 		s_waylandViews.append(this);
+		// See m_uiScaleSettleClock: withhold the UI scale until the
+		// compositor has had time to answer with the real fractional
+		// scale, so the first zoom applied is already the correct one.
+		m_uiScaleSettleClock.start();
+		// Apply as soon as that window closes rather than waiting for
+		// whichever load/poll event happens to come next -- the poll timer
+		// is 1s, long enough for the page to have painted unscaled first.
+		QTimer::singleShot(kUIScaleSettleMs + 10, this, [this]() {
+			if (m_pCefView)
+				m_pCefView->UpdateUIScalePercentage();
+		});
 	}
 
 	if (IsSupportLayers())
@@ -605,6 +621,16 @@ double QCefView::GetUIScalePercentage()
 	// to CEF), so use it directly instead.
 	if (m_isWayland)
 	{
+		// A surface younger than this is still liable to be reporting the
+		// compositor's rounded integer scale rather than the real
+		// fractional one (measured: 2.0 for ~90ms on a 1.25 output, then
+		// corrected). Report "not yet known" rather than a value that will
+		// have to be revised, so no zoom is applied off the wrong reading.
+		// The 1s poll timer re-reads regardless, so a compositor slower
+		// than this simply corrects on the next tick as it does today.
+		if (m_uiScaleSettleClock.isValid() && m_uiScaleSettleClock.elapsed() < kUIScaleSettleMs)
+			return -1.0;
+
 		double dRatio = this->devicePixelRatio();
 
 		// TEMPORARY diagnostic: the view's own ratio was measured to track
