@@ -634,7 +634,10 @@ double QCefView::GetUIScalePercentage()
 		// Read from the view itself: measured against window() during the
 		// investigation, the two track each other exactly (both 2.0 during
 		// the startup round-trip, both 1.25 after), so the view is never
-		// the source of a scale error and needs no indirection.
+		// the source of a scale error and needs no indirection. Also
+		// measured correct immediately across monitor crossings with
+		// differing scales -- devicePixelRatio() reflects the new output
+		// before window()->screen() even catches up to it.
 		return this->devicePixelRatio() * 100.0;
 	}
 

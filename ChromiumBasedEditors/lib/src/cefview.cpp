@@ -8204,30 +8204,19 @@ void CCefView::UpdateUIScalePercentage()
 
 	// This is called from three independent triggers (QCefView's poll
 	// timer, moveEvent(), and this OnLoadEnd() firing once per frame
-	// including nested iframes), any of which can catch devicePixelRatio()
-	// transiently misreporting during startup window placement. Only
-	// trust a reading once it's seen on two consecutive calls (from any
-	// trigger); otherwise keep using the last confirmed value so a single
-	// bad read doesn't flash the zoom. The per-frame JS injection below
-	// still runs on every call regardless -- each frame needs it
-	// independent of whether the scale itself just changed.
-	double dPercentage;
-	if (m_dLastKnownUIScalePercentage >= 0 && dRawPercentage == m_dLastKnownUIScalePercentage)
-	{
-		m_dPendingUIScalePercentage = -1.0;
-		dPercentage = m_dLastKnownUIScalePercentage;
-	}
-	else if (dRawPercentage == m_dPendingUIScalePercentage)
-	{
-		m_dPendingUIScalePercentage = -1.0;
-		m_dLastKnownUIScalePercentage = dRawPercentage;
-		dPercentage = dRawPercentage;
-	}
-	else
-	{
-		m_dPendingUIScalePercentage = dRawPercentage;
-		dPercentage = (m_dLastKnownUIScalePercentage >= 0) ? m_dLastKnownUIScalePercentage : dRawPercentage;
-	}
+	// including nested iframes). A two-consecutive-reads debounce used to
+	// sit here to guard against devicePixelRatio() transiently
+	// misreporting during startup window placement -- but that race is
+	// already fully handled above: GetUIScalePercentage() withholds a
+	// value entirely (returns negative) while the surface is too young to
+	// trust, via its own settle window. Once it does return a value, it
+	// has been measured correct immediately, including across monitor
+	// crossings with differing scales (Wayland reports the new
+	// devicePixelRatio() before QWidget::screen() even reflects the new
+	// output). The debounce was therefore only adding a two-call delay to
+	// every legitimate scale change, which is what read as a visible
+	// double-rescale on any monitor-to-monitor move -- apply directly.
+	double dPercentage = dRawPercentage;
 
 	double dFactor = dPercentage / 100.0;
 

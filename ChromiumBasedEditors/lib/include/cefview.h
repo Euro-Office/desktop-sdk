@@ -195,16 +195,6 @@ public:
 	// effect on an iframe's own styles.
 	void UpdateUIScalePercentage();
 
-	// UpdateUIScalePercentage() is called from three independent triggers
-	// (QCefView's poll timer, moveEvent(), and OnLoadEnd() firing once per
-	// frame including nested iframes) which can each read a transiently
-	// misreported scale during startup window placement. Only commit a
-	// reading once it's seen on two consecutive calls, regardless of which
-	// trigger made them, so a single bad read just becomes pending and
-	// gets overwritten instead of applied.
-	double m_dPendingUIScalePercentage = -1.0;
-	double m_dLastKnownUIScalePercentage = -1.0;
-
 	int GetPrintPageOrientation(const int& nPage);
 
 	bool IsDestroy();
