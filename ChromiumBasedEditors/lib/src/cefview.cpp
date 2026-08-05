@@ -8193,6 +8193,15 @@ void CCefView::UpdateUIScalePercentage()
 
 	double dRawPercentage = GetWidgetImpl()->GetUIScalePercentage();
 
+	// Negative means the platform layer cannot yet report a trustworthy
+	// scale (Wayland: the compositor has not answered with the real
+	// fractional scale, so the surface is still reporting a rounded
+	// default). Applying a zoom now would only have to be revised, which
+	// is exactly the visible jump this avoids -- skip entirely, including
+	// the per-frame injection below, and wait to be called again.
+	if (dRawPercentage < 0)
+		return;
+
 	// This is called from three independent triggers (QCefView's poll
 	// timer, moveEvent(), and this OnLoadEnd() firing once per frame
 	// including nested iframes), any of which can catch devicePixelRatio()
