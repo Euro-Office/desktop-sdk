@@ -24,6 +24,7 @@
  */
 
 #include "include/cef_browser.h"
+#include "include/cef_devtools_message_observer.h"
 #include "include/base/cef_bind.h"
 #include "include/base/cef_callback.h"
 #include "include/wrapper/cef_closure_task.h"
@@ -1211,6 +1212,14 @@ public:
 
 	CefRefPtr<CefBrowser> GetBrowser() const;
 
+	// Gateway in-process CDP bridge (see CCefView::SendGatewayDevToolsMessage in
+	// cefview.h). Pending callbacks keyed by the DevTools message id they were sent
+	// with; the observer registration is created lazily on first use and released
+	// when this view is destroyed.
+	std::map<int, std::function<void(bool, const std::string&)>> m_mapGatewayDevToolsCallbacks;
+	CefRefPtr<CefRegistration> m_oGatewayDevToolsRegistration;
+	void EnsureGatewayDevToolsObserver();
+
 	void CheckLockLocalFile()
 	{
 		if (!m_oLocalInfo.m_oInfo.m_bIsSaved)
@@ -1949,12 +1958,23 @@ public:
 	// window to set the OS cursor for us, so bridge the requested shape to
 	// the platform widget ourselves. Returning true tells CEF the app has
 	// handled it, so it will not try (and fail) to set a cursor itself.
+	//
+	// In windowed mode (X11/xcb, Windows) CEF owns a real native child
+	// window and sets the OS cursor on it directly when this returns
+	// false -- that's the only window actually under the pointer, so a
+	// setCursor() call on the Qt QCefView ancestor here has no visible
+	// effect. This handler used to intercept and return true
+	// unconditionally on every platform, which told CEF's windowed mode
+	// to skip its own cursor-setting everywhere, freezing the cursor at
+	// its default arrow across all windowed platforms: no I-beam over
+	// text, no resize handles, no row/column select arrows, no move
+	// cursor -- anywhere in the editor content.
 	virtual bool OnCursorChange(CefRefPtr<CefBrowser> browser,
 								CefCursorHandle cursor,
 								cef_cursor_type_t type,
 								const CefCursorInfo& custom_cursor_info) OVERRIDE
 	{
-		if (m_pParent && m_pParent->GetWidgetImpl()) {
+		if (m_pParent && m_pParent->GetWidgetImpl() && m_pParent->GetWidgetImpl()->IsWayland()) {
 			// A CSS `cursor: url(...)` value (used throughout sdkjs for
 			// things like the spreadsheet's column/row resize-divider hover
 			// cursor, table-select cursors, etc, registered via
@@ -6065,6 +6085,97 @@ CefRefPtr<CefBrowser> CCefView_Private::GetBrowser() const
 		return nullptr;
 	return m_handler->GetBrowser();
 }
+
+// Gateway in-process CDP bridge. Routes DevTools protocol responses back to whichever
+// pending callback matches the "id" CefBrowserHost::ExecuteDevToolsMethod/
+// SendDevToolsMessage was called with. One observer per CCefView_Private, registered
+// lazily -- see CCefView::SendGatewayDevToolsMessage (cefview.h) and
+// cdp-gateway-cli-plan.md for why this replaced an earlier external-CDP-port design.
+class CGatewayDevToolsObserver : public CefDevToolsMessageObserver
+{
+public:
+	explicit CGatewayDevToolsObserver(CCefView_Private* pView) : m_pView(pView) {}
+
+	bool OnDevToolsMessage(CefRefPtr<CefBrowser> browser, const void* message, size_t message_size) override
+	{
+		// Parse only far enough to read "id" -- the full message is handed back to
+		// the caller verbatim as JSON text, so GatewayCommandRunner (desktop-apps)
+		// parses the rest itself with the same QJsonDocument code path it already
+		// uses for validation/scope handling. Keeps CEF's own JSON value types out
+		// of the desktop-apps-facing boundary entirely.
+		const std::string sMessage(static_cast<const char*>(message), message_size);
+
+		CefRefPtr<CefValue> oValue = CefParseJSON(sMessage.c_str(), JSON_PARSER_RFC);
+		if (!oValue || oValue->GetType() != VTYPE_DICTIONARY)
+			return false;
+		CefRefPtr<CefDictionaryValue> oDict = oValue->GetDictionary();
+		if (!oDict || !oDict->HasKey("id"))
+			return false; // an event notification, not a method result -- not ours to handle
+
+		const int nId = oDict->GetInt("id");
+		if (!m_pView)
+			return false;
+
+		auto it = m_pView->m_mapGatewayDevToolsCallbacks.find(nId);
+		if (it == m_pView->m_mapGatewayDevToolsCallbacks.end())
+			return false; // not a message this bridge sent (e.g. from another DevTools session)
+
+		auto callback = std::move(it->second);
+		m_pView->m_mapGatewayDevToolsCallbacks.erase(it);
+		callback(true, sMessage);
+		return true;
+	}
+
+	IMPLEMENT_REFCOUNTING(CGatewayDevToolsObserver);
+
+private:
+	CCefView_Private* m_pView;
+};
+
+void CCefView_Private::EnsureGatewayDevToolsObserver()
+{
+	if (m_oGatewayDevToolsRegistration)
+		return;
+
+	CefRefPtr<CefBrowser> pBrowser = GetBrowser();
+	if (!pBrowser || !pBrowser->GetHost())
+		return;
+
+	m_oGatewayDevToolsRegistration = pBrowser->GetHost()->AddDevToolsMessageObserver(new CGatewayDevToolsObserver(this));
+}
+
+void CCefView::SendGatewayDevToolsMessage(const std::string& jsonMessage, int messageId,
+                                           std::function<void(bool ok, const std::string& jsonResponseOrError)> callback)
+{
+	if (!m_pInternal)
+	{
+		callback(false, "view is being destroyed");
+		return;
+	}
+
+	CefRefPtr<CefBrowser> pBrowser = m_pInternal->GetBrowser();
+	if (!pBrowser || !pBrowser->GetHost())
+	{
+		callback(false, "browser not available for this view");
+		return;
+	}
+
+	m_pInternal->EnsureGatewayDevToolsObserver();
+	m_pInternal->m_mapGatewayDevToolsCallbacks[messageId] = std::move(callback);
+
+	const bool bSubmitted = pBrowser->GetHost()->SendDevToolsMessage(jsonMessage.data(), jsonMessage.size());
+	if (!bSubmitted)
+	{
+		auto it = m_pInternal->m_mapGatewayDevToolsCallbacks.find(messageId);
+		if (it != m_pInternal->m_mapGatewayDevToolsCallbacks.end())
+		{
+			auto failedCallback = std::move(it->second);
+			m_pInternal->m_mapGatewayDevToolsCallbacks.erase(it);
+			failedCallback(false, "SendDevToolsMessage submission failed (not on UI thread, or malformed message)");
+		}
+	}
+}
+
 void CCefView_Private::LocalFile_End()
 {
 	if (!m_oConverterToEditor.m_sName.empty())

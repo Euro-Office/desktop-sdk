@@ -29,6 +29,8 @@
 #include "./base.h"
 #include "./applicationmanager_events.h"
 
+#include <functional>
+
 enum CefViewWrapperType
 {
 	cvwtSimple      = 0,
@@ -209,6 +211,20 @@ public:
 	void SendMouseMoveEvent(int x, int y, bool mouseLeave, int modifiers);
 	void SendMouseWheelEvent(int x, int y, int deltaX, int deltaY, int modifiers);
 	void SendKeyEvent(int type, int key, int modifiers, const std::wstring& character);
+
+	// In-process CDP bridge for the gateway (see cdp-gateway-cli-plan.md in the
+	// Euro-Office_DesktopEditors superproject). `jsonMessage` must already be a
+	// complete UTF8-encoded DevTools Protocol request ("id","method","params"), built
+	// by the caller -- this method does no JSON construction of its own, matching
+	// CefBrowserHost::SendDevToolsMessage's own contract. `messageId` must match the
+	// "id" embedded in `jsonMessage`; it's passed separately only because that's the
+	// key the response is correlated back by. `callback` fires exactly once, on the
+	// browser process UI thread, with the matching raw JSON response (or ok=false and
+	// an error string if the browser/view no longer exists). No CEF types appear in
+	// this signature, keeping CCefView's public surface CEF-detail-free like the rest
+	// of this class already is.
+	void SendGatewayDevToolsMessage(const std::string& jsonMessage, int messageId,
+	                                 std::function<void(bool ok, const std::string& jsonResponseOrError)> callback);
 
 protected:
 	int m_nId;
