@@ -24,6 +24,7 @@
  */
 
 #include "include/cef_browser.h"
+#include "include/cef_devtools_message_observer.h"
 #include "include/base/cef_bind.h"
 #include "include/base/cef_callback.h"
 #include "include/wrapper/cef_closure_task.h"
@@ -1209,6 +1210,14 @@ public:
 	void CloseBrowser(bool _force_close);
 
 	CefRefPtr<CefBrowser> GetBrowser() const;
+
+	// Gateway in-process CDP bridge (see CCefView::SendGatewayDevToolsMessage in
+	// cefview.h). Pending callbacks keyed by the DevTools message id they were sent
+	// with; the observer registration is created lazily on first use and released
+	// when this view is destroyed.
+	std::map<int, std::function<void(bool, const std::string&)>> m_mapGatewayDevToolsCallbacks;
+	CefRefPtr<CefRegistration> m_oGatewayDevToolsRegistration;
+	void EnsureGatewayDevToolsObserver();
 
 	void CheckLockLocalFile()
 	{
@@ -5945,6 +5954,97 @@ CefRefPtr<CefBrowser> CCefView_Private::GetBrowser() const
 		return nullptr;
 	return m_handler->GetBrowser();
 }
+
+// Gateway in-process CDP bridge. Routes DevTools protocol responses back to whichever
+// pending callback matches the "id" CefBrowserHost::ExecuteDevToolsMethod/
+// SendDevToolsMessage was called with. One observer per CCefView_Private, registered
+// lazily -- see CCefView::SendGatewayDevToolsMessage (cefview.h) and
+// cdp-gateway-cli-plan.md for why this replaced an earlier external-CDP-port design.
+class CGatewayDevToolsObserver : public CefDevToolsMessageObserver
+{
+public:
+	explicit CGatewayDevToolsObserver(CCefView_Private* pView) : m_pView(pView) {}
+
+	bool OnDevToolsMessage(CefRefPtr<CefBrowser> browser, const void* message, size_t message_size) override
+	{
+		// Parse only far enough to read "id" -- the full message is handed back to
+		// the caller verbatim as JSON text, so GatewayCommandRunner (desktop-apps)
+		// parses the rest itself with the same QJsonDocument code path it already
+		// uses for validation/scope handling. Keeps CEF's own JSON value types out
+		// of the desktop-apps-facing boundary entirely.
+		const std::string sMessage(static_cast<const char*>(message), message_size);
+
+		CefRefPtr<CefValue> oValue = CefParseJSON(sMessage.c_str(), JSON_PARSER_RFC);
+		if (!oValue || oValue->GetType() != VTYPE_DICTIONARY)
+			return false;
+		CefRefPtr<CefDictionaryValue> oDict = oValue->GetDictionary();
+		if (!oDict || !oDict->HasKey("id"))
+			return false; // an event notification, not a method result -- not ours to handle
+
+		const int nId = oDict->GetInt("id");
+		if (!m_pView)
+			return false;
+
+		auto it = m_pView->m_mapGatewayDevToolsCallbacks.find(nId);
+		if (it == m_pView->m_mapGatewayDevToolsCallbacks.end())
+			return false; // not a message this bridge sent (e.g. from another DevTools session)
+
+		auto callback = std::move(it->second);
+		m_pView->m_mapGatewayDevToolsCallbacks.erase(it);
+		callback(true, sMessage);
+		return true;
+	}
+
+	IMPLEMENT_REFCOUNTING(CGatewayDevToolsObserver);
+
+private:
+	CCefView_Private* m_pView;
+};
+
+void CCefView_Private::EnsureGatewayDevToolsObserver()
+{
+	if (m_oGatewayDevToolsRegistration)
+		return;
+
+	CefRefPtr<CefBrowser> pBrowser = GetBrowser();
+	if (!pBrowser || !pBrowser->GetHost())
+		return;
+
+	m_oGatewayDevToolsRegistration = pBrowser->GetHost()->AddDevToolsMessageObserver(new CGatewayDevToolsObserver(this));
+}
+
+void CCefView::SendGatewayDevToolsMessage(const std::string& jsonMessage, int messageId,
+                                           std::function<void(bool ok, const std::string& jsonResponseOrError)> callback)
+{
+	if (!m_pInternal)
+	{
+		callback(false, "view is being destroyed");
+		return;
+	}
+
+	CefRefPtr<CefBrowser> pBrowser = m_pInternal->GetBrowser();
+	if (!pBrowser || !pBrowser->GetHost())
+	{
+		callback(false, "browser not available for this view");
+		return;
+	}
+
+	m_pInternal->EnsureGatewayDevToolsObserver();
+	m_pInternal->m_mapGatewayDevToolsCallbacks[messageId] = std::move(callback);
+
+	const bool bSubmitted = pBrowser->GetHost()->SendDevToolsMessage(jsonMessage.data(), jsonMessage.size());
+	if (!bSubmitted)
+	{
+		auto it = m_pInternal->m_mapGatewayDevToolsCallbacks.find(messageId);
+		if (it != m_pInternal->m_mapGatewayDevToolsCallbacks.end())
+		{
+			auto failedCallback = std::move(it->second);
+			m_pInternal->m_mapGatewayDevToolsCallbacks.erase(it);
+			failedCallback(false, "SendDevToolsMessage submission failed (not on UI thread, or malformed message)");
+		}
+	}
+}
+
 void CCefView_Private::LocalFile_End()
 {
 	if (!m_oConverterToEditor.m_sName.empty())
