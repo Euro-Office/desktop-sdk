@@ -43,6 +43,9 @@
 #include <QDateTime>
 #include <QPixmap>
 #include <QCursor>
+#include <QUrl>
+#include <QFileInfo>
+#include <QImageReader>
 
 class QCefViewProps
 {
@@ -744,6 +747,36 @@ std::wstring QCefView::GetClipboardData()
 			buffer.open(QIODevice::WriteOnly);
 			img.save(&buffer, "PNG");
 			obj["image/png"] = QString::fromUtf8(png.toBase64());
+		}
+	}
+
+	// A file manager's "Copy" puts the file's path(s) on the clipboard as
+	// URLs (Qt normalizes text/uri-list, CF_HDROP, etc into this one
+	// portable API), not raw pixel data -- hasImage() above only catches
+	// clipboard content that already IS a bitmap (e.g. a screenshot tool's
+	// "copy image"). Without this, copying an image file in the file
+	// manager and pasting it into a document silently did nothing: no
+	// recognized format ever reached the JS side, so NativePaste() in
+	// clipboard_base.js fell through with no match. Pasting a non-image
+	// file remains a no-op, same as in every other document editor.
+	if (!obj.contains("image/png") && pMime->hasUrls())
+	{
+		const QList<QUrl> urls = pMime->urls();
+		if (urls.size() == 1 && urls.first().isLocalFile())
+		{
+			QImageReader reader(urls.first().toLocalFile());
+			if (reader.canRead())
+			{
+				QImage img = reader.read();
+				if (!img.isNull())
+				{
+					QByteArray png;
+					QBuffer buffer(&png);
+					buffer.open(QIODevice::WriteOnly);
+					img.save(&buffer, "PNG");
+					obj["image/png"] = QString::fromUtf8(png.toBase64());
+				}
+			}
 		}
 	}
 

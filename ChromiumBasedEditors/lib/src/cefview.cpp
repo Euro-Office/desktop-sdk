@@ -933,6 +933,14 @@ public:
 	// нужно ли при move/resize проверять deviceScale
 	bool m_bIsWindowsCheckZoom;
 
+	// Last UI-scale factor actually applied via SetZoomLevel/WasResized in
+	// UpdateUIScalePercentage(). -1 means "never applied yet". Lets that
+	// function skip re-applying an unchanged zoom on every poll-timer tick
+	// (it fires every 1s regardless of whether the scale moved) without
+	// skipping the per-frame JS (re-)injection below it, which a freshly
+	// loaded frame still needs even when the scale itself hasn't changed.
+	double m_dLastAppliedUIScalePercentage;
+
 	// настройки для репортера
 	bool m_bIsReporter; // репортер
 	int m_nReporterParentId; // репортер
@@ -1081,6 +1089,7 @@ public:
 
 		m_dDeviceScale = 1.0;
 		m_bIsWindowsCheckZoom = false;
+		m_dLastAppliedUIScalePercentage = -1.0;
 
 		m_bIsReporter = false;
 		m_nReporterParentId = -1;
@@ -2068,6 +2077,17 @@ public:
 		if (m_bClipboardHandlerRegistered || !message_router_)
 			return;
 		m_bClipboardHandlerRegistered = true;
+
+		// The native clipboard bridge exists solely to work around CEF's own
+		// OS clipboard integration being unusable in Wayland OSR mode (see
+		// CClipboardQueryHandler's own comment). In windowed mode (X11,
+		// Windows) CEF's native window already owns real clipboard
+		// integration; registering this handler there too meant the bridge
+		// and CEF's own navigator.clipboard.write() raced against each
+		// other on the same OS clipboard, last write wins. Only register it
+		// where it's actually needed.
+		if (!m_pParent || !m_pParent->GetWidgetImpl() || !m_pParent->GetWidgetImpl()->IsWayland())
+			return;
 		message_router_->AddHandler(new CClipboardQueryHandler(m_pParent), false);
 	}
 
@@ -8357,9 +8377,22 @@ void CCefView::UpdateUIScalePercentage()
 	// near-100% scales).
 	double dZoomLevel = (dFactor > 1.1) ? (log(dFactor) / log(1.2)) : 0.0;
 
-	CefRefPtr<CefBrowserHost> host = m_pInternal->GetBrowser()->GetHost();
-	host->SetZoomLevel(dZoomLevel);
-	host->WasResized();
+	// SetZoomLevel/WasResized apply to the whole browser, not a single
+	// frame, and are genuinely idempotent -- skip them when the factor
+	// hasn't moved since the last call, since this function also runs off
+	// a 1s poll timer regardless of whether anything changed. The per-frame
+	// JS injection below must NOT be skipped by the same check: this
+	// function is also the OnLoadEnd() trigger for a newly loaded frame
+	// (including nested iframes), which has never received the
+	// checkDeviceScale monkeypatch even when the global scale itself is
+	// unchanged from the last apply.
+	if (m_pInternal->m_dLastAppliedUIScalePercentage != dPercentage)
+	{
+		CefRefPtr<CefBrowserHost> host = m_pInternal->GetBrowser()->GetHost();
+		host->SetZoomLevel(dZoomLevel);
+		host->WasResized();
+		m_pInternal->m_dLastAppliedUIScalePercentage = dPercentage;
+	}
 
 	// SetZoomLevel scales DOM/CSS layout uniformly, but the document/page
 	// canvas (the actual Word/Excel content) is a <canvas> element whose
@@ -8387,14 +8420,11 @@ void CCefView::UpdateUIScalePercentage()
 				"try {"
 					"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
 						"window.AscCommon.AscBrowser.checkZoom();"
-						"console.log('[UIScale] canvas checkZoom() re-run (try ' + pollTries + '), retinaPixelRatio=' + window.AscCommon.AscBrowser.retinaPixelRatio);"
 						"return;"
 					"}"
 				"} catch(e) { console.error('[UIScale] checkZoom threw: ' + e); }"
 				"if (pollTries < 50) {"
 					"setTimeout(pollFn, 200);"
-				"} else {"
-					"console.log('[UIScale] gave up waiting for AscCommon.AscBrowser after ' + pollTries + ' tries');"
 				"}"
 			"};"
 			"pollFn();"
