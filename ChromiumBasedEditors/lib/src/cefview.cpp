@@ -2068,6 +2068,17 @@ public:
 		if (m_bClipboardHandlerRegistered || !message_router_)
 			return;
 		m_bClipboardHandlerRegistered = true;
+
+		// The native clipboard bridge exists solely to work around CEF's own
+		// OS clipboard integration being unusable in Wayland OSR mode (see
+		// CClipboardQueryHandler's own comment). In windowed mode (X11,
+		// Windows) CEF's native window already owns real clipboard
+		// integration; registering this handler there too meant the bridge
+		// and CEF's own navigator.clipboard.write() raced against each
+		// other on the same OS clipboard, last write wins. Only register it
+		// where it's actually needed.
+		if (!m_pParent || !m_pParent->GetWidgetImpl() || !m_pParent->GetWidgetImpl()->IsWayland())
+			return;
 		message_router_->AddHandler(new CClipboardQueryHandler(m_pParent), false);
 	}
 
