@@ -8320,6 +8320,33 @@ void CCefView::UpdateUIScalePercentage()
 				"try {"
 					"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
 						"window.AscCommon.AscBrowser.checkZoom();"
+						// checkZoom() only updates AscBrowser.retinaPixelRatio/
+						// zoom's internal state; it does not itself repaint
+						// anything at the corrected scale. That only happens
+						// via each editor's own asc_Resize()-equivalent, which
+						// every editor's web-apps Viewport.js already wires to
+						// a genuine window 'resize' DOM event. A real display-
+						// scale change fires that naturally (which is why
+						// toggling it afterward "fixes" the very same
+						// under-scaled startup this call is trying to correct)
+						// -- this poll landing asynchronously after the
+						// document already opened does not, so without this,
+						// retinaPixelRatio silently becomes correct while
+						// nothing ever redraws to match it.
+						//
+						// This whole per-frame injection re-runs on every
+						// UpdateUIScalePercentage() call, including the 1s
+						// poll tick, even when f is unchanged (needed so a
+						// newly loaded frame still gets the monkeypatch --
+						// see the C++ comment above this string). Dispatch
+						// resize only the first time THIS frame sees this
+						// particular f, so a real value change still
+						// corrects it but routine re-polling doesn't spam a
+						// resize/redraw every second forever.
+						"if (window.__ascUiScaleDispatchedFor !== f) {"
+							"window.__ascUiScaleDispatchedFor = f;"
+							"try { window.dispatchEvent(new Event('resize')); } catch(e2) {}"
+						"}"
 						"return;"
 					"}"
 				"} catch(e) { console.error('[UIScale] checkZoom threw: ' + e); }"
