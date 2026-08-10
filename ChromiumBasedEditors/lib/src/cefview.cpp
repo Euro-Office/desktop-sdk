@@ -5065,6 +5065,15 @@ virtual void OnLoadStart(CefRefPtr<CefBrowser> browser,
 	// вот тут уже можно делать зум!!!
 	m_pParent->m_pInternal->m_bIsWindowsCheckZoom = true;
 	m_pParent->m_pInternal->m_dDeviceScale = -1;
+	// CEF's page zoom is per-load: navigating resets it to the default.
+	// UpdateUIScalePercentage() skips re-applying SetZoomLevel when the
+	// percentage matches what it last applied, so without invalidating that
+	// here the zoom would be dropped by the navigation and then never
+	// restored -- the poll would keep seeing an unchanged percentage and
+	// skip forever, leaving the document rendered unscaled until something
+	// actually changed the value (e.g. the user toggling display scale).
+	// Same reason m_dDeviceScale is reset just above.
+	m_pParent->m_pInternal->m_dLastAppliedUIScalePercentage = -1.0;
 	m_bIsDisableResizeOnLoadedOneCall = true;
 	m_pParent->resizeEvent();
 }
