@@ -8320,65 +8320,6 @@ void CCefView::UpdateUIScalePercentage()
 				"try {"
 					"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
 						"window.AscCommon.AscBrowser.checkZoom();"
-						// checkZoom() only updates AscBrowser.retinaPixelRatio/
-						// zoom's internal state; it does not itself repaint
-						// anything at the corrected scale. That only happens
-						// via each editor's own asc_Resize()-equivalent, which
-						// every editor's web-apps Viewport.js already wires to
-						// a genuine window 'resize' DOM event. A real display-
-						// scale change fires that naturally (which is why
-						// toggling it afterward "fixes" the very same
-						// under-scaled startup this call is trying to correct)
-						// -- this poll landing asynchronously after the
-						// document already opened does not, so without this,
-						// retinaPixelRatio silently becomes correct while
-						// nothing ever redraws to match it.
-						//
-						// This whole per-frame injection re-runs on every
-						// UpdateUIScalePercentage() call, including the 1s
-						// poll tick, even when f is unchanged (needed so a
-						// newly loaded frame still gets the monkeypatch --
-						// see the C++ comment above this string). Dispatch
-						// resize only the first time THIS frame sees this
-						// particular f, so a real value change still
-						// corrects it but routine re-polling doesn't spam a
-						// resize/redraw every second forever.
-						"if (window.__ascUiScaleDispatchedFor !== f) {"
-							"window.__ascUiScaleDispatchedFor = f;"
-							// The listener that actually triggers a redraw
-							// ($(window).on('resize', ...) in each editor's
-							// web-apps Viewport.js) lives on the OUTER shell
-							// page's window, a different browsing context
-							// from this (nested-iframe) canvas frame -- a
-							// resize dispatched on this frame's own window
-							// does not propagate to window.top. Target
-							// window.top explicitly.
-							//
-							// A single dispatch this early (typically well
-							// under 1s after launch) can still land before
-							// the outer shell's own UI framework has
-							// finished initializing and attached that
-							// listener -- confirmed: this exact dispatch
-							// fired with no error, yet the document stayed
-							// visibly unscaled until a real, much-later
-							// (user-triggered) resize event, whose only
-							// difference is timing. Burst a few retries
-							// spread over several seconds instead of a
-							// single attempt, so at least one lands after
-							// the outer shell is definitely ready, same as
-							// a real scale change always is by the time a
-							// user can trigger one by hand.
-							"var _dispatchResize = function() {"
-								"try {"
-									"(window.top || window).dispatchEvent(new Event('resize'));"
-									"console.log('[UIScale] dispatched resize on ' + ((window.top && window.top !== window) ? 'window.top' : 'window') + ' for f=' + f);"
-								"} catch(e2) { console.error('[UIScale] resize dispatch threw: ' + e2); }"
-							"};"
-							"_dispatchResize();"
-							"setTimeout(_dispatchResize, 500);"
-							"setTimeout(_dispatchResize, 1500);"
-							"setTimeout(_dispatchResize, 3000);"
-						"}"
 						"return;"
 					"}"
 				"} catch(e) { console.error('[UIScale] checkZoom threw: ' + e); }"
