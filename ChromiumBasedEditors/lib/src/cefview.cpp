@@ -8345,7 +8345,18 @@ void CCefView::UpdateUIScalePercentage()
 						// resize/redraw every second forever.
 						"if (window.__ascUiScaleDispatchedFor !== f) {"
 							"window.__ascUiScaleDispatchedFor = f;"
-							"try { window.dispatchEvent(new Event('resize')); } catch(e2) {}"
+							// The listener that actually triggers a redraw
+							// ($(window).on('resize', ...) in each editor's
+							// web-apps Viewport.js) lives on the OUTER shell
+							// page's window, a different browsing context
+							// from this (nested-iframe) canvas frame -- a
+							// resize dispatched on this frame's own window
+							// does not propagate to window.top. Target
+							// window.top explicitly.
+							"try {"
+								"(window.top || window).dispatchEvent(new Event('resize'));"
+								"console.log('[UIScale] dispatched resize on ' + ((window.top && window.top !== window) ? 'window.top' : 'window') + ' for f=' + f);"
+							"} catch(e2) { console.error('[UIScale] resize dispatch threw: ' + e2); }"
 						"}"
 						"return;"
 					"}"
