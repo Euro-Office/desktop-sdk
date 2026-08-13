@@ -24,8 +24,28 @@
  */
 
 #include "./../include/qcefview.h"
+#include <cstdio>
 #include <QPainter>
 #include <QApplication>
+#include <QAbstractEventDispatcher>
+#include <QCloseEvent>
+#include <QDebug>
+#include <QPointer>
+#include <QWindow>
+#include <QTimer>
+#include <set>
+#include <QInputMethodEvent>
+#include <QClipboard>
+#include <QMimeData>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QBuffer>
+#include <QDateTime>
+#include <QPixmap>
+#include <QCursor>
+#include <QUrl>
+#include <QFileInfo>
+#include <QImageReader>
 
 class QCefViewProps
 {
@@ -38,23 +58,61 @@ public:
 	}
 };
 
+QList<QCefView*> QCefView::s_waylandViews;
+
+// How long a freshly created Wayland surface may still be reporting the
+// compositor's rounded integer scale instead of the real fractional one
+// (measured: 2.0 for ~90ms on a 1.25 output). See m_uiScaleSettleClock.
+static const qint64 kUIScaleSettleMs = 250;
+
 QCefView::QCefView(QWidget* parent, const QSize& initial_size) : QWidget(parent)
 {
 	m_pCefView = NULL;
 	m_pProperties = NULL;
+	m_isWayland = (QGuiApplication::platformName() == "wayland");
 
 	if (!initial_size.isEmpty())
 		resize(initial_size);
 
 	QObject::connect(this, SIGNAL( _loaded() ) , this, SLOT( _loadedSlot() ), Qt::QueuedConnection );
 	QObject::connect(this, SIGNAL( _closed() ) , this, SLOT( _closedSlot() ), Qt::QueuedConnection );
+	if (m_isWayland) {
+		s_waylandViews.append(this);
+		// See m_uiScaleSettleClock: withhold the UI scale until the
+		// compositor has had time to answer with the real fractional
+		// scale, so the first zoom applied is already the correct one.
+		m_uiScaleSettleClock.start();
+		// Apply as soon as that window closes rather than waiting for
+		// whichever load/poll event happens to come next -- the poll timer
+		// is 1s, long enough for the page to have painted unscaled first.
+		QTimer::singleShot(kUIScaleSettleMs + 10, this, [this]() {
+			if (m_pCefView)
+				m_pCefView->UpdateUIScalePercentage();
+		});
+	}
 
 	if (IsSupportLayers())
 		this->installEventFilter(this);
+
+	// See m_pUIScalePollTimer's declaration: no Qt/CEF signal was found
+	// that fires on a pure OS-level display-scale change, so poll for it.
+	// The debounce against transient devicePixelRatio() misreads lives in
+	// CCefView::UpdateUIScalePercentage() itself, since that's the single
+	// choke point moveEvent()/OnLoadEnd() also call into -- no need to
+	// track/compare readings here too.
+	m_pUIScalePollTimer = new QTimer(this);
+	QObject::connect(m_pUIScalePollTimer, &QTimer::timeout, this, [this]() {
+		if (m_pCefView)
+			m_pCefView->UpdateUIScalePercentage();
+	});
+	m_pUIScalePollTimer->start(1000);
 }
 
 QCefView::~QCefView()
 {
+	if (m_isWayland)
+		s_waylandViews.removeAll(this);
+
 	// release from CApplicationManager
 	if (m_pProperties)
 	{
@@ -99,15 +157,327 @@ bool QCefView::setFocusToCef()
 	return isActivate;
 }
 
+static int GetCefModifiers(Qt::KeyboardModifiers qt_mod, Qt::MouseButtons qt_btn) {
+	int modifiers = 0;
+	if (qt_mod & Qt::ShiftModifier) modifiers |= 1 << 1;    // EVENTFLAG_SHIFT_DOWN
+	if (qt_mod & Qt::ControlModifier) modifiers |= 1 << 2;  // EVENTFLAG_CONTROL_DOWN
+	if (qt_mod & Qt::AltModifier) modifiers |= 1 << 3;      // EVENTFLAG_ALT_DOWN
+	if (qt_btn & Qt::LeftButton) modifiers |= 1 << 4;       // EVENTFLAG_LEFT_MOUSE_BUTTON
+	if (qt_btn & Qt::MiddleButton) modifiers |= 1 << 5;     // EVENTFLAG_MIDDLE_MOUSE_BUTTON
+	if (qt_btn & Qt::RightButton) modifiers |= 1 << 6;      // EVENTFLAG_RIGHT_MOUSE_BUTTON
+	return modifiers;
+}
+
+static int QtKeyToWindowsKeyCode(int key) {
+	if (key >= Qt::Key_0 && key <= Qt::Key_9)
+		return key; // 0x30 - 0x39
+	if (key >= Qt::Key_A && key <= Qt::Key_Z)
+		return key; // 0x41 - 0x5a
+
+	switch (key) {
+	case Qt::Key_Backspace: return 0x08;
+	case Qt::Key_Tab:       return 0x09;
+	case Qt::Key_Clear:     return 0x0C;
+	case Qt::Key_Return:    return 0x0D;
+	case Qt::Key_Enter:     return 0x0D;
+	case Qt::Key_Shift:     return 0x10;
+	case Qt::Key_Control:   return 0x11;
+	case Qt::Key_Alt:       return 0x12;
+	case Qt::Key_Pause:     return 0x13;
+	case Qt::Key_CapsLock:  return 0x14;
+	case Qt::Key_Escape:    return 0x1B;
+	case Qt::Key_Space:     return 0x20;
+	case Qt::Key_PageUp:    return 0x21;
+	case Qt::Key_PageDown:  return 0x22;
+	case Qt::Key_End:       return 0x23;
+	case Qt::Key_Home:      return 0x24;
+	case Qt::Key_Left:      return 0x25;
+	case Qt::Key_Up:        return 0x26;
+	case Qt::Key_Right:     return 0x27;
+	case Qt::Key_Down:      return 0x28;
+	case Qt::Key_Select:    return 0x29;
+	case Qt::Key_Print:     return 0x2A;
+	case Qt::Key_Execute:   return 0x2B;
+	case Qt::Key_SysReq:    return 0x2C;
+	case Qt::Key_Insert:    return 0x2D;
+	case Qt::Key_Delete:    return 0x2E;
+	case Qt::Key_Help:      return 0x2F;
+	case Qt::Key_NumLock:   return 0x90;
+	case Qt::Key_ScrollLock: return 0x91;
+	case Qt::Key_Semicolon: return 0xBA;
+	case Qt::Key_Equal:     return 0xBB;
+	case Qt::Key_Plus:      return 0xBB;
+	case Qt::Key_Comma:     return 0xBC;
+	case Qt::Key_Minus:     return 0xBD;
+	case Qt::Key_Period:    return 0xBE;
+	case Qt::Key_Slash:     return 0xBF;
+	case Qt::Key_QuoteLeft: return 0xC0;
+	case Qt::Key_BracketLeft: return 0xDB;
+	case Qt::Key_Backslash: return 0xDC;
+	case Qt::Key_BracketRight: return 0xDD;
+	case Qt::Key_Apostrophe: return 0xDE;
+	default:
+		if (key >= Qt::Key_F1 && key <= Qt::Key_F24)
+			return 0x70 + (key - Qt::Key_F1);
+		break;
+	}
+	return 0;
+}
+
+void QCefView::mousePressEvent(QMouseEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		int button = 1;
+		if (event->button() == Qt::RightButton) button = 2;
+		else if (event->button() == Qt::MiddleButton) button = 3;
+
+		// Qt's Wayland backend delivers an ordinary QMouseEvent::MousePress
+		// for *every* physical click, including the second click of a
+		// double-click -- it does not substitute a MouseButtonDblClick in
+		// its place the way some other platforms' Qt backends do (verified
+		// via diagnostic logging: a plain mousePressEvent fired for the
+		// second click, immediately followed by mouseDoubleClickEvent for
+		// the same click). Native OSR input forwarding bypasses Qt's own
+		// multi-click detection entirely, so replicate it here: track the
+		// time/position of the previous click and increment clickCount
+		// when within Qt's double-click interval and a small pixel radius,
+		// resetting otherwise. This clickCount is forwarded to CEF/Blink,
+		// which trusts it as-is for MouseEvent.detail -- sdkjs's
+		// double-click handling depends on that value being correct.
+		qint64 now = QDateTime::currentMSecsSinceEpoch();
+		QPoint pos = event->pos();
+		const int kClickRadius = 6;
+		if (event->button() == Qt::LeftButton &&
+			m_clickCount > 0 &&
+			(now - m_lastClickTimeMs) <= QApplication::doubleClickInterval() &&
+			(pos - m_lastClickPos).manhattanLength() <= kClickRadius) {
+			m_clickCount = (m_clickCount % 2) + 1; // 1 -> 2, 2 -> 1 (triple click treated as a new single click)
+		} else {
+			m_clickCount = 1;
+		}
+		m_lastClickTimeMs = now;
+		m_lastClickPos = pos;
+
+		// EXPERIMENTAL (dsf-1.0-osr): CEF's view-rect is now reported in
+		// physical pixels (device_scale_factor forced to 1.0), so mouse
+		// coordinates sent to CEF must also be physical pixels. Qt delivers
+		// DIPs here, so scale up by devicePixelRatio() to match.
+		double scale = devicePixelRatio();
+		m_pCefView->SendMouseClickEvent((int)(event->x() * scale), (int)(event->y() * scale), button, false, GetCefModifiers(event->modifiers(), event->buttons()), m_clickCount);
+	}
+	QWidget::mousePressEvent(event);
+}
+
+void QCefView::mouseReleaseEvent(QMouseEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		int button = 1;
+		if (event->button() == Qt::RightButton) button = 2;
+		else if (event->button() == Qt::MiddleButton) button = 3;
+		double scale = devicePixelRatio();
+		// Use the same clickCount computed in mousePressEvent so the
+		// press/release pair CEF sees for a double-click's second click is
+		// (down, clickCount=2)/(up, clickCount=2), matching what Blink
+		// expects instead of a mismatched (down, 2)/(up, 1) pair.
+		int clickCount = (event->button() == Qt::LeftButton && m_clickCount > 0) ? m_clickCount : 1;
+		m_pCefView->SendMouseClickEvent((int)(event->x() * scale), (int)(event->y() * scale), button, true, GetCefModifiers(event->modifiers(), event->buttons()), clickCount);
+	}
+	QWidget::mouseReleaseEvent(event);
+}
+
+void QCefView::mouseDoubleClickEvent(QMouseEvent *event) {
+	// Deliberately does NOT forward a synthetic click to CEF: Qt's Wayland
+	// backend already sent an ordinary mousePressEvent for this same
+	// physical click (with the correct clickCount computed above), so
+	// forwarding another one here would double-send it. This override
+	// exists only to stop QWidget's default (no-op) handling from
+	// consuming the event silently -- forward to the base implementation
+	// so Qt's own bookkeeping still runs, without talking to CEF again.
+	QWidget::mouseDoubleClickEvent(event);
+}
+
+void QCefView::mouseMoveEvent(QMouseEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		double scale = devicePixelRatio();
+		m_pCefView->SendMouseMoveEvent((int)(event->x() * scale), (int)(event->y() * scale), false, GetCefModifiers(event->modifiers(), event->buttons()));
+	}
+	QWidget::mouseMoveEvent(event);
+}
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+void QCefView::wheelEvent(QWheelEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		double scale = devicePixelRatio();
+		m_pCefView->SendMouseWheelEvent(event->position().x() * scale, event->position().y() * scale, event->angleDelta().x(), event->angleDelta().y(), GetCefModifiers(event->modifiers(), event->buttons()));
+	}
+	QWidget::wheelEvent(event);
+}
+#else
+void QCefView::wheelEvent(QWheelEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		double scale = devicePixelRatio();
+		m_pCefView->SendMouseWheelEvent(event->pos().x() * scale, event->pos().y() * scale, event->angleDelta().x(), event->angleDelta().y(), GetCefModifiers(event->modifiers(), event->buttons()));
+	}
+	QWidget::wheelEvent(event);
+}
+#endif
+
+void QCefView::keyPressEvent(QKeyEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		int key = event->key();
+
+		// Suppress raw dead key events — let Qt's input method compose them.
+		// The composed character will arrive via inputMethodEvent.
+		if (key >= Qt::Key_Dead_Grave && key <= Qt::Key_Dead_Greek) {
+			event->accept();
+			return;
+		}
+
+		int windows_key_code = QtKeyToWindowsKeyCode(key);
+		
+		wchar_t unmodified_char = 0;
+		if (key >= Qt::Key_A && key <= Qt::Key_Z) {
+			unmodified_char = (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
+		} else if (key >= Qt::Key_0 && key <= Qt::Key_9) {
+			unmodified_char = key;
+		} else if (key == Qt::Key_Space) {
+			unmodified_char = ' ';
+		} else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+			unmodified_char = '\r';
+		} else {
+			if (!event->text().isEmpty()) {
+				unmodified_char = event->text()[0].unicode();
+			}
+		}
+
+		wchar_t character = unmodified_char;
+		if (event->modifiers() & Qt::ControlModifier) {
+			if (key >= Qt::Key_A && key <= Qt::Key_Z) {
+				character = key - Qt::Key_A + 1;
+			}
+		}
+
+		std::wstring character_str;
+		character_str.push_back(character);
+		character_str.push_back(unmodified_char);
+		character_str.push_back(static_cast<wchar_t>(event->nativeScanCode() + 8));
+
+		m_pCefView->SendKeyEvent(0, windows_key_code, GetCefModifiers(event->modifiers(), Qt::NoButton), character_str);
+		m_pCefView->SendKeyEvent(3, windows_key_code, GetCefModifiers(event->modifiers(), Qt::NoButton), character_str);
+		event->accept();
+		return;
+	}
+	QWidget::keyPressEvent(event);
+}
+
+void QCefView::keyReleaseEvent(QKeyEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		int key = event->key();
+
+		// Suppress raw dead key release events — matching keyPressEvent suppression.
+		if (key >= Qt::Key_Dead_Grave && key <= Qt::Key_Dead_Greek) {
+			event->accept();
+			return;
+		}
+
+		int windows_key_code = QtKeyToWindowsKeyCode(key);
+		
+		wchar_t unmodified_char = 0;
+		if (key >= Qt::Key_A && key <= Qt::Key_Z) {
+			unmodified_char = (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
+		} else if (key >= Qt::Key_0 && key <= Qt::Key_9) {
+			unmodified_char = key;
+		} else if (key == Qt::Key_Space) {
+			unmodified_char = ' ';
+		} else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+			unmodified_char = '\r';
+		} else {
+			if (!event->text().isEmpty()) {
+				unmodified_char = event->text()[0].unicode();
+			}
+		}
+
+		std::wstring character_str;
+		character_str.push_back(unmodified_char);
+		character_str.push_back(unmodified_char);
+		character_str.push_back(static_cast<wchar_t>(event->nativeScanCode() + 8));
+
+		m_pCefView->SendKeyEvent(2, windows_key_code, GetCefModifiers(event->modifiers(), Qt::NoButton), character_str);
+		event->accept();
+		return;
+	}
+	QWidget::keyReleaseEvent(event);
+}
+
+// An alternative approach would be to use CEF's ImeCommitText API directly,
+// which is the canonical IME path. However, this would require:
+//
+// 1. Adding a new ImeCommitText wrapper to CCefView (similar to existing SendKeyEvent)
+// 2. Including additional CEF headers for CefRange
+//
+// The SendKeyEvent(KEYEVENT_CHAR) approach is simpler, already proven in the
+// codebase, and sufficient for dead key compose sequences (which produce final
+// committed characters, not preedit/intermediate compositions like CJK input).
+void QCefView::inputMethodEvent(QInputMethodEvent *event) {
+	if (m_isWayland && m_pCefView) {
+		QString commitStr = event->commitString();
+		if (!commitStr.isEmpty()) {
+			for (int i = 0; i < commitStr.length(); i++) {
+				wchar_t ch = commitStr[i].unicode();
+				std::wstring character_str;
+				character_str.push_back(ch);
+				character_str.push_back(ch);
+				character_str.push_back(0);
+				// Send the full key event sequence: KEYDOWN(0) -> CHAR(3) -> KEYUP(2)
+				// CEF requires the complete sequence to properly inject characters.
+				m_pCefView->SendKeyEvent(0, ch, 0, character_str);
+				m_pCefView->SendKeyEvent(3, ch, 0, character_str);
+				m_pCefView->SendKeyEvent(2, ch, 0, character_str);
+			}
+		}
+	}
+	event->accept();
+}
+
+QVariant QCefView::inputMethodQuery(Qt::InputMethodQuery query) const {
+	if (query == Qt::ImEnabled)
+		return true;
+	return QWidget::inputMethodQuery(query);
+}
+
 // focus
 void QCefView::focusInEvent(QFocusEvent* e)
 {
 	if (m_pCefView)
 		m_pCefView->focus(true);
 }
+bool QCefView::focusNextPrevChild(bool next)
+{
+	// Qt's default QWidget::focusNextPrevChild() intercepts Tab/Shift+Tab
+	// for widget-to-widget focus traversal *before* keyPressEvent ever
+	// sees the key. Diagnostic logging showed every Tab press produced a
+	// focusOutEvent(TabFocusReason) with no matching focusInEvent for
+	// seconds (sometimes indefinitely) -- Qt was handing focus to "the
+	// next widget in tab order" and nothing ever reclaimed it. Refuse the
+	// traversal on Wayland so Tab falls through to keyPressEvent() and
+	// gets forwarded to CEF like any other key, matching X11 behavior
+	// where CEF's native OSR input path bypassed Qt's focus chain
+	// entirely.
+	if (m_isWayland)
+		return false;
+	return QWidget::focusNextPrevChild(next);
+}
+
 void QCefView::focusOutEvent(QFocusEvent* e)
 {
-	return;
+	// On Wayland, keyboard events are forwarded to CEF manually (see
+	// keyPressEvent/keyReleaseEvent above) regardless of Qt's own focus
+	// state. If CEF is never told it lost focus, its internal focus
+	// traversal (e.g. on Tab) gets out of sync with Qt: CEF still thinks
+	// it owns focus, Qt still thinks the widget is focused, and no key
+	// event (including Alt-menu accelerators, which never reach this
+	// widget at all) can resolve the mismatch until a mouse click forces
+	// Qt to re-run focus resolution. Always propagate the focus-out to
+	// CEF so SetFocus(false)/SetFocus(true) stay in sync with Qt's own
+	// focus transitions.
 	if (m_pCefView)
 		m_pCefView->focus(false);
 }
@@ -120,13 +490,22 @@ void QCefView::resizeEvent(QResizeEvent* e)
 
 	if (m_pOverride)
 		m_pOverride->setGeometry(0, 0, cef_width, cef_height);
+	if (m_pGLView)
+		m_pGLView->setGeometry(0, 0, cef_width, cef_height);
 	if (m_pCefView)
 		m_pCefView->resizeEvent();
 }
 void QCefView::moveEvent(QMoveEvent* e)
 {
 	if (m_pCefView)
+	{
 		m_pCefView->moveEvent();
+		// Moving across monitors may change the effective DPI; re-check the
+		// UI scale so it doesn't stay pinned to the monitor the app started
+		// on. Debounced against transient devicePixelRatio() misreads
+		// inside UpdateUIScalePercentage() itself.
+		m_pCefView->UpdateUIScalePercentage();
+	}
 	QWidget::moveEvent(e);
 }
 
@@ -225,8 +604,339 @@ void QCefView::SetBackgroundCefColor(unsigned char r, unsigned char g, unsigned 
 	this->setStyleSheet(sStyle);
 }
 
-void QCefView::paintEvent(QPaintEvent *)
+double QCefView::GetDeviceScaleFactor()
 {
+	return this->devicePixelRatio();
+}
+
+double QCefView::GetUIScalePercentage()
+{
+	// Originally bucketed off logicalDotsPerInch() the way LibreOffice's
+	// CountDPIScaleFactor() does (96 DPI baseline, X11-era heuristic) --
+	// but that returns a flat 100% on a standard-DPI Wayland output even
+	// when the compositor has a real configured display scale, silently
+	// discarding the signal this is actually meant to track. Wayland sets
+	// an explicit output scale directly rather than relying on physical
+	// DPI, and Qt's own devicePixelRatio() already reflects that scale
+	// live (this is a different value from what dsf-1.0-osr forces CEF's
+	// own device_scale_factor to for coordinate-mapping purposes -- Qt
+	// keeps tracking the real ratio locally regardless of what we report
+	// to CEF), so use it directly instead.
+	if (m_isWayland)
+	{
+		// A surface younger than this is still liable to be reporting the
+		// compositor's rounded integer scale rather than the real
+		// fractional one (measured: 2.0 for ~90ms on a 1.25 output, then
+		// corrected). Report "not yet known" rather than a value that will
+		// have to be revised, so no zoom is applied off the wrong reading.
+		// The 1s poll timer re-reads regardless, so a compositor slower
+		// than this simply corrects on the next tick as it does today.
+		if (m_uiScaleSettleClock.isValid() && m_uiScaleSettleClock.elapsed() < kUIScaleSettleMs)
+			return -1.0;
+
+		// Read from the view itself: measured against window() during the
+		// investigation, the two track each other exactly (both 2.0 during
+		// the startup round-trip, both 1.25 after), so the view is never
+		// the source of a scale error and needs no indirection. Also
+		// measured correct immediately across monitor crossings with
+		// differing scales -- devicePixelRatio() reflects the new output
+		// before window()->screen() even catches up to it.
+		return this->devicePixelRatio() * 100.0;
+	}
+
+	// xcb: devicePixelRatio() still reflects Xft.dpi here despite
+	// AA_Use96Dpi and the HiDPI env overrides, but window/CEF-surface
+	// geometry is scaled independently now (devicePixelRatio() applied
+	// directly in SetWindowSize()/Init()'s raw X11 pixel sizing), so
+	// using it here too would double it again. The native Qt chrome
+	// (tab bar, etc.) already scales off QDpiChecker::GetMonitorDpi()'s
+	// Xft.dpi-derived value -- use that same source for CEF content so
+	// the two match, instead of leaving CEF zoom neutral.
+	if (NULL == CAscApplicationManager::GetDpiChecker())
+		return 100.0;
+
+	unsigned int dx = 0, dy = 0;
+	int nScreen = QApplication::screens().indexOf(this->screen());
+	CAscApplicationManager::GetDpiChecker()->GetMonitorDpi(nScreen, &dx, &dy);
+	return CAscApplicationManager::GetDpiChecker()->GetScale(dx, dy) * 100.0;
+}
+
+bool QCefView::IsWayland()
+{
+	return m_isWayland;
+}
+
+void QCefView::GetWidgetScreenPosition(int& screenX, int& screenY)
+{
+	// Map widget's top-left to global screen coordinates.
+	// On Wayland, mapToGlobal may return (0,0) since global coords
+	// aren't available, but CEF primarily needs the widget offset
+	// for internal coordinate calculations.
+	QPoint globalPos = mapToGlobal(QPoint(0, 0));
+	double dpr = devicePixelRatio();
+	// CEF expects screen device (pixel) coordinates on Linux
+	screenX = (int)(globalPos.x() * dpr);
+	screenY = (int)(globalPos.y() * dpr);
+}
+
+void QCefView::SetClipboardData(const std::wstring& sJson)
+{
+	QJsonParseError err;
+	QJsonDocument doc = QJsonDocument::fromJson(QString::fromStdWString(sJson).toUtf8(), &err);
+	if (err.error != QJsonParseError::NoError || !doc.isObject())
+		return;
+
+	QJsonObject obj = doc.object();
+	QMimeData* pMime = new QMimeData();
+
+	if (obj.contains("text/plain"))
+		pMime->setText(obj.value("text/plain").toString());
+
+	if (obj.contains("text/html"))
+		pMime->setHtml(obj.value("text/html").toString());
+
+	// The internal high-fidelity fragment sdkjs already builds for same-app
+	// paste (shapes, tables, embedded objects). Stored as a raw custom MIME
+	// type so it round-trips exactly through GetClipboardData below; other
+	// applications simply won't see/use this entry.
+	if (obj.contains("text/x-custom"))
+	{
+		QByteArray data = obj.value("text/x-custom").toString().toUtf8();
+		pMime->setData("text/x-custom", data);
+	}
+
+	if (obj.contains("image/png"))
+	{
+		QByteArray b64 = obj.value("image/png").toString().toUtf8();
+		QByteArray png = QByteArray::fromBase64(b64);
+		if (!png.isEmpty())
+			pMime->setData("image/png", png);
+	}
+
+	QApplication::clipboard()->setMimeData(pMime);
+}
+
+std::wstring QCefView::GetClipboardData()
+{
+	const QMimeData* pMime = QApplication::clipboard()->mimeData();
+	if (!pMime)
+		return L"";
+
+	QJsonObject obj;
+
+	// Prefer the internal fragment when present -- it means the clipboard
+	// currently holds a same-app (or another Euro-Office instance's) copy,
+	// so paste can reconstruct it with full fidelity instead of falling
+	// back to HTML/plain text.
+	if (pMime->hasFormat("text/x-custom"))
+		obj["text/x-custom"] = QString::fromUtf8(pMime->data("text/x-custom"));
+
+	if (pMime->hasHtml())
+		obj["text/html"] = pMime->html();
+
+	if (pMime->hasText())
+		obj["text/plain"] = pMime->text();
+
+	if (pMime->hasImage())
+	{
+		QImage img = qvariant_cast<QImage>(pMime->imageData());
+		if (!img.isNull())
+		{
+			QByteArray png;
+			QBuffer buffer(&png);
+			buffer.open(QIODevice::WriteOnly);
+			img.save(&buffer, "PNG");
+			obj["image/png"] = QString::fromUtf8(png.toBase64());
+		}
+	}
+
+	// A file manager's "Copy" puts the file's path(s) on the clipboard as
+	// URLs (Qt normalizes text/uri-list, CF_HDROP, etc into this one
+	// portable API), not raw pixel data -- hasImage() above only catches
+	// clipboard content that already IS a bitmap (e.g. a screenshot tool's
+	// "copy image"). Without this, copying an image file in the file
+	// manager and pasting it into a document silently did nothing: no
+	// recognized format ever reached the JS side, so NativePaste() in
+	// clipboard_base.js fell through with no match. Pasting a non-image
+	// file remains a no-op, same as in every other document editor.
+	if (!obj.contains("image/png") && pMime->hasUrls())
+	{
+		const QList<QUrl> urls = pMime->urls();
+		if (urls.size() == 1 && urls.first().isLocalFile())
+		{
+			QImageReader reader(urls.first().toLocalFile());
+			if (reader.canRead())
+			{
+				QImage img = reader.read();
+				if (!img.isNull())
+				{
+					QByteArray png;
+					QBuffer buffer(&png);
+					buffer.open(QIODevice::WriteOnly);
+					img.save(&buffer, "PNG");
+					obj["image/png"] = QString::fromUtf8(png.toBase64());
+				}
+			}
+		}
+	}
+
+	if (obj.isEmpty())
+		return L"";
+
+	QJsonDocument doc(obj);
+	return QString::fromUtf8(doc.toJson(QJsonDocument::Compact)).toStdWString();
+}
+
+void QCefView::SetCursorType(int cursorType)
+{
+	// Mirrors cef_cursor_type_t (include/internal/cef_types.h) by numeric
+	// value -- duplicated here instead of included so the Qt wrapper doesn't
+	// pick up a dependency on the CEF include path.
+	enum {
+		CT_POINTER = 0, CT_CROSS = 1, CT_HAND = 2, CT_IBEAM = 3, CT_WAIT = 4,
+		CT_EASTRESIZE = 6, CT_NORTHRESIZE = 7, CT_NORTHEASTRESIZE = 8,
+		CT_NORTHWESTRESIZE = 9, CT_SOUTHRESIZE = 10, CT_SOUTHEASTRESIZE = 11,
+		CT_SOUTHWESTRESIZE = 12, CT_WESTRESIZE = 13, CT_NORTHSOUTHRESIZE = 14,
+		CT_EASTWESTRESIZE = 15, CT_COLUMNRESIZE = 18, CT_ROWRESIZE = 19,
+		CT_MOVE = 29, CT_CELL = 31, CT_NODROP = 35, CT_NOTALLOWED = 38,
+		CT_ZOOMIN = 39, CT_ZOOMOUT = 40,
+	};
+
+	Qt::CursorShape shape = Qt::ArrowCursor;
+	switch (cursorType)
+	{
+		case CT_IBEAM:                                  shape = Qt::IBeamCursor; break;
+		case CT_HAND:                                   shape = Qt::PointingHandCursor; break;
+		case CT_CROSS:
+		case CT_CELL:
+		case CT_ZOOMIN:
+		case CT_ZOOMOUT:                                shape = Qt::CrossCursor; break;
+		case CT_EASTRESIZE:
+		case CT_WESTRESIZE:
+		case CT_EASTWESTRESIZE:                         shape = Qt::SizeHorCursor; break;
+		case CT_NORTHRESIZE:
+		case CT_SOUTHRESIZE:
+		case CT_NORTHSOUTHRESIZE:                       shape = Qt::SizeVerCursor; break;
+		case CT_NORTHEASTRESIZE:
+		case CT_SOUTHWESTRESIZE:                        shape = Qt::SizeBDiagCursor; break;
+		case CT_NORTHWESTRESIZE:
+		case CT_SOUTHEASTRESIZE:                        shape = Qt::SizeFDiagCursor; break;
+		case CT_COLUMNRESIZE:                           shape = Qt::SplitHCursor; break;
+		case CT_ROWRESIZE:                              shape = Qt::SplitVCursor; break;
+		case CT_MOVE:                                   shape = Qt::SizeAllCursor; break;
+		case CT_WAIT:                                   shape = Qt::WaitCursor; break;
+		case CT_NODROP:
+		case CT_NOTALLOWED:                             shape = Qt::ForbiddenCursor; break;
+		case CT_POINTER:
+		default:                                        shape = Qt::ArrowCursor; break;
+	}
+	setCursor(shape);
+}
+
+void QCefView::SetCursorCustom(const void* buffer, int width, int height, int hotspotX, int hotspotY)
+{
+	if (!buffer || width <= 0 || height <= 0) {
+		setCursor(Qt::ArrowCursor);
+		return;
+	}
+
+	// Same premultiplied-BGRA layout CEF uses for the OSR frame buffer (see
+	// OnPaint above) -- Format_ARGB32_Premultiplied matches it byte-for-byte
+	// on little-endian.
+	QImage img((const uchar*)buffer, width, height, QImage::Format_ARGB32_Premultiplied);
+	QCursor cursor(QPixmap::fromImage(img.copy()), hotspotX, hotspotY);
+	setCursor(cursor);
+}
+
+QCefGLWidget::QCefGLWidget(QWidget* parent)
+	: QOpenGLWidget(parent)
+{
+	// Input stays with the QCefView parent; this overlay is display-only.
+	setAttribute(Qt::WA_TransparentForMouseEvents, true);
+	setFocusPolicy(Qt::NoFocus);
+	setAutoFillBackground(false);
+}
+
+void QCefGLWidget::SetFrame(const QImage& image)
+{
+	// image is already a deep copy owned by the caller (QImage is implicitly
+	// shared, so this is a cheap ref, not a second pixel copy).
+	m_frame = image;
+	// Schedules paintGL() + a GL swap. On Wayland the swap is the surface
+	// commit and is throttled by the compositor's frame callback natively, so
+	// the frame is presented without needing a physical input event.
+	update();
+}
+
+void QCefGLWidget::paintGL()
+{
+	if (m_frame.isNull())
+		return;
+
+	// Draw the full physical-pixel CEF buffer into the full widget area, same
+	// mapping as QCefView::paintEvent used for the raster path.
+	QPainter painter(this);
+	painter.drawImage(
+		QRectF(0, 0, width(), height()),
+		m_frame,
+		QRectF(0, 0, m_frame.width(), m_frame.height())
+	);
+}
+
+void QCefView::OnPaint(const void* buffer, int width, int height)
+{
+	if (!m_isWayland) return;
+
+	// Runs inside CEF's OnPaint callback: only stage the frame (no event-loop
+	// re-entrancy). Push it to the GL overlay, which presents it via a GL swap
+	// (= wl_surface_commit) that participates in the compositor frame-callback
+	// loop, so no top-of-loop flush is needed to unstick the commit.
+	QImage img((const uchar*)buffer, width, height, QImage::Format_ARGB32_Premultiplied);
+	QImage frame = img.copy();
+
+	// Keep a raster copy too: QCefView::paintEvent uses it as a backdrop behind
+	// the GL overlay (e.g. during resize), and it costs nothing extra (COW).
+	m_imageBuffer = frame;
+
+	if (m_pGLView)
+		m_pGLView->SetFrame(frame);
+
+	m_dirty.storeRelaxed(1);
+}
+
+void QCefView::FlushDirtyWaylandViews()
+{
+	// Runs from the message-loop poller (top of loop, non-reentrant) after CEF
+	// has been pumped. Nudge a repaint of any view that produced a frame this
+	// tick so the GL swap is scheduled at the top of the loop. No event-loop
+	// spin here: nothing that could starve input or re-enter CEF.
+	for (QCefView* view : s_waylandViews)
+	{
+		if (view->m_dirty.fetchAndStoreRelaxed(0) && view->m_pGLView)
+			view->m_pGLView->update();
+	}
+}
+
+
+
+void QCefView::paintEvent(QPaintEvent* event)
+{
+	if (m_isWayland && !m_imageBuffer.isNull()) {
+		QPainter painter(this);
+		// Draw the full physical-pixel CEF buffer into the full widget area.
+		// Source: all physical pixels from the CEF OnPaint buffer.
+		// Target: full widget rect in logical (DIP) coordinates.
+		// Qt maps source onto target, stretching to fill. Since the buffer
+		// is DIP*DPR pixels and the widget is DIP logical (= DIP*DPR physical),
+		// this results in a 1:1 pixel mapping with no clipping.
+		painter.drawImage(
+			QRectF(0, 0, width(), height()),
+			m_imageBuffer,
+			QRectF(0, 0, m_imageBuffer.width(), m_imageBuffer.height())
+		);
+		return;
+	}
+
 	QStyleOption opt;
 	opt.initFrom(this);
 	QPainter p(this);
@@ -416,11 +1126,33 @@ bool QCefEmbedWindow::eventFilter(QObject *watched, QEvent *event)
 
 void QCefView::Init()
 {
-	if (IsSupportLayers())
+	if (m_isWayland)
+	{
+		cef_handle = 0;
+		setAcceptDrops(true);
+		setMouseTracking(true);
+		setFocusPolicy(Qt::StrongFocus);
+		setAttribute(Qt::WA_InputMethodEnabled, true);
+
+		// GL overlay that presents the CEF OSR buffer (see QCefGLWidget). It
+		// fully covers this view and is mouse-transparent, so QCefView keeps
+		// handling all input.
+		m_pGLView = new QCefGLWidget(this);
+		m_pGLView->setGeometry(0, 0, width(), height());
+		m_pGLView->show();
+		m_pGLView->raise();
+	}
+	else if (IsSupportLayers())
 	{
 		Display* display = (Display*)CefGetXDisplay();
 		Window x11root = XDefaultRootWindow(display);
-		Window x11w = XCreateSimpleWindow(display, x11root, 0, 0, width(), height(), 0, 0,
+		// width()/height() are in DIPs; X11 wants physical pixels. Qt's own
+		// window still ends up sized in physical pixels by the platform
+		// plugin even with AA_Use96Dpi set (devicePixelRatio() isn't
+		// reliably neutralized under XWayland), so scale explicitly here
+		// to match, the same way SetWindowSize() below does.
+		double scale = devicePixelRatio();
+		Window x11w = XCreateSimpleWindow(display, x11root, 0, 0, (int)(width() * scale), (int)(height() * scale), 0, 0,
 										  (m_pCefView && m_pCefView->GetType() != cvwtEditor) ? 0xFFFFFFFF : 0xFFF4F4F4);
 		XReparentWindow(display, x11w, this->winId(), 0, 0);
 		XMapWindow(display, x11w);
@@ -485,8 +1217,12 @@ void SetWindowSize(Window window, QWidget* parent)
 		XWindowChanges changes = {};
 		changes.x = 0;
 		changes.y = 0;
-		changes.width = parent->width();
-		changes.height = parent->height();
+		// parent->width()/height() are DIPs; X11 geometry is physical
+		// pixels, so scale by devicePixelRatio() to match (see Init()'s
+		// XCreateSimpleWindow call for the same reasoning).
+		double scale = parent->devicePixelRatio();
+		changes.width = (int)(parent->width() * scale);
+		changes.height = (int)(parent->height() * scale);
 
 		// XErrorHandlerImpl: BadValue error occurs
 		if (changes.width && changes.height)
@@ -501,6 +1237,8 @@ void SetWindowSize(Window window, QWidget* parent)
 
 void QCefView::UpdateSize()
 {
+	if (m_isWayland) return;
+
 	if (IsSupportLayers())
 		SetWindowSize(cef_handle, this);
 

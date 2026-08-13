@@ -91,6 +91,50 @@ public:
 	virtual void OnLoaded() {}
 	virtual void OnRelease() {}
 
+	virtual double GetDeviceScaleFactor() { return 1.0; }
+	virtual bool IsWayland() { return false; }
+
+	// UI layout scale as a percentage (100 = no scaling), bucketed off real
+	// monitor DPI the same way LibreOffice's CountDPIScaleFactor() does.
+	// Deliberately independent of GetDeviceScaleFactor()/devicePixelRatio,
+	// which dsf-1.0-osr (see cefview.cpp GetViewRect/GetScreenInfo) forces
+	// to always report 1:1 for CEF's OSR coordinate mapping -- reusing that
+	// value here would lose the real DPI signal on HiDPI displays.
+	virtual double GetUIScalePercentage() { return 100.0; }
+
+	// Returns the widget's top-left position in screen device (pixel) coordinates.
+	// Used by CEF's GetScreenPoint to map view DIPs to screen pixels.
+	virtual void GetWidgetScreenPosition(int& screenX, int& screenY) { screenX = 0; screenY = 0; }
+
+	virtual void OnPaint(const void* buffer, int width, int height) {}
+
+	// Native OS clipboard bridge. CEF's own OS clipboard integration does not
+	// work in off-screen-rendering mode under Wayland (Chromium's clipboard
+	// requires a real wl_surface + input serial to claim ownership, which OSR
+	// mode never has), so copy/paste is routed through here to whatever real
+	// clipboard mechanism the platform widget implementation provides.
+	// sJson carries a JSON object of MIME type -> data (mirroring the
+	// c_oAscClipboardDataFormat entries sdkjs already builds for copy: at
+	// least "text/plain" and "text/html", plus "text/x-custom" for the
+	// internal high-fidelity fragment format used for same-app paste).
+	virtual void SetClipboardData(const std::wstring& sJson) {}
+	virtual std::wstring GetClipboardData() { return L""; }
+
+	// Native OS cursor bridge. In windowed CEF mode, CEF owns a real native
+	// window and sets the OS cursor itself when the page requests a cursor
+	// change (text I-beam, resize handles, hand, move, etc). In
+	// off-screen-rendering mode (used for Wayland, see IsWayland above)
+	// there is no CEF-owned window, so nothing sets the OS cursor unless we
+	// do it here ourselves. cursorType is a cef_cursor_type_t value.
+	virtual void SetCursorType(int cursorType) {}
+
+	// Bridge for CSS `cursor: url(...)` custom-image cursors (CEF reports
+	// these as cef_cursor_type_t::CT_CUSTOM with the actual bitmap here
+	// instead of a named type -- see SetCursorType above). buffer is a
+	// premultiplied BGRA pixel buffer of width x height; hotspotX/Y is the
+	// cursor's hotspot in that bitmap's own pixel coordinates.
+	virtual void SetCursorCustom(const void* buffer, int width, int height, int hotspotX, int hotspotY) {}
+
 	static void SetParentNull(WindowHandleId handle);
 };
 
@@ -138,6 +182,19 @@ public:
 
 	double GetDeviceScale();
 
+	// Pushes GetWidgetImpl()->GetUIScalePercentage() into the page as CSS
+	// custom properties (--pixel-ratio-factor, --x-small-btn-size,
+	// --x-small-btn-icon-size) and corrects window.devicePixelRatio for
+	// sdkjs's own canvas scaling, which reads it directly. Call on load and
+	// whenever the widget's DPI may have changed (e.g. moved to another
+	// monitor).
+	// Injects into every frame of the browser, not just the main one -- the
+	// actual editor UI (ribbon, AscCommon) loads in a nested iframe, which
+	// is a separate browsing context with its own documentElement/CSSOM;
+	// setting these CSS custom properties on the main frame alone has no
+	// effect on an iframe's own styles.
+	void UpdateUIScalePercentage();
+
 	int GetPrintPageOrientation(const int& nPage);
 
 	bool IsDestroy();
@@ -147,6 +204,11 @@ public:
 	int GetRecentId();
 
 	void ExecuteInAllFrames(const std::string& sCode, const bool& isMain = true);
+
+	void SendMouseClickEvent(int x, int y, int button, bool mouseUp, int modifiers, int clickCount);
+	void SendMouseMoveEvent(int x, int y, bool mouseLeave, int modifiers);
+	void SendMouseWheelEvent(int x, int y, int deltaX, int deltaY, int modifiers);
+	void SendKeyEvent(int type, int key, int modifiers, const std::wstring& character);
 
 protected:
 	int m_nId;

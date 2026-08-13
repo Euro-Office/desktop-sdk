@@ -4566,6 +4566,23 @@ window.AscDesktopEditor.CallInFrame(\"" +
 				retval = CefV8Value::CreateInt(nVersion);
 				return true;
 			}
+			else if (name == "nativeClipboardWrite")
+			{
+				// Fire-and-forget: forward the JSON payload sdkjs already built for
+				// copy (text/plain, text/html, and the internal text/x-custom
+				// fragment) to the browser process, where the platform widget owns
+				// the real OS clipboard. See CCefViewWidgetImpl::SetClipboardData.
+				if (arguments.size() >= 1 && arguments[0]->IsString())
+				{
+					CefRefPtr<CefFrame> frame = CefV8Context::GetCurrentContext()->GetFrame();
+					CefRefPtr<CefProcessMessage> message = CefProcessMessage::Create("clipboard_write");
+					message->GetArgumentList()->SetString(0, arguments[0]->GetStringValue());
+					frame->SendProcessMessage(PID_BROWSER, message);
+				}
+
+				retval = CefV8Value::CreateBool(true);
+				return true;
+			}
 			else if (name == "getToolFunctions")
 			{
 				CAITools& tools = CAITools::getInstance();
@@ -5489,7 +5506,7 @@ if (targetElem) { targetElem.dispatchEvent(event); }})();";
 
 			CefRefPtr<CefV8Handler> handler = pWrapper;
 
-#define EXTEND_METHODS_COUNT 197
+#define EXTEND_METHODS_COUNT 198
 			const char* methods[EXTEND_METHODS_COUNT] = {
 				"Copy",
 				"Paste",
@@ -5747,6 +5764,7 @@ if (targetElem) { targetElem.dispatchEvent(event); }})();";
 				"onFileLockedClose",
 
 				"getEngineVersion",
+				"nativeClipboardWrite",
 
 				"getToolFunctions",
 				"callToolFunction",
