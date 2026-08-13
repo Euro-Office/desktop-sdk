@@ -8322,7 +8322,12 @@ void CCefView::UpdateUIScalePercentage()
 				"window.AscCommon.checkDeviceScale = function(){"
 					"return { zoom: 1, devicePixelRatio: f, applicationPixelRatio: f, correct: false };"
 				"};"
-			"} catch(e) { console.error('[UIScale] checkDeviceScale monkeypatch threw: ' + e); }"
+			// Swallowed deliberately: this runs in every frame, including
+			// ones with no AscCommon at all, and there is no recovery to
+			// attempt -- the visible symptom of a failure here is simply
+			// that the canvas keeps the browser's own pixel ratio. Must
+			// not throw, or the poll below never gets installed.
+			"} catch(e) {}"
 			"var pollTries = 0;"
 			"var pollFn = function(){"
 				"pollTries++;"
@@ -8331,7 +8336,10 @@ void CCefView::UpdateUIScalePercentage()
 						"window.AscCommon.AscBrowser.checkZoom();"
 						"return;"
 					"}"
-				"} catch(e) { console.error('[UIScale] checkZoom threw: ' + e); }"
+				// Swallowed for the same reason, and additionally so a
+				// transient failure while the editor is still initializing
+				// falls through to the retry below rather than aborting it.
+				"} catch(e) {}"
 				"if (pollTries < 50) {"
 					"setTimeout(pollFn, 200);"
 				"}"
