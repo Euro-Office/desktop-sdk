@@ -98,6 +98,14 @@ if(HUNSPELL_INCLUDE_DIR AND HUNSPELL_LIBRARY)
 endif()
 
 add_library(ascdocumentscore SHARED)
+if(APPLE)
+    set_target_properties(ascdocumentscore PROPERTIES
+        FRAMEWORK TRUE
+        MACOSX_FRAMEWORK_IDENTIFIER asc.euro-office.ascdocumentscore
+        MACOSX_FRAMEWORK_BUNDLE_VERSION 1.0
+        MACOSX_FRAMEWORK_SHORT_VERSION_STRING 1.0
+    )
+endif()
 
 set_default_options(ascdocumentscore)
 
@@ -1112,6 +1120,13 @@ target_link_directories(ascdocumentscore PRIVATE "${CORE_BUILDS_LIBRARIES_PATH}"
     $<$<NOT:$<CONFIG:Debug>>:${CEF_ROOT}/Release>
 )
 
+if(APPLE)
+    target_link_options(ascdocumentscore PRIVATE
+        $<$<CONFIG:Debug>:-F${CEF_ROOT}/Debug>
+        $<$<NOT:$<CONFIG:Debug>>:-F${CEF_ROOT}/Release>
+    )
+endif()
+
 # Boost and ICU
 target_link_libraries(ascdocumentscore PUBLIC
                     hunspell::libhunspell
@@ -1133,7 +1148,7 @@ target_link_libraries(ascdocumentscore PUBLIC
 
 if(WIN32)
     target_compile_definitions(ascdocumentscore PRIVATE NOMINMAX _WINDOWS WIN32)
-    target_link_directories(ascdocumentscore PRIVATE "${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
+    # target_link_directories(ascdocumentscore PRIVATE "${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build") # dead code?
     target_link_libraries(ascdocumentscore PRIVATE
         libcef wininet dnsapi version msimg32 ws2_32 usp10 psapi
         dbghelp winmm shlwapi kernel32 gdi32 winspool comdlg32
@@ -1142,7 +1157,7 @@ if(WIN32)
         Urlmon OpenGL32 Crypt32 Imm32
     )
 elseif(APPLE)
-    target_link_options(ascdocumentscore PRIVATE -F"${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
+    # target_link_options(ascdocumentscore PRIVATE -F"${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
     target_link_libraries(ascdocumentscore PRIVATE
         "-framework Security"
         "-framework AVFoundation"
