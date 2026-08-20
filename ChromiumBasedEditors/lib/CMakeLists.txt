@@ -1226,7 +1226,7 @@ if(WIN32)
 
     target_compile_definitions(editors_helper PRIVATE WIN32 _WINDOWS)
 
-elseif(UNIX AND NOT APPLE)
+elseif(LINUX)
     target_compile_definitions(editors_helper PRIVATE _LINUX LINUX OS_LINUX _X11)
     target_link_options(editors_helper PRIVATE 
         "-Wl,-rpath,$ORIGIN" 
@@ -1236,5 +1236,55 @@ elseif(UNIX AND NOT APPLE)
     # Extra Linux dependencies defined in ascdocumentscore_helper.pro
     target_link_libraries(editors_helper PRIVATE 
         graphics kernel kernel_network UnicodeConverter cef
+    )
+elseif(APPLE)
+    target_link_options(editors_helper PRIVATE
+        $<$<CONFIG:Debug>:-F${CEF_ROOT}/Debug>
+        $<$<NOT:$<CONFIG:Debug>>:-F${CEF_ROOT}/Release>
+    )
+    target_link_libraries(editors_helper PRIVATE
+        "-framework Security"
+        "-framework AVFoundation"
+        "-framework CoreMedia"
+        "-framework Carbon"
+        "-framework AppKit"
+        "-framework OpenGL"
+        "-framework \"Chromium Embedded Framework\""
+        graphics kernel kernel_network UnicodeConverter
+    )
+endif()
+
+if(APPLE)
+    function(configure_cef_helper_plist bundle_name bundle_id_suffix)
+        set(EXECUTABLE_NAME "${bundle_name}")
+        set(PRODUCT_NAME "${bundle_name}")
+        set(BUNDLE_ID_SUFFIX "${bundle_id_suffix}")
+        configure_file("${CEF_SRC_PATH}/tests/cefsimple/mac/helper-Info.plist"
+                       "${CMAKE_CURRENT_BINARY_DIR}/helper-plists/${bundle_name}-Info.plist")
+    endfunction()
+
+    configure_cef_helper_plist("editors_helper" "")
+    configure_cef_helper_plist("editors_helper (GPU)" ".GPU")
+    configure_cef_helper_plist("editors_helper (Renderer)" ".Renderer")
+
+    add_custom_command(TARGET editors_helper POST_BUILD
+        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/package_mac_helpers.sh"
+                "$<TARGET_FILE:editors_helper>"
+                "${CMAKE_CURRENT_BINARY_DIR}/helper-plists"
+                "${CORE_BUILDS_BINARY_PATH}"
+                "${EO_CORE_3RD_PARTY_INSTALL_DIR}/icu/lib"
+                "$<TARGET_BUNDLE_DIR:ascdocumentscore>"
+                "${CEF_ROOT}/$<IF:$<CONFIG:Debug>,Debug,Release>/Chromium Embedded Framework.framework"
+                "$<TARGET_FILE:kernel>"
+                "$<TARGET_FILE:kernel_network>"
+                "$<TARGET_FILE:graphics>"
+                "$<TARGET_FILE:PdfFile>"
+                "$<TARGET_FILE:XpsFile>"
+                "$<TARGET_FILE:DjVuFile>"
+                "$<TARGET_FILE:doctrenderer>"
+                "$<TARGET_FILE:DocxRenderer>"
+                "$<TARGET_FILE:UnicodeConverter>"
+                "$<TARGET_FILE:ooxmlsignature>"
+        COMMENT "Packaging CEF helper .app bundles"
     )
 endif()
