@@ -1998,10 +1998,10 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 
 				std::wstring sRequestPath = arguments[0]->GetStringValue();
 
-				boost::filesystem::wpath current_path = m_sLocalFileSrc;
-				boost::filesystem::wpath request_path = sRequestPath;
+				boost::filesystem::path current_path = m_sLocalFileSrc;
+				boost::filesystem::path request_path = sRequestPath;
 
-				boost::filesystem::wpath relativePath = boost::filesystem::relative(request_path, current_path.parent_path());
+				boost::filesystem::path relativePath = boost::filesystem::relative(request_path, current_path.parent_path());
 				std::wstring sRelativePath = relativePath.wstring();
 
 				if (sRelativePath.empty())
@@ -4427,10 +4427,10 @@ window.AscDesktopEditor.CallInFrame(\"" +
 					if (!NSFileDownloader::IsNeedDownload(sRequestPath) &&
 						!NSFile::CFileBinary::Exists(sRequestPath))
 					{
-						boost::filesystem::wpath current_path = m_sLocalFileSrc;
-						boost::filesystem::wpath request_path = sRequestPath;
+						boost::filesystem::path current_path = m_sLocalFileSrc;
+						boost::filesystem::path request_path = sRequestPath;
 
-						boost::filesystem::wpath absolute_path = boost::filesystem::absolute(request_path, current_path.parent_path());
+						boost::filesystem::path absolute_path = boost::filesystem::absolute(request_path, current_path.parent_path());
 						sRequestPath = absolute_path.wstring();
 
 						if (!NSFile::CFileBinary::Exists(sRequestPath))
