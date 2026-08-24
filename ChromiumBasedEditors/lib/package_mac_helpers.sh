@@ -39,3 +39,28 @@ make_bundle() {
 make_bundle "editors_helper"
 make_bundle "editors_helper (GPU)"
 make_bundle "editors_helper (Renderer)"
+
+# ---------------------------------------------------------------------------
+# Top-level siblings the Xcode "Rename symbols"/"Copy Library" scripts expect
+# directly under the staging root (OUT_DIR), not nested inside any bundle.
+# ---------------------------------------------------------------------------
+# ascdocumentscore.framework already builds directly into the CMake binary dir
+# by default, which OUT_DIR often *is* (e.g. when EO_CORE_OUTPUT_DIR is left at
+# its own default, "<build-dir>/package", its parent is the build dir itself).
+# Skip the copy when source and destination already coincide, rather than
+# rm -rf'ing the framework and then failing to copy the now-deleted source.
+ASCDOCUMENTSCORE_PARENT="$(cd "$(dirname "${ASCDOCUMENTSCORE_FRAMEWORK}")" && pwd -P)"
+OUT_DIR_REAL="$(cd "${OUT_DIR}" && pwd -P)"
+if [ "${ASCDOCUMENTSCORE_PARENT}" != "${OUT_DIR_REAL}" ]; then
+    rm -rf "${OUT_DIR}/$(basename "${ASCDOCUMENTSCORE_FRAMEWORK}")"
+    cp -R "${ASCDOCUMENTSCORE_FRAMEWORK}" "${OUT_DIR}/"
+fi
+
+# Symlinked, not copied: the real CEF framework is large (100s of MB), and this
+# avoids tripling that cost across the 3rd-party install dir, this staging dir,
+# and the final .app bundle Xcode's own script copies it into.
+ln -sfn "${CEF_FRAMEWORK_DIR}" "${OUT_DIR}/$(basename "${CEF_FRAMEWORK_DIR}")"
+
+# "converter" itself is NOT handled here — it's populated directly by
+# EO_CORE_OUTPUT_DIR (set to "<this staging root>/converter" at configure time),
+# via each converter library's own copy_artifacts_to_folder() call.

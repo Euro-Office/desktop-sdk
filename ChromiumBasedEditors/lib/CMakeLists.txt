@@ -13,7 +13,6 @@ set(CORE_BUILDS_PLATFORM_PREFIX "linux_64")
 
 include(${CORE_ROOT_DIR}/common.cmake)
 
-
 # Options mapped from QMake CONFIG and DEFINES
 option(DISABLE_PROTECTION "Disable protection feature" OFF)
 option(DISABLE_SIGNATURES "Disable signatures feature" OFF)
@@ -80,6 +79,15 @@ endif()
 
 if(NOT TARGET ooxmlsignature)
     add_subdirectory(${CORE_ROOT_DIR}/DesktopEditor/xmlsec/src ooxmlsignature)
+endif()
+
+# Pulls in x2t itself plus everything it needs that this project doesn't already
+# build (Fb2File, HtmlFile2, EpubFile, OFDFile, IWorkFile, HWPFile, StarMathConverter,
+# and x2t's OOXML/MS-binary format libs). Uses the same if(NOT TARGET ...) guard
+# pattern as everything above, so it safely skips kernel/PdfFile/etc. that are
+# already defined here rather than redefining them.
+if(NOT TARGET x2t)
+    add_subdirectory(${CORE_ROOT_DIR}/X2tConverter/build/cmake x2t)
 endif()
 
 
@@ -1267,11 +1275,18 @@ if(APPLE)
     configure_cef_helper_plist("editors_helper (GPU)" ".GPU")
     configure_cef_helper_plist("editors_helper (Renderer)" ".Renderer")
 
+    # EO_CORE_OUTPUT_DIR is where x2t/converters/ICU land (via each library's own
+    # copy_artifacts_to_folder() call) — point it at "<staging-root>/converter"
+    # when configuring so that lines up with what the Xcode scripts expect.
+    # The staging root itself (this bundle-packaging step's output) is that
+    # directory's parent.
+    get_filename_component(MAC_STAGE_DIR "${EO_CORE_OUTPUT_DIR}" DIRECTORY)
+
     add_custom_command(TARGET editors_helper POST_BUILD
         COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/package_mac_helpers.sh"
                 "$<TARGET_FILE:editors_helper>"
                 "${CMAKE_CURRENT_BINARY_DIR}/helper-plists"
-                "${CORE_BUILDS_BINARY_PATH}"
+                "${MAC_STAGE_DIR}"
                 "${EO_CORE_3RD_PARTY_INSTALL_DIR}/icu/lib"
                 "$<TARGET_BUNDLE_DIR:ascdocumentscore>"
                 "${CEF_ROOT}/$<IF:$<CONFIG:Debug>,Debug,Release>/Chromium Embedded Framework.framework"
