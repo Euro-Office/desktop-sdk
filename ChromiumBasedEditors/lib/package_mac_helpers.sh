@@ -6,9 +6,10 @@ PLIST_DIR="$2"
 OUT_DIR="$3"
 ICU_LIB_DIR="$4"
 ASCDOCUMENTSCORE_FRAMEWORK="$5"
-CEF_FRAMEWORK_DIR="$6"
-shift 6
-DYLIB_DEPS=("$@")   # kernel, kernel_network, graphics, PdfFile, XpsFile, DjVuFile, doctrenderer, DocxRenderer, UnicodeConverter, ooxmlsignature
+OOXMLSIGNATURE_FRAMEWORK="$6"
+CEF_FRAMEWORK_DIR="$7"
+shift 7
+DYLIB_DEPS=("$@")   # kernel, kernel_network, graphics, PdfFile, XpsFile, DjVuFile, doctrenderer, DocxRenderer, UnicodeConverter
 
 make_bundle() {
     local name="$1"
@@ -28,6 +29,8 @@ make_bundle() {
     cp -P "${ICU_LIB_DIR}"/*.dylib* "${sys_dir}/" 2>/dev/null || true
     rm -rf "${sys_dir}/$(basename "${ASCDOCUMENTSCORE_FRAMEWORK}")"
     cp -R "${ASCDOCUMENTSCORE_FRAMEWORK}" "${sys_dir}/"
+    rm -rf "${sys_dir}/$(basename "${OOXMLSIGNATURE_FRAMEWORK}")"
+    cp -R "${OOXMLSIGNATURE_FRAMEWORK}" "${sys_dir}/"
 
     # CEF's own framework binary hardcodes @executable_path/../Frameworks/... as its
     # install name (not @rpath), so each helper needs its own Contents/Frameworks/
@@ -54,6 +57,12 @@ OUT_DIR_REAL="$(cd "${OUT_DIR}" && pwd -P)"
 if [ "${ASCDOCUMENTSCORE_PARENT}" != "${OUT_DIR_REAL}" ]; then
     rm -rf "${OUT_DIR}/$(basename "${ASCDOCUMENTSCORE_FRAMEWORK}")"
     cp -R "${ASCDOCUMENTSCORE_FRAMEWORK}" "${OUT_DIR}/"
+fi
+
+OOXMLSIGNATURE_PARENT="$(cd "$(dirname "${OOXMLSIGNATURE_FRAMEWORK}")" && pwd -P)"
+if [ "${OOXMLSIGNATURE_PARENT}" != "${OUT_DIR_REAL}" ]; then
+    rm -rf "${OUT_DIR}/$(basename "${OOXMLSIGNATURE_FRAMEWORK}")"
+    cp -R "${OOXMLSIGNATURE_FRAMEWORK}" "${OUT_DIR}/"
 fi
 
 # Symlinked, not copied: the real CEF framework is large (100s of MB), and this
