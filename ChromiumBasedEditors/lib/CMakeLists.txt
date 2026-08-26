@@ -1289,6 +1289,7 @@ if(APPLE)
                 "${MAC_STAGE_DIR}"
                 "${EO_CORE_3RD_PARTY_INSTALL_DIR}/icu/lib"
                 "$<TARGET_BUNDLE_DIR:ascdocumentscore>"
+                "$<TARGET_BUNDLE_DIR:ooxmlsignature>"
                 "${CEF_ROOT}/$<IF:$<CONFIG:Debug>,Debug,Release>/Chromium Embedded Framework.framework"
                 "$<TARGET_FILE:kernel>"
                 "$<TARGET_FILE:kernel_network>"
@@ -1299,7 +1300,6 @@ if(APPLE)
                 "$<TARGET_FILE:doctrenderer>"
                 "$<TARGET_FILE:DocxRenderer>"
                 "$<TARGET_FILE:UnicodeConverter>"
-                "$<TARGET_FILE:ooxmlsignature>"
         COMMENT "Packaging CEF helper .app bundles"
     )
 endif()
