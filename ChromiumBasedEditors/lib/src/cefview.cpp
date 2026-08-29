@@ -7245,6 +7245,13 @@ void CCefView::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 			if (this->GetType() == cvwtEditor)
 			{
 				m_pInternal->m_oPrintData.m_eEditorType = ((CCefViewEditor*)this)->GetEditorType();
+
+				// macOS app never calls SetEditorType, detect presentation by file format
+				if (AscEditorType::etUndefined == m_pInternal->m_oPrintData.m_eEditorType &&
+					0 != (m_pInternal->m_oLocalInfo.m_oInfo.m_nCurrentFileFormat & AVS_OFFICESTUDIO_FILE_PRESENTATION))
+				{
+					m_pInternal->m_oPrintData.m_eEditorType = AscEditorType::etPresentation;
+				}
 			}
 
 			m_pInternal->m_oPrintData.Print_Start(m_pInternal->m_pManager->m_pInternal->m_pApplicationFonts);
