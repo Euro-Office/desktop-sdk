@@ -13,6 +13,7 @@ DYLIB_DEPS=("$@")   # kernel, kernel_network, graphics, PdfFile, XpsFile, DjVuFi
 
 make_bundle() {
     local name="$1"
+    local primary="$2"   # "1" for the one bundle that gets a real system/, "" for the rest
     local bundle="${OUT_DIR}/${name}.app"
     local macos_dir="${bundle}/Contents/MacOS"
     local sys_dir="${macos_dir}/system"
@@ -22,15 +23,25 @@ make_bundle() {
     cp "${HELPER_BIN}" "${macos_dir}/${name}"
     cp "${PLIST_DIR}/${name}-Info.plist" "${bundle}/Contents/Info.plist"
 
-    mkdir -p "${sys_dir}"
-    for dep in "${DYLIB_DEPS[@]}"; do
-        cp -f "${dep}" "${sys_dir}/"
-    done
-    cp -P "${ICU_LIB_DIR}"/*.dylib* "${sys_dir}/" 2>/dev/null || true
-    rm -rf "${sys_dir}/$(basename "${ASCDOCUMENTSCORE_FRAMEWORK}")"
-    cp -R "${ASCDOCUMENTSCORE_FRAMEWORK}" "${sys_dir}/"
-    rm -rf "${sys_dir}/$(basename "${OOXMLSIGNATURE_FRAMEWORK}")"
-    cp -R "${OOXMLSIGNATURE_FRAMEWORK}" "${sys_dir}/"
+    if [ "${primary}" = "1" ]; then
+        mkdir -p "${sys_dir}"
+        for dep in "${DYLIB_DEPS[@]}"; do
+            cp -f "${dep}" "${sys_dir}/"
+        done
+        cp -P "${ICU_LIB_DIR}"/*.dylib* "${sys_dir}/" 2>/dev/null || true
+        rm -rf "${sys_dir}/$(basename "${ASCDOCUMENTSCORE_FRAMEWORK}")"
+        cp -R "${ASCDOCUMENTSCORE_FRAMEWORK}" "${sys_dir}/"
+        rm -rf "${sys_dir}/$(basename "${OOXMLSIGNATURE_FRAMEWORK}")"
+        cp -R "${OOXMLSIGNATURE_FRAMEWORK}" "${sys_dir}/"
+    else
+        # Each helper resolves @executable_path/system independently (its own
+        # process, own rpath), but there's no reason to triple the ~100MB of
+        # ICU/kernel/graphics/etc dylibs on disk when a relative symlink back
+        # to the primary helper's copy resolves identically at runtime - this
+        # is plain dylib rpath lookup, not a .framework bundle Xcode's
+        # embedded-framework validator scrutinizes the way CEF's is.
+        ln -sfn "../../../editors_helper.app/Contents/MacOS/system" "${sys_dir}"
+    fi
 
     # CEF's own framework binary hardcodes @executable_path/../Frameworks/... as its
     # install name (not @rpath), so each helper needs its own Contents/Frameworks/
@@ -39,9 +50,9 @@ make_bundle() {
     ln -sfn "${CEF_FRAMEWORK_DIR}" "${frameworks_dir}/$(basename "${CEF_FRAMEWORK_DIR}")"
 }
 
-make_bundle "editors_helper"
-make_bundle "editors_helper (GPU)"
-make_bundle "editors_helper (Renderer)"
+make_bundle "editors_helper" "1"
+make_bundle "editors_helper (GPU)" ""
+make_bundle "editors_helper (Renderer)" ""
 
 # ---------------------------------------------------------------------------
 # Top-level siblings the Xcode "Rename symbols"/"Copy Library" scripts expect
