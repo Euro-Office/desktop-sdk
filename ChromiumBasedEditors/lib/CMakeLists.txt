@@ -13,7 +13,6 @@ set(CORE_BUILDS_PLATFORM_PREFIX "linux_64")
 
 include(${CORE_ROOT_DIR}/common.cmake)
 
-
 # Options mapped from QMake CONFIG and DEFINES
 option(DISABLE_PROTECTION "Disable protection feature" OFF)
 option(DISABLE_SIGNATURES "Disable signatures feature" OFF)
@@ -82,6 +81,15 @@ if(NOT TARGET ooxmlsignature)
     add_subdirectory(${CORE_ROOT_DIR}/DesktopEditor/xmlsec/src ooxmlsignature)
 endif()
 
+# Pulls in x2t itself plus everything it needs that this project doesn't already
+# build (Fb2File, HtmlFile2, EpubFile, OFDFile, IWorkFile, HWPFile, StarMathConverter,
+# and x2t's OOXML/MS-binary format libs). Uses the same if(NOT TARGET ...) guard
+# pattern as everything above, so it safely skips kernel/PdfFile/etc. that are
+# already defined here rather than redefining them.
+if(NOT TARGET x2t)
+    add_subdirectory(${CORE_ROOT_DIR}/X2tConverter/build/cmake x2t)
+endif()
+
 
 #find_package(hunspell REQUIRED)
 find_path(HUNSPELL_INCLUDE_DIR NAMES hunspell/hunspell.h REQUIRED)
@@ -98,6 +106,14 @@ if(HUNSPELL_INCLUDE_DIR AND HUNSPELL_LIBRARY)
 endif()
 
 add_library(ascdocumentscore SHARED)
+if(APPLE)
+    set_target_properties(ascdocumentscore PROPERTIES
+        FRAMEWORK TRUE
+        MACOSX_FRAMEWORK_IDENTIFIER asc.euro-office.ascdocumentscore
+        MACOSX_FRAMEWORK_BUNDLE_VERSION 1.0
+        MACOSX_FRAMEWORK_SHORT_VERSION_STRING 1.0
+    )
+endif()
 
 set_default_options(ascdocumentscore)
 
@@ -1112,6 +1128,13 @@ target_link_directories(ascdocumentscore PRIVATE "${CORE_BUILDS_LIBRARIES_PATH}"
     $<$<NOT:$<CONFIG:Debug>>:${CEF_ROOT}/Release>
 )
 
+if(APPLE)
+    target_link_options(ascdocumentscore PRIVATE
+        $<$<CONFIG:Debug>:-F${CEF_ROOT}/Debug>
+        $<$<NOT:$<CONFIG:Debug>>:-F${CEF_ROOT}/Release>
+    )
+endif()
+
 # Boost and ICU
 target_link_libraries(ascdocumentscore PUBLIC
                     hunspell::libhunspell
@@ -1133,7 +1156,7 @@ target_link_libraries(ascdocumentscore PUBLIC
 
 if(WIN32)
     target_compile_definitions(ascdocumentscore PRIVATE NOMINMAX _WINDOWS WIN32)
-    target_link_directories(ascdocumentscore PRIVATE "${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
+    # target_link_directories(ascdocumentscore PRIVATE "${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build") # dead code?
     target_link_libraries(ascdocumentscore PRIVATE
         libcef wininet dnsapi version msimg32 ws2_32 usp10 psapi
         dbghelp winmm shlwapi kernel32 gdi32 winspool comdlg32
@@ -1142,7 +1165,7 @@ if(WIN32)
         Urlmon OpenGL32 Crypt32 Imm32
     )
 elseif(APPLE)
-    target_link_options(ascdocumentscore PRIVATE -F"${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
+    # target_link_options(ascdocumentscore PRIVATE -F"${CORE_ROOT_DIR}/Common/3dParty/cef/${CORE_BUILDS_PLATFORM_PREFIX}/build")
     target_link_libraries(ascdocumentscore PRIVATE
         "-framework Security"
         "-framework AVFoundation"
@@ -1211,7 +1234,7 @@ if(WIN32)
 
     target_compile_definitions(editors_helper PRIVATE WIN32 _WINDOWS)
 
-elseif(UNIX AND NOT APPLE)
+elseif(LINUX)
     target_compile_definitions(editors_helper PRIVATE _LINUX LINUX OS_LINUX _X11)
     target_link_options(editors_helper PRIVATE 
         "-Wl,-rpath,$ORIGIN" 
@@ -1221,5 +1244,62 @@ elseif(UNIX AND NOT APPLE)
     # Extra Linux dependencies defined in ascdocumentscore_helper.pro
     target_link_libraries(editors_helper PRIVATE 
         graphics kernel kernel_network UnicodeConverter cef
+    )
+elseif(APPLE)
+    target_link_options(editors_helper PRIVATE
+        $<$<CONFIG:Debug>:-F${CEF_ROOT}/Debug>
+        $<$<NOT:$<CONFIG:Debug>>:-F${CEF_ROOT}/Release>
+    )
+    target_link_libraries(editors_helper PRIVATE
+        "-framework Security"
+        "-framework AVFoundation"
+        "-framework CoreMedia"
+        "-framework Carbon"
+        "-framework AppKit"
+        "-framework OpenGL"
+        "-framework \"Chromium Embedded Framework\""
+        graphics kernel kernel_network UnicodeConverter
+    )
+endif()
+
+if(APPLE)
+    function(configure_cef_helper_plist bundle_name bundle_id_suffix)
+        set(EXECUTABLE_NAME "${bundle_name}")
+        set(PRODUCT_NAME "${bundle_name}")
+        set(BUNDLE_ID_SUFFIX "${bundle_id_suffix}")
+        configure_file("${CEF_SRC_PATH}/tests/cefsimple/mac/helper-Info.plist"
+                       "${CMAKE_CURRENT_BINARY_DIR}/helper-plists/${bundle_name}-Info.plist")
+    endfunction()
+
+    configure_cef_helper_plist("editors_helper" "")
+    configure_cef_helper_plist("editors_helper (GPU)" ".GPU")
+    configure_cef_helper_plist("editors_helper (Renderer)" ".Renderer")
+
+    # EO_CORE_OUTPUT_DIR is where x2t/converters/ICU land (via each library's own
+    # copy_artifacts_to_folder() call) — point it at "<staging-root>/converter"
+    # when configuring so that lines up with what the Xcode scripts expect.
+    # The staging root itself (this bundle-packaging step's output) is that
+    # directory's parent.
+    get_filename_component(MAC_STAGE_DIR "${EO_CORE_OUTPUT_DIR}" DIRECTORY)
+
+    add_custom_command(TARGET editors_helper POST_BUILD
+        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/package_mac_helpers.sh"
+                "$<TARGET_FILE:editors_helper>"
+                "${CMAKE_CURRENT_BINARY_DIR}/helper-plists"
+                "${MAC_STAGE_DIR}"
+                "${EO_CORE_3RD_PARTY_INSTALL_DIR}/icu/lib"
+                "$<TARGET_BUNDLE_DIR:ascdocumentscore>"
+                "$<TARGET_BUNDLE_DIR:ooxmlsignature>"
+                "${CEF_ROOT}/$<IF:$<CONFIG:Debug>,Debug,Release>/Chromium Embedded Framework.framework"
+                "$<TARGET_FILE:kernel>"
+                "$<TARGET_FILE:kernel_network>"
+                "$<TARGET_FILE:graphics>"
+                "$<TARGET_FILE:PdfFile>"
+                "$<TARGET_FILE:XpsFile>"
+                "$<TARGET_FILE:DjVuFile>"
+                "$<TARGET_FILE:doctrenderer>"
+                "$<TARGET_FILE:DocxRenderer>"
+                "$<TARGET_FILE:UnicodeConverter>"
+        COMMENT "Packaging CEF helper .app bundles"
     )
 endif()
