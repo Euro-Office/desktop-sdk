@@ -1200,6 +1200,11 @@ add_executable(editors_helper "${CMAKE_CURRENT_SOURCE_DIR}/helper_main.cpp" ${CO
 
 set_default_options(editors_helper)
 
+if(WIN32)
+    set_target_properties(editors_helper PROPERTIES WIN32_EXECUTABLE TRUE)
+    target_link_options(editors_helper PRIVATE "/ENTRY:mainCRTStartup")
+endif()
+
 add_officeutils(editors_helper ${CORE_ROOT_DIR}/OfficeUtils)
 
 target_link_directories(editors_helper PRIVATE
