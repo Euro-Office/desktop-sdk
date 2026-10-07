@@ -478,6 +478,10 @@ void QCefView::focusOutEvent(QFocusEvent* e)
 	// Qt to re-run focus resolution. Always propagate the focus-out to
 	// CEF so SetFocus(false)/SetFocus(true) stay in sync with Qt's own
 	// focus transitions.
+	// Wayland only: windowed CEF (X11/Windows) deliberately never forwarded
+	// focus-out before this PR; keep that behavior unchanged there.
+	if (!m_isWayland)
+		return;
 	if (m_pCefView)
 		m_pCefView->focus(false);
 }
@@ -633,6 +637,15 @@ double QCefView::GetUIScalePercentage()
 		// than this simply corrects on the next tick as it does today.
 		if (m_uiScaleSettleClock.isValid() && m_uiScaleSettleClock.elapsed() < kUIScaleSettleMs)
 			return -1.0;
+
+		// Honor the user's "Interface scaling" setting, same as the native
+		// chrome does via QDpiChecker::GetMonitorDpi().
+		if (CAscApplicationManager::GetDpiChecker())
+		{
+			double dForce = CAscApplicationManager::GetDpiChecker()->GetForceScale(NULL, NULL);
+			if (dForce > 0)
+				return dForce * 100.0;
+		}
 
 		// Read from the view itself: measured against window() during the
 		// investigation, the two track each other exactly (both 2.0 during

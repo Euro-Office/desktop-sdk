@@ -401,12 +401,11 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 #endif
 
 #if defined(_LINUX) && !defined(_MAC)
+	// desktop-apps' main() normalizes QT_QPA_PLATFORM to exactly "wayland" or
+	// "xcb" before Qt starts; key off that only, so CEF and QCefView agree.
 	const char* qpaPlatform = getenv("QT_QPA_PLATFORM");
-	const char* xdgSession = getenv("XDG_SESSION_TYPE");
-	if ((qpaPlatform && std::string(qpaPlatform) == "wayland") ||
-	    (xdgSession && std::string(xdgSession) == "wayland")) {
+	if (qpaPlatform && std::string(qpaPlatform) == "wayland")
 		settings.windowless_rendering_enabled = true;
-	}
 #endif
 
 	// Populate the settings based on command line arguments.
@@ -658,12 +657,7 @@ void CApplicationCEF::Prepare(int argc, char* argv[])
 {
 #if defined(_LINUX) && !defined(_MAC)
 	const char* qpaPlatform = getenv("QT_QPA_PLATFORM");
-	const char* xdgSession = getenv("XDG_SESSION_TYPE");
-	bool isWayland = false;
-	if ((qpaPlatform && std::string(qpaPlatform) == "wayland") ||
-	    (xdgSession && std::string(xdgSession) == "wayland")) {
-		isWayland = true;
-	}
+	bool isWayland = (qpaPlatform && std::string(qpaPlatform) == "wayland");
 	if (!isWayland) {
 		NSSystem::SetEnvValueA("GDK_BACKEND", "x11");
 	}

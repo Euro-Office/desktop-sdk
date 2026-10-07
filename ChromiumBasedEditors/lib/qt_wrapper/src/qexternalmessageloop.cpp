@@ -34,7 +34,7 @@ QExternalMessageLoop::QExternalMessageLoop(CAscApplicationManager* manager)
 	QObject::connect(&m_timer, SIGNAL(timeout()), this, SLOT(slot_onTimeout()), Qt::QueuedConnection);
 	QObject::connect(this, SIGNAL(onExecuteCommand(void*)), this, SLOT(slot_onExecuteCommand(void*)), Qt::QueuedConnection);
 
-	if (QGuiApplication::platformName() == "wayland" || qgetenv("XDG_SESSION_TYPE").toLower().contains("wayland")) {
+	if (QGuiApplication::platformName() == "wayland") {
 		// On Wayland, the Qt event dispatcher can go into deep sleep when there is no user input,
 		// stalling QueuedConnection events and starving the CEF message pump.
 		// A 16ms heartbeat timer forces the event loop to wake up and process CEF queues at 60Hz.

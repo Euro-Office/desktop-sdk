@@ -22,6 +22,7 @@
  * terms at http://creativecommons.org/licenses/by-sa/4.0/legalcode
  *
  */
+#include <cstdlib>
 #include "./external_process_with_childs.h"
 
 #include "./client_renderer.h"
@@ -4139,6 +4140,19 @@ window.AscDesktopEditor.CallInFrame(\"" +
 			}
 			else if (name == "GetSupportedScaleValues")
 			{
+#if defined(_LINUX) && !defined(_MAC)
+				// Wayland (CEF OSR): the host scales the page via CEF page zoom.
+				// An empty list disables sdkjs'/plugins' CSS-zoom correction
+				// (see sdkjs common/device_scale.js), so they use
+				// window.devicePixelRatio as-is. QT_QPA_PLATFORM is normalized
+				// by the host before CEF starts and inherited by this process.
+				const char* sQpa = getenv("QT_QPA_PLATFORM");
+				if (sQpa && std::string(sQpa) == "wayland")
+				{
+					retval = CefV8Value::CreateArray(0);
+					return true;
+				}
+#endif
 #define SCALES_COUNT 13
 				const double scales[SCALES_COUNT] = {1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.5, 4, 4.5, 5};
 				retval = CefV8Value::CreateArray(SCALES_COUNT);
