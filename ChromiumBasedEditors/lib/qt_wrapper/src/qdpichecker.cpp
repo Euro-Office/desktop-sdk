@@ -29,14 +29,41 @@
 #include <QApplication>
 #include "./../include/qcefview.h"
 
-#ifdef _LINUX
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#include <QtGui/private/qtx11extras_p.h>
-#else
-#include <QX11Info>
-#endif
-#endif
 
+#if defined(_LINUX) && !defined(_MAC)
+#include <QGuiApplication>
+#include <X11/Xlib.h>
+#include <cstdlib>
+
+namespace {
+// Restores the X11 DPI detection that was lost when the QX11Info private
+// header was dropped. QX11Info::appDpiX/Y reflected the desktop's font
+// scaling (the Xft.dpi X resource); with AA_Use96Dpi active this is the
+// only place the app learns the session's real scale on X11.
+// Falls back to the core-protocol DPI from the physical screen size.
+int getX11SessionDpi()
+{
+    static int s_dpi = -2;              // -2 = not queried yet
+    if (s_dpi != -2)
+        return s_dpi;
+    s_dpi = 0;
+    if (QGuiApplication::platformName() != QLatin1String("xcb"))
+        return s_dpi;                   // inert on Wayland
+    if (Display* dpy = XOpenDisplay(NULL)) {
+        if (char* v = XGetDefault(dpy, "Xft", "dpi"))
+            s_dpi = (int)(atof(v) + 0.5);
+        if (s_dpi <= 0) {
+            int scr = DefaultScreen(dpy);
+            int wmm = DisplayWidthMM(dpy, scr);
+            if (wmm > 0)
+                s_dpi = (int)(DisplayWidth(dpy, scr) * 25.4 / wmm + 0.5);
+        }
+        XCloseDisplay(dpy);
+    }
+    return s_dpi;
+}
+}
+#endif
 
 
 QDpiChecker::QDpiChecker(CAscApplicationManager* pManager) : CAscDpiChecker(pManager)
@@ -72,20 +99,48 @@ int QDpiChecker::GetMonitorDpi(int nScreenNumber, unsigned int* dx, unsigned int
 	int nDpiX = _screen->physicalDotsPerInchX();
 	int nDpiY = _screen->physicalDotsPerInchY();
 
-#ifdef _LINUX
-	if (QX11Info::isPlatformX11())
+#if defined(_LINUX) && !defined(_MAC)
+	int _x11_dpi = getX11SessionDpi();
+	if (_x11_dpi > 0)
 	{
-		int _x11_dpix = QX11Info::appDpiX(nScreenNumber),
-				_x11_dpiy = QX11Info::appDpiY(nScreenNumber);
-
-		if (nDpiX < _x11_dpix) nDpiX = _x11_dpix;
-		if (nDpiY < _x11_dpiy) nDpiY = _x11_dpiy;
+		if (nDpiX < _x11_dpi) nDpiX = _x11_dpi;
+		if (nDpiY < _x11_dpi) nDpiY = _x11_dpi;
+	}
+	else if (QGuiApplication::platformName() == QLatin1String("wayland"))
+	{
+		// getX11SessionDpi() is inert on Wayland (no Xft.dpi equivalent),
+		// and physicalDotsPerInchX/Y() above is flat regardless of the
+		// compositor's actual output scale -- derive an equivalent DPI
+		// from devicePixelRatio() instead, matching how CEF content is
+		// already scaled (QCefView::GetUIScalePercentage()).
+		int _wayland_dpi = (int)(96.0 * _screen->devicePixelRatio() + 0.5);
+		if (nDpiX < _wayland_dpi) nDpiX = _wayland_dpi;
+		if (nDpiY < _wayland_dpi) nDpiY = _wayland_dpi;
 	}
 #endif
 
-
 	QSize size = _screen->size();
-	if (size.width() <= 1600 && size.height() <= 900)
+	// This 96-DPI clamp for small (<=1600x900) screens has flip-flopped
+	// without documented rationale: introduced 2021-05-31 forcing 192 DPI
+	// (Ascensio/ONLYOFFICE tracker bug 50621 -- we don't have access to
+	// that tracker, so no detail beyond the bug number, presumably to fix
+	// small-but-legitimately-HiDPI laptop panels being misdetected as
+	// low-DPI), then flipped to 96 three days later (tracker bug 50711,
+	// again no access/detail -- likely the 192 fix broke small *actually*-
+	// low-DPI screens, e.g. VMs/badly configured X sessions misreporting
+	// DPI, and 96 was chosen as the safer default rather than finding a
+	// real discriminator between the two cases). Left as-is for xcb/
+	// legacy: no test hardware or bug report detail available to know
+	// which small-screen case regresses if changed, and it's unrelated to
+	// the Wayland work below.
+	//
+	// It does, however, stomp the Wayland devicePixelRatio()-derived DPI
+	// added above on any Wayland output <=1600x900, silently discarding a
+	// real compositor-reported scale in favor of this guess -- so carve
+	// Wayland out of the clamp, since there we have an actual scale
+	// signal to trust instead of guessing from resolution alone.
+	bool bSkipSmallScreenClampWayland = QGuiApplication::platformName() == QLatin1String("wayland");
+	if (!bSkipSmallScreenClampWayland && size.width() <= 1600 && size.height() <= 900)
 	{
 		nDpiX = 96;
 		nDpiY = 96;
@@ -121,6 +176,20 @@ int QDpiChecker::GetWidgetDpi(QWidget* w, unsigned int* dx, unsigned int* dy)
 		*dy = 96;
 		return 0;
 	}
+
+	// On Wayland, the compositor's fractional-scale answer for a widget's own
+	// surface can arrive after QScreen::devicePixelRatio() was last queried,
+	// leaving the screen-level value stuck at the rounded integer while
+	// w->devicePixelRatio() has already self-corrected to the fractional
+	// value. Read the widget's own ratio directly in that case.
+	if (QGuiApplication::platformName() == QLatin1String("wayland"))
+	{
+		double dRatio = w->devicePixelRatio();
+		*dx = (unsigned int)(96.0 * dRatio + 0.5);
+		*dy = *dx;
+		return 0;
+	}
+
 	int nScreenNumber = QApplication::screens().indexOf(w->screen());
 	return GetMonitorDpi(nScreenNumber, dx, dy);
 }

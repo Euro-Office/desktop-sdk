@@ -400,6 +400,14 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 	settings.no_sandbox = true;
 #endif
 
+#if defined(_LINUX) && !defined(_MAC)
+	// desktop-apps' main() normalizes QT_QPA_PLATFORM to exactly "wayland" or
+	// "xcb" before Qt starts; key off that only, so CEF and QCefView agree.
+	const char* qpaPlatform = getenv("QT_QPA_PLATFORM");
+	if (qpaPlatform && std::string(qpaPlatform) == "wayland")
+		settings.windowless_rendering_enabled = true;
+#endif
+
 	// Populate the settings based on command line arguments.
 #if defined(CEF_VERSION_ABOVE_102)
 	m_pInternal->context = std::make_unique<client::MainContextImpl>(command_line, false);
@@ -471,6 +479,7 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 
 	settings.persist_session_cookies = true;
 
+
 	// Initialize CEF.
 	m_pInternal->context->Initialize(main_args, settings, m_pInternal->m_app.get(), NULL);
 	asc_scheme::InitScheme(pManager);
@@ -488,7 +497,10 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 	XSetIOErrorHandler(XIOErrorHandlerImpl);
 
 	Display* pDisplay = (Display*)CefGetXDisplay();
-	XSynchronize(pDisplay, True);
+	if (pDisplay)
+	{
+		XSynchronize(pDisplay, True);
+	}
 #endif
 
 	CPluginsManager oPlugins;
@@ -644,7 +656,11 @@ bool CApplicationCEF::IsChromiumSubprocess()
 void CApplicationCEF::Prepare(int argc, char* argv[])
 {
 #if defined(_LINUX) && !defined(_MAC)
-	NSSystem::SetEnvValueA("GDK_BACKEND", "x11");
+	const char* qpaPlatform = getenv("QT_QPA_PLATFORM");
+	bool isWayland = (qpaPlatform && std::string(qpaPlatform) == "wayland");
+	if (!isWayland) {
+		NSSystem::SetEnvValueA("GDK_BACKEND", "x11");
+	}
 #endif
 }
 

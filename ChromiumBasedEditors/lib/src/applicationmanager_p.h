@@ -266,12 +266,12 @@ namespace NSCommon
 
 namespace NSArgumentList
 {
-	static int64 GetInt64(CefRefPtr<CefListValue> args, const int& index)
+	static int64_t GetInt64(CefRefPtr<CefListValue> args, const int& index)
 	{
 		std::string tmp = args->GetString(index).ToString();
-		return (int64)std::stoll(tmp);
+		return (int64_t)std::stoll(tmp);
 	}
-	static bool SetInt64(CefRefPtr<CefListValue> args, const int& index, const int64& value)
+	static bool SetInt64(CefRefPtr<CefListValue> args, const int& index, const int64_t& value)
 	{
 		std::string tmp = std::to_string(value);
 		return args->SetString(index, tmp);
@@ -482,15 +482,15 @@ namespace NSRequest
 		}
 
 		void OnUploadProgress(CefRefPtr<CefURLRequest> request,
-							  int64 current,
-							  int64 total) override
+							  int64_t current,
+							  int64_t total) override
 		{
 			m_upload_total = total;
 		}
 
 		void OnDownloadProgress(CefRefPtr<CefURLRequest> request,
-								int64 current,
-								int64 total) override
+								int64_t current,
+								int64_t total) override
 		{
 			m_download_total = total;
 		}
@@ -535,8 +535,8 @@ namespace NSRequest
 		}
 
 	private:
-		int64 m_upload_total;
-		int64 m_download_total;
+		int64_t m_upload_total;
+		int64_t m_download_total;
 		std::string m_download_data;
 
 	private:

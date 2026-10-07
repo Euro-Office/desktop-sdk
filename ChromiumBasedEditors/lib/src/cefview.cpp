@@ -149,6 +149,7 @@ protected:
 		virtual bool IsInProgress() { return false; }
 		virtual bool IsComplete() { return false; }
 		virtual bool IsCanceled() { return true; }
+		virtual bool IsInterrupted() { return false; }
 		virtual int64 GetCurrentSpeed() { return 0; }
 		virtual int GetPercentComplete() { return 0; }
 		virtual int64 GetTotalBytes() { return 0; }
@@ -931,6 +932,14 @@ public:
 	// нужно ли при move/resize проверять deviceScale
 	bool m_bIsWindowsCheckZoom;
 
+	// Last UI-scale factor actually applied via SetZoomLevel/WasResized in
+	// UpdateUIScalePercentage(). -1 means "never applied yet". Lets that
+	// function skip re-applying an unchanged zoom on every poll-timer tick
+	// (it fires every 1s regardless of whether the scale moved) without
+	// skipping the per-frame JS (re-)injection below it, which a freshly
+	// loaded frame still needs even when the scale itself hasn't changed.
+	double m_dLastAppliedUIScalePercentage;
+
 	// настройки для репортера
 	bool m_bIsReporter; // репортер
 	int m_nReporterParentId; // репортер
@@ -1079,6 +1088,7 @@ public:
 
 		m_dDeviceScale = 1.0;
 		m_bIsWindowsCheckZoom = false;
+		m_dLastAppliedUIScalePercentage = -1.0;
 
 		m_bIsReporter = false;
 		m_nReporterParentId = -1;
@@ -1780,7 +1790,46 @@ private:
 	IMPLEMENT_REFCOUNTING(CCefResizeTask);
 };
 
-class CAscClientHandler : public client::ClientHandler, public CCookieFoundCallback, public client::ClientHandler::Delegate, public CefDialogHandler
+// X11/X.h #defines Success to 0, which clashes with
+// CefMessageRouterBrowserSide::Callback::Success below.
+#ifdef Success
+#undef Success
+#endif
+
+// Handles the "clipboard_read" query sent via window.cefQuery from
+// sdkjs/common/clipboard_base.js on paste. Unlike the copy direction
+// ("clipboard_write", a fire-and-forget CefProcessMessage -- see
+// OnProcessMessageReceived below), paste needs the *current* clipboard
+// contents back, so it goes through CEF's message-router query/callback
+// mechanism instead: a real request/response round trip.
+class CClipboardQueryHandler : public CefMessageRouterBrowserSide::Handler
+{
+public:
+	explicit CClipboardQueryHandler(CCefView* pParent) : m_pParent(pParent) {}
+
+	virtual bool OnQuery(CefRefPtr<CefBrowser> browser,
+						 CefRefPtr<CefFrame> frame,
+						 int64 query_id,
+						 const CefString& request,
+						 bool persistent,
+						 CefRefPtr<Callback> callback) OVERRIDE
+	{
+		if (request.ToString() != "clipboard_read")
+			return false;
+
+		std::wstring sJson;
+		if (m_pParent && m_pParent->GetWidgetImpl())
+			sJson = m_pParent->GetWidgetImpl()->GetClipboardData();
+
+		callback->Success(sJson);
+		return true;
+	}
+
+private:
+	CCefView* m_pParent;
+};
+
+class CAscClientHandler : public client::ClientHandler, public CCookieFoundCallback, public client::ClientHandler::Delegate, public CefDialogHandler, public CefRenderHandler
 {
 public:
 	class CAscCefJSDialogHandler : public CefJSDialogHandler
@@ -1830,6 +1879,130 @@ public:
 	};
 
 public:
+	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() OVERRIDE
+	{
+		return this;
+	}
+
+	virtual void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) OVERRIDE
+	{
+		if (m_pParent && m_pParent->GetWidgetImpl()) {
+			// EXPERIMENTAL (dsf-1.0-osr): report device_scale_factor as 1.0
+			// (see GetScreenInfo below), so CEF's internal buffer = rect *
+			// dsf collapses to buffer = rect. To keep the same physical
+			// buffer resolution as before (cef_width/height are DIPs), we
+			// must report the PHYSICAL pixel size here directly instead of
+			// DIPs -- this makes CEF's CSS pixel grid equal to physical
+			// pixels 1:1, eliminating the internal OSR zoom quirk at the
+			// source instead of compensating for it in JS.
+			double scale = m_pParent->GetWidgetImpl()->GetDeviceScaleFactor();
+			rect.x = 0;
+			rect.y = 0;
+			rect.width = (int)(m_pParent->GetWidgetImpl()->cef_width * scale);
+			rect.height = (int)(m_pParent->GetWidgetImpl()->cef_height * scale);
+			if (rect.width == 0) rect.width = 1;
+			if (rect.height == 0) rect.height = 1;
+		} else {
+			rect.x = rect.y = 0;
+			rect.width = rect.height = 1;
+		}
+	}
+
+	virtual bool GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo& screen_info) OVERRIDE
+	{
+		if (m_pParent && m_pParent->GetWidgetImpl()) {
+			double scale = m_pParent->GetWidgetImpl()->GetDeviceScaleFactor();
+			// EXPERIMENTAL (dsf-1.0-osr): always report 1.0 so CEF applies no
+			// internal CSS zoom. See GetViewRect for the matching physical-pixel
+			// rect size this requires.
+			screen_info.device_scale_factor = 1.0f;
+			screen_info.rect.x = 0;
+			screen_info.rect.y = 0;
+			screen_info.rect.width = (int)(m_pParent->GetWidgetImpl()->cef_width * scale);
+			screen_info.rect.height = (int)(m_pParent->GetWidgetImpl()->cef_height * scale);
+			if (screen_info.rect.width == 0) screen_info.rect.width = 1;
+			if (screen_info.rect.height == 0) screen_info.rect.height = 1;
+			screen_info.available_rect = screen_info.rect;
+			return true;
+		}
+		return false;
+	}
+
+	virtual bool GetScreenPoint(CefRefPtr<CefBrowser> browser,
+	                            int viewX, int viewY,
+	                            int& screenX, int& screenY) OVERRIDE
+	{
+		if (m_pParent && m_pParent->GetWidgetImpl()) {
+			int widgetScreenX = 0, widgetScreenY = 0;
+			m_pParent->GetWidgetImpl()->GetWidgetScreenPosition(widgetScreenX, widgetScreenY);
+			// EXPERIMENTAL (dsf-1.0-osr): with device_scale_factor reported as
+			// 1.0, CEF's CSS-pixel space equals physical pixels, the same
+			// space GetWidgetScreenPosition() already returns. No DIP/physical
+			// conversion needed on either term.
+			screenX = widgetScreenX + viewX;
+			screenY = widgetScreenY + viewY;
+
+			return true;
+		}
+		return false;
+	}
+
+	virtual void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height) OVERRIDE
+	{
+		// PET_POPUP (native <select>, color pickers, ...) is a separate small
+		// buffer; feeding it here would replace the whole view's frame.
+		// Popups aren't composited yet -- ignore them.
+		if (type != PET_VIEW)
+			return;
+		if (m_pParent && m_pParent->GetWidgetImpl()) {
+			m_pParent->GetWidgetImpl()->OnPaint(buffer, width, height);
+		}
+	}
+
+	// CefDisplayHandler. In OSR mode (Wayland) there is no CEF-owned native
+	// window to set the OS cursor for us, so bridge the requested shape to
+	// the platform widget ourselves. Returning true tells CEF the app has
+	// handled it, so it will not try (and fail) to set a cursor itself.
+	//
+	// In windowed mode (X11/xcb, Windows) CEF owns a real native child
+	// window and sets the OS cursor on it directly when this returns
+	// false -- that's the only window actually under the pointer, so a
+	// setCursor() call on the Qt QCefView ancestor here has no visible
+	// effect. This handler used to intercept and return true
+	// unconditionally on every platform, which told CEF's windowed mode
+	// to skip its own cursor-setting everywhere, freezing the cursor at
+	// its default arrow across all windowed platforms: no I-beam over
+	// text, no resize handles, no row/column select arrows, no move
+	// cursor -- anywhere in the editor content.
+	virtual bool OnCursorChange(CefRefPtr<CefBrowser> browser,
+								CefCursorHandle cursor,
+								cef_cursor_type_t type,
+								const CefCursorInfo& custom_cursor_info) OVERRIDE
+	{
+		if (m_pParent && m_pParent->GetWidgetImpl() && m_pParent->GetWidgetImpl()->IsWayland()) {
+			// A CSS `cursor: url(...)` value (used throughout sdkjs for
+			// things like the spreadsheet's column/row resize-divider hover
+			// cursor, table-select cursors, etc, registered via
+			// g_oHtmlCursor.register in editorscommon.js) is reported as
+			// CT_CUSTOM with the actual bitmap in custom_cursor_info, not as
+			// one of the named enum values -- SetCursorType only knows the
+			// named ones, so route this to the bitmap-based bridge instead.
+			if (CT_CUSTOM == type && custom_cursor_info.buffer) {
+				m_pParent->GetWidgetImpl()->SetCursorCustom(
+					custom_cursor_info.buffer,
+					custom_cursor_info.size.width,
+					custom_cursor_info.size.height,
+					custom_cursor_info.hotspot.x,
+					custom_cursor_info.hotspot.y);
+			} else {
+				m_pParent->GetWidgetImpl()->SetCursorType((int)type);
+			}
+			return true;
+		}
+		return false;
+	}
+
+public:
 	CCefView* m_pParent;
 	bool m_bIsLoaded;
 
@@ -1841,6 +2014,8 @@ public:
 
 	bool m_bIsEditorTypeSet;
 	int m_nBeforeBrowserCounter;
+
+	bool m_bClipboardHandlerRegistered;
 
 	CefRefPtr<CefBrowser> browser_;
 	int browser_id_;
@@ -1875,6 +2050,8 @@ public:
 		m_bIsEditorTypeSet = false;
 		m_nBeforeBrowserCounter = 0;
 
+		m_bClipboardHandlerRegistered = false;
+
 		browser_id_ = 0;
 
 		m_pCefJSDialogHandler = new CAscCefJSDialogHandler();
@@ -1883,6 +2060,31 @@ public:
 
 	virtual ~CAscClientHandler()
 	{
+	}
+
+	// message_router_ (protected, in the base client::ClientHandler) is only
+	// constructed lazily, inside OnAfterCreated() below, once a browser
+	// actually exists -- it is still null right after CAscClientHandler's own
+	// construction. Call this only from OnAfterCreated(), after the base
+	// class call that creates it; m_bClipboardHandlerRegistered guards
+	// against OnAfterCreated() firing again for popup windows.
+	void RegisterClipboardQueryHandler()
+	{
+		if (m_bClipboardHandlerRegistered || !message_router_)
+			return;
+		m_bClipboardHandlerRegistered = true;
+
+		// The native clipboard bridge exists solely to work around CEF's own
+		// OS clipboard integration being unusable in Wayland OSR mode (see
+		// CClipboardQueryHandler's own comment). In windowed mode (X11,
+		// Windows) CEF's native window already owns real clipboard
+		// integration; registering this handler there too meant the bridge
+		// and CEF's own navigator.clipboard.write() raced against each
+		// other on the same OS clipboard, last write wins. Only register it
+		// where it's actually needed.
+		if (!m_pParent || !m_pParent->GetWidgetImpl() || !m_pParent->GetWidgetImpl()->IsWayland())
+			return;
+		message_router_->AddHandler(new CClipboardQueryHandler(m_pParent), false);
 	}
 
 	CefRefPtr<CefBrowser> GetBrowser() const
@@ -2584,6 +2786,15 @@ public:
 			pEvent->m_pData = pData;
 
 			pListener->OnEvent(pEvent);
+			return true;
+		}
+		else if (message_name == "clipboard_write")
+		{
+			// See CCefViewWidgetImpl::SetClipboardData -- routes the copy
+			// payload built in the renderer to the platform widget's real OS
+			// clipboard, bypassing CEF's own broken OSR+Wayland clipboard path.
+			if (m_pParent && m_pParent->GetWidgetImpl())
+				m_pParent->GetWidgetImpl()->SetClipboardData(args->GetString(0).ToWString());
 			return true;
 		}
 		else if (message_name == "spell_check_task")
@@ -4743,6 +4954,7 @@ public:
 virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser) OVERRIDE
 {
 	client::ClientHandler::OnAfterCreated(browser);
+	RegisterClipboardQueryHandler();
 	if (!GetBrowser())
 	{
 		// We need to keep the main child window, but not popup windows
@@ -4858,6 +5070,15 @@ virtual void OnLoadStart(CefRefPtr<CefBrowser> browser,
 	// вот тут уже можно делать зум!!!
 	m_pParent->m_pInternal->m_bIsWindowsCheckZoom = true;
 	m_pParent->m_pInternal->m_dDeviceScale = -1;
+	// CEF's page zoom is per-load: navigating resets it to the default.
+	// UpdateUIScalePercentage() skips re-applying SetZoomLevel when the
+	// percentage matches what it last applied, so without invalidating that
+	// here the zoom would be dropped by the navigation and then never
+	// restored -- the poll would keep seeing an unchanged percentage and
+	// skip forever, leaving the document rendered unscaled until something
+	// actually changed the value (e.g. the user toggling display scale).
+	// Same reason m_dDeviceScale is reset just above.
+	m_pParent->m_pInternal->m_dLastAppliedUIScalePercentage = -1.0;
 	m_bIsDisableResizeOnLoadedOneCall = true;
 	m_pParent->resizeEvent();
 }
@@ -4868,6 +5089,19 @@ virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser,
 					   int httpStatusCode)
 {
 	m_pParent->m_pInternal->m_hideChecker.Show(browser);
+
+#if defined(_LINUX) && !defined(_MAC)
+	if (frame && frame->IsMain()) {
+		if (m_pParent->GetWidgetImpl() && m_pParent->GetWidgetImpl()->IsWayland()) {
+			std::string sCode = "if (window.Common && window.Common.Utils) { window.Common.Utils.zoom = function() { return 1; }; }";
+			frame->ExecuteJavaScript(sCode, frame->GetURL(), 0);
+		}
+	}
+#endif
+
+	// Page zoom is reset per load (see OnLoadStart); re-apply it.
+	if (frame)
+		m_pParent->UpdateUIScalePercentage();
 
 	bool bIsCryptoSupport = true;
 	if (m_pParent->m_pInternal->m_bIsExternalCloud)
@@ -4930,10 +5164,6 @@ virtual void OnLoadError(CefRefPtr<CefBrowser> browser,
 						 const CefString& errorText,
 						 const CefString& failedUrl) OVERRIDE
 {
-	std::string s1 = frame->GetURL().ToString();
-	std::string s2 = failedUrl.ToString();
-	std::string s3 = errorText.ToString();
-
 	if (m_pParent && errorCode != ERR_ABORTED)
 	{
 		if (frame->IsMain())
@@ -5616,73 +5846,6 @@ virtual void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 	if (NULL == m_pParent)
 		return;
 
-#if 0
-	FILE* f = fopen("...", "a+");
-
-	fprintf(f, "-------------------------------\n");
-	fprintf(f, "IsValid: %d\n", download_item->IsValid() ? 1 : 0);
-	fprintf(f, "IsInProgress: %d\n", download_item->IsInProgress() ? 1 : 0);
-	fprintf(f, "IsComplete: %d\n", download_item->IsComplete() ? 1 : 0);
-	fprintf(f, "IsCanceled: %d\n", download_item->IsCanceled() ? 1 : 0);
-
-	fprintf(f, "GetCurrentSpeed: %d\n", (int)download_item->GetCurrentSpeed());
-	fprintf(f, "GetPercentComplete: %d\n", (int)download_item->GetPercentComplete());
-	fprintf(f, "GetTotalBytes: %d\n", (int)download_item->GetTotalBytes());
-	fprintf(f, "GetReceivedBytes: %d\n", (int)download_item->GetReceivedBytes());
-	fprintf(f, "GetId: %d\n", (int)download_item->GetId());
-
-	if (!download_item->GetFullPath().empty())
-	{
-		std::string s = download_item->GetFullPath().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetFullPath: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-	if (!download_item->GetOriginalUrl().empty())
-	{
-		std::string s = download_item->GetOriginalUrl().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetOriginalUrl: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-	if (!download_item->GetURL().empty())
-	{
-		std::string s = download_item->GetURL().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetURL: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-	if (!download_item->GetSuggestedFileName().empty())
-	{
-		std::string s = download_item->GetSuggestedFileName().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetSuggestedFileName: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-	if (!download_item->GetContentDisposition().empty())
-	{
-		std::string s = download_item->GetContentDisposition().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetContentDisposition: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-	if (!download_item->GetMimeType().empty())
-	{
-		std::string s = download_item->GetMimeType().ToString();
-		NSStringUtils::string_replaceA(s, "%", "%%");
-		fprintf(f, "GetMimeType: ");
-		fprintf(f, s.c_str());
-		fprintf(f, "\n");
-	}
-
-	fclose(f);
-#endif
-
 	if (!download_item->IsValid())
 		return;
 
@@ -5708,10 +5871,6 @@ virtual void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 			pEvent->m_pData = pData;
 
 			m_pParent->GetAppManager()->GetEventListener()->OnEvent(pEvent);
-
-			// OpenLocalFile нужно запускать в главном потоке
-			//m_pParent->m_pInternal->m_pDownloadViewCallback->m_pInternal->OnViewDownloadFile();
-			//m_pParent->m_pInternal->m_pDownloadViewCallback = NULL;
 		}
 		return;
 	}
@@ -6368,8 +6527,15 @@ void CCefView_Private::CheckZoom()
 	if (CAscApplicationManager::IsUseSystemScaling())
 		return;
 
-	if (NULL == CAscApplicationManager::GetDpiChecker())
+	// Linux (X11 and Wayland): CCefView::UpdateUIScalePercentage() owns page
+	// zoom; running both would fight over SetZoomLevel.
+#if defined(_LINUX) && !defined(_MAC)
+	return;
+#endif
+
+	if (NULL == CAscApplicationManager::GetDpiChecker()) {
 		return;
+	}
 
 	if (!m_bIsWindowsCheckZoom)
 		return;
@@ -6434,6 +6600,8 @@ void CCefView_Private::UpdateSize()
 	if (m_handler && m_handler->GetBrowser() && m_handler->GetBrowser()->GetHost())
 	{
 		m_handler->GetBrowser()->GetHost()->NotifyMoveOrResizeStarted();
+		if (m_handler->GetBrowser()->GetHost()->IsWindowRenderingDisabled())
+			m_handler->GetBrowser()->GetHost()->WasResized();
 
 		// Fix bug #62086
 		CefRefPtr<CefFrame> pFrame = m_handler->GetBrowser()->GetMainFrame();
@@ -6947,9 +7115,18 @@ void CCefView::load(const std::wstring& urlInputSrc)
 	int _h = m_pInternal->m_pWidgetImpl->cef_height;
 
 #ifdef CEF_VERSION_ABOVE_102
+#if defined(_LINUX) && !defined(_MAC)
+	if (m_pInternal && m_pInternal->m_pWidgetImpl && m_pInternal->m_pWidgetImpl->IsWayland()) {
+		info.SetAsWindowless(0);
+	} else {
+		info.SetAsChild(_handle, CefRect(0, 0, _w, _h));
+		m_pInternal->m_hideChecker.Hide(info, _handle);
+	}
+#else
 	info.SetAsChild(_handle, CefRect(0, 0, _w, _h));
 
 	m_pInternal->m_hideChecker.Hide(info, _handle);
+#endif
 #else
 
 #ifdef WIN32
@@ -8042,6 +8219,62 @@ double CCefView::GetDeviceScale()
 	return dDeviceScale;
 }
 
+void CCefView::UpdateUIScalePercentage()
+{
+#if defined(_LINUX) && !defined(_MAC)
+	// Single zoom mechanism on Linux (X11 and Wayland); CheckZoom() stands
+	// down on Linux. X11 reads Xft.dpi once per process (QDpiChecker), so a
+	// changed system scale needs an app restart there.
+	if (!GetWidgetImpl())
+		return;
+	if (!m_pInternal->GetBrowser() || !m_pInternal->GetBrowser()->GetHost())
+		return;
+
+	// Negative: the platform can't report a trustworthy scale yet (Wayland:
+	// compositor hasn't sent the fractional scale). Wait for the next call.
+	double dPercentage = GetWidgetImpl()->GetUIScalePercentage();
+	if (dPercentage < 0)
+		return;
+
+	if (m_pInternal->m_dLastAppliedUIScalePercentage == dPercentage)
+		return;
+	m_pInternal->m_dLastAppliedUIScalePercentage = dPercentage;
+
+	// CEF page zoom is the single scaling mechanism. Same 1.2^level mapping
+	// and <=1.1 dead zone as CheckZoom().
+	double dFactor = dPercentage / 100.0;
+	double dZoomLevel = (dFactor > 1.1) ? (log(dFactor) / log(1.2)) : 0.0;
+	double dExpectedDpr = (dFactor > 1.1) ? dFactor : 1.0;
+
+	CefRefPtr<CefBrowserHost> host = m_pInternal->GetBrowser()->GetHost();
+	host->SetZoomLevel(dZoomLevel);
+	host->WasResized();
+
+	// sdkjs sizes its canvases from window.devicePixelRatio, which Chromium
+	// updates asynchronously after a zoom change. Wait until it has the
+	// expected value, then let sdkjs re-measure. Once per actual change;
+	// bounded at ~2 s.
+	std::string sCode =
+		"(function(){"
+			"var f=" + std::to_string(dExpectedDpr) + ",n=0;"
+			"(function tick(){"
+				"if (Math.abs(window.devicePixelRatio - f) > 0.01 && ++n < 40) { setTimeout(tick, 50); return; }"
+				"try { var c = window.AscCommon; if (c && c.AscBrowser && c.AscBrowser.checkZoom) c.AscBrowser.checkZoom(); } catch (e) {}"
+			"})();"
+		"})();";
+
+	// The editor canvas lives in a nested iframe.
+	std::vector<int64> arFrameIds;
+	m_pInternal->GetBrowser()->GetFrameIdentifiers(arFrameIds);
+	for (size_t i = 0; i < arFrameIds.size(); i++)
+	{
+		CefRefPtr<CefFrame> frame = m_pInternal->GetBrowser()->GetFrame(arFrameIds[i]);
+		if (frame)
+			frame->ExecuteJavaScript(sCode, frame->GetURL(), 0);
+	}
+#endif
+}
+
 int CCefView::GetPrintPageOrientation(const int& nPage)
 {
 	int nCount = (int)m_pInternal->m_oPrintData.m_arPages.size();
@@ -8876,6 +9109,71 @@ namespace NSRequest
 	}
 }
 #endif
+
+void CCefView::SendMouseClickEvent(int x, int y, int button, bool mouseUp, int modifiers, int clickCount)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	CefMouseEvent mouse_event;
+	mouse_event.x = x;
+	mouse_event.y = y;
+	mouse_event.modifiers = modifiers;
+
+	cef_mouse_button_type_t btn_type = MBT_LEFT;
+	if (button == 2) btn_type = MBT_RIGHT;
+	else if (button == 3) btn_type = MBT_MIDDLE;
+
+	browser->GetHost()->SendMouseClickEvent(mouse_event, btn_type, mouseUp, clickCount);
+}
+
+void CCefView::SendMouseMoveEvent(int x, int y, bool mouseLeave, int modifiers)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	CefMouseEvent mouse_event;
+	mouse_event.x = x;
+	mouse_event.y = y;
+	mouse_event.modifiers = modifiers;
+
+	browser->GetHost()->SendMouseMoveEvent(mouse_event, mouseLeave);
+}
+
+void CCefView::SendMouseWheelEvent(int x, int y, int deltaX, int deltaY, int modifiers)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	CefMouseEvent mouse_event;
+	mouse_event.x = x;
+	mouse_event.y = y;
+	mouse_event.modifiers = modifiers;
+
+	browser->GetHost()->SendMouseWheelEvent(mouse_event, deltaX, deltaY);
+}
+
+void CCefView::SendKeyEvent(int type, int key, int modifiers, const std::wstring& character)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	CefKeyEvent key_event;
+	key_event.type = (cef_key_event_type_t)type;
+	key_event.modifiers = modifiers;
+	key_event.windows_key_code = key;
+	key_event.native_key_code = (character.length() >= 3) ? static_cast<int>(character[2]) : key;
+	key_event.is_system_key = (modifiers & (1 << 3)) != 0; // EVENTFLAG_ALT_DOWN is 1 << 3
+	key_event.character = character.empty() ? 0 : character[0];
+	key_event.unmodified_character = (character.length() >= 2) ? character[1] : key_event.character;
+	key_event.focus_on_editable_field = true;
+
+	browser->GetHost()->SendKeyEvent(key_event);
+}
 
 #if defined(_LINUX) && !defined(_MAC)
 void* CefGetXDisplay(void)

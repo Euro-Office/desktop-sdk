@@ -22,6 +22,7 @@
  * terms at http://creativecommons.org/licenses/by-sa/4.0/legalcode
  *
  */
+#include <cstdlib>
 #include "./external_process_with_childs.h"
 
 #include "./client_renderer.h"
@@ -4139,6 +4140,19 @@ window.AscDesktopEditor.CallInFrame(\"" +
 			}
 			else if (name == "GetSupportedScaleValues")
 			{
+#if defined(_LINUX) && !defined(_MAC)
+				// Wayland (CEF OSR): the host scales the page via CEF page zoom.
+				// An empty list disables sdkjs'/plugins' CSS-zoom correction
+				// (see sdkjs common/device_scale.js), so they use
+				// window.devicePixelRatio as-is. QT_QPA_PLATFORM is normalized
+				// by the host before CEF starts and inherited by this process.
+				const char* sQpa = getenv("QT_QPA_PLATFORM");
+				if (sQpa && std::string(sQpa) == "wayland")
+				{
+					retval = CefV8Value::CreateArray(0);
+					return true;
+				}
+#endif
 #define SCALES_COUNT 13
 				const double scales[SCALES_COUNT] = {1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.5, 4, 4.5, 5};
 				retval = CefV8Value::CreateArray(SCALES_COUNT);
@@ -4564,6 +4578,23 @@ window.AscDesktopEditor.CallInFrame(\"" +
 #endif
 
 				retval = CefV8Value::CreateInt(nVersion);
+				return true;
+			}
+			else if (name == "nativeClipboardWrite")
+			{
+				// Fire-and-forget: forward the JSON payload sdkjs already built for
+				// copy (text/plain, text/html, and the internal text/x-custom
+				// fragment) to the browser process, where the platform widget owns
+				// the real OS clipboard. See CCefViewWidgetImpl::SetClipboardData.
+				if (arguments.size() >= 1 && arguments[0]->IsString())
+				{
+					CefRefPtr<CefFrame> frame = CefV8Context::GetCurrentContext()->GetFrame();
+					CefRefPtr<CefProcessMessage> message = CefProcessMessage::Create("clipboard_write");
+					message->GetArgumentList()->SetString(0, arguments[0]->GetStringValue());
+					frame->SendProcessMessage(PID_BROWSER, message);
+				}
+
+				retval = CefV8Value::CreateBool(true);
 				return true;
 			}
 			else if (name == "getToolFunctions")
@@ -5489,7 +5520,7 @@ if (targetElem) { targetElem.dispatchEvent(event); }})();";
 
 			CefRefPtr<CefV8Handler> handler = pWrapper;
 
-#define EXTEND_METHODS_COUNT 197
+#define EXTEND_METHODS_COUNT 198
 			const char* methods[EXTEND_METHODS_COUNT] = {
 				"Copy",
 				"Paste",
@@ -5747,6 +5778,7 @@ if (targetElem) { targetElem.dispatchEvent(event); }})();";
 				"onFileLockedClose",
 
 				"getEngineVersion",
+				"nativeClipboardWrite",
 
 				"getToolFunctions",
 				"callToolFunction",

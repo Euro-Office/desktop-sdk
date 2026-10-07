@@ -33,10 +33,45 @@
 #include <QDebug>
 #include <QPointer>
 
+#include <QImage>
+#include <QGuiApplication>
+#include <QScreen>
+#include <QTimer>
+#include <QElapsedTimer>
+#include <QMouseEvent>
+#include <QWheelEvent>
+#include <QKeyEvent>
+#include <QAtomicInt>
+#include <QList>
+#include <QOpenGLWidget>
+
+
 #include "./../../include/cefview.h"
 #include "./../../include/applicationmanager.h"
 
 class QCefViewProps;
+
+// Wayland-only presenter for the CEF off-screen buffer. Rendering through a GL
+// surface makes the swap itself the wl_surface_commit, which participates in
+// the compositor's frame-callback / vsync loop natively -- so the raster
+// backing-store "commit never completes until input" deadlock cannot occur.
+// It is a mouse-transparent, non-focusable child that fully overlays its
+// QCefView parent; all input continues to be handled by QCefView.
+class QCefGLWidget : public QOpenGLWidget
+{
+	Q_OBJECT
+public:
+	explicit QCefGLWidget(QWidget* parent);
+	// Stage a new frame (deep-copied by the caller) and schedule a GL repaint.
+	void SetFrame(const QImage& image);
+
+protected:
+	virtual void paintGL() override;
+
+private:
+	QImage m_frame;
+};
+
 class DESKTOP_DECL QCefView : public QWidget, public CCefViewWidgetImpl
 {
 	Q_OBJECT
@@ -51,10 +86,22 @@ public:
 	// focus
 	virtual void focusInEvent(QFocusEvent* e);
 	virtual void focusOutEvent(QFocusEvent* e);
+	virtual bool focusNextPrevChild(bool next) override;
 
 	// move/resize
 	virtual void resizeEvent(QResizeEvent* e);
 	virtual void moveEvent(QMoveEvent* e);
+
+	// input events for OSR
+	virtual void mousePressEvent(QMouseEvent *event) override;
+	virtual void mouseReleaseEvent(QMouseEvent *event) override;
+	virtual void mouseDoubleClickEvent(QMouseEvent *event) override;
+	virtual void mouseMoveEvent(QMouseEvent *event) override;
+	virtual void wheelEvent(QWheelEvent *event) override;
+	virtual void keyPressEvent(QKeyEvent *event) override;
+	virtual void keyReleaseEvent(QKeyEvent *event) override;
+	virtual void inputMethodEvent(QInputMethodEvent *event) override;
+	virtual QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
 
 	// drag'n'drop
 #if defined (_LINUX) && !defined(_MAC)
@@ -93,6 +140,23 @@ public:
 	void SetBackgroundCefColor(unsigned char r, unsigned char g, unsigned char b);
 	void paintEvent(QPaintEvent *event);
 
+	virtual double GetDeviceScaleFactor() override;
+	virtual double GetUIScalePercentage() override;
+	virtual bool IsWayland() override;
+	virtual void OnPaint(const void* buffer, int width, int height) override;
+	virtual void GetWidgetScreenPosition(int& screenX, int& screenY) override;
+	virtual void SetClipboardData(const std::wstring& sJson) override;
+	virtual std::wstring GetClipboardData() override;
+	virtual void SetCursorType(int cursorType) override;
+	virtual void SetCursorCustom(const void* buffer, int width, int height, int hotspotX, int hotspotY) override;
+
+	// Wayland: called from the external message loop poller (top of loop,
+	// non-reentrant) after CEF is pumped. Repaints any view whose OnPaint
+	// staged a new frame and drives the frame-callback handshake so the
+	// commit is synchronized to the compositor. Must never be called from
+	// inside a CEF callback (e.g. OnPaint).
+	static void FlushDirtyWaylandViews();
+
 	// check support z-index
 	static bool IsSupportLayers();
 	void SetCaptionMaskSize(int);
@@ -105,17 +169,62 @@ protected:
 	CCefView* m_pCefView;
 	QPointer<QWidget> m_pOverride;
 	QCefViewProps* m_pProperties;
+	
+	QImage m_imageBuffer;
+	bool m_isWayland;
+
+	// Wayland click-count tracking (mirrors Qt's own multi-click detection,
+	// which native OSR input forwarding bypasses). Needed because Qt's
+	// Wayland backend delivers an ordinary mousePressEvent for every
+	// physical click -- including the second click of a double-click --
+	// so the correct click count must be computed here and forwarded to
+	// CEF on both press and release; it cannot be inferred from Qt event
+	// type alone (see mouseDoubleClickEvent).
+	qint64 m_lastClickTimeMs = 0;
+	QPoint m_lastClickPos;
+	int m_clickCount = 0;
+
+	// Wayland: GL presenter overlaying this view (see QCefGLWidget). null on
+	// other platforms and until Init() runs.
+	QCefGLWidget* m_pGLView = nullptr;
+
+	// Set by OnPaint when a new frame is staged; cleared by the poller.
+	QAtomicInt m_dirty;
+
+	// Registry of live Wayland views, so the message-loop poller can find
+	// dirty views to drive the frame-callback handshake. Populated only on
+	// Wayland; single-threaded access (main/UI thread).
+	static QList<QCefView*> s_waylandViews;
 
 	void Init();
+
+	// Polls for a live desktop display-scale change. Neither moveEvent nor
+	// resizeEvent fire on a pure OS-level scale change (confirmed live: no
+	// re-injection occurred when the scale was changed in KDE's display
+	// settings), so there is no Qt signal this code found to hook directly
+	// -- poll and re-inject every tick instead; UpdateUIScalePercentage()
+	// itself debounces against transient devicePixelRatio() misreads.
+	QTimer* m_pUIScalePollTimer = nullptr;
+
+	// Wayland only. A freshly created surface reports the compositor's
+	// rounded integer scale (2.0 for a real 1.25 output) until the
+	// fractional-scale protocol answers, ~90ms in. Applying a zoom derived
+	// from that first reading makes the editor visibly jump 200% -> 125%
+	// once it corrects. Started when the view is constructed; scale reads
+	// are withheld until it passes, by which point the page is normally
+	// still loading, so the correct zoom is the first one ever applied.
+	QElapsedTimer m_uiScaleSettleClock;
 
 Q_SIGNALS:
 	void closeWidget(QCloseEvent *);
 	void _loaded();
 	void _closed();
 
+
 protected Q_SLOTS:
 	void _loadedSlot();
 	void _closedSlot();
+
 };
 
 #if defined (_LINUX) && !defined(_MAC)

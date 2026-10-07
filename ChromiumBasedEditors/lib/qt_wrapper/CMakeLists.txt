@@ -36,6 +36,11 @@ if(NOT TARGET videoplayerlib)
     add_subdirectory(${PWD_ROOT_DIR}/../../videoplayerlib videoplayerlib)
 endif()
 
+# QOpenGLWidget (Wayland OSR presenter) lives in the OpenGLWidgets module, which
+# common.cmake's find_package does not request. Pull it in here so this stays
+# self-contained within desktop-sdk (the only submodule the build resets).
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS OpenGLWidgets)
+
 # --- Main Target ---
 add_library(qtascdocumentscore SHARED)
 
@@ -72,6 +77,7 @@ target_link_libraries(qtascdocumentscore PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Multimedia
     Qt${QT_VERSION_MAJOR}::MultimediaWidgets
+    Qt${QT_VERSION_MAJOR}::OpenGLWidgets
     # Internal Dependencies
     kernel 
     graphics 
@@ -89,7 +95,7 @@ if(UNIX AND NOT APPLE)
     target_compile_definitions(qtascdocumentscore PRIVATE _LINUX LINUX OS_LINUX _X11)
     
     # Qt6 Linux handling
-    target_link_libraries(qtascdocumentscore PRIVATE Qt${QT_VERSION_MAJOR}::GuiPrivate)
+    target_link_libraries(qtascdocumentscore PRIVATE Qt${QT_VERSION_MAJOR}::Gui)
 
     #target_link_options(qtascdocumentscore PRIVATE "-Wl,-unresolved-symbols=ignore-in-shared-libs")
 
