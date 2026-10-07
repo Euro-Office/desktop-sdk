@@ -1949,6 +1949,11 @@ public:
 
 	virtual void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height) OVERRIDE
 	{
+		// PET_POPUP (native <select>, <input type=color> pickers, ...) is a
+		// separate small buffer; feeding it here would replace the whole
+		// view's frame. Popups aren't composited yet -- ignore them.
+		if (type != PET_VIEW)
+			return;
 		if (m_pParent && m_pParent->GetWidgetImpl()) {
 			m_pParent->GetWidgetImpl()->OnPaint(buffer, width, height);
 		}
@@ -5087,20 +5092,14 @@ virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser,
 
 #if defined(_LINUX) && !defined(_MAC)
 	if (frame && frame->IsMain()) {
-		const char* session = getenv("XDG_SESSION_TYPE");
-		if (session && std::string(session) == "wayland") {
+		if (m_pParent->GetWidgetImpl() && m_pParent->GetWidgetImpl()->IsWayland()) {
 			std::string sCode = "if (window.Common && window.Common.Utils) { window.Common.Utils.zoom = function() { return 1; }; }";
 			frame->ExecuteJavaScript(sCode, frame->GetURL(), 0);
 		}
 	}
 #endif
 
-	// Not gated on frame->IsMain(): the actual editor UI (ribbon,
-	// AscCommon) loads in a nested iframe, which finishes loading and
-	// fires its own OnLoadEnd separately from the outer shell page.
-	// UpdateUIScalePercentage() itself re-injects into every frame of the
-	// browser each time, so this is a little redundant across multiple
-	// frame loads but keeps the iframe from ever being missed.
+	// Page zoom is reset per load (see OnLoadStart); re-apply it.
 	if (frame)
 		m_pParent->UpdateUIScalePercentage();
 
@@ -8225,131 +8224,50 @@ double CCefView::GetDeviceScale()
 void CCefView::UpdateUIScalePercentage()
 {
 #if defined(_LINUX) && !defined(_MAC)
-
-	if (!GetWidgetImpl())
+	// Wayland only. X11 keeps using CCefView_Private::CheckZoom(), which
+	// already applies SetZoomLevel from the same DPI source (incl. the
+	// user's forced scale).
+	if (!GetWidgetImpl() || !GetWidgetImpl()->IsWayland())
 		return;
 	if (!m_pInternal->GetBrowser() || !m_pInternal->GetBrowser()->GetHost())
 		return;
 
-	double dRawPercentage = GetWidgetImpl()->GetUIScalePercentage();
-
-	// Negative means the platform layer cannot yet report a trustworthy
-	// scale (Wayland: the compositor has not answered with the real
-	// fractional scale, so the surface is still reporting a rounded
-	// default). Applying a zoom now would only have to be revised, which
-	// is exactly the visible jump this avoids -- skip entirely, including
-	// the per-frame injection below, and wait to be called again.
-	if (dRawPercentage < 0)
+	// Negative: the compositor hasn't reported the real (fractional) scale
+	// yet. Wait instead of applying a value that would be revised.
+	double dPercentage = GetWidgetImpl()->GetUIScalePercentage();
+	if (dPercentage < 0)
 		return;
 
-	// This is called from three independent triggers (QCefView's poll
-	// timer, moveEvent(), and this OnLoadEnd() firing once per frame
-	// including nested iframes). A two-consecutive-reads debounce used to
-	// sit here to guard against devicePixelRatio() transiently
-	// misreporting during startup window placement -- but that race is
-	// already fully handled above: GetUIScalePercentage() withholds a
-	// value entirely (returns negative) while the surface is too young to
-	// trust, via its own settle window. Once it does return a value, it
-	// has been measured correct immediately, including across monitor
-	// crossings with differing scales (Wayland reports the new
-	// devicePixelRatio() before QWidget::screen() even reflects the new
-	// output). The debounce was therefore only adding a two-call delay to
-	// every legitimate scale change, which is what read as a visible
-	// double-rescale on any monitor-to-monitor move -- apply directly.
-	double dPercentage = dRawPercentage;
+	if (m_pInternal->m_dLastAppliedUIScalePercentage == dPercentage)
+		return;
+	m_pInternal->m_dLastAppliedUIScalePercentage = dPercentage;
 
+	// OSR forces device_scale_factor to 1.0 (GetScreenInfo), so CEF page
+	// zoom is the single scaling mechanism. Same 1.2^level mapping and
+	// <=1.1 dead zone as CheckZoom().
 	double dFactor = dPercentage / 100.0;
-
-	// Uniform, single-point scaling via CEF's own page zoom, instead of the
-	// per-selector CSS/JS patchwork tried previously (pixel-ratio__N body
-	// classes, checkDeviceScale() monkeypatching): SetZoomLevel scales the
-	// entire rendered page proportionally in one place, and Chromium's own
-	// input-event pipeline already handles translating mouse coordinates
-	// into zoomed-layout coordinates correctly (this is core, load-bearing
-	// functionality every zoomed webpage already depends on) -- it doesn't
-	// need any compensation in the mouse-coordinate code that dsf-1.0-osr
-	// added.
-	//
-	// This app has an existing (currently Linux-dead: GetDpiChecker() is
-	// WIN32-only) CheckZoom()/SetZoomLevel() mechanism in this same file
-	// that explicitly SKIPS zoom on Wayland, with a comment warning that
-	// GetScreenInfo's device_scale_factor and SetZoomLevel's CSS zoom
-	// compound into double-scaling if both are non-neutral at once. That
-	// comment predates dsf-1.0-osr: GetScreenInfo now unconditionally
-	// forces device_scale_factor to 1.0 (neutral), so it no longer
-	// contributes any real scale to compound with -- SetZoomLevel can (and
-	// per this fix, now does) safely be the sole scaling mechanism.
-	//
-	// CEF's zoom level is logarithmic in 20%-per-level steps
-	// (zoomFactor = 1.2^zoomLevel), matching the existing CheckZoom()'s own
-	// conversion and its below-1.1 dead-zone (to avoid zoom jitter for
-	// near-100% scales).
 	double dZoomLevel = (dFactor > 1.1) ? (log(dFactor) / log(1.2)) : 0.0;
+	double dExpectedDpr = (dFactor > 1.1) ? dFactor : 1.0;
 
-	// SetZoomLevel/WasResized apply to the whole browser, not a single
-	// frame, and are genuinely idempotent -- skip them when the factor
-	// hasn't moved since the last call, since this function also runs off
-	// a 1s poll timer regardless of whether anything changed. The per-frame
-	// JS injection below must NOT be skipped by the same check: this
-	// function is also the OnLoadEnd() trigger for a newly loaded frame
-	// (including nested iframes), which has never received the
-	// checkDeviceScale monkeypatch even when the global scale itself is
-	// unchanged from the last apply.
-	if (m_pInternal->m_dLastAppliedUIScalePercentage != dPercentage)
-	{
-		CefRefPtr<CefBrowserHost> host = m_pInternal->GetBrowser()->GetHost();
-		host->SetZoomLevel(dZoomLevel);
-		host->WasResized();
-		m_pInternal->m_dLastAppliedUIScalePercentage = dPercentage;
-	}
+	CefRefPtr<CefBrowserHost> host = m_pInternal->GetBrowser()->GetHost();
+	host->SetZoomLevel(dZoomLevel);
+	host->WasResized();
 
-	// SetZoomLevel scales DOM/CSS layout uniformly, but the document/page
-	// canvas (the actual Word/Excel content) is a <canvas> element whose
-	// backing-buffer pixel resolution is set explicitly by sdkjs's own JS
-	// (AscBrowser.retinaPixelRatio), independent of page zoom -- zoom will
-	// stretch whatever resolution that canvas already has, so it still
-	// needs to be told the real display scale directly to avoid
-	// blurriness, via the same checkDeviceScale() monkeypatch used
-	// previously (still needed here specifically: window.devicePixelRatio
-	// itself was found to race against Chromium's own reassertion of that
-	// property on a real scale change, but AscCommon.checkDeviceScale() is
-	// a plain app-defined JS function with no such native reassertion risk).
+	// sdkjs sizes its canvases from window.devicePixelRatio (its CSS-zoom
+	// correction is disabled on Wayland via GetSupportedScaleValues()), and
+	// Chromium updates devicePixelRatio asynchronously after a zoom change.
+	// Wait until it has the expected value, then let sdkjs re-measure. Runs
+	// once per actual scale change; bounded at ~2 s.
 	std::string sCode =
 		"(function(){"
-			"var f=" + std::to_string(dFactor) + ";"
-			"try {"
-				"window['AscCommon'] = window['AscCommon'] || {};"
-				"window.AscCommon.checkDeviceScale = function(){"
-					"return { zoom: 1, devicePixelRatio: f, applicationPixelRatio: f, correct: false };"
-				"};"
-			// Swallowed deliberately: this runs in every frame, including
-			// ones with no AscCommon at all, and there is no recovery to
-			// attempt -- the visible symptom of a failure here is simply
-			// that the canvas keeps the browser's own pixel ratio. Must
-			// not throw, or the poll below never gets installed.
-			"} catch(e) {}"
-			"var pollTries = 0;"
-			"var pollFn = function(){"
-				"pollTries++;"
-				"try {"
-					"if (window.AscCommon && window.AscCommon.AscBrowser && window.AscCommon.AscBrowser.checkZoom) {"
-						"window.AscCommon.AscBrowser.checkZoom();"
-						"return;"
-					"}"
-				// Swallowed for the same reason, and additionally so a
-				// transient failure while the editor is still initializing
-				// falls through to the retry below rather than aborting it.
-				"} catch(e) {}"
-				"if (pollTries < 50) {"
-					"setTimeout(pollFn, 200);"
-				"}"
-			"};"
-			"pollFn();"
+			"var f=" + std::to_string(dExpectedDpr) + ",n=0;"
+			"(function tick(){"
+				"if (Math.abs(window.devicePixelRatio - f) > 0.01 && ++n < 40) { setTimeout(tick, 50); return; }"
+				"try { var c = window.AscCommon; if (c && c.AscBrowser && c.AscBrowser.checkZoom) c.AscBrowser.checkZoom(); } catch (e) {}"
+			"})();"
 		"})();";
 
-	// The document canvas lives in a nested iframe, a separate browsing
-	// context from the outer shell page -- inject into every frame so
-	// whichever one actually has AscBrowser gets it.
+	// The editor canvas lives in a nested iframe.
 	std::vector<int64> arFrameIds;
 	m_pInternal->GetBrowser()->GetFrameIdentifiers(arFrameIds);
 	for (size_t i = 0; i < arFrameIds.size(); i++)
