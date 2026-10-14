@@ -428,9 +428,14 @@ void QCefView::inputMethodEvent(QInputMethodEvent *event) {
 				character_str.push_back(0);
 				// Send the full key event sequence: KEYDOWN(0) -> CHAR(3) -> KEYUP(2)
 				// CEF requires the complete sequence to properly inject characters.
-				m_pCefView->SendKeyEvent(0, ch, 0, character_str);
-				m_pCefView->SendKeyEvent(3, ch, 0, character_str);
-				m_pCefView->SendKeyEvent(2, ch, 0, character_str);
+				// The committed text has no physical key, so the KEYDOWN/KEYUP must
+				// carry no virtual key code (0). Passing the character itself would
+				// be misread as a VK code: e.g. '\'' (0x27) is VK_RIGHT and '"' (0x22)
+				// is VK_NEXT/PageDown, which moved the cursor or switched slides
+				// instead of typing the dead-key result (issue #133).
+				m_pCefView->SendKeyEvent(0, 0, 0, character_str);
+				m_pCefView->SendKeyEvent(3, 0, 0, character_str);
+				m_pCefView->SendKeyEvent(2, 0, 0, character_str);
 			}
 		}
 	}
