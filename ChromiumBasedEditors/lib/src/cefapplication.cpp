@@ -28,6 +28,7 @@
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
+#include <glib-unix.h>
 
 #include <X11/Xlib.h>
 
@@ -626,12 +627,26 @@ void CApplicationCEF::Close()
 	}
 }
 
+#if defined(_LINUX) && !defined(_MAC)
+// dispatched from the main loop (glib turns the signal into a source), so the
+// application can shut down normally instead of from signal context
+static gboolean OnTerminateSignal(gpointer data)
+{
+	static_cast<CAscApplicationManager*>(data)->OnTerminateRequest();
+	// removing the source restores the default action: a second SIGTERM kills immediately
+	return G_SOURCE_REMOVE;
+}
+#endif
+
 int CApplicationCEF::RunMessageLoop(bool& is_runned)
 {
 	is_runned = true;
 	m_pInternal->m_bIsMessageLoopRunned = true;
 #ifdef LINUX
 	CLinuxData::Check(m_pInternal->m_pManager);
+#endif
+#if defined(_LINUX) && !defined(_MAC)
+	g_unix_signal_add(SIGTERM, OnTerminateSignal, m_pInternal->m_pManager);
 #endif
 	return m_pInternal->message_loop->Run();
 }
