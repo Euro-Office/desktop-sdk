@@ -280,6 +280,9 @@ public:
 	void OnDestroyWindow();
 	void DestroyCefView(int nId, bool bIsSafe = true);
 
+	// termination request (SIGTERM on linux), called from the main message loop
+	virtual void OnTerminateRequest();
+
 	// debug info
 	void SetDebugInfoSupport(bool bIsSupport);
 	bool GetDebugInfoSupport();

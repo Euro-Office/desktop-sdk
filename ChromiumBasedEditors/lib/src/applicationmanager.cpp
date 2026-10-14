@@ -40,10 +40,25 @@ CAscApplicationManager* CLinuxData::app_manager = NULL;
 
 void posix_death_signal(int signum)
 {
-	// release all subprocesses
-	CLinuxData::Close();
+	// a fault during cleanup must not re-enter CloseApplication()
+	static volatile sig_atomic_t s_in_handler = 0;
 	signal(signum, SIG_DFL);
-	exit(3);
+
+	if (0 == s_in_handler)
+	{
+		s_in_handler = 1;
+		// release all subprocesses
+		CLinuxData::Close();
+	}
+
+	// terminate with the default action (core dump) instead of exit(): exit-time
+	// finalization destroys Qt widgets while the interrupted event loop is still on the stack
+	sigset_t mask;
+	sigemptyset(&mask);
+	sigaddset(&mask, signum);
+	sigprocmask(SIG_UNBLOCK, &mask, NULL);
+	raise(signum);
+	_exit(3);
 }
 
 #if !defined(_MAC) && !defined(CEF_VERSION_107)
@@ -957,10 +972,24 @@ void CAscApplicationManager::OnDestroyWindow()
 	m_pInternal->m_nWindowCounter--;
 	if (0 == m_pInternal->m_nWindowCounter)
 	{
-		CefCookieManager::GetGlobalManager(nullptr)->FlushStore(nullptr);
+		CefRefPtr<CefCookieManager> manager = CefCookieManager::GetGlobalManager(nullptr);
+		if (manager)
+			manager->FlushStore(nullptr);
 		m_pInternal->m_bIsExitMessageLoop = true;
 		m_pInternal->m_pApplication->ExitMessageLoop();
 	}
+}
+
+void CAscApplicationManager::OnTerminateRequest()
+{
+	if (0 == m_pInternal->m_nWindowCounter)
+	{
+		m_pInternal->m_bIsExitMessageLoop = true;
+		m_pInternal->m_pApplication->ExitMessageLoop();
+		return;
+	}
+	// closing all views ends the message loop in OnDestroyWindow
+	this->DestroyCefView(-1);
 }
 
 void CAscApplicationManager::CancelDownload(unsigned int nDownloadId)

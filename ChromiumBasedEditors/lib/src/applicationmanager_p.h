@@ -100,7 +100,6 @@ public:
 		{
 			app_manager = manager;
 			signal(SIGSEGV, posix_death_signal);
-			signal(SIGTERM, posix_death_signal);
 		}
 	}
 	static void Close()
