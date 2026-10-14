@@ -146,7 +146,7 @@ void NSResourceHandlerFileAsyncManager::Create(CResourceHandlerFileAsyncCallback
 void NSResourceHandlerFileAsyncManager::Destroy()
 {
     if (NULL == g_manager)
-        return;
+    { return; }
     g_manager->Destroy();
     delete g_manager;
     g_manager = NULL;
