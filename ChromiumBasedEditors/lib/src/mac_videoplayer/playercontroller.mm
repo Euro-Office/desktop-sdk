@@ -16,6 +16,7 @@
 	// time slider dragging info
 	bool m_is_drag;
 	float m_rate_before_drag;
+	float m_volume_before_mute;
 }
 // button callbacks
 - (void)onBtnPlayPausePressed:(NSIconPushButton*)sender;
@@ -39,6 +40,7 @@
 		m_player = player;
 		m_video_view = video_view;
 		m_footer = footer;
+		m_volume_before_mute = m_player.volume;
 
 		// PLAY & PAUSE
 		// UI button action
@@ -237,8 +239,12 @@
 }
 
 - (void)toggleMute {
-	// TODO: restore previous volume on second call
-	[self setVolume:0];
+	if (m_player.volume > 0.0) {
+		m_volume_before_mute = m_player.volume;
+		[self setVolume:0.0];
+	} else {
+		[self setVolume:(m_volume_before_mute > 0.0 ? m_volume_before_mute : 0.5)];
+	}
 }
 
 - (void)stop {
