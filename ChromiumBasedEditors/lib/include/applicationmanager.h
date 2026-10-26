@@ -253,6 +253,11 @@ public:
 	// logout from portal
 	void Logout(std::wstring strUrl);
 
+	// send sAuthorization ("Basic ...", "Bearer ...") as Authorization header with all
+	// requests to the portal, e.g. for an app password from a browser login.
+	// Empty value removes it.
+	void SetPortalAuthorization(const std::wstring& sPortal, const std::wstring& sAuthorization);
+
 	// cancel download item
 	void CancelDownload(unsigned int nDownloadId);
 
