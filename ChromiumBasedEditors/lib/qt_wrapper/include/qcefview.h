@@ -91,6 +91,7 @@ public:
 	// move/resize
 	virtual void resizeEvent(QResizeEvent* e);
 	virtual void moveEvent(QMoveEvent* e);
+	virtual void showEvent(QShowEvent* e) override;
 
 	// input events for OSR
 	virtual void mousePressEvent(QMouseEvent *event) override;
@@ -187,6 +188,8 @@ protected:
 	// Wayland: GL presenter overlaying this view (see QCefGLWidget). null on
 	// other platforms and until Init() runs.
 	QCefGLWidget* m_pGLView = nullptr;
+	// Top-level window m_pGLView was created for (see showEvent).
+	QPointer<QWidget> m_pGLViewWindow;
 
 	// Set by OnPaint when a new frame is staged; cleared by the poller.
 	QAtomicInt m_dirty;
