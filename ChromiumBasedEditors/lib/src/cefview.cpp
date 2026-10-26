@@ -2523,6 +2523,25 @@ public:
 		return true;
 	}
 
+	virtual cef_return_value_t OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser,
+													CefRefPtr<CefFrame> frame,
+													CefRefPtr<CefRequest> request,
+													CefRefPtr<CefCallback> callback) OVERRIDE
+	{
+		CEF_REQUIRE_IO_THREAD();
+
+		// see CAscApplicationManager::SetPortalAuthorization
+		if (request->GetHeaderByName("Authorization").empty())
+		{
+			std::string sAuth = m_pParent->m_pInternal->m_pManager->m_pInternal->GetPortalAuthorization(
+				request->GetURL().ToString(), frame ? frame->GetURL().ToString() : "");
+			if (!sAuth.empty())
+				request->SetHeaderByName("Authorization", sAuth, true);
+		}
+
+		return client::ClientHandler::OnBeforeResourceLoad(browser, frame, request, callback);
+	}
+
 	virtual bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
 								CefRefPtr<CefFrame> frame,
 								CefRefPtr<CefRequest> request,
