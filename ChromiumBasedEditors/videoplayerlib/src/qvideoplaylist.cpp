@@ -113,7 +113,7 @@ QVideoPlaylist::QVideoPlaylist(QWidget *parent) : QWidget(parent)
 	QObject::connect(m_pCheckPlayer, SIGNAL(mediaChanged(QMediaContent)), this, SLOT(_onSlotMediaChanged(QMediaContent)));
 	QObject::connect(m_pCheckPlayer, SIGNAL(error(QMediaPlayer::Error)), this, SLOT(_onSlotError(QMediaPlayer::Error)));
 #else
-	QObject::connect(m_pCheckPlayer, SIGNAL(sourceChanged(QMediaContent)), this, SLOT(_onSlotMediaChanged(QMediaContent)));
+	QObject::connect(m_pCheckPlayer, &QMediaPlayer::sourceChanged, this, &QVideoPlaylist::_onSlotMediaChanged);
 	//QObject::connect(m_pCheckPlayer, SIGNAL(error(QMediaPlayer::Error)), this, SLOT(_onSlotError(QMediaPlayer::Error)));
 #endif
 
@@ -578,8 +578,13 @@ void QVideoPlaylist::_onSlotDurationChanged(qint64 duration)
 
 	emit _onCheckDuration(m_sCheckFile, sDur);
 
-	m_pCheckPlayer->stop();
-	QMediaPlayer_setMedia(m_pCheckPlayer, "");
+	// this slot is called from inside the player's media loading routine (Qt6 FFmpeg backend
+	// emits durationChanged() from setMediaAsync() and keeps using the playback engine afterwards),
+	// so resetting the source synchronously destroys the engine under its feet -> defer it
+	QMetaObject::invokeMethod(this, [this]() {
+		m_pCheckPlayer->stop();
+		QMediaPlayer_setMedia(m_pCheckPlayer, "");
+	}, Qt::QueuedConnection);
 }
 
 void QVideoPlaylist::_onSlotMediaChanged(QMediaContent content)
