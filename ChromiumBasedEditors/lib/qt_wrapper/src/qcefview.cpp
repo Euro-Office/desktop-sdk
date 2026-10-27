@@ -522,13 +522,13 @@ void QCefView::showEvent(QShowEvent* e)
 	QWidget::showEvent(e);
 
 	if (!m_isWayland || !m_pGLView)
-		return;
+	{ return; }
 
 	// m_pGLViewWindow becomes null when the previous window was destroyed
 	// (the fullscreen window is deleted before the panel is shown again)
 	QWidget* topLevel = window();
 	if (m_pGLViewWindow == topLevel)
-		return;
+	{ return; }
 
 	// The view was moved to another top-level window (presentation fullscreen
 	// and back). A QOpenGLWidget carried along that way stops presenting on
@@ -539,12 +539,12 @@ void QCefView::showEvent(QShowEvent* e)
 	m_pGLView = new QCefGLWidget(this);
 	m_pGLView->setGeometry(0, 0, width(), height());
 	if (!m_imageBuffer.isNull())
-		m_pGLView->SetFrame(m_imageBuffer);
+	{ m_pGLView->SetFrame(m_imageBuffer); }
 	m_pGLView->show();
 	m_pGLView->raise();
 
 	if (m_pCefView)
-		m_pCefView->resizeEvent();
+	{ m_pCefView->resizeEvent(); }
 }
 
 // close

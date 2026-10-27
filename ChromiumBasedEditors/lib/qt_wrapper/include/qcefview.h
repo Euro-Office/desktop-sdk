@@ -84,13 +84,13 @@ public:
 	virtual ~QCefView();
 
 	// focus
-	virtual void focusInEvent(QFocusEvent* e);
-	virtual void focusOutEvent(QFocusEvent* e);
+	virtual void focusInEvent(QFocusEvent* e) override;
+	virtual void focusOutEvent(QFocusEvent* e) override;
 	virtual bool focusNextPrevChild(bool next) override;
 
 	// move/resize
-	virtual void resizeEvent(QResizeEvent* e);
-	virtual void moveEvent(QMoveEvent* e);
+	virtual void resizeEvent(QResizeEvent* e) override;
+	virtual void moveEvent(QMoveEvent* e) override;
 	virtual void showEvent(QShowEvent* e) override;
 
 	// input events for OSR
@@ -106,19 +106,19 @@ public:
 
 	// drag'n'drop
 #if defined (_LINUX) && !defined(_MAC)
-	virtual void dragEnterEvent(QDragEnterEvent *e);
-	virtual void dragLeaveEvent(QDragLeaveEvent *e);
-	virtual void dropEvent(QDropEvent *e);
+	virtual void dragEnterEvent(QDragEnterEvent *e) override;
+	virtual void dragLeaveEvent(QDragLeaveEvent *e) override;
+	virtual void dropEvent(QDropEvent *e) override;
 	NSEditorApi::CAscLocalDragDropData* convertMimeData(const QMimeData *pMimeData);
 #endif
 
-	virtual void UpdateSize();
+	virtual void UpdateSize() override;
 
 	// After create
-	virtual void AfterCreate();
+	virtual void AfterCreate() override;
 
 	// close
-	virtual void closeEvent(QCloseEvent *e);
+	virtual void closeEvent(QCloseEvent *e) override;
 
 	// work with cefview
 	CCefView* GetCefView();
@@ -131,15 +131,15 @@ public:
 	virtual void OnMediaPlayerCommand(NSEditorApi::CAscExternalMediaPlayerCommand* data);
 
 	// events
-	virtual void OnLoaded();
-	virtual void OnRelease();
+	virtual void OnLoaded() override;
+	virtual void OnRelease() override;
 
 	// get natural view
 	QWidget* GetViewWidget();
 
 	// background color
 	void SetBackgroundCefColor(unsigned char r, unsigned char g, unsigned char b);
-	void paintEvent(QPaintEvent *event);
+	virtual void paintEvent(QPaintEvent *event) override;
 
 	virtual double GetDeviceScaleFactor() override;
 	virtual double GetUIScalePercentage() override;
@@ -162,7 +162,7 @@ public:
 	static bool IsSupportLayers();
 	void SetCaptionMaskSize(int);
 
-	virtual bool eventFilter(QObject *watched, QEvent *event);
+	virtual bool eventFilter(QObject *watched, QEvent *event) override;
 
 	bool setFocusToCef();
 
@@ -244,9 +244,9 @@ public:
 	void SetCaptionMaskSize(int);
 
 protected:
-	virtual void moveEvent(QMoveEvent*);
-	virtual void resizeEvent(QResizeEvent*);
-	virtual bool eventFilter(QObject *watched, QEvent *event);
+	virtual void moveEvent(QMoveEvent*) override;
+	virtual void resizeEvent(QResizeEvent*) override;
+	virtual bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
 	QPointer<QCefView> qcef_parent;
