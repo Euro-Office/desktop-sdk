@@ -16,7 +16,7 @@ static void QMediaPlayer_setMedia(QMediaPlayer* pPlayer, const QString& sFile)
 static void QMediaPlayer_setVolume(QMediaPlayer* pPlayer, const int& nVolume)
 {
 	if (pPlayer->audioOutput())
-		pPlayer->audioOutput()->setVolume(nVolume);
+		pPlayer->audioOutput()->setVolume(nVolume / 100.0f);
 }
 static bool QMediaPlayer_isAudio(QMediaPlayer* pPlayer)
 {
