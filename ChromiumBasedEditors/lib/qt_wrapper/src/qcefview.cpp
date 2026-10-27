@@ -517,6 +517,35 @@ void QCefView::moveEvent(QMoveEvent* e)
 	}
 	QWidget::moveEvent(e);
 }
+void QCefView::showEvent(QShowEvent* e)
+{
+	QWidget::showEvent(e);
+
+	if (!m_isWayland || !m_pGLView)
+	{ return; }
+
+	// m_pGLViewWindow becomes null when the previous window was destroyed
+	// (the fullscreen window is deleted before the panel is shown again)
+	QWidget* topLevel = window();
+	if (m_pGLViewWindow == topLevel)
+	{ return; }
+
+	// The view was moved to another top-level window (presentation fullscreen
+	// and back). A QOpenGLWidget carried along that way stops presenting on
+	// Wayland, so the old window's content stays visible in its place.
+	// Recreate the overlay in the new window and ask CEF for a fresh frame.
+	m_pGLViewWindow = topLevel;
+	delete m_pGLView;
+	m_pGLView = new QCefGLWidget(this);
+	m_pGLView->setGeometry(0, 0, width(), height());
+	if (!m_imageBuffer.isNull())
+	{ m_pGLView->SetFrame(m_imageBuffer); }
+	m_pGLView->show();
+	m_pGLView->raise();
+
+	if (m_pCefView)
+	{ m_pCefView->resizeEvent(); }
+}
 
 // close
 void QCefView::closeEvent(QCloseEvent* e)
@@ -1159,6 +1188,7 @@ void QCefView::Init()
 		m_pGLView->setGeometry(0, 0, width(), height());
 		m_pGLView->show();
 		m_pGLView->raise();
+		m_pGLViewWindow = window();
 	}
 	else if (IsSupportLayers())
 	{
