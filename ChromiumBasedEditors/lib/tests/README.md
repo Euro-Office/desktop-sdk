@@ -14,9 +14,10 @@ them. The Linux docker build runs them on every build.
 1. Add `<name>_test.cpp` here.
 2. Register it in `CMakeLists.txt` with `add_core_gtest()`, passing
    `GTEST_MAIN` unless the suite has its own `main()`.
-3. List what it links in `LIBS`. Suites should link core libraries or code
-   that doesn't need CEF, not `ascdocumentscore` itself, so they run without a
-   browser engine.
+3. List what it links in `LIBS`. Suites don't link `ascdocumentscore` itself,
+   so they run without a browser engine: add the SDK sources under test that
+   don't need CEF to `SOURCES` (`${SDK_SRC}/<file>.cpp`), as core's suites
+   do, and link the core libraries they use.
 
 `setup_test.cpp` only checks the test setup itself (GoogleTest, core kernel
 loading at run time) and is the minimal example.
