@@ -23,3 +23,16 @@ add_core_gtest(
     LIBS    kernel
     GTEST_MAIN
 )
+
+# The Linux implementation (fcntl, GIO for files that aren't local); the
+# Windows and macOS lockers are separate code paths.
+if(UNIX AND NOT APPLE)
+    add_core_gtest(
+        NAME    ascdocumentscore_filelocker_test
+        SOURCES ${CMAKE_CURRENT_LIST_DIR}/filelocker_test.cpp ${SDK_SRC}/filelocker.cpp
+        LIBS    kernel ${GTK_LIBRARIES}
+        GTEST_MAIN
+    )
+    target_include_directories(ascdocumentscore_filelocker_test PRIVATE ${GTK_INCLUDE_DIRS})
+    target_compile_definitions(ascdocumentscore_filelocker_test PRIVATE _LINUX LINUX)
+endif()
