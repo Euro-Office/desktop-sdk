@@ -18,6 +18,9 @@ option(DISABLE_PROTECTION "Disable protection feature" OFF)
 option(DISABLE_SIGNATURES "Disable signatures feature" OFF)
 option(USE_V8 "Use V8 on macOS" OFF)
 option(CEF_VERSION_107 "Use CEF Version 107 on Linux" OFF)
+# Unit tests, see tests/README.md. Normally set by desktop-apps' CMakeLists.txt,
+# which builds this library as a subdirectory.
+option(EO_BUILD_TESTS "Build the desktop-sdk unit tests" OFF)
 
 # Platform-specific CEF source path
 if(WIN32)
@@ -1305,4 +1308,11 @@ if(APPLE)
                 "$<TARGET_FILE:UnicodeConverter>"
         COMMENT "Packaging CEF helper .app bundles"
     )
+endif()
+
+if(EO_BUILD_TESTS)
+    # Harmless if desktop-apps already called it; lets this library's tests
+    # also be configured and run on their own.
+    enable_testing()
+    add_subdirectory(tests)
 endif()
