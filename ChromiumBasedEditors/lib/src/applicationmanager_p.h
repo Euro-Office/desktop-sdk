@@ -1788,8 +1788,6 @@ public:
 		m_oCS_SystemMessages.InitializeCriticalSection();
 
 		m_bIsPreloadDiscard = false;
-
-		COfficeUtils::SetAddonFlag(ZLIB_ADDON_FLAG_WINDOWS_SHARED_WRITE);
 	}
 	virtual ~CAscApplicationManager_Private()
 	{
