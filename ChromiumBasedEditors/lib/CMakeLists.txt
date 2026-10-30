@@ -236,6 +236,7 @@ set(ASCDOCUMENTSCORE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/crypto_mode.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/keychain.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/filelocker.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/certificatecheck.cpp"
     "${CORE_ROOT_DIR}/Common/OfficeFileFormatChecker2.cpp"
     "${CORE_ROOT_DIR}/Common/3dParty/pole/pole.cpp"
     "${CORE_ROOT_DIR}/OOXML/Base/unicode_util.cpp"
