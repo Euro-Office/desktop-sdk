@@ -36,3 +36,14 @@ if(UNIX AND NOT APPLE)
     target_include_directories(ascdocumentscore_filelocker_test PRIVATE ${GTK_INCLUDE_DIRS})
     target_compile_definitions(ascdocumentscore_filelocker_test PRIVATE _LINUX LINUX)
 endif()
+
+# The key and certificate files are in data/certificate
+add_core_gtest(
+    NAME    ascdocumentscore_certificatecheck_test
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/certificatecheck_test.cpp ${SDK_SRC}/certificatecheck.cpp
+    LIBS    kernel ooxmlsignature
+    GTEST_MAIN
+)
+target_compile_definitions(ascdocumentscore_certificatecheck_test PRIVATE
+    DESKTOP_NO_USE_DYNAMIC_LIBRARY
+    CERTIFICATE_TEST_DATA="${CMAKE_CURRENT_LIST_DIR}/data/certificate")
