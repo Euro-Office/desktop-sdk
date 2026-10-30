@@ -176,6 +176,15 @@ enum class ErrorPageType
 	Undefined = 255
 };
 
+// Result of checking a certificate or private key file for signing
+enum class CertificateFileStatus
+{
+	Ok,           // a certificate or a private key
+	Complete,     // certificate and private key in one file (PKCS #12)
+	NeedPassword, // the password is missing or wrong
+	Unsupported   // no certificate or key, or the file can't be read
+};
+
 class CAscReporterData;
 class CAscApplicationManager_Private;
 namespace NSFonts { class IApplicationFonts; }
@@ -319,6 +328,10 @@ public:
 	bool RemoveRecentByViewId(const int& viewId);
 
 	int CallCommand(const std::wstring& command);
+
+	// check a certificate or private key file for signing
+	static CertificateFileStatus CheckCertificateFile(const std::wstring& sFile, const std::string& sPassword);
+	static CertificateFileStatus CheckPrivateKeyFile(const std::wstring& sFile, const std::string& sPassword);
 
 protected:
 	int GenerateNextViewId();

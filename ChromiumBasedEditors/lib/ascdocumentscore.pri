@@ -121,7 +121,8 @@ SOURCES += \
     $$PWD/src/fileprinter.cpp \
     $$PWD/src/crypto_mode.cpp \
     $$PWD/src/keychain.cpp \
-    $$PWD/src/filelocker.cpp
+    $$PWD/src/filelocker.cpp \
+    $$PWD/src/certificatecheck.cpp
 
 !core_mac {
 SOURCES += \
