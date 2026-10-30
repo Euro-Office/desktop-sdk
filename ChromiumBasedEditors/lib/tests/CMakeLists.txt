@@ -47,3 +47,10 @@ add_core_gtest(
 target_compile_definitions(ascdocumentscore_certificatecheck_test PRIVATE
     DESKTOP_NO_USE_DYNAMIC_LIBRARY
     CERTIFICATE_TEST_DATA="${CMAKE_CURRENT_LIST_DIR}/data/certificate")
+
+# Which requests get a cloud's Authorization header; needs neither CEF nor core
+add_core_gtest(
+    NAME    ascdocumentscore_portalauthorization_test
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/portalauthorization_test.cpp ${SDK_SRC}/portalauthorization.cpp
+    GTEST_MAIN
+)

@@ -834,6 +834,11 @@ void CAscApplicationManager::Logout(std::wstring strUrl)
 	m_pInternal->Logout(strUrl, CefCookieManager::GetGlobalManager(nullptr));
 }
 
+void CAscApplicationManager::SetPortalAuthorization(const std::wstring& sPortal, const std::wstring& sAuthorization)
+{
+	m_pInternal->m_oPortalAuth.Set(U_TO_UTF8(sPortal), U_TO_UTF8(sAuthorization));
+}
+
 void CAscApplicationManager::LockCS(int nId)
 {
 	m_pInternal->m_oCS_Scripts.Enter();
