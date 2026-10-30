@@ -331,8 +331,19 @@ void QCefView::keyPressEvent(QKeyEvent *event) {
 			return;
 		}
 
+		// CEF's own clipboard does not work in Wayland OSR mode. Editors read it
+		// through the clipboard_read bridge (see CClipboardQueryHandler), but plain
+		// pages like the cloud login window never get the system clipboard, so
+		// Ctrl+V / Shift+Insert is handled here by typing the clipboard text.
+		if (m_pCefView->GetType() != cvwtEditor && (event->matches(QKeySequence::Paste) ||
+			(key == Qt::Key_Insert && event->modifiers() == Qt::ShiftModifier))) {
+			PasteClipboardText();
+			event->accept();
+			return;
+		}
+
 		int windows_key_code = QtKeyToWindowsKeyCode(key);
-		
+
 		wchar_t unmodified_char = 0;
 		if (key >= Qt::Key_A && key <= Qt::Key_Z) {
 			unmodified_char = (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
@@ -405,6 +416,26 @@ void QCefView::keyReleaseEvent(QKeyEvent *event) {
 		return;
 	}
 	QWidget::keyReleaseEvent(event);
+}
+
+void QCefView::PasteClipboardText()
+{
+	// Inject the text as committed characters, the same way inputMethodEvent
+	// does. Control characters are dropped: a trailing newline copied from a
+	// password manager would otherwise submit the login form.
+	std::wstring text = QApplication::clipboard()->text().toStdWString();
+	for (wchar_t ch : text)
+	{
+		if (ch < 0x20 || ch == 0x7F)
+			continue;
+		std::wstring character_str;
+		character_str.push_back(ch);
+		character_str.push_back(ch);
+		character_str.push_back(0);
+		m_pCefView->SendKeyEvent(0, 0, 0, character_str);
+		m_pCefView->SendKeyEvent(3, 0, 0, character_str);
+		m_pCefView->SendKeyEvent(2, 0, 0, character_str);
+	}
 }
 
 // An alternative approach would be to use CEF's ImeCommitText API directly,

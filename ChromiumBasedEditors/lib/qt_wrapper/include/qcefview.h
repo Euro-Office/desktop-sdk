@@ -102,6 +102,8 @@ public:
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
 	virtual void inputMethodEvent(QInputMethodEvent *event) override;
+	// Wayland: types the system clipboard text into the focused field
+	void PasteClipboardText();
 	virtual QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
 
 	// drag'n'drop
