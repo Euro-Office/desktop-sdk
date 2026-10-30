@@ -836,15 +836,7 @@ void CAscApplicationManager::Logout(std::wstring strUrl)
 
 void CAscApplicationManager::SetPortalAuthorization(const std::wstring& sPortal, const std::wstring& sAuthorization)
 {
-	std::string sPrefix = CAscApplicationManager_Private::NormalizePortalPrefix(U_TO_UTF8(sPortal));
-	if (sPrefix.empty())
-		return;
-
-	CTemporaryCS oCS(&m_pInternal->m_oCS_PortalAuth);
-	if (sAuthorization.empty())
-		m_pInternal->m_mapPortalAuth.erase(sPrefix);
-	else
-		m_pInternal->m_mapPortalAuth[sPrefix] = U_TO_UTF8(sAuthorization);
+	m_pInternal->m_oPortalAuth.Set(U_TO_UTF8(sPortal), U_TO_UTF8(sAuthorization));
 }
 
 void CAscApplicationManager::LockCS(int nId)
