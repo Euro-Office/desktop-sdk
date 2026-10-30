@@ -52,6 +52,7 @@
 #include "plugins.h"
 #include "providers.h"
 #include "filelocker.h"
+#include "portalauthorization.h"
 
 #include "utils.h"
 #include "../../../../core/DesktopEditor/xmlsec/src/include/CertificateCommon.h"
@@ -1650,8 +1651,7 @@ public:
 
 	// portal url prefix (scheme://host[:port]/path/) <-> Authorization header value.
 	// read on the IO thread (CAscClientHandler::OnBeforeResourceLoad)
-	NSCriticalSection::CRITICAL_SECTION m_oCS_PortalAuth;
-	std::map<std::string, std::string> m_mapPortalAuth;
+	CPortalAuthorization m_oPortalAuth;
 
 	// Recents & recovers
 	NSCriticalSection::CRITICAL_SECTION m_oCS_LocalFiles;
@@ -1791,7 +1791,6 @@ public:
 		m_oCS_Scripts.InitializeCriticalSection();
 		m_oCS_LocalFiles.InitializeCriticalSection();
 		m_oCS_SystemMessages.InitializeCriticalSection();
-		m_oCS_PortalAuth.InitializeCriticalSection();
 
 		m_bIsPreloadDiscard = false;
 	}
@@ -1805,48 +1804,6 @@ public:
 		m_oCS_Scripts.DeleteCriticalSection();
 		m_oCS_LocalFiles.DeleteCriticalSection();
 		m_oCS_SystemMessages.DeleteCriticalSection();
-		m_oCS_PortalAuth.DeleteCriticalSection();
-	}
-
-	// "https://Cloud.example.com/nc" -> "https://cloud.example.com/nc/"
-	static std::string NormalizePortalPrefix(std::string sUrl)
-	{
-		std::string::size_type nSchemeEnd = sUrl.find("://");
-		if (nSchemeEnd == std::string::npos)
-			return "";
-
-		std::string::size_type nHostEnd = sUrl.find('/', nSchemeEnd + 3);
-		if (nHostEnd == std::string::npos)
-			nHostEnd = sUrl.length();
-		for (std::string::size_type i = 0; i < nHostEnd; ++i)
-			sUrl[i] = (char)tolower((unsigned char)sUrl[i]);
-
-		if (sUrl.empty() || sUrl.back() != '/')
-			sUrl += '/';
-		return sUrl;
-	}
-
-	// Authorization header for a request to sUrl made from a frame showing sFrameUrl.
-	// The header is only added when the frame belongs to the same portal (or is a fresh
-	// navigation), so other sites can't make credentialed requests to the portal.
-	std::string GetPortalAuthorization(const std::string& sUrl, const std::string& sFrameUrl)
-	{
-		CTemporaryCS oCS(&m_oCS_PortalAuth);
-		if (m_mapPortalAuth.empty())
-			return "";
-
-		std::string sUrlNorm = NormalizePortalPrefix(sUrl);
-		std::string sFrameNorm = (sFrameUrl.empty() || sFrameUrl == "about:blank") ? "" : NormalizePortalPrefix(sFrameUrl);
-
-		for (std::map<std::string, std::string>::const_iterator it = m_mapPortalAuth.begin(); it != m_mapPortalAuth.end(); ++it)
-		{
-			if (0 != sUrlNorm.find(it->first))
-				continue;
-			if (!sFrameNorm.empty() && 0 != sFrameNorm.find(it->first))
-				continue;
-			return it->second;
-		}
-		return "";
 	}
 
 	std::wstring StartTmpDirectory()

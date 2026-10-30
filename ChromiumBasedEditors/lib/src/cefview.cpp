@@ -1829,6 +1829,118 @@ private:
 	CCefView* m_pParent;
 };
 
+#ifndef CEF_2623
+// Adds a portal's Authorization header (CAscApplicationManager::SetPortalAuthorization)
+// to one request and passes everything else on to the view's handler. One per request,
+// since only GetResourceRequestHandler is told who started it (request_initiator).
+class CAscPortalAuthRequestHandler : public CefResourceRequestHandler
+{
+public:
+	CAscPortalAuthRequestHandler(CefRefPtr<CefResourceRequestHandler> handler,
+								 const CPortalAuthorization& oAuth, const std::string& sInitiator)
+		: m_pHandler(handler), m_oAuth(oAuth), m_sInitiator(sInitiator)
+	{
+	}
+
+	virtual cef_return_value_t OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser,
+													CefRefPtr<CefFrame> frame,
+													CefRefPtr<CefRequest> request,
+													CefRefPtr<CefCallback> callback) OVERRIDE
+	{
+		CEF_REQUIRE_IO_THREAD();
+
+		std::string sUrl = request->GetURL().ToString();
+		std::string sHeader = request->GetHeaderByName("Authorization").ToString();
+		if (sHeader.empty())
+		{
+			std::string sAuth = m_oAuth.Get(sUrl, m_sInitiator);
+			if (!sAuth.empty())
+				request->SetHeaderByName("Authorization", sAuth, true);
+		}
+		else if (m_oAuth.IsMisplaced(sUrl, sHeader))
+		{
+			// a portal's header on a request elsewhere, e.g. after a redirect
+			CefRequest::HeaderMap mapHeaders;
+			request->GetHeaderMap(mapHeaders);
+			for (CefRequest::HeaderMap::iterator it = mapHeaders.begin(); it != mapHeaders.end();)
+			{
+				std::string sName = it->first.ToString();
+				for (char& c : sName)
+					c = (char)tolower((unsigned char)c);
+				it = (sName == "authorization") ? mapHeaders.erase(it) : std::next(it);
+			}
+			request->SetHeaderMap(mapHeaders);
+		}
+
+		return m_pHandler->OnBeforeResourceLoad(browser, frame, request, callback);
+	}
+
+	virtual CefRefPtr<CefCookieAccessFilter> GetCookieAccessFilter(CefRefPtr<CefBrowser> browser,
+																   CefRefPtr<CefFrame> frame,
+																   CefRefPtr<CefRequest> request) OVERRIDE
+	{
+		return m_pHandler->GetCookieAccessFilter(browser, frame, request);
+	}
+
+	virtual CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser,
+															 CefRefPtr<CefFrame> frame,
+															 CefRefPtr<CefRequest> request) OVERRIDE
+	{
+		return m_pHandler->GetResourceHandler(browser, frame, request);
+	}
+
+	virtual void OnResourceRedirect(CefRefPtr<CefBrowser> browser,
+									CefRefPtr<CefFrame> frame,
+									CefRefPtr<CefRequest> request,
+									CefRefPtr<CefResponse> response,
+									CefString& new_url) OVERRIDE
+	{
+		m_pHandler->OnResourceRedirect(browser, frame, request, response, new_url);
+	}
+
+	virtual bool OnResourceResponse(CefRefPtr<CefBrowser> browser,
+									CefRefPtr<CefFrame> frame,
+									CefRefPtr<CefRequest> request,
+									CefRefPtr<CefResponse> response) OVERRIDE
+	{
+		return m_pHandler->OnResourceResponse(browser, frame, request, response);
+	}
+
+	virtual CefRefPtr<CefResponseFilter> GetResourceResponseFilter(CefRefPtr<CefBrowser> browser,
+																   CefRefPtr<CefFrame> frame,
+																   CefRefPtr<CefRequest> request,
+																   CefRefPtr<CefResponse> response) OVERRIDE
+	{
+		return m_pHandler->GetResourceResponseFilter(browser, frame, request, response);
+	}
+
+	virtual void OnResourceLoadComplete(CefRefPtr<CefBrowser> browser,
+										CefRefPtr<CefFrame> frame,
+										CefRefPtr<CefRequest> request,
+										CefRefPtr<CefResponse> response,
+										URLRequestStatus status,
+										int64 received_content_length) OVERRIDE
+	{
+		m_pHandler->OnResourceLoadComplete(browser, frame, request, response, status, received_content_length);
+	}
+
+	virtual void OnProtocolExecution(CefRefPtr<CefBrowser> browser,
+									 CefRefPtr<CefFrame> frame,
+									 CefRefPtr<CefRequest> request,
+									 bool& allow_os_execution) OVERRIDE
+	{
+		m_pHandler->OnProtocolExecution(browser, frame, request, allow_os_execution);
+	}
+
+private:
+	CefRefPtr<CefResourceRequestHandler> m_pHandler;
+	const CPortalAuthorization& m_oAuth;
+	std::string m_sInitiator;
+
+	IMPLEMENT_REFCOUNTING(CAscPortalAuthRequestHandler);
+};
+#endif
+
 class CAscClientHandler : public client::ClientHandler, public CCookieFoundCallback, public client::ClientHandler::Delegate, public CefDialogHandler, public CefRenderHandler
 {
 public:
@@ -2523,24 +2635,25 @@ public:
 		return true;
 	}
 
-	virtual cef_return_value_t OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser,
-													CefRefPtr<CefFrame> frame,
-													CefRefPtr<CefRequest> request,
-													CefRefPtr<CefCallback> callback) OVERRIDE
+#ifndef CEF_2623
+	// see CAscApplicationManager::SetPortalAuthorization
+	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser,
+																		   CefRefPtr<CefFrame> frame,
+																		   CefRefPtr<CefRequest> request,
+																		   bool is_navigation,
+																		   bool is_download,
+																		   const CefString& request_initiator,
+																		   bool& disable_default_handling) OVERRIDE
 	{
-		CEF_REQUIRE_IO_THREAD();
+		CefRefPtr<CefResourceRequestHandler> handler = client::ClientHandler::GetResourceRequestHandler(
+			browser, frame, request, is_navigation, is_download, request_initiator, disable_default_handling);
 
-		// see CAscApplicationManager::SetPortalAuthorization
-		if (request->GetHeaderByName("Authorization").empty())
-		{
-			std::string sAuth = m_pParent->m_pInternal->m_pManager->m_pInternal->GetPortalAuthorization(
-				request->GetURL().ToString(), frame ? frame->GetURL().ToString() : "");
-			if (!sAuth.empty())
-				request->SetHeaderByName("Authorization", sAuth, true);
-		}
-
-		return client::ClientHandler::OnBeforeResourceLoad(browser, frame, request, callback);
+		const CPortalAuthorization& oAuth = m_pParent->m_pInternal->m_pManager->m_pInternal->m_oPortalAuth;
+		if (!handler || oAuth.IsEmpty())
+			return handler;
+		return new CAscPortalAuthRequestHandler(handler, oAuth, request_initiator.ToString());
 	}
+#endif
 
 	virtual bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
 								CefRefPtr<CefFrame> frame,
