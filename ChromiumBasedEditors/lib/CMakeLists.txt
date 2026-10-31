@@ -140,10 +140,7 @@ if(NOT APPLE)
     target_compile_definitions(ascdocumentscore PRIVATE DOCUMENTSCORE_OPENSSL_SUPPORT)
 endif()
 
-# CEF Extensions & Versions
 target_compile_definitions(ascdocumentscore PRIVATE
-    CEF_VERSION_ABOVE_86
-    CEF_VERSION_ABOVE_102
     OVERRIDE=override
 )
 

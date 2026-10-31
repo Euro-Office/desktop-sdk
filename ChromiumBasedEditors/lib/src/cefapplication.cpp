@@ -67,14 +67,6 @@ int XIOErrorHandlerImpl(Display *display)
 #include "cefwrapper/client_app.h"
 #include "cefwrapper/client_scheme.h"
 
-#ifdef CEF_2623
-#include "cefclient/browser/main_context_impl.h"
-#include "cefclient/browser/main_message_loop_multithreaded_win.h"
-#include "cefclient/browser/main_message_loop_std.h"
-namespace client {
-	typedef MainMessageLoopMultithreadedWin MainMessageLoopMultithreaded;
-}
-#else
 #include "tests/cefclient/browser/main_context_impl.h"
 #include "tests/shared/browser/main_message_loop_std.h"
 #include "tests/shared/browser/main_message_loop_external_pump.h"
@@ -121,17 +113,10 @@ public:
 		message_loop_->Execute(new int64_t(delay_ms));
 	}
 
-#ifdef CEF_VERSION_ABOVE_102
 	static std::unique_ptr<client::MainMessageLoopExternalPump> Create(IExternalMessageLoop* native_loop)
 	{
 		return std::make_unique<CMainMessageLoopExternalPumpBase>(native_loop);
 	}
-#else
-	static scoped_ptr<client::MainMessageLoopExternalPump> Create(IExternalMessageLoop* native_loop)
-	{
-		return scoped_ptr<client::MainMessageLoopExternalPump>(new CMainMessageLoopExternalPumpBase(native_loop));
-	}
-#endif
 
 public:
 	void OnExecute(void* message)
@@ -185,7 +170,6 @@ namespace client {
 #include "include/wrapper/cef_library_loader.h"
 
 #endif
-#endif
 
 #include "./plugins.h"
 
@@ -195,13 +179,8 @@ public:
 	CefRefPtr<client::ClientApp> m_app;
 
 	bool m_bIsMessageLoopRunned;
-#ifdef CEF_VERSION_ABOVE_102
 	std::unique_ptr<client::MainContextImpl> context;
 	std::unique_ptr<client::MainMessageLoop> message_loop;
-#else
-	scoped_ptr<client::MainContextImpl> context;
-	scoped_ptr<client::MainMessageLoop> message_loop;
-#endif
 
 	CAscApplicationManager* m_pManager;
 
@@ -410,13 +389,7 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 #endif
 
 	// Populate the settings based on command line arguments.
-#if defined(CEF_VERSION_ABOVE_102)
 	m_pInternal->context = std::make_unique<client::MainContextImpl>(command_line, false);
-#elif defined(CEF_2623)
-	m_pInternal->context.reset(new client::MainContextImpl(command_line, false));
-#else
-	m_pInternal->context = new client::MainContextImpl(command_line, false);
-#endif
 
 	m_pInternal->context->PopulateSettings(&settings);
 
@@ -432,30 +405,16 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 
 	if (m_pInternal->m_pManager->IsExternalEventLoop())
 	{
-#ifndef CEF_2623
 		settings.external_message_pump = 1;
-#endif
 	}
 	else if (isMultithreaded)
 	{
 		settings.multi_threaded_message_loop = 1;
-#if defined(CEF_VERSION_ABOVE_102)
 		m_pInternal->message_loop = std::make_unique<client::MainMessageLoopMultithreaded>();
-#elif defined(CEF_2623)
-		m_pInternal->message_loop.reset(new client::MainMessageLoopMultithreaded);
-#else
-		m_pInternal->message_loop = new client::MainMessageLoopMultithreaded();
-#endif
 	}
 	else
 	{
-#if defined(CEF_VERSION_ABOVE_102)
 		m_pInternal->message_loop = std::make_unique<client::MainMessageLoopStd>();
-#elif defined(CEF_2623)
-		m_pInternal->message_loop.reset(new client::MainMessageLoopStd);
-#else
-		m_pInternal->message_loop = new client::MainMessageLoopStd();
-#endif
 	}
 
 	std::wstring sCachePath = pManager->m_oSettings.cache_path;
@@ -682,7 +641,7 @@ void CApplicationCEF::Prepare(int argc, char* argv[])
 // External message loop
 bool CAscApplicationManager::IsExternalEventLoop()
 {
-#if defined(CEF_2623) || defined(_MAC)
+#if defined(_MAC)
 	m_pInternal->m_bIsUseExternalMessageLoop = false;
 #else
 	if (m_pInternal->m_bIsUseExternalMessageLoop)
@@ -705,17 +664,13 @@ IExternalMessageLoop* CAscApplicationManager::GetExternalMessageLoop()
 }
 void CAscApplicationManager::ExternalMessageLoop_OnExecute(void* message)
 {
-#ifndef CEF_2623
 	CMainMessageLoopExternalPumpBase* loop = (CMainMessageLoopExternalPumpBase*)(m_pInternal->m_pApplication->m_pInternal->message_loop.get());
 	loop->OnExecute(message);
-#endif
 }
 void CAscApplicationManager::ExternalMessageLoop_OnTimeout()
 {
-#ifndef CEF_2623
 	CMainMessageLoopExternalPumpBase* loop = (CMainMessageLoopExternalPumpBase*)(m_pInternal->m_pApplication->m_pInternal->message_loop.get());
 	loop->OnTimer();
-#endif
 }
 bool CAscApplicationManager::IsExitMessageLoop()
 {

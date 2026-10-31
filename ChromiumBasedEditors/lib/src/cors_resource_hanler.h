@@ -1,7 +1,6 @@
 #ifndef CORS_RESOURCE_HANDLER_H
 #define CORS_RESOURCE_HANDLER_H
 
-#ifdef CEF_VERSION_ABOVE_102
 
 #define CEF_SUPPORT_STREAMING_CORS_RESOURCE_HANDLER
 
@@ -301,6 +300,5 @@ void StreamingCORSResourceHandler::Cancel()
 		m_urlRequest->Cancel();	
 }
 
-#endif // CEF_VERSION_ABOVE_102
 
 #endif // CORS_RESOURCE_HANDLER_H

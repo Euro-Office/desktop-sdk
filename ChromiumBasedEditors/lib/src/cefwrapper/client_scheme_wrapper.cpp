@@ -330,9 +330,7 @@ private:
 #if defined (_LINUX) && !defined(_MAC)
 		nFlag |= UU_URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS;
 #else
-#ifndef CEF_2623
 		nFlag |= UU_URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS;
-#endif
 #endif
 
 		CefString cefUrl = request->GetURL();
@@ -486,9 +484,7 @@ private:
 #if defined (_LINUX) && !defined(_MAC)
 		nFlag |= UU_URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS;
 #else
-#ifndef CEF_2623
 		nFlag |= UU_URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS;
-#endif
 #endif
 
 		CefString cefUrl = request->GetURL();
@@ -560,24 +556,13 @@ namespace asc_scheme
 		IMPLEMENT_REFCOUNTING(ClientSchemeHandlerFactory);
 	};
 
-#ifdef CEF_2623
-	void RegisterCustomSchemes(CefRefPtr<CefSchemeRegistrar> registrar,
-							   std::vector<CefString>& cookiable_schemes)
-	{
-		registrar->AddCustomScheme("ascdesktop", true, false, false);
-	}
-#else
 	void RegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar
-                               #ifndef CEF_VERSION_ABOVE_102
-							   , std::vector<CefString>& cookiable_schemes
-							   #endif
 							   )
 	{
 		registrar->AddCustomScheme("ascdesktop", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CORS_ENABLED | CEF_SCHEME_OPTION_FETCH_ENABLED);
 		registrar->AddCustomScheme("onlyoffice", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CORS_ENABLED | CEF_SCHEME_OPTION_FETCH_ENABLED);
 		registrar->AddCustomScheme("onlyoffice-proxy", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CORS_ENABLED | CEF_SCHEME_OPTION_FETCH_ENABLED);
 	}
-#endif
 
 	bool InitScheme(CAscApplicationManager* pManager)
 	{
@@ -591,14 +576,8 @@ namespace asc_scheme
 }  // namespace asc_scheme
 
 void client::ClientApp::RegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar
-                                              #ifndef CEF_VERSION_ABOVE_102
-											  , std::vector<CefString>& cookiable_schemes
-											  #endif
 											  )
 {
 	return asc_scheme::RegisterCustomSchemes(registrar
-                                         #ifndef CEF_VERSION_ABOVE_102
-										 , cookiable_schemes
-										 #endif
 											 );
 }

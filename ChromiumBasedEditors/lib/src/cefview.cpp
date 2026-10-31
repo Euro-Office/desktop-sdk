@@ -31,15 +31,9 @@
 
 #include "./window_handle.h"
 
-#ifdef CEF_2623
-#include "cefclient/browser/client_handler.h"
-#include "cefclient/common/client_switches.h"
-#include "cefclient/renderer/client_renderer.h"
-#else
 #include "tests/cefclient/browser/client_handler.h"
 #include "tests/shared/common/client_switches.h"
 #include "tests/cefclient/renderer/client_renderer.h"
-#endif
 
 #include "include/cef_menu_model.h"
 
@@ -99,9 +93,6 @@ std::wstring GetUrlWithoutProtocol(const std::wstring& url)
 
 #include <math.h>
 
-#ifdef CEF_2623
-typedef CefStreamResourceHandler CefStreamResourceHandlerCORS;
-#else
 #define USE_STREAM_RESOURCE_RECOVER_CORS
 class CefStreamResourceHandlerCORS : public CefStreamResourceHandler
 {
@@ -124,7 +115,6 @@ public:
 		response->SetHeaderMap(headers);
 	}
 };
-#endif
 
 // иногда (при неправильной ссылке) - не приходят сообщения OnDownloadUpdate
 // поэтому мы запускаем таймер. и если за его время не было сообщений - то считаем,
@@ -156,13 +146,8 @@ protected:
 		virtual int GetPercentComplete() { return 0; }
 		virtual int64_t GetTotalBytes() { return 0; }
 		virtual int64_t GetReceivedBytes() { return 0; }
-#if defined(CEF_VERSION_ABOVE_102) && !defined(CEF_VERSION_103)
 		virtual CefBaseTime GetStartTime() { return CefBaseTime(); }
 		virtual CefBaseTime GetEndTime() { return CefBaseTime(); }
-#else
-		virtual CefTime GetStartTime() { return CefTime(); }
-		virtual CefTime GetEndTime() { return CefTime(); }
-#endif
 		virtual CefString GetFullPath() { return ""; }
 		virtual uint32_t GetId() { return 0; }
 		virtual CefString GetURL() { return m_sUrl; }
@@ -515,11 +500,7 @@ public:
 #include <X11/Xlib.h>
 #endif
 
-#ifdef CEF_2623
-#define CefBase_Class CefBase
-#else
 #define CefBase_Class CefBaseRefCounted
-#endif
 
 class CCefBinaryFileReaderCounter : public CefBase_Class
 {
@@ -1848,9 +1829,6 @@ public:
 		}
 		virtual bool OnJSDialog(CefRefPtr<CefBrowser> browser,
 								const CefString& origin_url,
-						#ifdef CEF_2623
-								const CefString& accept_lang,
-						#endif
 								JSDialogType dialog_type,
 								const CefString& message_text,
 								const CefString& default_prompt_text,
@@ -2038,9 +2016,7 @@ public:
 
 public:
 	CAscClientHandler() : client::ClientHandler(this, false,
-											#ifdef CEF_VERSION_ABOVE_102
 												false,
-											#endif
 												"https://onlyoffice.com/")
 	{
 		m_pParent = NULL;
@@ -2351,9 +2327,7 @@ public:
 					#if defined (_LINUX) && !defined(_MAC)
 								nFlag |= UU_URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS;
 					#else
-					#ifndef CEF_2623
 								nFlag |= UU_URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS;
-					#endif
 					#endif
 								CefString cefFilePath = CefURIDecode(sFilePath, false, static_cast<cef_uri_unescape_rule_t>(nFlag));
 								sFilePath = cefFilePath.ToWString();
@@ -2529,9 +2503,7 @@ public:
 	virtual bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
 								CefRefPtr<CefFrame> frame,
 								CefRefPtr<CefRequest> request,
-							#ifndef CEF_2623
 								bool user_gesture,
-							#endif
 								bool is_redirect) OVERRIDE
 	{
 		std::wstring sUrl = request->GetURL().ToWString();
@@ -2717,9 +2689,7 @@ public:
 		}
 
 		bool ret = client::ClientHandler::OnBeforeBrowse(browser, frame, request,
-												 #ifndef CEF_2623
 														 user_gesture,
-												 #endif
 														 is_redirect);
 		if (NULL != m_pParent)
 		{
@@ -2737,7 +2707,6 @@ public:
 		return ret;
 	}
 
-#if !defined(CEF_2623) && !defined(CEF_VERSION_103)
 	virtual bool OnShowPermissionPrompt(
 		CefRefPtr<CefBrowser> browser,
 		uint64_t prompt_id,
@@ -2752,7 +2721,6 @@ public:
 		}
 		return false;
 	}
-#endif
 
 	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser,
 									  #ifndef MESSAGE_IN_BROWSER
@@ -4972,7 +4940,7 @@ virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser) OVERRIDE
 		}
 	}
 
-#if defined(_MAC) && defined(CEF_VERSION_ABOVE_102)
+#if defined(_MAC)
 	m_pParent->m_pInternal->m_hideChecker.Hide(browser);
 #endif
 }
@@ -5065,9 +5033,7 @@ virtual void OnLoadingStateChange(CefRefPtr<CefBrowser> browser,
 
 virtual void OnLoadStart(CefRefPtr<CefBrowser> browser,
 						 CefRefPtr<CefFrame> frame
-						 #ifndef CEF_2623
 						 , TransitionType transition_type
-						 #endif
 						 )
 {
 	// вот тут уже можно делать зум!!!
@@ -5293,16 +5259,12 @@ virtual void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
 		}
 	}
 
-#ifndef CEF_2623
 	if (delegate_)
 		delegate_->OnBeforeContextMenu(model);
-#endif
 }
 
 virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser,
-							  #ifndef CEF_2623
 							  cef_log_severity_t level,
-							  #endif
 							  const CefString& message,
 							  const CefString& source,
 							  int line) OVERRIDE
@@ -5406,9 +5368,7 @@ virtual CefRefPtr<CefResourceHandler> GetResourceHandler(
 #if defined (_LINUX) && !defined(_MAC)
 			nFlag |= UU_URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS;
 #else
-#ifndef CEF_2623
 			nFlag |= UU_URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS;
-#endif
 #endif
 
 			CefString cefUrl = request->GetURL();
@@ -5754,7 +5714,6 @@ virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,
 	}
 }
 
-#ifdef CEF_VERSION_ABOVE_102
 virtual bool CanDownload(CefRefPtr<CefBrowser> browser,
 						 const CefString& url,
 						 const CefString& request_method) OVERRIDE
@@ -5762,7 +5721,6 @@ virtual bool CanDownload(CefRefPtr<CefBrowser> browser,
 	CEF_REQUIRE_UI_THREAD();
 	return true;
 }
-#endif
 
 virtual bool OnBeforeDownload(CefRefPtr<CefBrowser> browser,
 							  CefRefPtr<CefDownloadItem> download_item,
@@ -5993,13 +5951,11 @@ virtual void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 	m_pParent->GetAppManager()->Apply(pEvent);
 }
 
-#ifndef CEF_2623
 void OnGotFocus(CefRefPtr<CefBrowser> browser) OVERRIDE
 {
 	NSEditorApi::CAscCefMenuEvent* pEvent = m_pParent->CreateCefEvent(ASC_MENU_EVENT_TYPE_PAGE_GOT_FOCUS);
 	m_pParent->GetAppManager()->GetEventListener()->OnEvent(pEvent);
 }
-#endif
 
 bool OnDragEnter(CefRefPtr<CefBrowser> browser,
 				 CefRefPtr<CefDragData> dragData,
@@ -6084,10 +6040,8 @@ virtual void OnSetLoadingState(bool isLoading,
 // Set the draggable regions.
 virtual void OnSetDraggableRegions(const std::vector<CefDraggableRegion>& regions) OVERRIDE {}
 
-#ifndef CEF_2623
 virtual void OnAutoResize(const CefSize& new_size) OVERRIDE {}
 virtual void OnContentsBounds(const CefRect& new_bounds) OVERRIDE {}
-#endif
 
 public:
 IMPLEMENT_REFCOUNTING(CAscClientHandler);
@@ -6097,11 +6051,7 @@ void CCefView_Private::CloseBrowser(bool _force_close)
 {
 	if (!CefCurrentlyOn(TID_UI))
 	{
-#ifdef CEF_VERSION_ABOVE_102
 		CefPostTask(TID_UI, BASE_BIND(&CCefView_Private::CloseBrowser, base::Unretained(this), _force_close));
-#else
-		CefPostTask(TID_UI, BASE_BIND(&CCefView_Private::CloseBrowser, this, _force_close));
-#endif
 		return;
 	}
 
@@ -6557,11 +6507,7 @@ void CCefView_Private::CheckZoom()
 	if (!CefCurrentlyOn(TID_UI))
 	{
 		// Execute on the UI thread.
-#ifdef CEF_VERSION_ABOVE_102
 		CefPostTask(TID_UI, BASE_BIND(&CCefView_Private::CheckZoom, base::WrapRefCounted(this)));
-#else
-		CefPostTask(TID_UI, BASE_BIND(&CCefView_Private::CheckZoom, this));
-#endif
 		return;
 	}
 
@@ -7115,11 +7061,6 @@ void CCefView::load(const std::wstring& urlInputSrc)
 	_settings.javascript_access_clipboard = STATE_ENABLED;
 	_settings.javascript_dom_paste = STATE_ENABLED;
 
-#ifndef CEF_VERSION_ABOVE_102
-	_settings.file_access_from_file_urls = STATE_ENABLED;
-	_settings.universal_access_from_file_urls = STATE_ENABLED;
-	_settings.plugins = STATE_DISABLED;
-#endif
 
 	_settings.background_color = CefColorSetARGB(0xFF, pWidgetImpl->backgroundR, pWidgetImpl->backgroundG, pWidgetImpl->backgroundB);
 
@@ -7128,7 +7069,6 @@ void CCefView::load(const std::wstring& urlInputSrc)
 	int _w = m_pInternal->m_pWidgetImpl->cef_width;
 	int _h = m_pInternal->m_pWidgetImpl->cef_height;
 
-#ifdef CEF_VERSION_ABOVE_102
 #if defined(_LINUX) && !defined(_MAC)
 	if (m_pInternal && m_pInternal->m_pWidgetImpl && m_pInternal->m_pWidgetImpl->IsWayland()) {
 		info.SetAsWindowless(0);
@@ -7141,19 +7081,6 @@ void CCefView::load(const std::wstring& urlInputSrc)
 
 	m_pInternal->m_hideChecker.Hide(info, _handle);
 #endif
-#else
-
-#ifdef WIN32
-	info.SetAsChild(_handle, RECT { 0, 0, _w, _h });
-#endif
-#if defined(_LINUX) && !defined(_MAC)
-	info.SetAsChild(_handle, CefRect(0, 0, _w, _h));
-#endif
-#ifdef _MAC
-	info.SetAsChild(_handle, 0, 0, _w, _h);
-#endif
-
-#endif
 
 	// CEF always runs the Chrome bootstrap now; Alloy style keeps the browser free of Chrome UI.
 	info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
@@ -7164,7 +7091,6 @@ void CCefView::load(const std::wstring& urlInputSrc)
 	m_pInternal->m_strSSOFirstDomain = L"";
 	m_pInternal->m_arSSOSecondDomain.clear();
 
-#ifdef CEF_VERSION_ABOVE_86
 	CefRefPtr<CefDictionaryValue> extra_info = CefDictionaryValue::Create();
 	size_t nCount = 0;
 	std::vector<std::string> props = m_pInternal->m_pManager->GetRendererStartupProperties();
@@ -7176,7 +7102,6 @@ void CCefView::load(const std::wstring& urlInputSrc)
 	if (!m_pInternal->m_oLocalInfo.m_oInfo.m_sRecoveryDir.empty())
 		extra_info->SetString(std::to_string(++nCount), "recovery_file_folder=" + U_TO_UTF8(m_pInternal->m_oLocalInfo.m_oInfo.m_sRecoveryDir));
 	extra_info->SetString(std::to_string(++nCount), "viewport_settings=" + U_TO_UTF8(m_pInternal->m_sViewportSettings));
-#endif
 
 	// Create the new child browser window
 
@@ -7188,15 +7113,7 @@ void CCefView::load(const std::wstring& urlInputSrc)
 			#else
 	CefBrowserHost::CreateBrowserSync(
 			#endif
-			#ifdef CEF_2623
-				info, m_pInternal->m_handler.get(), sUrl, _settings, NULL);
-#else
-			#ifdef CEF_VERSION_ABOVE_86
 				info, m_pInternal->m_handler.get(), sUrl, _settings, extra_info, nullptr);
-#else
-				info, m_pInternal->m_handler.get(), sUrl, _settings, NULL, NULL);
-#endif
-#endif
 
 	GetWidgetImpl()->AfterCreate();
 
@@ -7872,9 +7789,6 @@ void CCefView::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 			}
 
 			m_pInternal->m_handler->m_pFileDialogCallback->Continue(
-			#ifndef CEF_VERSION_ABOVE_102
-						0,
-			#endif
 						file_paths);
 			m_pInternal->m_handler->m_pFileDialogCallback = nullptr;
 
@@ -7932,9 +7846,6 @@ void CCefView::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 				std::vector<CefString> file_paths;
 				file_paths.push_back(sPath);
 				m_pInternal->m_handler->m_pDirectoryDialogCallback->Continue(
-			#ifndef CEF_VERSION_ABOVE_102
-							0,
-			#endif
 							file_paths);
 			}
 			m_pInternal->m_handler->m_pDirectoryDialogCallback = nullptr;

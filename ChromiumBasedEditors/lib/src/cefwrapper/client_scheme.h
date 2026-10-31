@@ -32,9 +32,6 @@
 class CefBrowser;
 class CefSchemeRegistrar;
 
-#ifdef CEF_2623
-#define CefRawPtr CefRefPtr
-#endif
 
 #include "../../include/applicationmanager.h"
 
