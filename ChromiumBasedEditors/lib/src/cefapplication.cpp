@@ -388,6 +388,11 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 		settings.windowless_rendering_enabled = true;
 #endif
 
+	// Our browsers are Alloy style in native windows; make that the global
+	// default too, the sample code otherwise picks Chrome style with Views.
+	command_line->AppendSwitch("use-alloy-style");
+	command_line->AppendSwitch("use-native");
+
 	// Populate the settings based on command line arguments.
 	m_pInternal->context = std::make_unique<client::MainContextImpl>(command_line, false);
 
