@@ -8,7 +8,9 @@ What is vendored here is the part of CEF's sample application that
 ascdocumentscore builds on (`ClientApp*`, `ClientHandler`, `MainContextImpl`,
 the main message loops and what they pull in):
 
-- `tests/shared`, `tests/cefclient/{browser,common,renderer}`: sources only
+- `tests/shared`, `tests/cefclient/{browser,common,renderer}`: only the files
+  that `../../CMakeLists.txt` compiles and the headers they include. The
+  offscreen (OSR) rendering code and other unused sample files are left out.
 - `tests/cefsimple/mac/helper-Info.plist`: template for the macOS helper bundles
 
 Upstream: https://github.com/chromiumembedded/cef at
@@ -30,11 +32,13 @@ Upstream: https://github.com/chromiumembedded/cef at
 ## Updating to a new CEF version
 
 1. Bump `cef_version` (and the dep `version`) in core's `nc-build.py`.
-2. Replace `tests/` here with the same directories from the matching
-   upstream commit (sources only), then re-apply the patch:
+2. Replace each file under `tests/` here with its version from the matching
+   upstream commit, then re-apply the patch:
    `git apply --directory=ChromiumBasedEditors/lib/src/cef ChromiumBasedEditors/lib/src/cef/local-changes.patch`
    from the desktop-sdk root.
 3. Regenerate `local-changes.patch` if anything had to be adjusted, and
    update the commit above.
 4. Adjust the sample file lists in `../../CMakeLists.txt` for added or
-   removed upstream files.
+   removed upstream files, and copy over new files they need. Upstream
+   regularly moves code into new files that ClientHandler or test_runner
+   depend on; that only shows up as link errors.
