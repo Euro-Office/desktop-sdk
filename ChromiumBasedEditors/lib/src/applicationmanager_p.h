@@ -35,6 +35,7 @@
 
 #include "../src/cookiesworker.h"
 #include "include/cef_browser.h"
+#include "cefframeid.h"
 
 #include <iostream>
 #include <set>
@@ -280,14 +281,7 @@ namespace NSCefFrameId
 {
 	static int64_t FromIdentifier(const CefString& identifier)
 	{
-		uint64_t hash = 14695981039346656037ULL; // FNV-1a
-		for (unsigned char c : identifier.ToString())
-		{
-			hash ^= c;
-			hash *= 1099511628211ULL;
-		}
-		int64_t id = (int64_t)(hash & ((1ULL << 53) - 1));
-		return (0 == id) ? 1 : id;
+		return HashIdentifier(identifier.ToString());
 	}
 	static int64_t Get(CefRefPtr<CefFrame> frame)
 	{
