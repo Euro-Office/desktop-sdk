@@ -5324,6 +5324,11 @@ virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser,
 							  const CefString& source,
 							  int line) OVERRIDE
 {
+	if (m_pParent && m_pParent->GetAppManager() && m_pParent->GetAppManager()->GetDebugInfoSupport())
+	{
+		fprintf(stderr, "[console:%d] %s (%s:%d)\n", (int)level, message.ToString().c_str(), source.ToString().c_str(), line);
+		fflush(stderr);
+	}
 	return false;
 }
 
