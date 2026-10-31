@@ -58,16 +58,10 @@
 #include "../../../../core/DesktopEditor/xmlsec/src/include/CertificateCommon.h"
 #include "templatesmanager.h"
 
-#ifdef CEF_2623
-#define MESSAGE_IN_BROWSER
-#else
 // с версии выше 74 - убрать определение
 //#define MESSAGE_IN_BROWSER
-#endif
 
-#ifdef CEF_VERSION_ABOVE_102
 #define CEF_SIMPLE_URL_REQUEST
-#endif
 
 #ifdef MESSAGE_IN_BROWSER
 #define SEND_MESSAGE_TO_BROWSER_PROCESS(message) CefV8Context::GetCurrentContext()->GetBrowser()->SendProcessMessage(PID_BROWSER, message)
@@ -1265,9 +1259,7 @@ public:
 		bIsChanged = false;
 
 		bValid = context->Eval("(function() { if (!window.Asc || !window.Asc.Addons) return ''; var features = ''; for (var i in window.Asc.Addons) { var j = i; if (j === \"content-\\u0441ontrols\") j = \"content-controls\"; features += (j + ' '); } return features; })();",
-					   #ifndef CEF_2623
 							   "", 0,
-					   #endif
 							   retval, exception);
 
 		if (bValid && retval && retval->IsString())
@@ -1437,9 +1429,7 @@ for (var i = 0, len = arr.length; i < len; i++) { if (arr[i] && false === addons
 })(\"" + sFeatures + "\");";
 
 	bool bValid = context->Eval(sCode,
-							#ifndef CEF_2623
 								"", 0,
-							#endif
 								retval, exception);
 }
 };
@@ -1863,7 +1853,7 @@ public:
 		{
 			m_bIsPreloadDiscard = true;
 
-#if defined(LINUX) && !defined(_MAC) && !defined(CEF_VERSION_107)
+#if defined(LINUX) && !defined(_MAC)
 			setenv("LD_PRELOAD", "", 1);
 #endif
 		}

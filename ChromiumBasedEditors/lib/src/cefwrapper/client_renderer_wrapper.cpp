@@ -57,9 +57,6 @@
 
 #include "../../tools/tools.h"
 
-#ifndef CEF_VERSION_ABOVE_102
-#include "include/cef_runnable.h"
-#endif
 
 std::wstring GetTmpFileFromBase64(const std::string& sData, const std::wstring& sTmpFolder)
 {
@@ -94,7 +91,6 @@ std::wstring GetTmpFileFromBase64(const std::string& sData, const std::wstring& 
 	return sRes;
 }
 
-#ifndef CEF_2623
 #define CEF_V8_SUPPORT_TYPED_ARRAYS
 
 // The V8 sandbox does not allow ArrayBuffers over external memory, so read the
@@ -119,7 +115,6 @@ static CefRefPtr<CefV8Value> CreateArrayBufferFromFile(const std::wstring& sPath
 
 	return CefV8Value::CreateArrayBufferFromBackingStore(pStore);
 }
-#endif
 
 namespace NSCommon
 {
@@ -561,11 +556,7 @@ namespace asc_client_renderer
 				std::wstring sDirectory = m_sDirectory + L"/media";
 				std::vector<std::wstring> arFiles = NSDirectory::GetFiles(sDirectory, false);
 
-#ifdef CEF_2623
-				retval = CefV8Value::CreateObject(NULL);
-#else
 				retval = CefV8Value::CreateObject(nullptr, nullptr);
-#endif
 
 				for (std::vector<std::wstring>::iterator i = arFiles.begin(); i != arFiles.end(); i++)
 				{
@@ -821,11 +812,7 @@ namespace asc_client_renderer
 		{
 			RELEASEOBJECT(m_external_processes);
 
-#ifdef CEF_2623
-			m_frame = NULL;
-#else
 			m_frame.reset();
-#endif
 
 			if (m_pAES_Key)
 				NSOpenSSL::openssl_free(m_pAES_Key);
@@ -908,9 +895,7 @@ return window.DocsAPI.DocEditor.version(); \n\
 else \n\
 return undefined; \n\
 })();",
-#ifndef CEF_2623
 					"", 0,
-#endif
 					retval, exception);
 
 				if (bIsVersion && retval->IsString())
@@ -971,24 +956,12 @@ if (!window._external_process_callback[" + std::to_string(id) + "]) return;\n\
 window._external_process_callback[" + std::to_string(id) + "]._onprocess(" + std::to_string((int)type) + ", \"" + sMessageDst + "\");\n\
 })();";
 
-#ifdef CEF_VERSION_ABOVE_102
 				CefPostTask(TID_RENDERER, base::BindOnce([](CefRefPtr<CefFrame> frame, const std::string& code) {
 					if (frame) frame->ExecuteJavaScript(code, frame->GetURL(), 0);
 				}, m_frame, sCode));
-#else
-				CefPostTask(TID_RENDERER,
-						NewCefRunnableMethod(this, &CAscEditorNativeV8Handler::OLD_CEF_POST_TASK, sCode));
-#endif
 			}
 		}
 
-#ifndef CEF_VERSION_ABOVE_102
-		void OLD_CEF_POST_TASK(const std::string& code)
-		{
-			if (m_frame)
-				m_frame->ExecuteJavaScript(code, m_frame->GetURL(), 0);
-		}
-#endif
 
 		virtual bool Execute(const CefString& sMessageName, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) OVERRIDE
 		{
@@ -1042,9 +1015,7 @@ if (window.DocsAPI && window.DocsAPI.DocEditor) \n\
 else \n\
 	return undefined; \n\
 })();",
-#ifndef CEF_2623
 						"", 0,
-#endif
 						retval, exception);
 
 					if (bIsVersion && retval->IsString())
@@ -1393,9 +1364,7 @@ else \n\
 							CefRefPtr<CefV8Exception> exception;
 							CefV8Context::GetCurrentContext()->Eval(
 								sCode,
-#ifndef CEF_2623
 								"", 0,
-#endif
 								retval, exception);
 						}
 					}
@@ -2210,9 +2179,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 					CefRefPtr<CefV8Exception> exception;
 					bool bValid = CefV8Context::GetCurrentContext()->Eval(
 						"(function() { return document.getElementById(\"" + emailId + "\").value; })();",
-#ifndef CEF_2623
 						"", 0,
-#endif
 						retval, exception);
 
 					if (bValid && retval && retval->IsString())
@@ -2220,9 +2187,7 @@ if (main.DisableVersionHistory) main.DisableVersionHistory(); \
 
 					bValid = CefV8Context::GetCurrentContext()->Eval(
 						"(function() { return document.getElementById(\"" + passwordId + "\").value; })();",
-#ifndef CEF_2623
 						"", 0,
-#endif
 						retval, exception);
 
 					if (bValid && retval && retval->IsString())
@@ -2479,7 +2444,6 @@ window.AscDesktopEditor._convertFileExternal(path, format, window._external_conv
 };\n\
 window.AscDesktopEditor.getPortalsList = function() { var ret = []; try { var portals = JSON.parse(localStorage.getItem(\"portals\")); for (var i = 0, len = portals.length; i < len; i++) { ret.push(portals[i].portal); ret.push(portals[i].provider); } } catch(err) { ret = []; } console.log(ret);window.AscDesktopEditor.setPortalsList(ret); };\n\
 ";
-#ifdef CEF_VERSION_ABOVE_102
 					sCodeInitJS += "!function(){window.AscSimpleRequest=window.AscSimpleRequest||{};var r=0,o={};window.AscSimpleRequest.createRequest=function(e)"
 								   "{var t;o[++r]={id:r,complete:e.complete,error:e.error,progress:e.progress},e.timeout&&(o[t=r].timer=setTimeout(function()"
 								   "{o[t]&&(o[t].error&&o[t].error({status:\"error\",statusCode:404},\"error\"),delete o[t])},e.timeout)),"
@@ -2487,7 +2451,6 @@ window.AscDesktopEditor.getPortalsList = function() { var ret = []; try { var po
 								   "let r=o[e];r&&(r.timer&&clearTimeout(r.timer),r.complete&&r.complete(t,t.status),delete o[e])},"
 								   "window.AscSimpleRequest._onError=function(e,t){let r=o[e];r&&(r.timer&&clearTimeout(r.timer),r.error&&r.error(t,t.status),delete o[e])},"
 								   "window.AscSimpleRequest._onProgress=function(e,t){let r=o[e];r&&(r.timer&&clearTimeout(r.timer),r.progress&&r.progress(t,t.status))}}();";
-#endif
 					sCodeInitJS += "\
 window.AscDesktopEditor.getViewportSettings=function(){return JSON.parse(window.AscDesktopEditor._getViewportSettings());};\
 window.AscDesktopEditor._events={};\
@@ -3083,11 +3046,7 @@ window._external_process_callback = {};\n\
 				for (std::map<int, std::string>::iterator iter = oPlugins.m_arCryptoModes.begin(); iter != oPlugins.m_arCryptoModes.end(); iter++)
 				{
 					int nMode = iter->first;
-#ifdef CEF_2623
-					CefRefPtr<CefV8Value> val = CefV8Value::CreateObject(NULL);
-#else
 					CefRefPtr<CefV8Value> val = CefV8Value::CreateObject(nullptr, nullptr);
-#endif
 					val->SetValue("type", CefV8Value::CreateInt(nMode), V8_PROPERTY_ATTRIBUTE_NONE);
 					val->SetValue("info_presented", CefV8Value::CreateBool(true), V8_PROPERTY_ATTRIBUTE_NONE);
 
@@ -3127,9 +3086,7 @@ window._external_process_callback = {};\n\
 					CefRefPtr<CefV8Exception> exception1;
 					CefV8Context::GetCurrentContext()->Eval(
 						"(function(){ return " + sClouds + "; })();",
-#ifndef CEF_2623
 						"", 0,
-#endif
 						retval, exception1);
 				}
 				else
@@ -3265,11 +3222,7 @@ window._external_process_callback = {};\n\
 
 			if (name == "GetImageOriginalSize")
 			{
-#ifdef CEF_2623
-				retval = CefV8Value::CreateObject(NULL);
-#else
 				retval = CefV8Value::CreateObject(nullptr, nullptr);
-#endif
 				int nW = 0;
 				int nH = 0;
 
@@ -4083,9 +4036,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 \"function(){ window.onfeaturesavailable && window.onfeaturesavailable(" +
 								oAddonsChecker.GetFeaturesJSArray() + "); }\"\
 );",
-#ifndef CEF_2623
 							"", 0,
-#endif
 							retval, exception);
 					}
 				}
@@ -4106,9 +4057,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 						bool bValid = CefV8Context::GetCurrentContext()->Eval(
 							"(function(){var _editor = window.Asc.editor ? window.Asc.editor : window.editor; _editor && _editor.asc_pluginStop && _editor.asc_pluginStop(\"" + sCloudCryptoId +
 								"\");})();",
-#ifndef CEF_2623
 							"", 0,
-#endif
 							retval, exception);
 					}
 				}
@@ -4224,11 +4173,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 					return true;
 				}
 
-#ifdef CEF_2623
-				retval = CefV8Value::CreateObject(NULL);
-#else
 				retval = CefV8Value::CreateObject(nullptr, nullptr);
-#endif
 
 				CefRefPtr<CefV8Handler> handler = new CLocalFileConvertV8Handler(sFolder);
 				retval->SetValue("get", CefV8Value::CreateFunction("get", handler), V8_PROPERTY_ATTRIBUTE_NONE);
@@ -4365,11 +4310,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 			}
 			else if (name == "isSupportNetworkFunctionality")
 			{
-#ifdef OLD_MACOS_SYSTEM
-				retval = CefV8Value::CreateBool(false);
-#else
 				retval = CefV8Value::CreateBool(true);
-#endif
 				return true;
 			}
 			else if (name == "startExternalConvertation")
@@ -4553,18 +4494,9 @@ window.AscDesktopEditor.CallInFrame(\"" +
 			else if (name == "getEngineVersion")
 			{
 				int nVersion = 109;
-#ifdef CEF_2623
-				nVersion = 49;
-#endif
-
-#ifdef CEF_VERSION_103
-				nVersion = 103;
-#endif
 
 
-#ifdef CEF_VERSION_107
-				nVersion = 107;
-#endif
+
 
 				retval = CefV8Value::CreateInt(nVersion);
 				return true;
@@ -4632,11 +4564,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 			}
 			else if (name == "_onConvertFileExternal")
 			{
-#ifdef CEF_2623
-				retval = CefV8Value::CreateObject(NULL);
-#else
 				retval = CefV8Value::CreateObject(nullptr, nullptr);
-#endif
 				std::wstring sFile = arguments[0]->GetStringValue().ToWString();
 				int nError = arguments[1]->GetIntValue();
 
@@ -4761,11 +4689,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 						return true;
 					}
 
-#ifdef CEF_2623
-					retval = CefV8Value::CreateObject(NULL);
-#else
 					retval = CefV8Value::CreateObject(nullptr, nullptr);
-#endif
 
 					retval->SetValue("type", CefV8Value::CreateString(std::string((char*)data, dwPosType)), V8_PROPERTY_ATTRIBUTE_NONE);
 					retval->SetValue("value", CefV8Value::CreateString(std::string((char*)data + dwPosType + 1, dwDataSize - (dwPosType + 1))), V8_PROPERTY_ATTRIBUTE_NONE);
@@ -4824,9 +4748,7 @@ window.AscDesktopEditor.CallInFrame(\"" +
 				CefRefPtr<CefV8Exception> exception;
 
 				bool bIsEval = CefV8Context::GetCurrentContext()->GetFrame()->GetV8Context()->Eval(sCode,
-#ifndef CEF_2623
 					"", 0,
-#endif
 					retval, exception);
 
 				if (bIsEval && retval->IsInt())
@@ -5482,11 +5404,7 @@ if (targetElem) { targetElem.dispatchEvent(event); }})();";
 			// add AscEditorNative
 			CefRefPtr<CefV8Value> object = context->GetGlobal();
 
-#ifdef CEF_2623
-			CefRefPtr<CefV8Value> obj = CefV8Value::CreateObject(NULL);
-#else
 			CefRefPtr<CefV8Value> obj = CefV8Value::CreateObject(nullptr, nullptr);
-#endif
 
 			std::wstring sMainUrl = L"";
 			if (browser && browser->GetMainFrame())
@@ -5819,18 +5737,6 @@ document.getElementsByTagName(\"head\")[0].appendChild(_style);\n\
 window.AscDesktopEditor.InitJSContext();",
 					curFrame->GetURL(), 0);
 
-#ifndef CEF_VERSION_ABOVE_86
-				curFrame->ExecuteJavaScript(
-					"\
-if (!String.prototype.replaceAll) {\
-String.prototype.replaceAll = function (str, newStr) {\
-if (Object.prototype.toString.call(str).toLowerCase() === '[object regexp]')\
-	return this.replace(str, newStr);\
-return this.split(str).join(newStr);\
-};\
-}",
-					curFrame->GetURL(), 0);
-#endif
 
 				std::string sVar = pWrapper->m_sRendererProcessVariable.empty() ? "{}" : U_TO_UTF8(pWrapper->m_sRendererProcessVariable);
 				NSStringUtils::string_replaceA(sVar, "\n", "");
