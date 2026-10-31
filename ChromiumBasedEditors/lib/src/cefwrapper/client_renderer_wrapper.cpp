@@ -2412,6 +2412,7 @@ window.AscDesktopEditor._saveAndOpenCallback = callback;\n\
 return window.AscDesktopEditor._saveAndOpen(content, formatSrc, pathDst, formatDst);\n\
 };\n\
 Object.defineProperty(window.AscDesktopEditor, 'CryptoMode', {\n\
+configurable: true,\n\
 get: function() { return window.AscDesktopEditor.Property_GetCryptoMode(); },\n\
 set: function(value) { window.AscDesktopEditor.Property_SetCryptoMode(value); }\n\
 });\n\
