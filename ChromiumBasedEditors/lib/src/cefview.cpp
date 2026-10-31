@@ -2066,10 +2066,14 @@ public:
 	};
 
 public:
-	CAscClientHandler() : client::ClientHandler(this, false,
+	// ClientHandler's constructor queries its delegate (UseViews/UseAlloyStyle),
+	// which must not happen on this not yet constructed object. Without a
+	// delegate it uses MainContext's global settings, which match ours.
+	CAscClientHandler() : client::ClientHandler(nullptr, false,
 												false,
 												"https://onlyoffice.com/")
 	{
+		delegate_ = this;
 		m_pParent = NULL;
 		m_bIsLoaded = false;
 
