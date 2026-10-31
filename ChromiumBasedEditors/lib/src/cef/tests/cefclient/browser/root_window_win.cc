@@ -13,7 +13,8 @@
 #include "include/base/cef_callback.h"
 #include "include/cef_app.h"
 #include "include/views/cef_display.h"
-#include "tests/cefclient/browser/browser_window_osr_win.h"
+// ASC: offscreen root windows are not used, so the OSR sources are not built.
+// #include "tests/cefclient/browser/browser_window_osr_win.h"
 #include "tests/cefclient/browser/browser_window_std_win.h"
 #include "tests/cefclient/browser/client_prefs.h"
 #include "tests/cefclient/browser/main_context.h"
@@ -474,8 +475,7 @@ bool RootWindowWin::WithWindowlessRendering() const {
 void RootWindowWin::CreateBrowserWindow(const std::string& startup_url) {
   if (with_osr_) {
     MainContext::Get()->PopulateOsrSettings(&osr_settings_);
-    browser_window_ = std::make_unique<BrowserWindowOsrWin>(
-        this, with_controls_, startup_url, osr_settings_);
+    browser_window_.reset();
   } else {
     browser_window_ = std::make_unique<BrowserWindowStdWin>(
         this, with_controls_, startup_url);
@@ -490,8 +490,8 @@ void RootWindowWin::CreateRootWindow(const CefBrowserSettings& settings,
   HINSTANCE hInstance = GetCodeModuleHandle();
 
   // Load strings from the resource file.
-  const std::wstring& window_title = GetResourceString(IDS_APP_TITLE);
-  const std::wstring& window_class = GetResourceString(IDR_MAINFRAME);
+  const std::wstring& window_title = L"ASCDocumentEditor_debug";
+  const std::wstring& window_class = L"ASCDocumentEditor_debug";
 
   const cef_color_t background_color = MainContext::Get()->GetBackgroundColor();
   const HBRUSH background_brush = CreateSolidBrush(

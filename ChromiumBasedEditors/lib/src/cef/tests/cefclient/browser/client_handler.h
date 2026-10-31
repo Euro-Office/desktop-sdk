@@ -338,7 +338,7 @@ class ClientHandler : public BaseClientHandler,
     download_favicon_images_ = allow;
   }
 
- private:
+ protected:
   friend class ClientDownloadImageCallback;
 
   // Create a new popup window using the specified information. |is_devtools|

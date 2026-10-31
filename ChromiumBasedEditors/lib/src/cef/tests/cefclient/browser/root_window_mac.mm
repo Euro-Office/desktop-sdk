@@ -10,7 +10,8 @@
 #include "include/cef_app.h"
 #include "include/cef_application_mac.h"
 #include "include/views/cef_display.h"
-#include "tests/cefclient/browser/browser_window_osr_mac.h"
+// ASC: offscreen root windows are not used, so the OSR sources are not built.
+// #include "tests/cefclient/browser/browser_window_osr_mac.h"
 #include "tests/cefclient/browser/browser_window_std_mac.h"
 #include "tests/cefclient/browser/client_prefs.h"
 #include "tests/cefclient/browser/main_context.h"
@@ -471,8 +472,7 @@ void RootWindowMacImpl::OnNativeWindowClosed() {
 void RootWindowMacImpl::CreateBrowserWindow(const std::string& startup_url) {
   if (with_osr_) {
     MainContext::Get()->PopulateOsrSettings(&osr_settings_);
-    browser_window_.reset(new BrowserWindowOsrMac(&root_window_, with_controls_,
-                                                  startup_url, osr_settings_));
+    browser_window_.reset();
   } else {
     browser_window_.reset(
         new BrowserWindowStdMac(&root_window_, with_controls_, startup_url));
@@ -518,7 +518,7 @@ void RootWindowMacImpl::CreateRootWindow(const CefBrowserSettings& settings,
                                         styleMask:style_mask
                                           backing:NSBackingStoreBuffered
                                             defer:NO];
-  [window_ setTitle:@"cefclient"];
+  [window_ setTitle:@"ONLYOFFICE"];
   // No dark mode, please
   window_.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
 

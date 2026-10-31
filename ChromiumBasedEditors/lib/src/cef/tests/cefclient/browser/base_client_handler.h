@@ -123,7 +123,7 @@ class BaseClientHandler : public CefClient,
 
   void set_track_as_other_browser(bool val) { track_as_other_browser_ = val; }
 
- private:
+ protected:
   // True if this handler should call
   // RootWindowManager::OtherBrowser[Created|Closed].
   bool track_as_other_browser_ = true;

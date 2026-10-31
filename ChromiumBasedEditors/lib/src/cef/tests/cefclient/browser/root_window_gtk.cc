@@ -12,7 +12,8 @@
 
 #include "include/base/cef_callback.h"
 #include "include/cef_app.h"
-#include "tests/cefclient/browser/browser_window_osr_gtk.h"
+// ASC: offscreen root windows are not used, so the OSR sources are not built.
+// #include "tests/cefclient/browser/browser_window_osr_gtk.h"
 #include "tests/cefclient/browser/browser_window_std_gtk.h"
 #include "tests/cefclient/browser/client_prefs.h"
 #include "tests/cefclient/browser/main_context.h"
@@ -352,6 +353,9 @@ void RootWindowGtk::Show(ShowMode mode) {
   // Show the GTK window.
   UseDefaultX11VisualForGtk(GTK_WIDGET(window_));
   gtk_widget_show_all(window_);
+#ifdef ASC_HIDE_WINDOW
+  gtk_widget_hide(window_);
+#endif
 
   if (mode == ShowMinimized) {
     MinimizeWindow(GTK_WINDOW(window_));
@@ -500,8 +504,7 @@ bool RootWindowGtk::WithWindowlessRendering() const {
 void RootWindowGtk::CreateBrowserWindow(const std::string& startup_url) {
   if (with_osr_) {
     MainContext::Get()->PopulateOsrSettings(&osr_settings_);
-    browser_window_.reset(new BrowserWindowOsrGtk(this, with_controls_,
-                                                  startup_url, osr_settings_));
+    browser_window_.reset();
   } else {
     browser_window_.reset(
         new BrowserWindowStdGtk(this, with_controls_, startup_url));

@@ -56,7 +56,7 @@ class ClientAppBrowser : public ClientApp, public CefBrowserProcessHandler {
   static void PopulateSettings(CefRefPtr<CefCommandLine> command_line,
                                CefSettings& settings);
 
- private:
+ protected:
   // Registers cookieable schemes. Implemented by cefclient in
   // client_app_delegates_browser.cc
   static void RegisterCookieableSchemes(
