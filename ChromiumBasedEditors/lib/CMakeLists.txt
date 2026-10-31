@@ -279,6 +279,14 @@ endif()
 # CEF wrapper (libcef_dll_wrapper from the binary distribution)
 # ------------------------------------------------------------------------------
 if(NOT TARGET libcef_dll_wrapper)
+    # CEF builds the wrapper without RTTI, but we subclass wrapper classes
+    # (CefStreamResourceHandler, CefMessageRouterBrowserSide::Handler) in code
+    # built with RTTI, which needs their typeinfo.
+    list(REMOVE_ITEM CEF_COMPILER_FLAGS /GR-)
+    list(REMOVE_ITEM CEF_CXX_COMPILER_FLAGS -fno-rtti)
+    # /Zi makes the parallel compiles share one PDB (C1041) and can't be cached
+    # by sccache; embed the debug info in the objects instead.
+    list(TRANSFORM CEF_COMPILER_FLAGS REPLACE "^/Zi$" "/Z7")
     add_subdirectory("${CEF_LIBCEF_DLL_WRAPPER_PATH}" libcef_dll_wrapper)
 endif()
 
