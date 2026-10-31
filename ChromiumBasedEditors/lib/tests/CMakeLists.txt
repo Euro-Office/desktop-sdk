@@ -47,3 +47,10 @@ add_core_gtest(
 target_compile_definitions(ascdocumentscore_certificatecheck_test PRIVATE
     DESKTOP_NO_USE_DYNAMIC_LIBRARY
     CERTIFICATE_TEST_DATA="${CMAKE_CURRENT_LIST_DIR}/data/certificate")
+
+# Header only, no CEF needed
+add_core_gtest(
+    NAME    ascdocumentscore_cefframeid_test
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/cefframeid_test.cpp
+    GTEST_MAIN
+)

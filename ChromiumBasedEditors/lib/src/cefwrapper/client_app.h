@@ -26,11 +26,7 @@
 #ifndef CEF_ASC_CLIENT_APP_H_
 #define CEF_ASC_CLIENT_APP_H_
 
-#ifndef CEF_2623
 #include "tests/shared/common/client_app.h"
-#else
-#include "cefclient/common/client_app.h"
-#endif
 #include "include/cef_version.h"
 
 #if defined(_LINUX) && !defined(_MAC)
@@ -207,11 +203,7 @@ public:
 	}
 };
 
-#ifdef CEF_2623
-#include "cefclient/browser/client_app_browser.h"
-#else
 #include "tests/shared/browser/client_app_browser.h"
-#endif
 
 class CAscClientAppBrowser : public client::ClientAppBrowser, public CAppSettings
 {
@@ -252,9 +244,7 @@ public:
 			command_line->AppendSwitchWithValue("--password-store", "basic");
 #endif
 
-#ifndef ENABLE_CEF_EXTENSIONS
 			command_line->AppendSwitch("--disable-extensions");
-#endif
 			command_line->AppendSwitch("--disable-plugins");
 			command_line->AppendSwitch("--enable-file-cookies");
 			command_line->AppendSwitch("--disable-pinch");
@@ -263,17 +253,10 @@ public:
 			command_line->AppendSwitchWithValue("--log-severity", "disable");
 			command_line->AppendSwitch("--disable-component-update");
 
-#ifdef CEF_2623
-			command_line->AppendSwitch("--enable-experimental-web-platform-features");
-#endif
 
-#ifdef CEF_VERSION_ABOVE_86
 			command_line->AppendSwitch("--disable-site-isolation-trials");
-#endif
 
-#ifdef CEF_VERSION_ABOVE_102
 			command_line->AppendSwitch("--allow-file-access-from-files");
-#endif
 
 #ifdef _MAC
 			command_line->AppendSwitch("--use-mock-keychain");
@@ -288,15 +271,10 @@ public:
 #endif
 
 			std::string sAppNavigator = "Chrome/" + std::to_string(CHROME_VERSION_MAJOR) + ".0.0.0 AscDesktopEditor/" + sVersionApp;
-#ifdef CEF_2623
-			sAppNavigator += " windowsXP";
-#endif
 
 			command_line->AppendSwitchWithValue("--product-version", sAppNavigator);
 
-#ifdef CEF_VERSION_ABOVE_102
 			command_line->AppendSwitchWithValue("--user-agent-product", sAppNavigator);
-#endif
 
 			int forceDpi = IsForceDpiRound();
 			if (0 != forceDpi)
@@ -311,42 +289,18 @@ public:
 		}
 	}
 
-#ifndef CEF_VERSION_ABOVE_86
-	virtual void OnRenderProcessThreadCreated(CefRefPtr<CefListValue> extra_info) OVERRIDE
-	{
-		size_t nCount = extra_info->GetSize();
 
-		if (m_manager)
-		{
-			std::vector<std::string> props = m_manager->GetRendererStartupProperties();
-			for (std::vector<std::string>::iterator iter = props.begin(); iter != props.end(); iter++)
-			{
-				extra_info->SetString(nCount++, *iter);
-			}
-		}
-
-		client::ClientAppBrowser::OnRenderProcessThreadCreated(extra_info);
-	}
-#endif
-
-#ifndef CEF_2623
-	virtual void OnScheduleMessagePumpWork(int64 delay) OVERRIDE
+	virtual void OnScheduleMessagePumpWork(int64_t delay) OVERRIDE
 	{
 		client::ClientAppBrowser::OnScheduleMessagePumpWork(delay);
 	}
-#endif
 
 public:
 	IMPLEMENT_REFCOUNTING(CAscClientAppBrowser);
 };
 
-#ifdef CEF_2623
-#include "cefclient/common/client_app_other.h"
-#include "cefclient/renderer/client_app_renderer.h"
-#else
 #include "tests/shared/common/client_app_other.h"
 #include "tests/shared/renderer/client_app_renderer.h"
-#endif
 
 class CAscClientAppOther : public client::ClientAppOther, public CAppSettings
 {
@@ -380,9 +334,7 @@ public:
 			}
 #endif
 
-#ifndef ENABLE_CEF_EXTENSIONS
 			command_line->AppendSwitch("--disable-extensions");
-#endif
 			command_line->AppendSwitch("--disable-plugins");
 			command_line->AppendSwitch("--enable-file-cookies");
 			command_line->AppendSwitch("--disable-pinch");
@@ -445,9 +397,7 @@ public:
 			}
 #endif
 
-#ifndef ENABLE_CEF_EXTENSIONS
 			command_line->AppendSwitch("--disable-extensions");
-#endif
 			command_line->AppendSwitch("--disable-plugins");
 			command_line->AppendSwitch("--enable-file-cookies");
 			command_line->AppendSwitch("--disable-pinch");
@@ -470,18 +420,6 @@ public:
 		}
 	}
 
-#ifndef CEF_VERSION_ABOVE_86
-	virtual void OnRenderThreadCreated(CefRefPtr<CefListValue> extra_info) OVERRIDE
-	{
-		size_t nCount = extra_info->GetSize();
-
-		std::vector<std::string> params;
-		for (size_t i = 0; i < nCount; ++i)
-			params.push_back(extra_info->GetString(i));
-
-		CAscRendererProcessParams::getInstance().Check(params);
-	}
-#else
 	virtual void OnBrowserCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDictionaryValue> extra_info) OVERRIDE
 	{
 		std::vector<CefString> arKeys;
@@ -493,7 +431,6 @@ public:
 
 		CAscRendererProcessParams::getInstance().Check(params);
 	}
-#endif
 };
 
 #endif
