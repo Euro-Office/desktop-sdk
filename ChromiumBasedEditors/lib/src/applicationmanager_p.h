@@ -34,6 +34,7 @@
 #include "../../../../core/DesktopEditor/graphics/Timer.h"
 
 #include "../src/cookiesworker.h"
+#include "include/cef_browser.h"
 
 #include <iostream>
 #include <set>
@@ -274,6 +275,47 @@ namespace NSArgumentList
 	{
 		std::string tmp = std::to_string(value);
 		return args->SetString(index, tmp);
+	}
+}
+
+// Since CEF 122 frames are identified by opaque strings. Everything here (process
+// messages, events, JS) passes frame ids around as integers, so map the string to
+// a hash that is the same in every process. It is kept positive and below 2^53, so
+// it also survives a round trip through a JS number.
+namespace NSCefFrameId
+{
+	static int64_t FromIdentifier(const CefString& identifier)
+	{
+		uint64_t hash = 14695981039346656037ULL; // FNV-1a
+		for (unsigned char c : identifier.ToString())
+		{
+			hash ^= c;
+			hash *= 1099511628211ULL;
+		}
+		int64_t id = (int64_t)(hash & ((1ULL << 53) - 1));
+		return (0 == id) ? 1 : id;
+	}
+	static int64_t Get(CefRefPtr<CefFrame> frame)
+	{
+		return frame ? FromIdentifier(frame->GetIdentifier()) : 0;
+	}
+	static void GetAll(CefRefPtr<CefBrowser> browser, std::vector<int64_t>& ids)
+	{
+		std::vector<CefString> identifiers;
+		browser->GetFrameIdentifiers(identifiers);
+		for (const CefString& identifier : identifiers)
+			ids.push_back(FromIdentifier(identifier));
+	}
+	static CefRefPtr<CefFrame> Find(CefRefPtr<CefBrowser> browser, const int64_t& id)
+	{
+		std::vector<CefString> identifiers;
+		browser->GetFrameIdentifiers(identifiers);
+		for (const CefString& identifier : identifiers)
+		{
+			if (FromIdentifier(identifier) == id)
+				return browser->GetFrameByIdentifier(identifier);
+		}
+		return nullptr;
 	}
 }
 
