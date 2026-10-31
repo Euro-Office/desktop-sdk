@@ -1,0 +1,176 @@
+diff --git a/tests/cefclient/browser/base_client_handler.h b/tests/cefclient/browser/base_client_handler.h
+index 9b41c009..2041a01a 100644
+--- a/tests/cefclient/browser/base_client_handler.h
++++ b/tests/cefclient/browser/base_client_handler.h
+@@ -123,7 +123,7 @@ class BaseClientHandler : public CefClient,
+ 
+   void set_track_as_other_browser(bool val) { track_as_other_browser_ = val; }
+ 
+- private:
++ protected:
+   // True if this handler should call
+   // RootWindowManager::OtherBrowser[Created|Closed].
+   bool track_as_other_browser_ = true;
+diff --git a/tests/cefclient/browser/client_handler.cc b/tests/cefclient/browser/client_handler.cc
+index f7f8cb3c..3c9ea962 100644
+--- a/tests/cefclient/browser/client_handler.cc
++++ b/tests/cefclient/browser/client_handler.cc
+@@ -567,7 +567,7 @@ ClientHandler::ClientHandler(Delegate* delegate,
+     if (use_client_dialogs || require_client_dialogs) {
+       file_dialog_handler_ = js_dialog_handler_ ? js_dialog_handler_
+                                                 : new ClientDialogHandlerGtk();
+-      print_handler_ = new ClientPrintHandlerGtk();
++      // print_handler_ = new ClientPrintHandlerGtk();
+     }
+   }
+ #endif  // defined(OS_LINUX)
+diff --git a/tests/cefclient/browser/client_handler.h b/tests/cefclient/browser/client_handler.h
+index 1995d80e..6d4aa094 100644
+--- a/tests/cefclient/browser/client_handler.h
++++ b/tests/cefclient/browser/client_handler.h
+@@ -338,7 +338,7 @@ class ClientHandler : public BaseClientHandler,
+     download_favicon_images_ = allow;
+   }
+ 
+- private:
++ protected:
+   friend class ClientDownloadImageCallback;
+ 
+   // Create a new popup window using the specified information. |is_devtools|
+diff --git a/tests/cefclient/browser/root_window_gtk.cc b/tests/cefclient/browser/root_window_gtk.cc
+index 4c844f53..e83c8a85 100644
+--- a/tests/cefclient/browser/root_window_gtk.cc
++++ b/tests/cefclient/browser/root_window_gtk.cc
+@@ -12,7 +12,8 @@
+ 
+ #include "include/base/cef_callback.h"
+ #include "include/cef_app.h"
+-#include "tests/cefclient/browser/browser_window_osr_gtk.h"
++// ASC: offscreen root windows are not used, so the OSR sources are not built.
++// #include "tests/cefclient/browser/browser_window_osr_gtk.h"
+ #include "tests/cefclient/browser/browser_window_std_gtk.h"
+ #include "tests/cefclient/browser/client_prefs.h"
+ #include "tests/cefclient/browser/main_context.h"
+@@ -352,6 +353,9 @@ void RootWindowGtk::Show(ShowMode mode) {
+   // Show the GTK window.
+   UseDefaultX11VisualForGtk(GTK_WIDGET(window_));
+   gtk_widget_show_all(window_);
++#ifdef ASC_HIDE_WINDOW
++  gtk_widget_hide(window_);
++#endif
+ 
+   if (mode == ShowMinimized) {
+     MinimizeWindow(GTK_WINDOW(window_));
+@@ -500,8 +504,7 @@ bool RootWindowGtk::WithWindowlessRendering() const {
+ void RootWindowGtk::CreateBrowserWindow(const std::string& startup_url) {
+   if (with_osr_) {
+     MainContext::Get()->PopulateOsrSettings(&osr_settings_);
+-    browser_window_.reset(new BrowserWindowOsrGtk(this, with_controls_,
+-                                                  startup_url, osr_settings_));
++    browser_window_.reset();
+   } else {
+     browser_window_.reset(
+         new BrowserWindowStdGtk(this, with_controls_, startup_url));
+diff --git a/tests/cefclient/browser/root_window_mac.mm b/tests/cefclient/browser/root_window_mac.mm
+index 59d8e749..e3f53c57 100644
+--- a/tests/cefclient/browser/root_window_mac.mm
++++ b/tests/cefclient/browser/root_window_mac.mm
+@@ -10,7 +10,8 @@
+ #include "include/cef_app.h"
+ #include "include/cef_application_mac.h"
+ #include "include/views/cef_display.h"
+-#include "tests/cefclient/browser/browser_window_osr_mac.h"
++// ASC: offscreen root windows are not used, so the OSR sources are not built.
++// #include "tests/cefclient/browser/browser_window_osr_mac.h"
+ #include "tests/cefclient/browser/browser_window_std_mac.h"
+ #include "tests/cefclient/browser/client_prefs.h"
+ #include "tests/cefclient/browser/main_context.h"
+@@ -471,8 +472,7 @@ void RootWindowMacImpl::OnNativeWindowClosed() {
+ void RootWindowMacImpl::CreateBrowserWindow(const std::string& startup_url) {
+   if (with_osr_) {
+     MainContext::Get()->PopulateOsrSettings(&osr_settings_);
+-    browser_window_.reset(new BrowserWindowOsrMac(&root_window_, with_controls_,
+-                                                  startup_url, osr_settings_));
++    browser_window_.reset();
+   } else {
+     browser_window_.reset(
+         new BrowserWindowStdMac(&root_window_, with_controls_, startup_url));
+@@ -518,7 +518,7 @@ void RootWindowMacImpl::CreateRootWindow(const CefBrowserSettings& settings,
+                                         styleMask:style_mask
+                                           backing:NSBackingStoreBuffered
+                                             defer:NO];
+-  [window_ setTitle:@"cefclient"];
++  [window_ setTitle:@"ONLYOFFICE"];
+   // No dark mode, please
+   window_.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
+ 
+diff --git a/tests/cefclient/browser/root_window_win.cc b/tests/cefclient/browser/root_window_win.cc
+index 50614971..68b064be 100644
+--- a/tests/cefclient/browser/root_window_win.cc
++++ b/tests/cefclient/browser/root_window_win.cc
+@@ -13,7 +13,8 @@
+ #include "include/base/cef_callback.h"
+ #include "include/cef_app.h"
+ #include "include/views/cef_display.h"
+-#include "tests/cefclient/browser/browser_window_osr_win.h"
++// ASC: offscreen root windows are not used, so the OSR sources are not built.
++// #include "tests/cefclient/browser/browser_window_osr_win.h"
+ #include "tests/cefclient/browser/browser_window_std_win.h"
+ #include "tests/cefclient/browser/client_prefs.h"
+ #include "tests/cefclient/browser/main_context.h"
+@@ -474,8 +475,7 @@ bool RootWindowWin::WithWindowlessRendering() const {
+ void RootWindowWin::CreateBrowserWindow(const std::string& startup_url) {
+   if (with_osr_) {
+     MainContext::Get()->PopulateOsrSettings(&osr_settings_);
+-    browser_window_ = std::make_unique<BrowserWindowOsrWin>(
+-        this, with_controls_, startup_url, osr_settings_);
++    browser_window_.reset();
+   } else {
+     browser_window_ = std::make_unique<BrowserWindowStdWin>(
+         this, with_controls_, startup_url);
+@@ -490,8 +490,8 @@ void RootWindowWin::CreateRootWindow(const CefBrowserSettings& settings,
+   HINSTANCE hInstance = GetCodeModuleHandle();
+ 
+   // Load strings from the resource file.
+-  const std::wstring& window_title = GetResourceString(IDS_APP_TITLE);
+-  const std::wstring& window_class = GetResourceString(IDR_MAINFRAME);
++  const std::wstring& window_title = L"ASCDocumentEditor_debug";
++  const std::wstring& window_class = L"ASCDocumentEditor_debug";
+ 
+   const cef_color_t background_color = MainContext::Get()->GetBackgroundColor();
+   const HBRUSH background_brush = CreateSolidBrush(
+diff --git a/tests/shared/browser/client_app_browser.h b/tests/shared/browser/client_app_browser.h
+index 51abf7ad..069b2236 100644
+--- a/tests/shared/browser/client_app_browser.h
++++ b/tests/shared/browser/client_app_browser.h
+@@ -56,7 +56,7 @@ class ClientAppBrowser : public ClientApp, public CefBrowserProcessHandler {
+   static void PopulateSettings(CefRefPtr<CefCommandLine> command_line,
+                                CefSettings& settings);
+ 
+- private:
++ protected:
+   // Registers cookieable schemes. Implemented by cefclient in
+   // client_app_delegates_browser.cc
+   static void RegisterCookieableSchemes(
+diff --git a/tests/shared/renderer/client_app_renderer.h b/tests/shared/renderer/client_app_renderer.h
+index ff046947..7fead6ee 100644
+--- a/tests/shared/renderer/client_app_renderer.h
++++ b/tests/shared/renderer/client_app_renderer.h
+@@ -77,7 +77,7 @@ class ClientAppRenderer : public ClientApp, public CefRenderProcessHandler {
+   ClientAppRenderer(const ClientAppRenderer&) = delete;
+   ClientAppRenderer& operator=(const ClientAppRenderer&) = delete;
+ 
+- private:
++ protected:
+   // Creates all of the Delegate objects. Implemented by cefclient in
+   // client_app_delegates_renderer.cc
+   static void CreateDelegates(DelegateSet& delegates);
+@@ -112,7 +112,7 @@ class ClientAppRenderer : public ClientApp, public CefRenderProcessHandler {
+                                 CefProcessId source_process,
+                                 CefRefPtr<CefProcessMessage> message) override;
+ 
+- private:
++ protected:
+   // Set of supported Delegates.
+   DelegateSet delegates_;
+ 
