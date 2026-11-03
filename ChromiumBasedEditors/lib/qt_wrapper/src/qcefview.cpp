@@ -333,10 +333,9 @@ void QCefView::keyPressEvent(QKeyEvent *event) {
 
 		// CEF's own clipboard does not work in Wayland OSR mode. Editors read it
 		// through the clipboard_read bridge (see CClipboardQueryHandler), but plain
-		// pages like the cloud login window never get the system clipboard, so
-		// Ctrl+V / Shift+Insert is handled here by typing the clipboard text.
-		if (m_pCefView->GetType() != cvwtEditor && (event->matches(QKeySequence::Paste) ||
-			(key == Qt::Key_Insert && event->modifiers() == Qt::ShiftModifier))) {
+		// pages like the cloud login window and portal never get the system
+		// clipboard, so Ctrl+V / Shift+Insert inserts the clipboard text here.
+		if (m_pCefView->GetType() != cvwtEditor && event->matches(QKeySequence::Paste)) {
 			PasteClipboardText();
 			event->accept();
 			return;
@@ -420,33 +419,21 @@ void QCefView::keyReleaseEvent(QKeyEvent *event) {
 
 void QCefView::PasteClipboardText()
 {
-	// Inject the text as committed characters, the same way inputMethodEvent
-	// does. Control characters are dropped: a trailing newline copied from a
-	// password manager would otherwise submit the login form.
-	std::wstring text = QApplication::clipboard()->text().toStdWString();
-	for (wchar_t ch : text)
-	{
-		if (ch < 0x20 || ch == 0x7F)
-			continue;
-		std::wstring character_str;
-		character_str.push_back(ch);
-		character_str.push_back(ch);
-		character_str.push_back(0);
-		m_pCefView->SendKeyEvent(0, 0, 0, character_str);
-		m_pCefView->SendKeyEvent(3, 0, 0, character_str);
-		m_pCefView->SendKeyEvent(2, 0, 0, character_str);
-	}
+	// Committed as IME text rather than typed key by key, so characters above
+	// U+FFFF arrive whole, and the page handles line breaks as in a normal
+	// paste: text areas keep them, single-line inputs filter them out instead
+	// of submitting the form.
+	QString text = QApplication::clipboard()->text();
+	if (!text.isEmpty())
+		m_pCefView->ImeCommitText(text.toStdWString());
 }
 
-// An alternative approach would be to use CEF's ImeCommitText API directly,
-// which is the canonical IME path. However, this would require:
-//
-// 1. Adding a new ImeCommitText wrapper to CCefView (similar to existing SendKeyEvent)
-// 2. Including additional CEF headers for CefRange
-//
-// The SendKeyEvent(KEYEVENT_CHAR) approach is simpler, already proven in the
-// codebase, and sufficient for dead key compose sequences (which produce final
-// committed characters, not preedit/intermediate compositions like CJK input).
+// An alternative approach would be to use CEF's ImeCommitText API directly
+// (CCefView::ImeCommitText, used by PasteClipboardText), which is the
+// canonical IME path. The SendKeyEvent(KEYEVENT_CHAR) approach is already
+// proven here and sufficient for dead key compose sequences (which produce
+// final committed characters, not preedit/intermediate compositions like CJK
+// input).
 void QCefView::inputMethodEvent(QInputMethodEvent *event) {
 	if (m_isWayland && m_pCefView) {
 		QString commitStr = event->commitString();
