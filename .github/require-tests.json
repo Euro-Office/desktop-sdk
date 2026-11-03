@@ -1,0 +1,9 @@
+{
+    "tests": ["*_test.cpp"],
+    "ignore": [
+        "ChromiumBasedEditors/lib/src/cef/*",
+        "ChromiumBasedEditors/lib/src/cef_103/*",
+        "ChromiumBasedEditors/lib/src/cef_107/*",
+        ".github/*", "*.md", "LICENSE*", "*/LICENSE*"
+    ]
+}
