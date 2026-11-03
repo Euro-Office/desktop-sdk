@@ -331,8 +331,18 @@ void QCefView::keyPressEvent(QKeyEvent *event) {
 			return;
 		}
 
+		// CEF's own clipboard does not work in Wayland OSR mode. Editors read it
+		// through the clipboard_read bridge (see CClipboardQueryHandler), but plain
+		// pages like the cloud login window and portal never get the system
+		// clipboard, so Ctrl+V / Shift+Insert inserts the clipboard text here.
+		if (m_pCefView->GetType() != cvwtEditor && event->matches(QKeySequence::Paste)) {
+			PasteClipboardText();
+			event->accept();
+			return;
+		}
+
 		int windows_key_code = QtKeyToWindowsKeyCode(key);
-		
+
 		wchar_t unmodified_char = 0;
 		if (key >= Qt::Key_A && key <= Qt::Key_Z) {
 			unmodified_char = (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
@@ -407,15 +417,23 @@ void QCefView::keyReleaseEvent(QKeyEvent *event) {
 	QWidget::keyReleaseEvent(event);
 }
 
-// An alternative approach would be to use CEF's ImeCommitText API directly,
-// which is the canonical IME path. However, this would require:
-//
-// 1. Adding a new ImeCommitText wrapper to CCefView (similar to existing SendKeyEvent)
-// 2. Including additional CEF headers for CefRange
-//
-// The SendKeyEvent(KEYEVENT_CHAR) approach is simpler, already proven in the
-// codebase, and sufficient for dead key compose sequences (which produce final
-// committed characters, not preedit/intermediate compositions like CJK input).
+void QCefView::PasteClipboardText()
+{
+	// Committed as IME text rather than typed key by key, so characters above
+	// U+FFFF arrive whole, and the page handles line breaks as in a normal
+	// paste: text areas keep them, single-line inputs filter them out instead
+	// of submitting the form.
+	QString text = QApplication::clipboard()->text();
+	if (!text.isEmpty())
+		m_pCefView->ImeCommitText(text.toStdWString());
+}
+
+// An alternative approach would be to use CEF's ImeCommitText API directly
+// (CCefView::ImeCommitText, used by PasteClipboardText), which is the
+// canonical IME path. The SendKeyEvent(KEYEVENT_CHAR) approach is already
+// proven here and sufficient for dead key compose sequences (which produce
+// final committed characters, not preedit/intermediate compositions like CJK
+// input).
 void QCefView::inputMethodEvent(QInputMethodEvent *event) {
 	if (m_isWayland && m_pCefView) {
 		QString commitStr = event->commitString();
