@@ -122,6 +122,18 @@ QAscVideoView::QAscVideoView(QWidget *parent, bool bIsPresentationMode) : QWidge
 	m_pInternal->m_bIsSeekEnabled = true;
 
 	m_pInternal->m_pFooter->installEventFilter(this);
+
+#if defined(_WIN32) && !defined(USE_VLC_LIBRARY)
+	// The view, footer and volume popup are children of the editor's QCefView,
+	// whose whole area is covered by the native CEF browser HWND. As "alien"
+	// (non-native) Qt widgets they are painted onto the QCefView surface below
+	// that HWND and stay invisible: the user only sees the poster image and
+	// cannot play the media. libVLC avoids this implicitly by calling winId().
+	// Give them native windows so they are stacked above the browser window.
+	this->setAttribute(Qt::WA_NativeWindow);
+	m_pInternal->m_pFooter->setAttribute(Qt::WA_NativeWindow);
+	m_pInternal->m_pFooter->VolumeControls()->setAttribute(Qt::WA_NativeWindow);
+#endif
 }
 
 QAscVideoView::~QAscVideoView()
