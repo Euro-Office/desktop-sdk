@@ -1288,15 +1288,6 @@ if(APPLE)
     # directory's parent.
     get_filename_component(MAC_STAGE_DIR "${EO_CORE_OUTPUT_DIR}" DIRECTORY)
 
-    # With a core package ooxmlsignature is imported, which TARGET_BUNDLE_DIR refuses
-    get_target_property(OOXMLSIGNATURE_IMPORTED ooxmlsignature IMPORTED)
-    if(OOXMLSIGNATURE_IMPORTED)
-        get_target_property(OOXMLSIGNATURE_BINARY ooxmlsignature IMPORTED_LOCATION)
-        get_filename_component(OOXMLSIGNATURE_FRAMEWORK "${OOXMLSIGNATURE_BINARY}" DIRECTORY)
-    else()
-        set(OOXMLSIGNATURE_FRAMEWORK "$<TARGET_BUNDLE_DIR:ooxmlsignature>")
-    endif()
-
     add_custom_command(TARGET editors_helper POST_BUILD
         COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/package_mac_helpers.sh"
                 "$<TARGET_FILE:editors_helper>"
@@ -1304,7 +1295,7 @@ if(APPLE)
                 "${MAC_STAGE_DIR}"
                 "${EO_CORE_3RD_PARTY_INSTALL_DIR}/icu/lib"
                 "$<TARGET_BUNDLE_DIR:ascdocumentscore>"
-                "${OOXMLSIGNATURE_FRAMEWORK}"
+                "$<TARGET_FILE:ooxmlsignature>"
                 "${CEF_ROOT}/$<IF:$<CONFIG:Debug>,Debug,Release>/Chromium Embedded Framework.framework"
                 "$<TARGET_FILE:kernel>"
                 "$<TARGET_FILE:kernel_network>"

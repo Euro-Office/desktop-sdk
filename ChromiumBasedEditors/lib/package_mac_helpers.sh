@@ -6,7 +6,9 @@ PLIST_DIR="$2"
 OUT_DIR="$3"
 ICU_LIB_DIR="$4"
 ASCDOCUMENTSCORE_FRAMEWORK="$5"
-OOXMLSIGNATURE_FRAMEWORK="$6"
+# The binary, not the bundle: with a core package ooxmlsignature is an imported
+# target, which TARGET_BUNDLE_DIR refuses
+OOXMLSIGNATURE_FRAMEWORK="${6%%.framework/*}.framework"
 CEF_FRAMEWORK_DIR="$7"
 shift 7
 DYLIB_DEPS=("$@")   # kernel, kernel_network, graphics, PdfFile, XpsFile, DjVuFile, doctrenderer, DocxRenderer, UnicodeConverter
