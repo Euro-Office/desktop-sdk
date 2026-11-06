@@ -184,7 +184,7 @@ target_include_directories(ascdocumentscore PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/tools"
     "${CMAKE_CURRENT_SOURCE_DIR}/tools/functions/internal"
     "${CEF_SRC_PATH}"
-    "${ICU_DESKTOP_INSTALL_DIR_ABS}/include"
+    "${ICU_INSTALL_DIR_ABS}/include"
     "${CORE_ROOT_DIR}/Common/3dParty/openssl/common"
     "${OPENSSL_INSTALL_DIR}/include"
 )
@@ -1148,9 +1148,8 @@ target_link_libraries(ascdocumentscore PUBLIC
                     CompoundFileLib
                     graphics kernel UnicodeConverter kernel_network
                     PdfFile XpsFile DjVuFile hunspell_wrapper ooxmlsignature doctrenderer
-                    ${LIBICUUC_DESKTOP}
-                    ${LIBICUDATA_DESKTOP}
-                    ${LIBICUI_DESKTOP}
+                    ${LIBICUUC}
+                    ${LIBICUDATA}
                     ${OPENSSL_LIBSSL}
                     ${OPENSSL_LIBCRYPTO}
 )
@@ -1296,7 +1295,7 @@ if(APPLE)
                 "${MAC_STAGE_DIR}"
                 "${EO_CORE_3RD_PARTY_INSTALL_DIR}/icu/lib"
                 "$<TARGET_BUNDLE_DIR:ascdocumentscore>"
-                "$<TARGET_BUNDLE_DIR:ooxmlsignature>"
+                "$<TARGET_FILE:ooxmlsignature>"
                 "${CEF_ROOT}/$<IF:$<CONFIG:Debug>,Debug,Release>/Chromium Embedded Framework.framework"
                 "$<TARGET_FILE:kernel>"
                 "$<TARGET_FILE:kernel_network>"
