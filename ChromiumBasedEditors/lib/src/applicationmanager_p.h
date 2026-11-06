@@ -52,6 +52,7 @@
 #include "plugins.h"
 #include "providers.h"
 #include "filelocker.h"
+#include "portalauthorization.h"
 
 #include "utils.h"
 #include "../../../../core/DesktopEditor/xmlsec/src/include/CertificateCommon.h"
@@ -1647,6 +1648,10 @@ public:
 
 	// мап отмененных загрузок
 	std::map<unsigned int, bool> m_mapCancelDownloads;
+
+	// portal url prefix (scheme://host[:port]/path/) <-> Authorization header value.
+	// read on the IO thread (CAscClientHandler::OnBeforeResourceLoad)
+	CPortalAuthorization m_oPortalAuth;
 
 	// Recents & recovers
 	NSCriticalSection::CRITICAL_SECTION m_oCS_LocalFiles;
