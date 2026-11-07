@@ -161,7 +161,8 @@ describe("OpenRouterProvider", () => {
       });
 
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("openai/gpt-5.2-thinking"); // Reasoning model gets -thinking suffix
+      expect(result[0].id).toBe("openai/gpt-5.2");
+      expect(result[0].reasoning).toBe(true);
       expect(result[0].name).toBe(openrouterInfo.modelNames["openai/gpt-5.2"]);
     });
 
@@ -178,7 +179,7 @@ describe("OpenRouterProvider", () => {
       expect(result).toEqual([]);
     });
 
-    it("should NOT add -thinking suffix to non-reasoning models", async () => {
+    it("should not mark non-reasoning models as reasoning", async () => {
       // claude-haiku-4.5 is in modelFilters but NOT in reasoningModels
       modelsListMock.mockResolvedValue({
         data: [{ id: "anthropic/claude-haiku-4.5" }],
@@ -190,8 +191,8 @@ describe("OpenRouterProvider", () => {
       });
 
       expect(result).toHaveLength(1);
-      // Non-reasoning models should keep their original id
       expect(result[0].id).toBe("anthropic/claude-haiku-4.5");
+      expect(result[0].reasoning).toBe(false);
       expect(result[0].name).toBe(
         openrouterInfo.modelNames["anthropic/claude-haiku-4.5"]
       );
@@ -210,16 +211,17 @@ describe("OpenRouterProvider", () => {
 
       // Both should be returned
       expect(result).toHaveLength(2);
-      // Reasoning model should have -thinking suffix
+      // Reasoning is a flag on the model; the id stays as OpenRouter has it
       const reasoningModel = result.find((m) =>
         m.id.includes("openai/gpt-5.2")
       );
-      expect(reasoningModel?.id).toBe("openai/gpt-5.2-thinking");
-      // Non-reasoning model should not have suffix
+      expect(reasoningModel?.id).toBe("openai/gpt-5.2");
+      expect(reasoningModel?.reasoning).toBe(true);
       const nonReasoningModel = result.find((m) =>
         m.id.includes("claude-haiku")
       );
       expect(nonReasoningModel?.id).toBe("anthropic/claude-haiku-4.5");
+      expect(nonReasoningModel?.reasoning).toBe(false);
     });
   });
 

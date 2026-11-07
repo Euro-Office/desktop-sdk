@@ -209,6 +209,7 @@ public:
 	void SendMouseMoveEvent(int x, int y, bool mouseLeave, int modifiers);
 	void SendMouseWheelEvent(int x, int y, int deltaX, int deltaY, int modifiers);
 	void SendKeyEvent(int type, int key, int modifiers, const std::wstring& character);
+	void ImeCommitText(const std::wstring& text);
 
 protected:
 	int m_nId;

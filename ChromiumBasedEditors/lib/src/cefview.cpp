@@ -9175,6 +9175,18 @@ void CCefView::SendKeyEvent(int type, int key, int modifiers, const std::wstring
 	browser->GetHost()->SendKeyEvent(key_event);
 }
 
+void CCefView::ImeCommitText(const std::wstring& text)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	// Inserts the text at the cursor of the focused field, or replaces its
+	// selection, when no composition is in progress. The range is only used
+	// on macOS, so pass the invalid range like cefclient does.
+	browser->GetHost()->ImeCommitText(text, CefRange(UINT32_MAX, UINT32_MAX), 0);
+}
+
 #if defined(_LINUX) && !defined(_MAC)
 void* CefGetXDisplay(void)
 {
