@@ -320,6 +320,32 @@ void QCefView::wheelEvent(QWheelEvent *event) {
 }
 #endif
 
+// The character a key event types. The text from the keyboard layout comes
+// first: Qt reports a key by the upper case of its character, so the Turkish
+// dotless i (U+0131) arrives as Qt::Key_I and deriving the character from the
+// key would type a plain 'i' instead. The text also follows Caps Lock. Only
+// keys without printable text, such as Ctrl combinations, fall back to the key.
+static wchar_t KeyEventCharacter(const QKeyEvent* event)
+{
+	const QString text = event->text();
+	if (!text.isEmpty()) {
+		const ushort c = text[0].unicode();
+		if (c >= 0x20 && c != 0x7f)
+			return static_cast<wchar_t>(c);
+	}
+
+	int key = event->key();
+	if (key >= Qt::Key_A && key <= Qt::Key_Z)
+		return (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
+	if (key >= Qt::Key_0 && key <= Qt::Key_9)
+		return key;
+	if (key == Qt::Key_Space)
+		return ' ';
+	if (key == Qt::Key_Return || key == Qt::Key_Enter)
+		return '\r';
+	return text.isEmpty() ? 0 : static_cast<wchar_t>(text[0].unicode());
+}
+
 void QCefView::keyPressEvent(QKeyEvent *event) {
 	if (m_isWayland && m_pCefView) {
 		int key = event->key();
@@ -343,20 +369,7 @@ void QCefView::keyPressEvent(QKeyEvent *event) {
 
 		int windows_key_code = QtKeyToWindowsKeyCode(key);
 
-		wchar_t unmodified_char = 0;
-		if (key >= Qt::Key_A && key <= Qt::Key_Z) {
-			unmodified_char = (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
-		} else if (key >= Qt::Key_0 && key <= Qt::Key_9) {
-			unmodified_char = key;
-		} else if (key == Qt::Key_Space) {
-			unmodified_char = ' ';
-		} else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
-			unmodified_char = '\r';
-		} else {
-			if (!event->text().isEmpty()) {
-				unmodified_char = event->text()[0].unicode();
-			}
-		}
+		wchar_t unmodified_char = KeyEventCharacter(event);
 
 		wchar_t character = unmodified_char;
 		if (event->modifiers() & Qt::ControlModifier) {
@@ -390,20 +403,7 @@ void QCefView::keyReleaseEvent(QKeyEvent *event) {
 
 		int windows_key_code = QtKeyToWindowsKeyCode(key);
 		
-		wchar_t unmodified_char = 0;
-		if (key >= Qt::Key_A && key <= Qt::Key_Z) {
-			unmodified_char = (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
-		} else if (key >= Qt::Key_0 && key <= Qt::Key_9) {
-			unmodified_char = key;
-		} else if (key == Qt::Key_Space) {
-			unmodified_char = ' ';
-		} else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
-			unmodified_char = '\r';
-		} else {
-			if (!event->text().isEmpty()) {
-				unmodified_char = event->text()[0].unicode();
-			}
-		}
+		wchar_t unmodified_char = KeyEventCharacter(event);
 
 		std::wstring character_str;
 		character_str.push_back(unmodified_char);
