@@ -1,7 +1,6 @@
 #ifndef CORS_RESOURCE_HANDLER_H
 #define CORS_RESOURCE_HANDLER_H
 
-#ifdef CEF_VERSION_ABOVE_102
 
 #define CEF_SUPPORT_STREAMING_CORS_RESOURCE_HANDLER
 
@@ -52,7 +51,7 @@ public:
 			  CefRefPtr<CefCallback> callback) override;
 
 	void GetResponseHeaders(CefRefPtr<CefResponse> response,
-							int64& response_length,
+							int64_t& response_length,
 							CefString& redirectUrl) override;
 
 	bool Read(void* data_out,
@@ -115,8 +114,8 @@ public:
 		m_handler->OnComplete(request);
 	}
 
-	void OnUploadProgress(CefRefPtr<CefURLRequest>, int64, int64) override {}
-	void OnDownloadProgress(CefRefPtr<CefURLRequest>, int64, int64) override {}
+	void OnUploadProgress(CefRefPtr<CefURLRequest>, int64_t, int64_t) override {}
+	void OnDownloadProgress(CefRefPtr<CefURLRequest>, int64_t, int64_t) override {}
 
 	bool GetAuthCredentials(bool, const CefString&, int, const CefString&,
 							const CefString&, CefRefPtr<CefAuthCallback>) override
@@ -197,7 +196,7 @@ bool StreamingCORSResourceHandler::Open(CefRefPtr<CefRequest> request,
 }
 
 void StreamingCORSResourceHandler::GetResponseHeaders(CefRefPtr<CefResponse> response,
-													  int64& response_length,
+													  int64_t& response_length,
 													  CefString& redirectUrl)
 {
 	CefResponse::HeaderMap headers = m_headers;
@@ -301,6 +300,5 @@ void StreamingCORSResourceHandler::Cancel()
 		m_urlRequest->Cancel();	
 }
 
-#endif // CEF_VERSION_ABOVE_102
 
 #endif // CORS_RESOURCE_HANDLER_H

@@ -34,6 +34,8 @@
 #include "../../../../core/DesktopEditor/graphics/Timer.h"
 
 #include "../src/cookiesworker.h"
+#include "include/cef_browser.h"
+#include "cefframeid.h"
 
 #include <iostream>
 #include <set>
@@ -57,16 +59,10 @@
 #include "../../../../core/DesktopEditor/xmlsec/src/include/CertificateCommon.h"
 #include "templatesmanager.h"
 
-#ifdef CEF_2623
-#define MESSAGE_IN_BROWSER
-#else
 // с версии выше 74 - убрать определение
 //#define MESSAGE_IN_BROWSER
-#endif
 
-#ifdef CEF_VERSION_ABOVE_102
 #define CEF_SIMPLE_URL_REQUEST
-#endif
 
 #ifdef MESSAGE_IN_BROWSER
 #define SEND_MESSAGE_TO_BROWSER_PROCESS(message) CefV8Context::GetCurrentContext()->GetBrowser()->SendProcessMessage(PID_BROWSER, message)
@@ -274,6 +270,40 @@ namespace NSArgumentList
 	{
 		std::string tmp = std::to_string(value);
 		return args->SetString(index, tmp);
+	}
+}
+
+// Since CEF 122 frames are identified by opaque strings. Everything here (process
+// messages, events, JS) passes frame ids around as integers, so map the string to
+// a hash that is the same in every process. It is kept positive and below 2^53, so
+// it also survives a round trip through a JS number.
+namespace NSCefFrameId
+{
+	static int64_t FromIdentifier(const CefString& identifier)
+	{
+		return HashIdentifier(identifier.ToString());
+	}
+	static int64_t Get(CefRefPtr<CefFrame> frame)
+	{
+		return frame ? FromIdentifier(frame->GetIdentifier()) : 0;
+	}
+	static void GetAll(CefRefPtr<CefBrowser> browser, std::vector<int64_t>& ids)
+	{
+		std::vector<CefString> identifiers;
+		browser->GetFrameIdentifiers(identifiers);
+		for (const CefString& identifier : identifiers)
+			ids.push_back(FromIdentifier(identifier));
+	}
+	static CefRefPtr<CefFrame> Find(CefRefPtr<CefBrowser> browser, const int64_t& id)
+	{
+		std::vector<CefString> identifiers;
+		browser->GetFrameIdentifiers(identifiers);
+		for (const CefString& identifier : identifiers)
+		{
+			if (FromIdentifier(identifier) == id)
+				return browser->GetFrameByIdentifier(identifier);
+		}
+		return nullptr;
 	}
 }
 
@@ -1223,9 +1253,7 @@ public:
 		bIsChanged = false;
 
 		bValid = context->Eval("(function() { if (!window.Asc || !window.Asc.Addons) return ''; var features = ''; for (var i in window.Asc.Addons) { var j = i; if (j === \"content-\\u0441ontrols\") j = \"content-controls\"; features += (j + ' '); } return features; })();",
-					   #ifndef CEF_2623
 							   "", 0,
-					   #endif
 							   retval, exception);
 
 		if (bValid && retval && retval->IsString())
@@ -1395,9 +1423,7 @@ for (var i = 0, len = arr.length; i < len; i++) { if (arr[i] && false === addons
 })(\"" + sFeatures + "\");";
 
 	bool bValid = context->Eval(sCode,
-							#ifndef CEF_2623
 								"", 0,
-							#endif
 								retval, exception);
 }
 };
@@ -1821,7 +1847,7 @@ public:
 		{
 			m_bIsPreloadDiscard = true;
 
-#if defined(LINUX) && !defined(_MAC) && !defined(CEF_VERSION_107)
+#if defined(LINUX) && !defined(_MAC)
 			setenv("LD_PRELOAD", "", 1);
 #endif
 		}

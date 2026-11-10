@@ -68,3 +68,10 @@ add_core_gtest(
 # Run from the build tree, where Qt isn't copied next to the suite: let CMake
 # add the linked libraries' directories, Qt's included, to the RPATH.
 set_target_properties(ascdocumentscore_keyeventcharacter_test PROPERTIES BUILD_WITH_INSTALL_RPATH OFF)
+
+# Header only, no CEF needed
+add_core_gtest(
+    NAME    ascdocumentscore_cefframeid_test
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/cefframeid_test.cpp
+    GTEST_MAIN
+)

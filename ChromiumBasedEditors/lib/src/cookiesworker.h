@@ -33,15 +33,8 @@
 #include "include/internal/cef_time.h"
 #include <map>
 
-#ifdef CEF_2623
-#include "include/base/cef_bind.h"
-#endif
 
-#ifdef CEF_VERSION_ABOVE_102
 #define BASE_BIND base::BindOnce
-#else
-#define BASE_BIND base::Bind
-#endif
 
 class CCookieFoundCallback
 {
@@ -195,11 +188,7 @@ public:
 	{
 		if (!CefCurrentlyOn(TID_IO))
 		{
-#ifdef CEF_VERSION_ABOVE_102
 			CefPostTask(TID_IO, BASE_BIND(&CCefCookieVisitor::CheckCookiePresent, base::WrapRefCounted(this), manager));
-#else
-			CefPostTask(TID_IO, BASE_BIND(&CCefCookieVisitor::CheckCookiePresent, this, manager));
-#endif
 			return;
 		}
 
@@ -211,11 +200,7 @@ public:
 	IMPLEMENT_REFCOUNTING(CCefCookieVisitor);
 };
 
-#ifdef CEF_2623
-#define CefBase_Class CefBase
-#else
 #define CefBase_Class CefBaseRefCounted
-#endif
 class CCefCookieSetter : public CefBase_Class
 {
 public:
@@ -255,11 +240,7 @@ public:
 	{
 		if (!CefCurrentlyOn(TID_IO))
 		{
-#ifdef CEF_VERSION_ABOVE_102
 			CefPostTask(TID_IO, BASE_BIND(&CCefCookieSetter::SetCookie, base::WrapRefCounted(this), manager));
-#else
-			CefPostTask(TID_IO, BASE_BIND(&CCefCookieSetter::SetCookie, this, manager));
-#endif
 			return;
 		}
 
@@ -276,7 +257,6 @@ public:
 
 		authorization.has_expires = true;
 
-#if defined(CEF_VERSION_ABOVE_102) && !defined(CEF_VERSION_103)
 		cef_time_t cef_time;
 		cef_time.year = 2200;
 		cef_time.month = 4;
@@ -290,12 +270,6 @@ public:
 
 		// since chromium 104 maximum 400 days!!!
 		cef_time_to_basetime(&cef_time, &authorization.expires);
-#else
-        authorization.expires.year = 2200;
-        authorization.expires.month = 4;
-        authorization.expires.day_of_week = 5;
-        authorization.expires.day_of_month = 11;
-#endif
 
 		manager->SetCookie(m_sUrl, authorization, nullptr);
 
