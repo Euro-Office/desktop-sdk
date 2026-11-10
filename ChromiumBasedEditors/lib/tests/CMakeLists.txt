@@ -75,3 +75,10 @@ add_core_gtest(
     SOURCES ${CMAKE_CURRENT_LIST_DIR}/cefframeid_test.cpp
     GTEST_MAIN
 )
+
+# Which requests get a cloud's Authorization header; needs neither CEF nor core
+add_core_gtest(
+    NAME    ascdocumentscore_portalauthorization_test
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/portalauthorization_test.cpp ${SDK_SRC}/portalauthorization.cpp
+    GTEST_MAIN
+)
