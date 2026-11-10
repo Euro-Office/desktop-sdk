@@ -24,6 +24,7 @@
  */
 
 #include "./../include/qcefview.h"
+#include "cefframefit.h"
 #include "keyeventcharacter.h"
 #include <cstdio>
 #include <QPainter>
@@ -888,6 +889,24 @@ void QCefView::SetCursorCustom(const void* buffer, int width, int height, int ho
 	setCursor(cursor);
 }
 
+// Draws a CEF off-screen frame (physical pixels, rendered for
+// (int)(logical size * dpr)) into a widget of the given logical size.
+static void DrawCefFrame(QPainter& painter, const QImage& frame, const QSize& size, qreal dpr, const QColor& background)
+{
+	QRectF source(0, 0, frame.width(), frame.height());
+	QRectF target(0, 0, size.width(), size.height());
+
+	// A frame that fits the widget is stretched over all of it, so no edge
+	// column stays unpainted at fractional scales. During a resize CEF lags
+	// behind by a frame or more; draw that stale frame unscaled and fill the
+	// rest, instead of stretching it to the new size.
+	if (!CefFrameFitsWidget(frame.width(), frame.height(), size.width(), size.height(), dpr)) {
+		painter.fillRect(target, background);
+		target.setSize(QSizeF(frame.width() / dpr, frame.height() / dpr));
+	}
+	painter.drawImage(target, frame, source);
+}
+
 QCefGLWidget::QCefGLWidget(QWidget* parent)
 	: QOpenGLWidget(parent)
 {
@@ -913,14 +932,12 @@ void QCefGLWidget::paintGL()
 	if (m_frame.isNull())
 		return;
 
-	// Draw the full physical-pixel CEF buffer into the full widget area, same
-	// mapping as QCefView::paintEvent used for the raster path.
+	QColor background = Qt::white;
+	if (QCefView* view = qobject_cast<QCefView*>(parentWidget()))
+		background = QColor(view->backgroundR, view->backgroundG, view->backgroundB);
+
 	QPainter painter(this);
-	painter.drawImage(
-		QRectF(0, 0, width(), height()),
-		m_frame,
-		QRectF(0, 0, m_frame.width(), m_frame.height())
-	);
+	DrawCefFrame(painter, m_frame, size(), devicePixelRatioF(), background);
 }
 
 void QCefView::OnPaint(const void* buffer, int width, int height)
@@ -963,17 +980,8 @@ void QCefView::paintEvent(QPaintEvent* event)
 {
 	if (m_isWayland && !m_imageBuffer.isNull()) {
 		QPainter painter(this);
-		// Draw the full physical-pixel CEF buffer into the full widget area.
-		// Source: all physical pixels from the CEF OnPaint buffer.
-		// Target: full widget rect in logical (DIP) coordinates.
-		// Qt maps source onto target, stretching to fill. Since the buffer
-		// is DIP*DPR pixels and the widget is DIP logical (= DIP*DPR physical),
-		// this results in a 1:1 pixel mapping with no clipping.
-		painter.drawImage(
-			QRectF(0, 0, width(), height()),
-			m_imageBuffer,
-			QRectF(0, 0, m_imageBuffer.width(), m_imageBuffer.height())
-		);
+		DrawCefFrame(painter, m_imageBuffer, size(), devicePixelRatioF(),
+			QColor(backgroundR, backgroundG, backgroundB));
 		return;
 	}
 

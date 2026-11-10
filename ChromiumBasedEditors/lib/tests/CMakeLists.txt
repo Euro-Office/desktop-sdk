@@ -48,6 +48,15 @@ target_compile_definitions(ascdocumentscore_certificatecheck_test PRIVATE
     DESKTOP_NO_USE_DYNAMIC_LIBRARY
     CERTIFICATE_TEST_DATA="${CMAKE_CURRENT_LIST_DIR}/data/certificate")
 
+# Header-only helper of the Qt wrapper's Wayland (off-screen) frame drawing
+add_core_gtest(
+    NAME    ascdocumentscore_cefframefit_test
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/cefframefit_test.cpp
+    GTEST_MAIN
+)
+target_include_directories(ascdocumentscore_cefframefit_test PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../qt_wrapper/src)
+
 # The character the Wayland key forwarding in qt_wrapper/src/qcefview.cpp types.
 # Has its own main(), which starts a QGuiApplication.
 add_core_gtest(

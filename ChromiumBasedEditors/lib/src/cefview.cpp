@@ -578,6 +578,55 @@ public:
 	}
 };
 
+// Bug #62086 needs a synthetic window 'resize' event after the view changes
+// size. UpdateSize() runs for every step of an interactive move or resize, and
+// firing the event each time makes the editor lay out and redraw twice per
+// step. Fire it once, after the geometry has been quiet for kDelayMs.
+// Refcounted so a pending task stays valid if the view goes away first.
+class CCefDeferredResizeEvent : public CefBaseRefCounted
+{
+public:
+	static const int64_t kDelayMs = 150;
+
+	void Schedule(CefRefPtr<CefBrowser> browser);
+	void Fire(CefRefPtr<CefBrowser> browser, int generation)
+	{
+		if (generation != m_nGeneration || !browser)
+			return;
+		CefRefPtr<CefFrame> pFrame = browser->GetMainFrame();
+		if (pFrame && pFrame->IsValid())
+			pFrame->ExecuteJavaScript("window.dispatchEvent(new Event('resize'));", pFrame->GetURL(), 0);
+	}
+
+private:
+	int m_nGeneration = 0;
+
+	IMPLEMENT_REFCOUNTING(CCefDeferredResizeEvent);
+};
+
+class CCefDeferredResizeTask : public CefTask
+{
+public:
+	CCefDeferredResizeTask(CefRefPtr<CCefDeferredResizeEvent> event, CefRefPtr<CefBrowser> browser, int generation)
+		: m_event(event), m_browser(browser), m_nGeneration(generation) {}
+	virtual void Execute() OVERRIDE
+	{
+		m_event->Fire(m_browser, m_nGeneration);
+	}
+
+private:
+	CefRefPtr<CCefDeferredResizeEvent> m_event;
+	CefRefPtr<CefBrowser> m_browser;
+	int m_nGeneration;
+
+	IMPLEMENT_REFCOUNTING(CCefDeferredResizeTask);
+};
+
+void CCefDeferredResizeEvent::Schedule(CefRefPtr<CefBrowser> browser)
+{
+	CefPostDelayedTask(TID_UI, new CCefDeferredResizeTask(this, browser, ++m_nGeneration), kDelayMs);
+}
+
 class CAscClientHandler;
 class CCefView_Private : public NSEditorApi::IMenuEventDataBase, public IASCFileConverterEvents, public IASCFileConverterExternalEvents, public CTextDocxConverterCallback//, public virtual CefBaseRefCounted
 {
@@ -899,6 +948,8 @@ public:
 	bool m_bIsRemoveRecoveryOnClose;
 	// идет закрытие веб-страницы
 	bool m_bIsClosing;
+	// see CCefDeferredResizeEvent
+	CefRefPtr<CCefDeferredResizeEvent> m_pDeferredResize = new CCefDeferredResizeEvent();
 	// идет удаление веб-страницы
 	bool m_bIsDestroying;
 	// показывается диалог для сохранения
@@ -6603,10 +6654,8 @@ void CCefView_Private::UpdateSize()
 		if (m_handler->GetBrowser()->GetHost()->IsWindowRenderingDisabled())
 			m_handler->GetBrowser()->GetHost()->WasResized();
 
-		// Fix bug #62086
-		CefRefPtr<CefFrame> pFrame = m_handler->GetBrowser()->GetMainFrame();
-		if (pFrame)
-			pFrame->ExecuteJavaScript("window.dispatchEvent(new Event('resize'));", pFrame->GetURL(), 0);
+		// Fix bug #62086, once per move/resize gesture (see CCefDeferredResizeEvent)
+		m_pDeferredResize->Schedule(m_handler->GetBrowser());
 	}
 }
 
@@ -7108,6 +7157,9 @@ void CCefView::load(const std::wstring& urlInputSrc)
 #endif
 
 	_settings.background_color = CefColorSetARGB(0xFF, pWidgetImpl->backgroundR, pWidgetImpl->backgroundG, pWidgetImpl->backgroundB);
+	// Off-screen rendering (Linux Wayland) defaults to 30 fps, which makes
+	// resizing and scrolling visibly choppy. Ignored for windowed browsers.
+	_settings.windowless_frame_rate = 60;
 
 	CefWindowInfo info;
 	CefWindowHandle _handle = (CefWindowHandle)m_pInternal->m_pWidgetImpl->cef_handle;
