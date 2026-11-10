@@ -56,3 +56,15 @@ add_core_gtest(
 )
 target_include_directories(ascdocumentscore_cefframefit_test PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../qt_wrapper/src)
+
+# The character the Wayland key forwarding in qt_wrapper/src/qcefview.cpp types.
+# Has its own main(), which starts a QGuiApplication.
+add_core_gtest(
+    NAME    ascdocumentscore_keyeventcharacter_test
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/keyeventcharacter_test.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/../qt_wrapper/src/keyeventcharacter.cpp
+    LIBS    Qt${QT_VERSION_MAJOR}::Gui
+)
+# Run from the build tree, where Qt isn't copied next to the suite: let CMake
+# add the linked libraries' directories, Qt's included, to the RPATH.
+set_target_properties(ascdocumentscore_keyeventcharacter_test PROPERTIES BUILD_WITH_INSTALL_RPATH OFF)

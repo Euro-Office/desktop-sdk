@@ -68,6 +68,8 @@ target_sources(qtascdocumentscore PRIVATE
     src/qexternalmessageloop.cpp
     src/qascapplicationmanager.cpp
     src/qdpichecker.cpp
+    src/keyeventcharacter.h
+    src/keyeventcharacter.cpp
 )
 
 target_link_libraries(qtascdocumentscore PRIVATE

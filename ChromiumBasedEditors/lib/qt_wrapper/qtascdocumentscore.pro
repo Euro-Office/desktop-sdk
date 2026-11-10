@@ -22,7 +22,8 @@ HEADERS += \
 	$$PWD/qrenderer/include/qrenderer.h \
     $$PWD/include/qexternalmessageloop.h \
     $$PWD/include/qascapplicationmanager.h \
-    $$PWD/include/qdpichecker.h
+    $$PWD/include/qdpichecker.h \
+    $$PWD/src/keyeventcharacter.h
 
 SOURCES += \
     $$PWD/src/qcefview.cpp \
@@ -31,7 +32,8 @@ SOURCES += \
 	$$PWD/qrenderer/src/qrenderer.cpp \
     $$PWD/src/qexternalmessageloop.cpp \
     $$PWD/src/qascapplicationmanager.cpp \
-    $$PWD/src/qdpichecker.cpp
+    $$PWD/src/qdpichecker.cpp \
+    $$PWD/src/keyeventcharacter.cpp
 
 core_windows {
     LIBS += -luser32

@@ -25,6 +25,7 @@
 
 #include "./../include/qcefview.h"
 #include "cefframefit.h"
+#include "keyeventcharacter.h"
 #include <cstdio>
 #include <QPainter>
 #include <QApplication>
@@ -344,20 +345,7 @@ void QCefView::keyPressEvent(QKeyEvent *event) {
 
 		int windows_key_code = QtKeyToWindowsKeyCode(key);
 
-		wchar_t unmodified_char = 0;
-		if (key >= Qt::Key_A && key <= Qt::Key_Z) {
-			unmodified_char = (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
-		} else if (key >= Qt::Key_0 && key <= Qt::Key_9) {
-			unmodified_char = key;
-		} else if (key == Qt::Key_Space) {
-			unmodified_char = ' ';
-		} else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
-			unmodified_char = '\r';
-		} else {
-			if (!event->text().isEmpty()) {
-				unmodified_char = event->text()[0].unicode();
-			}
-		}
+		wchar_t unmodified_char = KeyEventCharacter(event);
 
 		wchar_t character = unmodified_char;
 		if (event->modifiers() & Qt::ControlModifier) {
@@ -391,20 +379,7 @@ void QCefView::keyReleaseEvent(QKeyEvent *event) {
 
 		int windows_key_code = QtKeyToWindowsKeyCode(key);
 		
-		wchar_t unmodified_char = 0;
-		if (key >= Qt::Key_A && key <= Qt::Key_Z) {
-			unmodified_char = (event->modifiers() & Qt::ShiftModifier) ? key : (key - Qt::Key_A + 'a');
-		} else if (key >= Qt::Key_0 && key <= Qt::Key_9) {
-			unmodified_char = key;
-		} else if (key == Qt::Key_Space) {
-			unmodified_char = ' ';
-		} else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
-			unmodified_char = '\r';
-		} else {
-			if (!event->text().isEmpty()) {
-				unmodified_char = event->text()[0].unicode();
-			}
-		}
+		wchar_t unmodified_char = KeyEventCharacter(event);
 
 		std::wstring character_str;
 		character_str.push_back(unmodified_char);
