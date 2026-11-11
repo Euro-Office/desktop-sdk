@@ -44,6 +44,7 @@ public:
 	void showMediaControl(NSEditorApi::CAscExternalMediaPlayerCommand* data);
 	void hideMediaControl();
 	void updateGeometry(NSEditorApi::CAscExternalMediaPlayerCommand* data);
+	void setMediaGeometry(NSEditorApi::CAscExternalMediaPlayerCommand* data, int xOffset, int yOffset);
 
 protected:
 	QAscVideoView* m_pMediaView;
