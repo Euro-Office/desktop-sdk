@@ -38,6 +38,8 @@
 QCefView_Media::QCefView_Media(QWidget* parent, const QSize& size) : QCefView(parent, size)
 {
 	m_pMediaView = NULL;
+	m_bMediaViewWasVisible = false;
+	m_bFooterWasVisible = false;
 }
 
 QCefView_Media::~QCefView_Media()
@@ -347,6 +349,38 @@ void QCefView_Media::setMediaGeometry(NSEditorApi::CAscExternalMediaPlayerComman
 	QRect oControl = toLogical(this, data->get_ControlRectX(), data->get_ControlRectY(), data->get_ControlRectW(), data->get_ControlRectH());
 	QFooterPanel* pFooter = m_pMediaView->Footer();
 	pFooter->setGeometry(xOffset + oControl.x(), yOffset + oControl.y(), oControl.width(), pFooter->GetHeight());
+}
+
+// On Linux the player is parented to the main panel (see getMainPanel), not
+// to this view, so it would stay on screen when this view's tab is hidden,
+// e.g. when switching to the start page. Hide and pause it with the view.
+void QCefView_Media::hideEvent(QHideEvent* e)
+{
+	if (m_pMediaView && m_pMediaView->parentWidget() != this)
+	{
+		QFooterPanel* pFooter = m_pMediaView->Footer();
+		m_bMediaViewWasVisible = m_pMediaView->isVisible();
+		m_bFooterWasVisible = pFooter->isVisible();
+		m_pMediaView->Pause();
+		m_pMediaView->hide();
+		pFooter->hide();
+		pFooter->VolumeControls()->hide();
+	}
+	QCefView::hideEvent(e);
+}
+
+void QCefView_Media::showEvent(QShowEvent* e)
+{
+	QCefView::showEvent(e);
+	if (m_pMediaView && m_pMediaView->parentWidget() != this)
+	{
+		if (m_bMediaViewWasVisible)
+			m_pMediaView->show();
+		if (m_bFooterWasVisible)
+			m_pMediaView->Footer()->show();
+		m_bMediaViewWasVisible = false;
+		m_bFooterWasVisible = false;
+	}
 }
 
 void QCefView_Media::onMediaKeyDown(int key, Qt::KeyboardModifiers mods)
