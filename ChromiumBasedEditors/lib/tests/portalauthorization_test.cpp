@@ -120,3 +120,20 @@ TEST(PortalAuthorizationEmpty, NothingSetMeansNoHeader)
     EXPECT_EQ(auth.Get("https://cloud.example.com/nc/", ""), "");
     EXPECT_FALSE(auth.IsMisplaced("https://cloud.example.com/nc/", "Basic SECRET"));
 }
+
+TEST_F(PortalAuthorizationTest, FindPortalReturnsPrefixAndHeaderForPortalPages)
+{
+    std::string auth;
+    EXPECT_EQ(m_auth.FindPortal("https://CLOUD.example.com/nc/apps/files/?dir=/", auth), "https://cloud.example.com/nc/");
+    EXPECT_EQ(auth, AUTH);
+}
+
+TEST_F(PortalAuthorizationTest, FindPortalIgnoresOtherAddresses)
+{
+    std::string auth = "stale";
+    EXPECT_EQ(m_auth.FindPortal("https://cloud.example.com/other/", auth), "");
+    EXPECT_EQ(auth, "");
+    EXPECT_EQ(m_auth.FindPortal("https://cloud.example.com.evil.test/nc/", auth), "");
+    EXPECT_EQ(m_auth.FindPortal("http://cloud.example.com/nc/", auth), "");
+    EXPECT_EQ(m_auth.FindPortal("ascdesktop://crash.html", auth), "");
+}
