@@ -77,6 +77,23 @@ std::string CPortalAuthorization::Get(const std::string& sUrl, const std::string
 	return "";
 }
 
+std::string CPortalAuthorization::FindPortal(const std::string& sUrl, std::string& sAuthorization) const
+{
+	std::string sUrlNorm = RequestPrefix(sUrl);
+
+	std::lock_guard<std::mutex> oLock(m_oMutex);
+	for (const auto& oPortal : m_mapAuth)
+	{
+		if (StartsWith(sUrlNorm, oPortal.first))
+		{
+			sAuthorization = oPortal.second;
+			return oPortal.first;
+		}
+	}
+	sAuthorization.clear();
+	return "";
+}
+
 bool CPortalAuthorization::IsMisplaced(const std::string& sUrl, const std::string& sAuthorization) const
 {
 	std::string sUrlNorm = RequestPrefix(sUrl);

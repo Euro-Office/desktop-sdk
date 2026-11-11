@@ -28,6 +28,10 @@ public:
 	// credentialed requests to the portal.
 	std::string Get(const std::string& sUrl, const std::string& sInitiator) const;
 
+	// For a page the app loads itself: the prefix of the portal sUrl belongs to and
+	// its header in sAuthorization, "" if none
+	std::string FindPortal(const std::string& sUrl, std::string& sAuthorization) const;
+
 	// Whether a request to sUrl carries a portal's header it must not have, e.g.
 	// after a redirect to another host
 	bool IsMisplaced(const std::string& sUrl, const std::string& sAuthorization) const;
