@@ -1037,6 +1037,9 @@ public:
 	bool m_bIsExternalCloud;
 	CExternalCloudRegister m_oExternalCloud;
 
+	// the portal session for the next load() was just requested, see CPortalSessionRequest
+	bool m_bPortalSessionReady;
+
 	// облачный криптованный файл => downloadAs
 	int m_nCryptoDownloadAsFormat;
 	std::string m_sCryptoDownloadAsParams;
@@ -1140,6 +1143,7 @@ public:
 
 		m_bIsCloudCryptFile = false;
 		m_bIsExternalCloud = false;
+		m_bPortalSessionReady = false;
 		m_nCloudCryptFileType = 0;
 
 		m_nCryptoDownloadAsFormat = -1;
@@ -6820,8 +6824,118 @@ CCefView::~CCefView()
 	RELEASEOBJECT(m_pInternal);
 }
 
+// CAscUIThreadMessage type: the portal session for a load() was requested, continue it
+#define UI_THREAD_MESSAGE_PORTAL_SESSION_READY 1
+
+// Navigations don't carry the Authorization header set with
+// CAscApplicationManager::SetPortalAuthorization (CEF drops what
+// OnBeforeResourceLoad adds to them), so a portal page the app loads would open
+// logged out. Before such a load, request the portal once with the header: the
+// server answers with a logged-in session cookie, which the page load then sends.
+// Redirects aren't followed, so the header doesn't leave the portal. The load
+// continues on the app's thread (UI_THREAD_MESSAGE), also after a failure or
+// kTimeoutMs, so an unreachable server is handled by the page load as before.
+class CPortalSessionRequest : public CefURLRequestClient
+{
+public:
+	CPortalSessionRequest(CAscApplicationManager* pManager, int nViewId, const std::wstring& sUrl)
+		: m_pManager(pManager), m_nViewId(nViewId), m_sUrl(sUrl), m_bDone(false)
+	{
+	}
+
+	void Start(const std::string& sPortal, const std::string& sAuthorization)
+	{
+		if (!CefCurrentlyOn(TID_UI))
+		{
+			CefPostTask(TID_UI, BASE_BIND(&CPortalSessionRequest::Start, base::WrapRefCounted(this), sPortal, sAuthorization));
+			return;
+		}
+
+		CefRefPtr<CefRequest> request = CefRequest::Create();
+		request->SetURL(sPortal);
+		request->SetMethod("GET");
+		request->SetHeaderByName("Authorization", sAuthorization, true);
+		request->SetFlags(UR_FLAG_SKIP_CACHE | UR_FLAG_ALLOW_STORED_CREDENTIALS | UR_FLAG_STOP_ON_REDIRECT | UR_FLAG_NO_DOWNLOAD_DATA);
+
+		m_request = CefURLRequest::Create(request, this, CefRequestContext::GetGlobalContext());
+		CefPostDelayedTask(TID_UI, BASE_BIND(&CPortalSessionRequest::Finish, base::WrapRefCounted(this)), kTimeoutMs);
+	}
+
+	virtual void OnRequestComplete(CefRefPtr<CefURLRequest> request) OVERRIDE
+	{
+		Finish();
+	}
+	virtual void OnUploadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) OVERRIDE
+	{
+	}
+	virtual void OnDownloadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) OVERRIDE
+	{
+	}
+	virtual void OnDownloadData(CefRefPtr<CefURLRequest> request, const void* data, size_t data_length) OVERRIDE
+	{
+	}
+	virtual bool GetAuthCredentials(bool isProxy, const CefString& host, int port, const CefString& realm,
+									const CefString& scheme, CefRefPtr<CefAuthCallback> callback) OVERRIDE
+	{
+		return false;
+	}
+
+private:
+	static const int64_t kTimeoutMs = 10000;
+
+	void Finish()
+	{
+		CEF_REQUIRE_UI_THREAD();
+		if (m_bDone)
+			return;
+		m_bDone = true;
+
+		// after a timeout; Cancel() calls OnRequestComplete, which returns above
+		CefRefPtr<CefURLRequest> request = m_request;
+		m_request = nullptr;
+		if (request && request->GetRequestStatus() == UR_IO_PENDING)
+			request->Cancel();
+
+		NSEditorApi::CAscCefMenuEvent* pEvent = new NSEditorApi::CAscCefMenuEvent(ASC_MENU_EVENT_TYPE_UI_THREAD_MESSAGE);
+		pEvent->put_SenderId(m_nViewId);
+		NSEditorApi::CAscUIThreadMessage* pData = new NSEditorApi::CAscUIThreadMessage();
+		pData->put_Type(UI_THREAD_MESSAGE_PORTAL_SESSION_READY);
+		pData->GetArgs().push_back(m_sUrl);
+		pEvent->m_pData = pData;
+		m_pManager->GetEventListener()->OnEvent(pEvent);
+	}
+
+	CAscApplicationManager* m_pManager;
+	int m_nViewId;
+	std::wstring m_sUrl;
+	bool m_bDone;
+	CefRefPtr<CefURLRequest> m_request;
+
+	IMPLEMENT_REFCOUNTING(CPortalSessionRequest);
+};
+
 void CCefView::load(const std::wstring& urlInputSrc)
 {
+	// portal pages: get a logged-in session first, see CPortalSessionRequest
+	if (GetType() == cvwtSimple && m_pInternal && m_pInternal->m_pManager)
+	{
+		if (m_pInternal->m_bPortalSessionReady)
+		{
+			m_pInternal->m_bPortalSessionReady = false;
+		}
+		else
+		{
+			std::string sAuthorization;
+			std::string sPortal = m_pInternal->m_pManager->m_pInternal->m_oPortalAuth.FindPortal(U_TO_UTF8(urlInputSrc), sAuthorization);
+			if (!sPortal.empty())
+			{
+				CefRefPtr<CPortalSessionRequest> pRequest = new CPortalSessionRequest(m_pInternal->m_pManager, GetId(), urlInputSrc);
+				pRequest->Start(sPortal, sAuthorization);
+				return;
+			}
+		}
+	}
+
 	std::wstring urlInput = urlInputSrc;
 
 	// заглушка, чтобы не проверять выше
@@ -7404,6 +7518,22 @@ void CCefView::Apply(NSEditorApi::CAscMenuEvent* pEvent)
 {
 	if (!m_pInternal || NULL == pEvent)
 		return;
+
+	// before the browser check: the browser may not exist yet, see CPortalSessionRequest
+	if (pEvent->m_nType == ASC_MENU_EVENT_TYPE_UI_THREAD_MESSAGE)
+	{
+		NSEditorApi::CAscUIThreadMessage* pData = (NSEditorApi::CAscUIThreadMessage*)pEvent->m_pData;
+		if (pData && pData->get_Type() == UI_THREAD_MESSAGE_PORTAL_SESSION_READY)
+		{
+			if (!m_pInternal->m_bIsDestroying && !pData->GetArgs().empty())
+			{
+				m_pInternal->m_bPortalSessionReady = true;
+				load(pData->GetArgs()[0]);
+			}
+			RELEASEINTERFACE(pEvent);
+			return;
+		}
+	}
 
 	CefRefPtr<CefBrowser> browser;
 	if (m_pInternal->m_handler.get())
