@@ -38,6 +38,8 @@
 QCefView_Media::QCefView_Media(QWidget* parent, const QSize& size) : QCefView(parent, size)
 {
 	m_pMediaView = NULL;
+	m_bMediaViewWasVisible = false;
+	m_bFooterWasVisible = false;
 }
 
 QCefView_Media::~QCefView_Media()
@@ -85,26 +87,42 @@ QWidget* getMainPanel(QWidget* cur, int& x, int& y)
 }
 #endif
 
+// Media rects arrive in device pixels (CSS px * CCefView::GetDeviceScale()).
+// Where Qt's own high-DPI scaling is active (Wayland), widget geometry is in
+// logical pixels, so they must be divided by the widget's devicePixelRatio or
+// the player is scaled twice and drawn down-right of the placeholder. Where
+// Qt scaling is disabled (X11, Windows) the ratio is 1 and nothing changes.
+static QRect toLogical(QWidget* widget, int x, int y, int w, int h)
+{
+	double dScale = widget->devicePixelRatioF();
+	if (dScale <= 1.0)
+		return QRect(x, y, w, h);
+	return QRect((int)(x / dScale + 0.5), (int)(y / dScale + 0.5), (int)(w / dScale + 0.5), (int)(h / dScale + 0.5));
+}
+
 void QCefView_Media::OnMediaStart(NSEditorApi::CAscExternalMedia* data)
 {
 	if (m_pMediaView)
 		return;
 
-	// set DPI for this widget BEFORE creating media view
-	QWidgetUtils::SetDPI(this, m_pCefView->GetDeviceScale());
+	// set DPI for this widget BEFORE creating media view; only the part of
+	// the device scale that Qt does not already apply itself
+	double dQtScale = devicePixelRatioF();
+	QWidgetUtils::SetDPI(this, m_pCefView->GetDeviceScale() / (dQtScale > 1.0 ? dQtScale : 1.0));
 
 	m_pMediaView = new QAscVideoView(this, true);
 	m_pMediaView->setPlayListUsed(false);
 	m_pMediaView->setFullScreenUsed(false);
 
 	// set video view geometry
-	int nWidth = data->get_BoundsW();
-	m_pMediaView->setGeometry(data->get_BoundsX(), data->get_BoundsY(), nWidth, data->get_BoundsH());
+	QRect oBounds = toLogical(this, data->get_BoundsX(), data->get_BoundsY(), data->get_BoundsW(), data->get_BoundsH());
+	int nWidth = oBounds.width();
+	m_pMediaView->setGeometry(oBounds);
 	// set footer geometry
 	QFooterPanel* pFooter = m_pMediaView->Footer();
 	int nFooterWidth = std::min(std::max(nWidth, pFooter->GetMinWidth()), pFooter->GetMaxWidth());
-	int nFooterX = data->get_BoundsX() + nWidth / 2 - nFooterWidth / 2;
-	pFooter->setGeometry(nFooterX, data->get_BoundsY() + data->get_BoundsH() + 12, nFooterWidth, pFooter->GetHeight());
+	int nFooterX = oBounds.x() + nWidth / 2 - nFooterWidth / 2;
+	pFooter->setGeometry(nFooterX, oBounds.y() + oBounds.height() + 12, nFooterWidth, pFooter->GetHeight());
 	pFooter->SetRoundedCorners(true);
 	// set footer skin and show it explicitly
 	pFooter->ApplySkin(CFooterSkin::tDark);
@@ -263,8 +281,9 @@ void QCefView_Media::showMediaControl(NSEditorApi::CAscExternalMediaPlayerComman
 	if (!data->get_IsSelected())
 		return;
 
-	// set DPI for this widget BEFORE creating media view
-	QWidgetUtils::SetDPI(this, m_pCefView->GetDeviceScale());
+	// set DPI for this widget BEFORE creating media view (see OnMediaStart)
+	double dQtScale = devicePixelRatioF();
+	QWidgetUtils::SetDPI(this, m_pCefView->GetDeviceScale() / (dQtScale > 1.0 ? dQtScale : 1.0));
 
 	int xOffset = 0, yOffset = 0;
 	m_pMediaView = new QAscVideoView(getMainPanel(this, xOffset, yOffset), true);
@@ -276,10 +295,9 @@ void QCefView_Media::showMediaControl(NSEditorApi::CAscExternalMediaPlayerComman
 	m_pMediaView->setPlayListUsed(false);
 	m_pMediaView->setFullScreenUsed(false);
 
-	m_pMediaView->setGeometry(xOffset + data->get_FrameBoundsX(), yOffset + data->get_FrameBoundsY(), data->get_FrameBoundsW(), data->get_FrameBoundsH());
+	setMediaGeometry(data, xOffset, yOffset);
 
 	QFooterPanel* pFooter = m_pMediaView->Footer();
-	pFooter->setGeometry(xOffset + data->get_ControlRectX(), yOffset + data->get_ControlRectY(), data->get_ControlRectW(), pFooter->GetHeight());
 
 	// show before skin! (problem in fullscreen mode)
 	pFooter->show();
@@ -319,9 +337,50 @@ void QCefView_Media::updateGeometry(NSEditorApi::CAscExternalMediaPlayerCommand*
 
 	int xOffset = 0, yOffset = 0;
 	getMainPanel(this, xOffset, yOffset);
-	m_pMediaView->setGeometry(xOffset + data->get_FrameBoundsX(), yOffset + data->get_FrameBoundsY(), data->get_FrameBoundsW(), data->get_FrameBoundsH());
+	setMediaGeometry(data, xOffset, yOffset);
+}
+
+void QCefView_Media::setMediaGeometry(NSEditorApi::CAscExternalMediaPlayerCommand* data, int xOffset, int yOffset)
+{
+	// the offsets come from Qt widget positions and are logical already
+	QRect oFrame = toLogical(this, data->get_FrameBoundsX(), data->get_FrameBoundsY(), data->get_FrameBoundsW(), data->get_FrameBoundsH());
+	m_pMediaView->setGeometry(oFrame.translated(xOffset, yOffset));
+
+	QRect oControl = toLogical(this, data->get_ControlRectX(), data->get_ControlRectY(), data->get_ControlRectW(), data->get_ControlRectH());
 	QFooterPanel* pFooter = m_pMediaView->Footer();
-	pFooter->setGeometry(xOffset + data->get_ControlRectX(), yOffset + data->get_ControlRectY(), data->get_ControlRectW(), pFooter->GetHeight());
+	pFooter->setGeometry(xOffset + oControl.x(), yOffset + oControl.y(), oControl.width(), pFooter->GetHeight());
+}
+
+// On Linux the player is parented to the main panel (see getMainPanel), not
+// to this view, so it would stay on screen when this view's tab is hidden,
+// e.g. when switching to the start page. Hide and pause it with the view.
+void QCefView_Media::hideEvent(QHideEvent* e)
+{
+	if (m_pMediaView && m_pMediaView->parentWidget() != this)
+	{
+		QFooterPanel* pFooter = m_pMediaView->Footer();
+		m_bMediaViewWasVisible = m_pMediaView->isVisible();
+		m_bFooterWasVisible = pFooter->isVisible();
+		m_pMediaView->Pause();
+		m_pMediaView->hide();
+		pFooter->hide();
+		pFooter->VolumeControls()->hide();
+	}
+	QCefView::hideEvent(e);
+}
+
+void QCefView_Media::showEvent(QShowEvent* e)
+{
+	QCefView::showEvent(e);
+	if (m_pMediaView && m_pMediaView->parentWidget() != this)
+	{
+		if (m_bMediaViewWasVisible)
+			m_pMediaView->show();
+		if (m_bFooterWasVisible)
+			m_pMediaView->Footer()->show();
+		m_bMediaViewWasVisible = false;
+		m_bFooterWasVisible = false;
+	}
 }
 
 void QCefView_Media::onMediaKeyDown(int key, Qt::KeyboardModifiers mods)

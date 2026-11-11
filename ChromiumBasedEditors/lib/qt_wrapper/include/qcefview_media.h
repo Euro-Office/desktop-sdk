@@ -44,9 +44,16 @@ public:
 	void showMediaControl(NSEditorApi::CAscExternalMediaPlayerCommand* data);
 	void hideMediaControl();
 	void updateGeometry(NSEditorApi::CAscExternalMediaPlayerCommand* data);
+	void setMediaGeometry(NSEditorApi::CAscExternalMediaPlayerCommand* data, int xOffset, int yOffset);
 
 protected:
+	virtual void hideEvent(QHideEvent* e) override;
+	virtual void showEvent(QShowEvent* e) override;
+
 	QAscVideoView* m_pMediaView;
+	// visibility of the player and its footer before this view was hidden
+	bool m_bMediaViewWasVisible;
+	bool m_bFooterWasVisible;
 
 protected Q_SLOTS:
 	void onMediaKeyDown(int key, Qt::KeyboardModifiers mods);
