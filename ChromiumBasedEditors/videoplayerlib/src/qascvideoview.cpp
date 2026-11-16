@@ -57,8 +57,20 @@ void QVideoWidgetParent::resizeEvent(QResizeEvent *event)
 
 #endif
 
+// videoplayerlib is a static library, so its resources must be registered
+// explicitly. Otherwise the linker drops them and the footer buttons have no icons.
+static void InitVideoPlayerResources()
+{
+	static const bool bInitialized = []() {
+		Q_INIT_RESOURCE(IconsVideoPlayerLib);
+		return true;
+	}();
+	Q_UNUSED(bInitialized);
+}
+
 QAscVideoView::QAscVideoView(QWidget *parent, bool bIsPresentationMode) : QWidget(parent)
 {
+	InitVideoPlayerResources();
 	NSBaseVideoLibrary::Init(parent);
 	m_pInternal = new QAscVideoView_Private();
 	m_pInternal->m_bIsPresentationMode = bIsPresentationMode;
