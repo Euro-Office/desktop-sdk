@@ -9175,16 +9175,49 @@ void CCefView::SendKeyEvent(int type, int key, int modifiers, const std::wstring
 	browser->GetHost()->SendKeyEvent(key_event);
 }
 
-void CCefView::ImeCommitText(const std::wstring& text)
+void CCefView::InsertText(const std::wstring& text)
 {
 	if (!m_pInternal || !m_pInternal->m_handler) return;
 	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
 	if (!browser) return;
+	CefRefPtr<CefFrame> frame = browser->GetFocusedFrame();
+	if (!frame) return;
 
-	// Inserts the text at the cursor of the focused field, or replaces its
-	// selection, when no composition is in progress. The range is only used
-	// on macOS, so pass the invalid range like cefclient does.
-	browser->GetHost()->ImeCommitText(text, CefRange(UINT32_MAX, UINT32_MAX), 0);
+	// CefBrowserHost::ImeCommitText can't be used here: CEF 109 stores the
+	// replacement range as int, so the "no replacement" range UINT32_MAX turns
+	// into -1 and Chromium aborts on it (Euro-Office/DesktopEditors#330). Any
+	// valid range would replace existing text instead.
+	//
+	// execCommand("insertText") inserts at the cursor of the focused field, or
+	// replaces its selection, like a paste: text areas keep line breaks and
+	// single-line inputs drop them, so a trailing newline does not submit the
+	// form. The text is passed as an ASCII-only JS string literal.
+	std::string literal;
+	literal.reserve(text.length() + 2);
+	literal += '"';
+	auto appendUnit = [&literal](unsigned int unit) {
+		static const char hex[] = "0123456789ABCDEF";
+		literal += "\\u";
+		for (int shift = 12; shift >= 0; shift -= 4)
+			literal += hex[(unit >> shift) & 0xF];
+	};
+	for (wchar_t ch : text)
+	{
+		unsigned int cp = static_cast<unsigned int>(ch);
+		if (cp >= 0x20 && cp < 0x7F && cp != '"' && cp != '\\')
+			literal += static_cast<char>(cp);
+		else if (cp > 0xFFFF && cp <= 0x10FFFF)
+		{
+			cp -= 0x10000;
+			appendUnit(0xD800 + (cp >> 10));
+			appendUnit(0xDC00 + (cp & 0x3FF));
+		}
+		else if (cp <= 0xFFFF)
+			appendUnit(cp);
+	}
+	literal += '"';
+
+	frame->ExecuteJavaScript("document.execCommand(\"insertText\", false, " + literal + ");", frame->GetURL(), 0);
 }
 
 #if defined(_LINUX) && !defined(_MAC)
