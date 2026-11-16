@@ -419,21 +419,21 @@ void QCefView::keyReleaseEvent(QKeyEvent *event) {
 
 void QCefView::PasteClipboardText()
 {
-	// Committed as IME text rather than typed key by key, so characters above
+	// Inserted as a whole rather than typed key by key, so characters above
 	// U+FFFF arrive whole, and the page handles line breaks as in a normal
 	// paste: text areas keep them, single-line inputs filter them out instead
 	// of submitting the form.
 	QString text = QApplication::clipboard()->text();
 	if (!text.isEmpty())
-		m_pCefView->ImeCommitText(text.toStdWString());
+		m_pCefView->InsertText(text.toStdWString());
 }
 
-// An alternative approach would be to use CEF's ImeCommitText API directly
-// (CCefView::ImeCommitText, used by PasteClipboardText), which is the
-// canonical IME path. The SendKeyEvent(KEYEVENT_CHAR) approach is already
-// proven here and sufficient for dead key compose sequences (which produce
-// final committed characters, not preedit/intermediate compositions like CJK
-// input).
+// An alternative approach would be to use CEF's ImeCommitText API directly,
+// which is the canonical IME path, but CEF 109 aborts on its "no replacement"
+// range (see CCefView::InsertText). The SendKeyEvent(KEYEVENT_CHAR) approach
+// is already proven here and sufficient for dead key compose sequences (which
+// produce final committed characters, not preedit/intermediate compositions
+// like CJK input).
 void QCefView::inputMethodEvent(QInputMethodEvent *event) {
 	if (m_isWayland && m_pCefView) {
 		QString commitStr = event->commitString();
