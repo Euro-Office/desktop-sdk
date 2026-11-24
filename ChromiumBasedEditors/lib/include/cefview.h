@@ -210,6 +210,9 @@ public:
 	void SendMouseWheelEvent(int x, int y, int deltaX, int deltaY, int modifiers);
 	void SendKeyEvent(int type, int key, int modifiers, const std::wstring& character);
 	void ImeCommitText(const std::wstring& text);
+	void ImeSetComposition(const std::wstring& text, int cursor);
+	void ImeCancelComposition();
+	void ImeFinishComposingText();
 
 protected:
 	int m_nId;

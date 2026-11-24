@@ -69,6 +69,17 @@ add_core_gtest(
 # add the linked libraries' directories, Qt's included, to the RPATH.
 set_target_properties(ascdocumentscore_keyeventcharacter_test PROPERTIES BUILD_WITH_INSTALL_RPATH OFF)
 
+# What the Wayland input method forwarding in qt_wrapper/src/qcefview.cpp sends
+# to CEF.
+add_core_gtest(
+    NAME    ascdocumentscore_imecomposition_test
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/imecomposition_test.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/../qt_wrapper/src/imecomposition.cpp
+    LIBS    Qt${QT_VERSION_MAJOR}::Gui
+    GTEST_MAIN
+)
+set_target_properties(ascdocumentscore_imecomposition_test PROPERTIES BUILD_WITH_INSTALL_RPATH OFF)
+
 # Header only, no CEF needed
 add_core_gtest(
     NAME    ascdocumentscore_cefframeid_test

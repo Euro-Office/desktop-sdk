@@ -187,6 +187,10 @@ protected:
 	QPoint m_lastClickPos;
 	int m_clickCount = 0;
 
+	// Wayland: whether CEF has an input method composition (preedit) in
+	// progress (see inputMethodEvent).
+	bool m_imeComposing = false;
+
 	// Wayland: GL presenter overlaying this view (see QCefGLWidget). null on
 	// other platforms and until Init() runs.
 	QCefGLWidget* m_pGLView = nullptr;
