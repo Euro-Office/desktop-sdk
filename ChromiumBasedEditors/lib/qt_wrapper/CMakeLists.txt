@@ -56,6 +56,7 @@ target_include_directories(qtascdocumentscore PRIVATE
 target_sources(qtascdocumentscore PRIVATE
     include/qcefview.h
     include/qcefview_media.h
+    src/qmediaposter.h
     include/qascprinter.h
     qrenderer/include/qrenderer.h
     include/qexternalmessageloop.h
@@ -63,6 +64,7 @@ target_sources(qtascdocumentscore PRIVATE
     include/qdpichecker.h
     src/qcefview.cpp
     src/qcefview_media.cpp
+    src/qmediaposter.cpp
     src/qascprinter.cpp
     qrenderer/src/qrenderer.cpp
     src/qexternalmessageloop.cpp
