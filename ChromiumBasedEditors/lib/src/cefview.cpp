@@ -2092,6 +2092,15 @@ public:
 		return false;
 	}
 
+	// Chromium asks for the on-screen keyboard after a tap or left click on a
+	// text field, or when a text field gets focus after a user gesture. In OSR
+	// mode (Wayland) nobody else forwards this to the system input method.
+	virtual void OnVirtualKeyboardRequested(CefRefPtr<CefBrowser> browser, TextInputMode input_mode) OVERRIDE
+	{
+		if (m_pParent && m_pParent->GetWidgetImpl())
+			m_pParent->GetWidgetImpl()->OnVirtualKeyboardRequested(input_mode != CEF_TEXT_INPUT_MODE_NONE);
+	}
+
 	virtual void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height) OVERRIDE
 	{
 		// PET_POPUP (native <select>, color pickers, ...) is a separate small
@@ -9448,6 +9457,27 @@ void CCefView::SendMouseWheelEvent(int x, int y, int deltaX, int deltaY, int mod
 	mouse_event.modifiers = modifiers;
 
 	browser->GetHost()->SendMouseWheelEvent(mouse_event, deltaX, deltaY);
+}
+
+void CCefView::SendTouchEvent(int id, int type, float x, float y, float pressure, int modifiers)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	CefTouchEvent touch_event;
+	touch_event.id = id;
+	touch_event.x = x;
+	touch_event.y = y;
+	touch_event.radius_x = 0;
+	touch_event.radius_y = 0;
+	touch_event.rotation_angle = 0;
+	touch_event.pressure = pressure;
+	touch_event.type = (cef_touch_event_type_t)type;
+	touch_event.modifiers = modifiers;
+	touch_event.pointer_type = CEF_POINTER_TYPE_TOUCH;
+
+	browser->GetHost()->SendTouchEvent(touch_event);
 }
 
 void CCefView::SendKeyEvent(int type, int key, int modifiers, const std::wstring& character)

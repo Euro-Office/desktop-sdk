@@ -108,6 +108,11 @@ public:
 
 	virtual void OnPaint(const void* buffer, int width, int height) {}
 
+	// Off-screen rendering (Wayland): Chromium asks to show (true) or hide
+	// (false) the on-screen keyboard, e.g. after a tap on a text field. The
+	// platform widget passes this on to the system input method.
+	virtual void OnVirtualKeyboardRequested(bool show) {}
+
 	// Native OS clipboard bridge. CEF's own OS clipboard integration does not
 	// work in off-screen-rendering mode under Wayland (Chromium's clipboard
 	// requires a real wl_surface + input serial to claim ownership, which OSR
@@ -208,6 +213,9 @@ public:
 	void SendMouseClickEvent(int x, int y, int button, bool mouseUp, int modifiers, int clickCount);
 	void SendMouseMoveEvent(int x, int y, bool mouseLeave, int modifiers);
 	void SendMouseWheelEvent(int x, int y, int deltaX, int deltaY, int modifiers);
+	// type is a cef_touch_event_type_t value: 0 released, 1 pressed, 2 moved,
+	// 3 cancelled. x/y as for the mouse events above.
+	void SendTouchEvent(int id, int type, float x, float y, float pressure, int modifiers);
 	void SendKeyEvent(int type, int key, int modifiers, const std::wstring& character);
 	void ImeCommitText(const std::wstring& text);
 	void ImeSetComposition(const std::wstring& text, int cursor);

@@ -38,6 +38,7 @@
 #include <QTimer>
 #include <set>
 #include <QInputMethodEvent>
+#include <QInputMethod>
 #include <QClipboard>
 #include <QMimeData>
 #include <QJsonDocument>
@@ -464,6 +465,128 @@ QVariant QCefView::inputMethodQuery(Qt::InputMethodQuery query) const {
 	if (query == Qt::ImEnabled)
 		return true;
 	return QWidget::inputMethodQuery(query);
+}
+
+bool QCefView::event(QEvent* e)
+{
+	switch (e->type())
+	{
+	case QEvent::TouchBegin:
+	case QEvent::TouchUpdate:
+	case QEvent::TouchEnd:
+	case QEvent::TouchCancel:
+		if (m_isWayland && m_pCefView && ForwardTouchEvent(static_cast<QTouchEvent*>(e)))
+			return true;
+		break;
+	default:
+		break;
+	}
+	return QWidget::event(e);
+}
+
+// Touch screen input on Wayland. Left alone, Qt turns it into mouse events,
+// so the page only ever sees a mouse: the editors then have no touch mode, and
+// a long press, which they answer with the context menu only for touch
+// pointers, does nothing (issue #372). Sent as touch, Chromium recognizes the
+// gestures itself (tap, long press, scroll, pinch), as it does for a windowed
+// browser on X11.
+bool QCefView::ForwardTouchEvent(QTouchEvent* event)
+{
+	// cef_touch_event_type_t values (include/internal/cef_types.h)
+	enum { TET_RELEASED = 0, TET_PRESSED = 1, TET_MOVED = 2, TET_CANCELLED = 3 };
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	// Touchpads keep their usual mouse and wheel behavior.
+	if (event->device() && event->device()->type() != QInputDevice::DeviceType::TouchScreen)
+		return false;
+#else
+	if (event->device() && event->device()->type() != QTouchDevice::TouchScreen)
+		return false;
+#endif
+
+	if (event->type() == QEvent::TouchCancel)
+	{
+		CancelTouchPoints();
+		event->accept();
+		return true;
+	}
+
+	if (event->type() == QEvent::TouchBegin)
+	{
+		// Points of an earlier sequence that never ended would make CEF
+		// ignore the new one.
+		CancelTouchPoints();
+		// A touch focuses the view like a click (accepted touch events never
+		// become mouse presses); focusInEvent then focuses CEF.
+		if (!hasFocus())
+			setFocus(Qt::MouseFocusReason);
+	}
+
+	// Same physical pixel coordinates as the mouse events (see mousePressEvent).
+	const double scale = devicePixelRatio();
+	const int modifiers = GetCefModifiers(event->modifiers(), Qt::NoButton);
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	for (const QEventPoint& point : event->points())
+	{
+		const QPointF pos = point.position() * scale;
+		int type;
+		switch (point.state())
+		{
+		case QEventPoint::Pressed:  type = TET_PRESSED; break;
+		case QEventPoint::Updated:  type = TET_MOVED; break;
+		case QEventPoint::Released: type = TET_RELEASED; break;
+		default: continue; // stationary: nothing to tell CEF
+		}
+#else
+	for (const QTouchEvent::TouchPoint& point : event->touchPoints())
+	{
+		const QPointF pos = point.pos() * scale;
+		int type;
+		switch (point.state())
+		{
+		case Qt::TouchPointPressed:  type = TET_PRESSED; break;
+		case Qt::TouchPointMoved:    type = TET_MOVED; break;
+		case Qt::TouchPointReleased: type = TET_RELEASED; break;
+		default: continue;
+		}
+#endif
+		const int id = point.id();
+		if (type == TET_RELEASED)
+			m_touchPoints.remove(id);
+		else
+			m_touchPoints.insert(id, pos);
+		m_pCefView->SendTouchEvent(id, type, (float)pos.x(), (float)pos.y(), (float)point.pressure(), modifiers);
+	}
+
+	event->accept();
+	return true;
+}
+
+void QCefView::CancelTouchPoints()
+{
+	if (m_pCefView)
+	{
+		for (auto it = m_touchPoints.constBegin(); it != m_touchPoints.constEnd(); ++it)
+			m_pCefView->SendTouchEvent(it.key(), 3 /* TET_CANCELLED */, (float)it.value().x(), (float)it.value().y(), 0, 0);
+	}
+	m_touchPoints.clear();
+}
+
+// Chromium requests the on-screen keyboard after a tap or left click on a text
+// field (the editors keep a hidden one focused while a document is edited),
+// and asks to hide it when the field is gone. Qt's own text widgets request it
+// on click the same way; without this the keyboard never appears in documents
+// while it does in Qt dialogs (issue #370). The compositor decides whether to
+// show it: KWin, for instance, only does after touch or pen input by default.
+void QCefView::OnVirtualKeyboardRequested(bool show)
+{
+	if (!m_isWayland || !hasFocus())
+		return;
+	if (show)
+		QGuiApplication::inputMethod()->show();
+	else
+		QGuiApplication::inputMethod()->hide();
 }
 
 // focus
@@ -1219,6 +1342,9 @@ void QCefView::Init()
 		setMouseTracking(true);
 		setFocusPolicy(Qt::StrongFocus);
 		setAttribute(Qt::WA_InputMethodEnabled, true);
+		// Without this Qt turns touch into mouse events, so pages never see
+		// touch input (see ForwardTouchEvent).
+		setAttribute(Qt::WA_AcceptTouchEvents, true);
 
 		// GL overlay that presents the CEF OSR buffer (see QCefGLWidget). It
 		// fully covers this view and is mouse-transparent, so QCefView keeps
