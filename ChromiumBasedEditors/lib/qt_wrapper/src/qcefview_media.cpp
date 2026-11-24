@@ -24,6 +24,8 @@
  */
 
 #include "./../include/qcefview_media.h"
+#include "./qmediaposter.h"
+#include <QFileInfo>
 #include <QTimer>
 
 #include <algorithm>
@@ -159,6 +161,11 @@ void QCefView_Media::OnMediaEnd(bool isFromResize)
 void QCefView_Media::OnMediaPlayerCommand(NSEditorApi::CAscExternalMediaPlayerCommand* data)
 {
 	std::string sCmd = data->get_Cmd();
+	if (sCmd == "posterFrame")
+	{
+		grabPosterFrame(data->get_Url());
+		return;
+	}
 	// panel and video widget commands
 	if (sCmd == "showMediaControl")
 	{
@@ -270,6 +277,24 @@ void QCefView_Media::OnMediaPlayerCommand(NSEditorApi::CAscExternalMediaPlayerCo
 
 	std::cout << "}\n" << std::endl;
 #endif
+}
+
+// A local video was inserted (see "media_poster" in cefview.cpp): replace the
+// placeholder poster next to it (same name, .png) with a frame from the video,
+// then let the editor insert it. The editor falls back to the placeholder
+// after a timeout if this never answers.
+void QCefView_Media::grabPosterFrame(const std::wstring& sVideoFile)
+{
+	QFileInfo oVideo(QString::fromStdWString(sVideoFile));
+	QString sName = oVideo.completeBaseName();
+	QString sPoster = oVideo.absolutePath() + "/" + sName + ".png";
+
+	QMediaPoster::Grab(oVideo.absoluteFilePath(), sPoster, this, [this, sName](bool) {
+		if (!m_pCefView || m_pCefView->IsDestroy())
+			return;
+		std::string sKey = sName.toStdString();
+		m_pCefView->ExecuteInAllFrames("(function(){ var m = window.on_add_video_poster; if (m && m[\"" + sKey + "\"]) m[\"" + sKey + "\"](); })();");
+	});
 }
 
 void QCefView_Media::showMediaControl(NSEditorApi::CAscExternalMediaPlayerCommand* data)

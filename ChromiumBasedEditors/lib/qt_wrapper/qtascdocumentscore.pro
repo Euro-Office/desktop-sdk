@@ -18,6 +18,7 @@ include($$CORE_ROOT_DIR/../desktop-sdk/ChromiumBasedEditors/videoplayerlib/video
 HEADERS += \
     $$PWD/include/qcefview.h \
     $$PWD/include/qcefview_media.h \
+    $$PWD/src/qmediaposter.h \
     $$PWD/include/qascprinter.h \
 	$$PWD/qrenderer/include/qrenderer.h \
     $$PWD/include/qexternalmessageloop.h \
@@ -28,6 +29,7 @@ HEADERS += \
 SOURCES += \
     $$PWD/src/qcefview.cpp \
     $$PWD/src/qcefview_media.cpp \
+    $$PWD/src/qmediaposter.cpp \
     $$PWD/src/qascprinter.cpp \
 	$$PWD/qrenderer/src/qrenderer.cpp \
     $$PWD/src/qexternalmessageloop.cpp \

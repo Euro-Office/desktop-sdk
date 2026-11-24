@@ -4610,6 +4610,27 @@ public:
 			pListener->OnEvent(pEvent);
 			return true;
 		}
+		else if ("media_poster" == message_name)
+		{
+			// A local video was inserted: args are the copied video, the poster
+			// (a placeholder for now, next to the video with a .png extension)
+			// and the name the editor waits for. The Qt view (QCefView_Media)
+			// replaces the poster with a frame from the video and then runs
+			// window.on_add_video_poster[name] itself. The macOS app has no
+			// handler for this, so it keeps the placeholder.
+#ifdef __APPLE__
+			std::string sName = args->GetString(2).ToString();
+			m_pParent->ExecuteInAllFrames("(function(){ var m = window.on_add_video_poster; if (m && m[\"" + sName + "\"]) m[\"" + sName + "\"](); })();");
+#else
+			NSEditorApi::CAscCefMenuEvent* pEvent = m_pParent->CreateCefEvent(ASC_MENU_EVENT_TYPE_SYSTEM_EXTERNAL_MEDIA_PLAYER_COMMAND);
+			NSEditorApi::CAscExternalMediaPlayerCommand* pData = new NSEditorApi::CAscExternalMediaPlayerCommand();
+			pEvent->m_pData = pData;
+			pData->put_Cmd("posterFrame");
+			pData->put_Url(args->GetString(0).ToWString());
+			pListener->OnEvent(pEvent);
+#endif
+			return true;
+		}
 		else if ("media_end" == message_name)
 		{
 			NSEditorApi::CAscCefMenuEvent* pEvent = m_pParent->CreateCefEvent(ASC_MENU_EVENT_TYPE_SYSTEM_EXTERNAL_MEDIA_END);

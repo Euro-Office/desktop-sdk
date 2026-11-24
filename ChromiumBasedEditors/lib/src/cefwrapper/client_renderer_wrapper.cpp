@@ -3366,12 +3366,32 @@ window._external_process_callback = {};\n\
 
 				std::wstring sSrc = m_sSystemPlugins + L"/../sdkjs/common/Images/local/video/image";
 
+				// fallback poster, used when no frame can be taken from the video
 				NSFile::CFileBinary::Copy(sSrc + L".png", sDstMain + L"png");
 
+				// The browser process replaces the poster with a frame from the
+				// video and then calls window.on_add_video_poster[sImage] (see
+				// "media_poster" in cefview.cpp). The timeout keeps the insertion
+				// working with the placeholder if that never happens.
 				std::wstring sCode =
-					L"(function(){ window.on_add_multimedia_local(\"" + sImage + L".png\", \"" + sImage + L"." + sExt + L"\"); window.on_add_multimedia_local = undefined; })();"; // .svg
+					L"(function(){ var cb = window.on_add_multimedia_local; window.on_add_multimedia_local = undefined; "
+					L"var m = window.on_add_video_poster = (window.on_add_video_poster || {}); "
+					L"var done = function() { if (!m[\"" + sImage + L"\"]) return; delete m[\"" + sImage + L"\"]; "
+					L"if (cb) cb(\"" + sImage + L".png\", \"" + sImage + L"." + sExt + L"\"); }; "
+					L"m[\"" + sImage + L"\"] = done; setTimeout(done, 20000); })();";
 				CefRefPtr<CefFrame> _frame = CefV8Context::GetCurrentContext()->GetFrame();
 				_frame->ExecuteJavaScript(sCode, _frame->GetURL(), 0);
+
+#ifdef NO_SUPPORT_MEDIA_PLAYER
+				std::wstring sDone = L"(function(){ var m = window.on_add_video_poster; if (m && m[\"" + sImage + L"\"]) m[\"" + sImage + L"\"](); })();";
+				_frame->ExecuteJavaScript(sDone, _frame->GetURL(), 0);
+#else
+				CefRefPtr<CefProcessMessage> message = CefProcessMessage::Create("media_poster");
+				message->GetArgumentList()->SetString(0, sDst);
+				message->GetArgumentList()->SetString(1, sDstMain + L"png");
+				message->GetArgumentList()->SetString(2, sImage);
+				SEND_MESSAGE_TO_BROWSER_PROCESS(message);
+#endif
 				return true;
 			}
 			else if (name == "SendByMail")
