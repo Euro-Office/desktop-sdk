@@ -41,6 +41,9 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
+#include <QTouchEvent>
+#include <QHash>
+#include <QPointF>
 #include <QAtomicInt>
 #include <QList>
 #include <QOpenGLWidget>
@@ -105,6 +108,8 @@ public:
 	// Wayland: inserts the system clipboard text into the focused field
 	void PasteClipboardText();
 	virtual QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
+	// Wayland: touch screen input goes to CEF as touch (see ForwardTouchEvent)
+	virtual bool event(QEvent* e) override;
 
 	// drag'n'drop
 #if defined (_LINUX) && !defined(_MAC)
@@ -152,6 +157,7 @@ public:
 	virtual std::wstring GetClipboardData() override;
 	virtual void SetCursorType(int cursorType) override;
 	virtual void SetCursorCustom(const void* buffer, int width, int height, int hotspotX, int hotspotY) override;
+	virtual void OnVirtualKeyboardRequested(bool show) override;
 
 	// Wayland: called from the external message loop poller (top of loop,
 	// non-reentrant) after CEF is pumped. Repaints any view whose OnPaint
@@ -186,6 +192,12 @@ protected:
 	qint64 m_lastClickTimeMs = 0;
 	QPoint m_lastClickPos;
 	int m_clickCount = 0;
+
+	// Wayland: touch points CEF currently knows as pressed, by Qt point id, at
+	// their last position in CEF coordinates (see ForwardTouchEvent).
+	QHash<int, QPointF> m_touchPoints;
+	bool ForwardTouchEvent(QTouchEvent* event);
+	void CancelTouchPoints();
 
 	// Wayland: GL presenter overlaying this view (see QCefGLWidget). null on
 	// other platforms and until Init() runs.
