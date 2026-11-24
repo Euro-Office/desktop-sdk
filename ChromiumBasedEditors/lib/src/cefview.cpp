@@ -6155,8 +6155,10 @@ bool OnDragEnter(CefRefPtr<CefBrowser> browser,
 {
 	CEF_REQUIRE_UI_THREAD();
 
+	// GetFileNames() returns only display names (no directory) in current
+	// CEF; the editor needs the full paths to load dropped files.
 	std::vector<CefString> arFiles;
-	dragData->GetFileNames(arFiles);
+	dragData->GetFilePaths(arFiles);
 
 	if (0 != arFiles.size())
 	{
