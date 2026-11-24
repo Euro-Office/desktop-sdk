@@ -70,6 +70,8 @@ target_sources(qtascdocumentscore PRIVATE
     src/qdpichecker.cpp
     src/keyeventcharacter.h
     src/keyeventcharacter.cpp
+    src/imecomposition.h
+    src/imecomposition.cpp
 )
 
 target_link_libraries(qtascdocumentscore PRIVATE

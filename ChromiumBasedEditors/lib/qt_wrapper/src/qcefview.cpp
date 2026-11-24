@@ -26,6 +26,7 @@
 #include "./../include/qcefview.h"
 #include "cefframefit.h"
 #include "keyeventcharacter.h"
+#include "imecomposition.h"
 #include <cstdio>
 #include <QPainter>
 #include <QApplication>
@@ -259,6 +260,11 @@ void QCefView::mousePressEvent(QMouseEvent *event) {
 		m_lastClickTimeMs = now;
 		m_lastClickPos = pos;
 
+		// A click ends the composition in progress, as in Qt's own text
+		// widgets: the input method commits it (see inputMethodEvent).
+		if (m_imeComposing)
+			QGuiApplication::inputMethod()->commit();
+
 		// EXPERIMENTAL (dsf-1.0-osr): CEF's view-rect is now reported in
 		// physical pixels (device_scale_factor forced to 1.0), so mouse
 		// coordinates sent to CEF must also be physical pixels. Qt delivers
@@ -404,34 +410,45 @@ void QCefView::PasteClipboardText()
 		m_pCefView->ImeCommitText(text.toStdWString());
 }
 
-// An alternative approach would be to use CEF's ImeCommitText API directly
-// (CCefView::ImeCommitText, used by PasteClipboardText), which is the
-// canonical IME path. The SendKeyEvent(KEYEVENT_CHAR) approach is already
-// proven here and sufficient for dead key compose sequences (which produce
-// final committed characters, not preedit/intermediate compositions like CJK
-// input).
+// Input method text on Wayland. Compositions (preedit), such as Korean
+// syllables being assembled or Japanese and Chinese text before conversion, go
+// to CEF's IME API so the page shows them while they are typed and replaces
+// them with the committed text. A commit with no composition in progress, such
+// as the result of a dead key sequence, is typed as key events as before.
 void QCefView::inputMethodEvent(QInputMethodEvent *event) {
-	if (m_isWayland && m_pCefView) {
-		QString commitStr = event->commitString();
-		if (!commitStr.isEmpty()) {
-			for (int i = 0; i < commitStr.length(); i++) {
-				wchar_t ch = commitStr[i].unicode();
-				std::wstring character_str;
-				character_str.push_back(ch);
-				character_str.push_back(ch);
-				character_str.push_back(0);
-				// Send the full key event sequence: KEYDOWN(0) -> CHAR(3) -> KEYUP(2)
-				// CEF requires the complete sequence to properly inject characters.
-				// The committed text has no physical key, so the KEYDOWN/KEYUP must
-				// carry no virtual key code (0). Passing the character itself would
-				// be misread as a VK code: e.g. '\'' (0x27) is VK_RIGHT and '"' (0x22)
-				// is VK_NEXT/PageDown, which moved the cursor or switched slides
-				// instead of typing the dead-key result (issue #133).
-				m_pCefView->SendKeyEvent(0, 0, 0, character_str);
-				m_pCefView->SendKeyEvent(3, 0, 0, character_str);
-				m_pCefView->SendKeyEvent(2, 0, 0, character_str);
-			}
+	// Chromium finishes the composition when the view loses focus (see
+	// focusOutEvent), so the input method committing it afterwards would
+	// insert it a second time. Events only reach a view without focus that way.
+	if (m_isWayland && m_pCefView && hasFocus()) {
+		const ImeCompositionUpdate update = ImeCompositionUpdateFor(*event, m_imeComposing);
+
+		const QString& typed = update.typedText;
+		for (int i = 0; i < typed.length(); i++) {
+			wchar_t ch = typed[i].unicode();
+			std::wstring character_str;
+			character_str.push_back(ch);
+			character_str.push_back(ch);
+			character_str.push_back(0);
+			// Send the full key event sequence: KEYDOWN(0) -> CHAR(3) -> KEYUP(2)
+			// CEF requires the complete sequence to properly inject characters.
+			// The committed text has no physical key, so the KEYDOWN/KEYUP must
+			// carry no virtual key code (0). Passing the character itself would
+			// be misread as a VK code: e.g. '\'' (0x27) is VK_RIGHT and '"' (0x22)
+			// is VK_NEXT/PageDown, which moved the cursor or switched slides
+			// instead of typing the dead-key result (issue #133).
+			m_pCefView->SendKeyEvent(0, 0, 0, character_str);
+			m_pCefView->SendKeyEvent(3, 0, 0, character_str);
+			m_pCefView->SendKeyEvent(2, 0, 0, character_str);
 		}
+
+		if (!update.committedText.isEmpty())
+			m_pCefView->ImeCommitText(update.committedText.toStdWString());
+		if (update.cancel)
+			m_pCefView->ImeCancelComposition();
+		if (update.compose)
+			m_pCefView->ImeSetComposition(update.compositionText.toStdWString(), update.cursor);
+
+		m_imeComposing = update.composing;
 	}
 	event->accept();
 }
@@ -481,8 +498,17 @@ void QCefView::focusOutEvent(QFocusEvent* e)
 	// focus-out before this PR; keep that behavior unchanged there.
 	if (!m_isWayland)
 		return;
-	if (m_pCefView)
+	if (m_pCefView) {
+		// Keep the composition in progress as typed, as Chromium does on
+		// blur, and drop it from the input method so it is not committed
+		// again (see inputMethodEvent).
+		if (m_imeComposing) {
+			m_imeComposing = false;
+			m_pCefView->ImeFinishComposingText();
+			QGuiApplication::inputMethod()->reset();
+		}
 		m_pCefView->focus(false);
+	}
 }
 
 // move/resize
