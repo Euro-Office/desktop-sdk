@@ -2713,6 +2713,28 @@ public:
 			return true;
 		}
 
+		// Nextcloud's "Open locally" navigates to nc://open/<user>@<host>/<path>?token=...
+		// That link is for the Nextcloud desktop client, so hand it to the system
+		// like any other external link instead of letting the navigation fail.
+		if (0 == sUrl.find(L"nc://"))
+		{
+			NSEditorApi::CAscCefMenuEventListener* pListener = NULL;
+			if (NULL != m_pParent && NULL != m_pParent->GetAppManager())
+				pListener = m_pParent->GetAppManager()->GetEventListener();
+
+			if (pListener)
+			{
+				NSEditorApi::CAscOnOpenExternalLink* pData = new NSEditorApi::CAscOnOpenExternalLink();
+				pData->put_Id(m_pParent->GetId());
+				pData->put_Url(sUrl);
+
+				NSEditorApi::CAscCefMenuEvent* pEvent = m_pParent->CreateCefEvent(ASC_MENU_EVENT_TYPE_CEF_ONOPENLINK);
+				pEvent->m_pData = pData;
+				pListener->OnEvent(pEvent);
+			}
+			return true;
+		}
+
 		if (m_pParent->m_pInternal->m_bIsSSO)
 		{
 			if (m_pParent->m_pInternal->m_bIsFirstLoadSSO)
@@ -5320,7 +5342,9 @@ virtual void OnLoadError(CefRefPtr<CefBrowser> browser,
 						 const CefString& errorText,
 						 const CefString& failedUrl) OVERRIDE
 {
-	if (m_pParent && errorCode != ERR_ABORTED)
+	// ERR_UNKNOWN_URL_SCHEME: a link to a scheme nobody handles (e.g. an app
+	// protocol). That is not a network failure, so keep the current page.
+	if (m_pParent && errorCode != ERR_ABORTED && errorCode != ERR_UNKNOWN_URL_SCHEME)
 	{
 		if (frame->IsMain())
 		{
