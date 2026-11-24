@@ -3553,33 +3553,9 @@ public:
 					m_pParent->m_pInternal->m_oLocalInfo.m_oInfo.m_sPassword = nodePass.GetTextExt();
 
 				// remember csv/txt options to save the file with them again
-				XmlUtils::CXmlNode nodeEncoding = node.ReadNode(L"m_nCsvTxtEncoding");
-				XmlUtils::CXmlNode nodeDelimiter = node.ReadNode(L"m_nCsvDelimiter");
-				XmlUtils::CXmlNode nodeDelimiterChar = node.ReadNode(L"m_nCsvDelimiterChar");
-
-				if (nodeEncoding.IsValid() || nodeDelimiter.IsValid() || nodeDelimiterChar.IsValid())
-				{
-					NSStringUtils::CStringBuilder oCsvOptions;
-					if (nodeEncoding.IsValid())
-					{
-						oCsvOptions.WriteString(L"<m_nCsvTxtEncoding>");
-						oCsvOptions.WriteString(std::to_wstring((int)wcstol(nodeEncoding.GetText().c_str(), NULL, 10)));
-						oCsvOptions.WriteString(L"</m_nCsvTxtEncoding>");
-					}
-					if (nodeDelimiter.IsValid())
-					{
-						oCsvOptions.WriteString(L"<m_nCsvDelimiter>");
-						oCsvOptions.WriteString(std::to_wstring((int)wcstol(nodeDelimiter.GetText().c_str(), NULL, 10)));
-						oCsvOptions.WriteString(L"</m_nCsvDelimiter>");
-					}
-					if (nodeDelimiterChar.IsValid())
-					{
-						oCsvOptions.WriteString(L"<m_nCsvDelimiterChar>");
-						oCsvOptions.WriteEncodeXmlString(nodeDelimiterChar.GetText());
-						oCsvOptions.WriteString(L"</m_nCsvDelimiterChar>");
-					}
-					m_pParent->m_pInternal->m_oLocalInfo.m_oInfo.m_sCsvTxtOptions = oCsvOptions.GetData();
-				}
+				std::wstring sCsvTxtOptions = NSCsvTxtOptions::FromOpenOptions(m_pParent->m_pInternal->m_oConverterToEditor.m_sAdditionalConvertation);
+				if (!sCsvTxtOptions.empty())
+					m_pParent->m_pInternal->m_oLocalInfo.m_oInfo.m_sCsvTxtOptions = sCsvTxtOptions;
 			}
 
 			m_pParent->m_pInternal->LocalFile_Start();
