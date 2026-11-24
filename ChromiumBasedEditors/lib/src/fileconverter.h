@@ -1181,7 +1181,9 @@ public:
 
 		if (m_pLocker)
 		{
-			m_pLocker->SaveFile(sLockerSavedPath);
+			// report a file that couldn't be written instead of "saved"
+			if (0 == nReturnCode && !m_pLocker->SaveFile(sLockerSavedPath))
+				nReturnCode = AVS_ERROR_FILEACCESS;
 			m_pLocker = NULL;
 
 			if (NSFile::CFileBinary::Exists(sLockerSavedPath))
