@@ -221,6 +221,7 @@ set(ASCDOCUMENTSCORE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/filelocker.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/certificatecheck.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/portalauthorization.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/simplerequest.cpp"
     "${CORE_ROOT_DIR}/Common/OfficeFileFormatChecker2.cpp"
     "${CORE_ROOT_DIR}/Common/3dParty/pole/pole.cpp"
     "${CORE_ROOT_DIR}/OOXML/Base/unicode_util.cpp"

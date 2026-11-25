@@ -123,7 +123,8 @@ SOURCES += \
     $$PWD/src/keychain.cpp \
     $$PWD/src/filelocker.cpp \
     $$PWD/src/certificatecheck.cpp \
-    $$PWD/src/portalauthorization.cpp
+    $$PWD/src/portalauthorization.cpp \
+    $$PWD/src/simplerequest.cpp
 
 !core_mac {
 SOURCES += \
