@@ -3551,6 +3551,11 @@ public:
 
 				if (nodePass.IsValid())
 					m_pParent->m_pInternal->m_oLocalInfo.m_oInfo.m_sPassword = nodePass.GetTextExt();
+
+				// remember csv/txt options to save the file with them again
+				std::wstring sCsvTxtOptions = NSCsvTxtOptions::FromOpenOptions(m_pParent->m_pInternal->m_oConverterToEditor.m_sAdditionalConvertation);
+				if (!sCsvTxtOptions.empty())
+					m_pParent->m_pInternal->m_oLocalInfo.m_oInfo.m_sCsvTxtOptions = sCsvTxtOptions;
 			}
 
 			m_pParent->m_pInternal->LocalFile_Start();

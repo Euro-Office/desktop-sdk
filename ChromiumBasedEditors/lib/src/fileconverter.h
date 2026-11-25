@@ -37,6 +37,7 @@
 #include "../../../../core/Common/OfficeFileErrorDescription.h"
 
 #include "./x2t.h"
+#include "./csvtxtoptions.h"
 
 std::wstring GetPresentationThemes(CAscApplicationManager* pManager)
 {
@@ -110,6 +111,10 @@ public:
 
 	std::wstring m_sDocumentInfo;
 
+	// csv/txt options chosen by the user on open (x2t xml fragment),
+	// reused on save so the file keeps its encoding and delimiter
+	std::wstring m_sCsvTxtOptions;
+
 public:
 	CAscLocalFileInfo()
 	{
@@ -137,6 +142,7 @@ public:
 		m_sPassword = oSrc.m_sPassword;
 		m_sDocumentInfo = oSrc.m_sDocumentInfo;
 		m_sSaveJsonParams = oSrc.m_sSaveJsonParams;
+		m_sCsvTxtOptions = oSrc.m_sCsvTxtOptions;
 
 		m_sOldPassword = oSrc.m_sOldPassword;
 		return *this;
@@ -1074,7 +1080,10 @@ public:
 		oBuilder.WriteString(L"<m_bDontSaveAdditional>true</m_bDontSaveAdditional><m_sAllFontsPath>");
 
 		oBuilder.WriteEncodeXmlString(m_pManager->m_oSettings.fonts_cache_info_path);
-		oBuilder.WriteString(L"/AllFonts.js</m_sAllFontsPath><m_nCsvTxtEncoding>46</m_nCsvTxtEncoding><m_nCsvDelimiter>4</m_nCsvDelimiter>");
+		oBuilder.WriteString(L"/AllFonts.js</m_sAllFontsPath>");
+
+		// keep the encoding and delimiter the file was opened with
+		oBuilder.WriteString(NSCsvTxtOptions::GetSaveParams(m_oInfo.m_nCurrentFileFormat, m_oInfo.m_sCsvTxtOptions));
 		oBuilder.WriteString(sParams);
 
 		if (!m_oInfo.m_sOldPassword.empty() &&
