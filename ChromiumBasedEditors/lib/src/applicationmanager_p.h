@@ -55,6 +55,7 @@
 #include "providers.h"
 #include "filelocker.h"
 #include "portalauthorization.h"
+#include "simplerequest.h"
 
 #include "utils.h"
 #include "../../../../core/DesktopEditor/xmlsec/src/include/CertificateCommon.h"
@@ -330,11 +331,18 @@ namespace NSRequest
 		CefRefPtr<CefListValue> m_originalArgs;
 		int m_nRetryCount;
 
+		// Only for requests of the start page: the portal's Authorization header
+		// (CAscApplicationManager::SetPortalAuthorization) and uploads of local files
+		const CPortalAuthorization* m_pPortalAuth;
+		bool m_bFailed;
+
 	public:
-		CSimpleRequestClient(CefRefPtr<CefListValue>& args)
+		// pPortalAuth is set for requests the start page makes, nullptr for all others
+		CSimpleRequestClient(CefRefPtr<CefListValue>& args, const CPortalAuthorization* pPortalAuth = nullptr)
 		{
 			m_nRetryCount = 0;
 			m_originalArgs = args->Copy();
+			m_pPortalAuth = pPortalAuth;
 
 			InitializeRequest(m_originalArgs);
 		}
@@ -400,29 +408,22 @@ namespace NSRequest
 			m_request = CefRequest::Create();
 			m_frameId = NSArgumentList::GetInt64(args, 0);
 			m_requestId = args->GetInt(1);
-			m_request->SetURL(args->GetString(2));
+			std::string sUrl = args->GetString(2).ToString();
+			m_request->SetURL(sUrl);
 
-			std::string sMethod = args->GetString(3).ToString();
-			m_request->SetMethod(sMethod);
+			std::string sBody = args->GetString(4).ToString();
+			CSimpleRequestOptions oOptions(args->GetString(3).ToString(), sBody, nullptr != m_pPortalAuth);
+			m_bFailed = oOptions.Refused;
+			m_isProgress = oOptions.Progress;
+			m_request->SetMethod(oOptions.Method);
 
-			std::string::size_type posMethodParams = sMethod.find(":");
-			std::string sParams = "";
-
-			if (posMethodParams != std::string::npos)
+			if (oOptions.HasBody)
 			{
-				sParams = sMethod.substr(posMethodParams + 1);
-				sMethod = sMethod.substr(0, posMethodParams);
-
-				if (std::string::npos != sParams.find("stream"))
-					m_isProgress = true;
-			}
-
-			if ("POST" == sMethod)
-			{
-				std::string sPostData = args->GetString(4).ToString();
-
 				CefRefPtr<CefPostDataElement> postDataElement(CefPostDataElement::Create());
-				postDataElement->SetToBytes(sPostData.length(), sPostData.c_str());
+				if (oOptions.IsFile)
+					postDataElement->SetToFile(CefString(sBody));
+				else
+					postDataElement->SetToBytes(sBody.length(), sBody.c_str());
 				CefRefPtr<CefPostData> postData(CefPostData::Create());
 				postData->AddElement(postDataElement);
 				m_request->SetPostData(postData);
@@ -436,6 +437,15 @@ namespace NSRequest
 				m_request->SetHeaderByName(args->GetString(i), args->GetString(i + 1), true);
 			}
 
+			// The start page talks to the clouds the user logged in to with the system
+			// browser; it never sees their app passwords
+			if (m_pPortalAuth)
+			{
+				std::string sAuth = oOptions.Authorization(sUrl, m_request->GetHeaderByName("Authorization").ToString(), *m_pPortalAuth);
+				if (!sAuth.empty())
+					m_request->SetHeaderByName("Authorization", sAuth, true);
+			}
+
 			m_upload_total = 0;
 			m_download_total = 0;
 
@@ -445,6 +455,7 @@ namespace NSRequest
 		void StartInternal();
 		void SendToRenderer(const int_64_type& frameId, const std::string& sCode);
 		void SendAboutRetry();
+
 
 		void OnRequestComplete(CefRefPtr<CefURLRequest> request) override
 		{
@@ -487,14 +498,15 @@ namespace NSRequest
 
 			sReturnObject += (", responseStatus: " + std::to_string(responseStatus) + ", statusCode: " + std::to_string(error_code) + ", responseText : \"");
 
-			std::string sData = m_download_data;
-			NSStringUtils::string_replaceA(sData, "\\", "\\\\");
-			NSStringUtils::string_replaceA(sData, "\"", "\\\"");
-			NSStringUtils::string_replaceA(sData, "\n", "\\\n");
+			sReturnObject += NSSimpleRequest::EscapeJs(m_download_data);
 
-			sReturnObject += sData;
-
-			sReturnObject += "\"}";
+			// lower-case names, so pages can read e.g. "oc-fileid" or "etag"
+			CefResponse::HeaderMap mapHeaders;
+			response->GetHeaderMap(mapHeaders);
+			std::vector<std::pair<std::string, std::string>> arHeaders;
+			for (CefResponse::HeaderMap::const_iterator it = mapHeaders.begin(); it != mapHeaders.end(); ++it)
+				arHeaders.push_back({it->first.ToString(), it->second.ToString()});
+			sReturnObject += "\", responseHeaders: " + NSSimpleRequest::HeadersToJs(arHeaders) + "}";
 
 			std::string sCode = "try { window.AscSimpleRequest.";
 			if (UR_SUCCESS == status)

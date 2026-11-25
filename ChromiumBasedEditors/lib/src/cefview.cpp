@@ -4943,7 +4943,20 @@ public:
 	else if ("send_simple_request" == message_name)
 	{
 #ifdef CEF_SIMPLE_URL_REQUEST
-		CefRefPtr<NSRequest::CSimpleRequestClient> client = new NSRequest::CSimpleRequestClient(args);
+		// The start page gets the Authorization headers of the clouds logged in with the
+		// system browser (see CAscApplicationManager::SetPortalAuthorization), as long as
+		// it shows the app's own page and not a website
+		const CPortalAuthorization* pPortalAuth = nullptr;
+		CAscApplicationManager_Private* pManager = m_pParent->GetAppManager()->m_pInternal;
+		if (pManager->GetViewForSystemMessages() == m_pParent && browser)
+		{
+			CefRefPtr<CefFrame> frame = NSCefFrameId::Find(browser, NSArgumentList::GetInt64(args, 0));
+			std::string sFrameUrl = frame ? frame->GetURL().ToString() : "";
+			if (frame && frame->IsMain() && 0 != sFrameUrl.find("http:") && 0 != sFrameUrl.find("https:"))
+				pPortalAuth = &pManager->m_oPortalAuth;
+		}
+
+		CefRefPtr<NSRequest::CSimpleRequestClient> client = new NSRequest::CSimpleRequestClient(args, pPortalAuth);
 		client->Start(m_pParent->m_pInternal);
 #endif
 		return true;
@@ -6918,8 +6931,9 @@ private:
 
 void CCefView::load(const std::wstring& urlInputSrc)
 {
-	// portal pages: get a logged-in session first, see CPortalSessionRequest
-	if (GetType() == cvwtSimple && m_pInternal && m_pInternal->m_pManager)
+	// portal pages, and editors of portal documents opened from the start page: get a
+	// logged-in session first, see CPortalSessionRequest
+	if (m_pInternal && m_pInternal->m_pManager)
 	{
 		if (m_pInternal->m_bPortalSessionReady)
 		{
@@ -9328,6 +9342,12 @@ namespace NSRequest
 {
 	void CSimpleRequestClient::StartInternal()
 	{
+		if (m_bFailed)
+		{
+			SendToRenderer(m_frameId, "try { window.AscSimpleRequest._onError(" + std::to_string(m_requestId) +
+							", { status : \"error\", statusCode : 403, responseText : \"\" }); } catch (err) {}");
+			return;
+		}
 		m_view->GetBrowser()->GetMainFrame()->CreateURLRequest(m_request, this);
 	}
 

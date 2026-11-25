@@ -82,3 +82,10 @@ add_core_gtest(
     SOURCES ${CMAKE_CURRENT_LIST_DIR}/portalauthorization_test.cpp ${SDK_SRC}/portalauthorization.cpp
     GTEST_MAIN
 )
+
+# How AscSimpleRequest requests are made; needs neither CEF nor core
+add_core_gtest(
+    NAME    ascdocumentscore_simplerequest_test
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/simplerequest_test.cpp ${SDK_SRC}/simplerequest.cpp ${SDK_SRC}/portalauthorization.cpp
+    GTEST_MAIN
+)

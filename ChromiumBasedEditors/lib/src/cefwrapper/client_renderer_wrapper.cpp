@@ -4216,6 +4216,20 @@ window.AscDesktopEditor.CallInFrame(\"" +
 				if (arguments[1]->GetValue("body") && arguments[1]->GetValue("body")->IsString())
 					sPostData = arguments[1]->GetValue("body")->GetStringValue().ToString();
 
+				// { file: "<local path>" } uploads that file as the body (start page only)
+				if (arguments[1]->GetValue("file") && arguments[1]->GetValue("file")->IsString())
+				{
+					sPostData = arguments[1]->GetValue("file")->GetStringValue().ToString();
+					sMethod += (std::string::npos == sMethod.find(":")) ? ":file" : ",file";
+				}
+
+				// { portalAuth: true } sends the portal's Authorization header (start page only)
+				if (arguments[1]->GetValue("portalAuth") && arguments[1]->GetValue("portalAuth")->IsBool() &&
+					arguments[1]->GetValue("portalAuth")->GetBoolValue())
+				{
+					sMethod += (std::string::npos == sMethod.find(":")) ? ":auth" : ",auth";
+				}
+
 				CefRefPtr<CefProcessMessage> message = CefProcessMessage::Create("send_simple_request");
 
 				NSArgumentList::SetInt64(message->GetArgumentList(), 0, NSCefFrameId::Get(CefV8Context::GetCurrentContext()->GetFrame()));
