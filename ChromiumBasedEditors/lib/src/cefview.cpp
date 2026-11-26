@@ -9430,10 +9430,54 @@ void CCefView::ImeCommitText(const std::wstring& text)
 	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
 	if (!browser) return;
 
-	// Inserts the text at the cursor of the focused field, or replaces its
-	// selection, when no composition is in progress. The range is only used
-	// on macOS, so pass the invalid range like cefclient does.
+	// Replaces the composition in progress with the text, or, when there is
+	// none, inserts it at the cursor of the focused field or replaces its
+	// selection. The range is only used on macOS, so pass the invalid range
+	// like cefclient does.
 	browser->GetHost()->ImeCommitText(text, CefRange(UINT32_MAX, UINT32_MAX), 0);
+}
+
+void CCefView::ImeSetComposition(const std::wstring& text, int cursor)
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	// One thin underline under the whole composition. The caret is placed at
+	// cursor (UTF-16 code units). As for ImeCommitText, the replacement range
+	// is only used on macOS.
+	CefString composition(text);
+	const uint32_t length = static_cast<uint32_t>(composition.ToString16().length());
+	const uint32_t caret = static_cast<uint32_t>(cursor) < length ? static_cast<uint32_t>(cursor) : length;
+
+	CefCompositionUnderline underline;
+	underline.range = CefRange(0, length);
+	underline.color = CefColorSetARGB(0xFF, 0x00, 0x00, 0x00);
+	underline.background_color = 0;
+	underline.thick = 0;
+	underline.style = CEF_CUS_SOLID;
+
+	browser->GetHost()->ImeSetComposition(composition, std::vector<CefCompositionUnderline>(1, underline),
+										  CefRange(UINT32_MAX, UINT32_MAX), CefRange(caret, caret));
+}
+
+void CCefView::ImeCancelComposition()
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	browser->GetHost()->ImeCancelComposition();
+}
+
+void CCefView::ImeFinishComposingText()
+{
+	if (!m_pInternal || !m_pInternal->m_handler) return;
+	CefRefPtr<CefBrowser> browser = m_pInternal->m_handler->GetBrowser();
+	if (!browser) return;
+
+	// Keeps the composition text in the field, as Chromium does on blur.
+	browser->GetHost()->ImeFinishComposingText(false);
 }
 
 #if defined(_LINUX) && !defined(_MAC)
