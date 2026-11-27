@@ -155,6 +155,13 @@ bool QCefView::setFocusToCef()
 	if (isActivate)
 		m_pCefView->focus(true);
 
+	// On Wayland, keys reach CEF through this widget's keyPressEvent(), so
+	// the Qt focus has to move along with the CEF focus. Otherwise the
+	// previously clicked view, such as the start page after it created a
+	// document, keeps receiving the keys.
+	if (isActivate && m_isWayland && isVisible() && !hasFocus())
+		setFocus(Qt::OtherFocusReason);
+
 	//qDebug() << "focus: id = " << m_pCefView->GetId() << ", use = " << isActivate;
 	return isActivate;
 }
@@ -460,7 +467,12 @@ bool QCefView::focusNextPrevChild(bool next)
 	// gets forwarded to CEF like any other key, matching X11 behavior
 	// where CEF's native OSR input path bypassed Qt's focus chain
 	// entirely.
-	if (m_isWayland)
+	//
+	// Qt also calls this when the focused view is hidden, to move the focus
+	// elsewhere. Refusing then left the focus on the hidden start page after
+	// a new document opened in a tab, so keys and Ctrl+V went to the start
+	// page instead of the editor (Euro-Office/DesktopEditors#382).
+	if (m_isWayland && isVisible())
 		return false;
 	return QWidget::focusNextPrevChild(next);
 }
