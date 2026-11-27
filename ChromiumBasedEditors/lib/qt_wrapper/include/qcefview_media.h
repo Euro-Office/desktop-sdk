@@ -45,6 +45,7 @@ public:
 	void hideMediaControl();
 	void updateGeometry(NSEditorApi::CAscExternalMediaPlayerCommand* data);
 	void setMediaGeometry(NSEditorApi::CAscExternalMediaPlayerCommand* data, int xOffset, int yOffset);
+	void grabPosterFrame(const std::wstring& sVideoFile);
 
 protected:
 	virtual void hideEvent(QHideEvent* e) override;
