@@ -686,14 +686,12 @@ namespace NSSystem
 				pMemoryBuffer = new BYTE[nFileSize];
 			}
 
-			bool bRes = true;
-
-			m_pLocker->StartWrite();
-			m_pLocker->SeekFile(0);
+			// on failure the file is written by its path below
+			bool bRes = m_pLocker->StartWrite() && m_pLocker->SeekFile(0);
 
 			DWORD dwRead = 0;
 			DWORD dwWrite = 0;
-			while (nNeedWrite > 0)
+			while (bRes && nNeedWrite > 0)
 			{
 				if (nNeedWrite < nChunkSize)
 					nChunkSize = nNeedWrite;
@@ -713,8 +711,11 @@ namespace NSSystem
 			oFile.CloseFile();
 			RELEASEARRAYOBJECTS(pMemoryBuffer);
 
-			m_pLocker->SeekFile(nFileSize);
-			m_pLocker->Truncate(nFileSize);
+			if (bRes)
+			{
+				m_pLocker->SeekFile(nFileSize);
+				bRes = m_pLocker->Truncate(nFileSize);
+			}
 
 			if (!bRes)
 			{
@@ -723,7 +724,7 @@ namespace NSSystem
 #if defined(_WIN32)
 				bRes = (0 != ::CopyFileW(sFile.c_str(), m_sFile.c_str(), 0)) ? true : false;
 #else
-				bRes = false;
+				bRes = NSFile::CFileBinary::Copy(sFile, m_sFile);
 #endif
 
 				Lock();

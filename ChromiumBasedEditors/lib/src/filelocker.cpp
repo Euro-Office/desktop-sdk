@@ -524,6 +524,20 @@ namespace NSSystem
 			return true;
 		}
 
+		// The descriptor is opened when the document is opened. Sync clients
+		// (Nextcloud, OneDrive, Dropbox, ...) replace a file with a new one
+		// when they update it, so by the time of saving the descriptor can
+		// point to a file that is no longer at the path: open the current one.
+		virtual bool StartWrite()
+		{
+			if (!IsDescriptorCurrent())
+			{
+				Unlock();
+				Lock();
+			}
+			return IsDescriptorCurrent();
+		}
+
 		virtual bool SeekFile(DWORD dwPosition)
 		{
 			bool bResult = false;
@@ -566,6 +580,21 @@ namespace NSSystem
 		virtual bool IsEmpty()
 		{
 			return true;
+		}
+
+		// whether the descriptor is open and refers to the file at the path
+		bool IsDescriptorCurrent()
+		{
+			if (-1 == m_nDescriptor)
+				return false;
+
+			std::string sFileA = U_TO_UTF8(m_sFile);
+			struct stat oOpened;
+			struct stat oCurrent;
+			if (0 != fstat(m_nDescriptor, &oOpened) || 0 != stat(sFileA.c_str(), &oCurrent))
+				return false;
+
+			return oOpened.st_dev == oCurrent.st_dev && oOpened.st_ino == oCurrent.st_ino;
 		}
 
 		static bool IsUseLockFile()
