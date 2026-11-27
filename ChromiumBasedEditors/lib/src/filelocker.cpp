@@ -743,9 +743,20 @@ namespace NSSystem
 				m_pFileUri = g_file_get_uri(m_pFile);
 				GError* err = NULL;
 				m_pOutputStream = G_OUTPUT_STREAM(g_file_append_to(m_pFile, G_FILE_CREATE_PRIVATE, NULL, &err));
-				if (err && err->code == G_IO_ERROR_NOT_SUPPORTED)
+
+				// Saving rewrites the file from the start through this stream.
+				// Without seeking, the new content would be appended to the old
+				// one and then cut to the new size, leaving (a part of) the old
+				// file: GVfs doesn't seek in append streams on SMB since 1.57.1.
+				// Write such files with g_file_replace instead.
+				bool bCanRewrite = !err && m_pOutputStream &&
+								   g_seekable_can_seek(G_SEEKABLE(m_pOutputStream)) &&
+								   g_seekable_can_truncate(G_SEEKABLE(m_pOutputStream));
+
+				if ((err && err->code == G_IO_ERROR_NOT_SUPPORTED) || (!err && !bCanRewrite))
 				{
-					g_error_free(err);
+					if (err)
+						g_error_free(err);
 					err = NULL;
 
 					if (m_pOutputStream)
@@ -809,7 +820,10 @@ namespace NSSystem
 			bool bResult = false;
 			if (m_pFile && m_pOutputStream)
 			{
-				if (g_seekable_can_seek((GSeekable*)m_pOutputStream))
+				// a stream from g_file_replace starts at 0 and may not seek
+				if (g_seekable_tell((GSeekable*)m_pOutputStream) == (goffset)dwPosition)
+					bResult = true;
+				else if (g_seekable_can_seek((GSeekable*)m_pOutputStream))
 				{
 					GError* err = NULL;
 					if (g_seekable_seek((GSeekable*)m_pOutputStream, dwPosition, G_SEEK_SET, NULL, &err))
@@ -841,7 +855,8 @@ namespace NSSystem
 				}
 				else
 				{
-					g_output_stream_close(m_pOutputStream, NULL, NULL);
+					// closing the stream of g_file_replace puts the new file in place
+					bResult = g_output_stream_close(m_pOutputStream, NULL, NULL);
 					g_object_unref(m_pOutputStream);
 					m_pOutputStream = NULL;
 				}
