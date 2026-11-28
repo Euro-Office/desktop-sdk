@@ -104,6 +104,7 @@ HEADERS += \
     $$PWD/include/applicationmanager_events.h \
     $$PWD/src/applicationmanager_p.h \
     $$PWD/src/filelocker.h \
+    $$PWD/src/cefprofilemigration.h \
     $$PWD/src/nativeviewer.h \
     $$PWD/src/plugins.h \
     $$PWD/src/providers.h \
@@ -123,7 +124,8 @@ SOURCES += \
     $$PWD/src/keychain.cpp \
     $$PWD/src/filelocker.cpp \
     $$PWD/src/certificatecheck.cpp \
-    $$PWD/src/portalauthorization.cpp
+    $$PWD/src/portalauthorization.cpp \
+    $$PWD/src/cefprofilemigration.cpp
 
 !core_mac {
 SOURCES += \

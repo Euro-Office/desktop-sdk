@@ -82,3 +82,10 @@ add_core_gtest(
     SOURCES ${CMAKE_CURRENT_LIST_DIR}/portalauthorization_test.cpp ${SDK_SRC}/portalauthorization.cpp
     GTEST_MAIN
 )
+
+# Moving the pre-CEF-156 profile data into "Default"; plain std::filesystem
+add_core_gtest(
+    NAME    ascdocumentscore_cefprofilemigration_test
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/cefprofilemigration_test.cpp ${SDK_SRC}/cefprofilemigration.cpp
+    GTEST_MAIN
+)
