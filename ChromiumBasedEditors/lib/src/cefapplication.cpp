@@ -63,6 +63,7 @@ int XIOErrorHandlerImpl(Display *display)
 
 #include "../../../../core/DesktopEditor/common/File.h"
 #include "../src/applicationmanager_p.h"
+#include "cefprofilemigration.h"
 
 #include "cefwrapper/client_app.h"
 #include "cefwrapper/client_scheme.h"
@@ -429,6 +430,10 @@ int CApplicationCEF::Init_CEF(CAscApplicationManager* pManager, int argc, char* 
 	memset(&_cache_root, 0, sizeof(_cache_root));
 	cef_string_from_wide(sCachePath.c_str(), sCachePath.length(), &_cache_root);
 	settings.root_cache_path = _cache_root;
+
+	// The equal paths put the profile into sCachePath/Default; bring the data
+	// of the old layout along, or the connected clouds are gone after an update.
+	NSCefProfileMigration::MigrateLegacyProfile(sCachePath);
 
 	std::wstring sCachePathLog = sCachePath + L"/log.log";
 	cef_string_t _cache_log;
